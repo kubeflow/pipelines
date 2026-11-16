@@ -282,6 +282,52 @@ def dispatch_snapshot(branch='master', entries=None, prs=None, **overrides):
 
 
 class QueueAdmissionTest(unittest.TestCase):
+    def test_release_admission_matches_dependabot_exception_and_respects_holds(
+        self,
+    ):
+        branch = 'release-2.18'
+        result = run_case(branch=branch)
+        self.assertNotIn('error', result)
+        self.assertTrue(
+            any(w['route'] == 'enqueue' for w in result['writes']), result
+        )
+        bot = pr(
+            branch=branch,
+            labels=[],
+            user={'login': 'dependabot[bot]', 'type': 'Bot'},
+        )
+        result = run_case(branch=branch, prs={'7': [bot]})
+        self.assertTrue(
+            any(w['route'] == 'enqueue' for w in result['writes']), result
+        )
+        for changes in [
+            {'labels': [{'name': 'do-not-merge/hold'}]},
+            {'user': {'login': 'another-bot', 'type': 'Bot'}},
+            {'user': {'login': 'dependabot[bot]', 'type': 'User'}},
+        ]:
+            result = run_case(branch=branch, prs={'7': [{**bot, **changes}]})
+            self.assertEqual(result['writes'], [], result)
+
+    def test_explicit_release_snapshot_survives_default_rename(self):
+        snapshot = dispatch_snapshot('release-2.18')
+        snapshot['repository']['defaultBranchRef'] = {'name': 'main'}
+        result = run_case(
+            'inspectDispatchSnapshot',
+            branch='release-2.18',
+            enabled=['~DEFAULT_BRANCH', 'release-2.18'],
+            dispatchSnapshots=[snapshot],
+        )
+        self.assertNotIn('error', result)
+        self.assertIsNotNone(result['result'])
+        result = run_case(
+            'inspectDispatchSnapshot',
+            branch='release-2.18',
+            enabled=['~DEFAULT_BRANCH'],
+            dispatchSnapshots=[snapshot],
+        )
+        self.assertIsNone(result['result'])
+        self.assertEqual(result['calls'], [])
+
     def test_healthy_queue_sweep_reads_members_once(self):
         for branch in ['master', 'main']:
             with self.subTest(branch=branch):
@@ -1182,6 +1228,31 @@ class QueueAdmissionTest(unittest.TestCase):
             self.assertIn('Unsupported', unsupported['error'])
             self.assertEqual(unsupported['calls'], [])
             self.assertEqual(unsupported['writes'], [])
+
+    def test_sweep_isolates_default_rule_failure_from_release_admission(self):
+        for rules in [[], None]:
+            with self.subTest(rules=rules):
+                result = run_case(
+                    'sweep',
+                    branch='release-2.18',
+                    defaultBranch='main',
+                    enabled=['~DEFAULT_BRANCH', 'release-2.18'],
+                    rules=[rules, [{'type': 'merge_queue'}]],
+                )
+                self.assertTrue(result['error'].startswith('main: '), result)
+                self.assertNotIn('release-2.18:', result['error'])
+                self.assertEqual(
+                    [w['route'] for w in result['writes']],
+                    ['enqueue', 'status'],
+                )
+                self.assertEqual(
+                    [
+                        c['options']['base']
+                        for c in result['calls']
+                        if c['route'] == 'pulls'
+                    ],
+                    ['release-2.18'],
+                )
 
     def test_sweep_includes_closed_queued_prs_and_continues_after_one_failure(
         self,

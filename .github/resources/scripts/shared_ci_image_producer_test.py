@@ -35,6 +35,20 @@ def workflow(name):
 
 
 class SharedImageProducerTest(unittest.TestCase):
+    def test_queue_architectures_accept_only_supported_base_branches(self):
+        script = """
+const {architectures} = require('./.github/resources/scripts/shared_ci_image_plan');
+const assert = require('node:assert/strict');
+for (const branch of ['master', 'main', 'release-2.18']) {
+  assert.deepEqual(architectures({}, 'merge_group',
+    {merge_group: {base_ref: `refs/heads/${branch}`}}, []),
+    {amd64: true, arm64: true});
+}
+assert.throws(() => architectures({}, 'merge_group',
+  {merge_group: {base_ref: 'refs/heads/release-2.19'}}, []));
+"""
+        subprocess.run(['node', '-e', script], cwd=ROOT, check=True)
+
     def test_only_shared_producer_calls_image_builder(self):
         callers = []
         for path in WORKFLOWS.glob('*.y*ml'):

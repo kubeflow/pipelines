@@ -134,6 +134,36 @@ class FakeAPI:
 
 
 class SharedImageTests(unittest.TestCase):
+    def test_queue_identity_accepts_exact_supported_release(self):
+        for branch in ['master', 'main', 'release-2.18', 'release-2.19']:
+            for event in ['merge_group', 'workflow_dispatch']:
+                with self.subTest(branch=branch, event=event):
+                    value = identity()
+                    ref = (
+                        f'refs/heads/gh-readonly-queue/{branch}/pr-7-candidate'
+                    )
+                    value.update(
+                        event=event,
+                        ref=ref,
+                        pr=None,
+                        merge_group={
+                            'head_sha': value['source_sha'],
+                            'head_ref': ref,
+                            'base_sha': 'd' * 40,
+                            'base_ref': f'refs/heads/{branch}',
+                        },
+                    )
+                    if branch == 'release-2.19':
+                        with self.assertRaises(shared.InvalidEvidence):
+                            shared.validate_identity(value)
+                    else:
+                        self.assertEqual(shared.validate_identity(value), value)
+                        value['merge_group']['head_ref'] = ref.replace(
+                            branch, 'release-2.19'
+                        )
+                        with self.assertRaises(shared.InvalidEvidence):
+                            shared.validate_identity(value)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

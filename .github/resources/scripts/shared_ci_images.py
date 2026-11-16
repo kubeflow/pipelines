@@ -212,13 +212,18 @@ def validate_identity(value):
             'Malformed merge group identity',
         )
         require(
-            group['base_ref'] in ('refs/heads/master', 'refs/heads/main'),
-            'Expected master or main queue',
+            group['base_ref']
+            in (
+                'refs/heads/master',
+                'refs/heads/main',
+                'refs/heads/release-2.18',
+            ),
+            'Expected master, main, or release-2.18 queue',
         )
         base_branch = group['base_ref'].removeprefix('refs/heads/')
         require(
             matches(
-                rf'refs/heads/gh-readonly-queue/{base_branch}/pr-[0-9]+-[^/]+',
+                rf'refs/heads/gh-readonly-queue/{re.escape(base_branch)}/pr-[0-9]+-[^/]+',
                 group['head_ref'],
             )
             and group['head_ref'] == value['ref'],

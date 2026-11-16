@@ -122,7 +122,7 @@ const github = {{rest: {{
     const changed = reserved() && f.refsAfterReservation;
     const refs = changed || f.refs;
     const sha = next('ref-' + options.ref, refs[options.ref] ||
-      [['heads/master', 'heads/main'].includes(options.ref) ? {json.dumps(BASE)} : {json.dumps(HEAD)}]);
+      [['heads/master', 'heads/main', 'heads/release-2.18'].includes(options.ref) ? {json.dumps(BASE)} : {json.dumps(HEAD)}]);
     if (sha === null) throw Object.assign(new Error('Ref disappeared'), {{status:404}});
     return {{data:{{ref:'refs/' + options.ref, object:{{type:'commit',sha}}}}}};
   }}}},
@@ -152,7 +152,11 @@ const github = {{rest: {{
   }}}},
 }}, paginate:async (route,options) => {{
   requests.push({{route,options}});
-  if (route.includes('/rules/branches/')) return f.rules;
+  if (route.includes('/rules/branches/')) {{
+    const rules = f.branchRules ? f.branchRules[options.branch] : f.rules;
+    if (rules === null) throw new Error('Rule lookup unavailable');
+    return rules;
+  }}
   if (route === 'matchingRefs') return f.matchingRefs;
   if (route === 'runs') {{
     if (f.runsError) throw new Error('Runs unavailable');
@@ -173,7 +177,7 @@ const github = {{rest: {{
     const refs = reserved() && f.refsAfterReservation || f.refs;
     function refValue(ref) {{
       const oid = next('ref-' + ref, refs[ref] ||
-        [['heads/master', 'heads/main'].includes(ref) ? {json.dumps(BASE)} : {json.dumps(HEAD)}]);
+        [['heads/master', 'heads/main', 'heads/release-2.18'].includes(ref) ? {json.dumps(BASE)} : {json.dumps(HEAD)}]);
       return oid === null ? null : {{target:{{__typename:'Commit',oid}}}};
     }}
     repository.defaultBranchRef = {{name:next('defaultBranch', f.defaultBranches || [f.defaultBranch || f.branch])}};
@@ -226,6 +230,31 @@ gate[f.method]({{github, context:{{eventName:'schedule',payload:{{}},repo:{{owne
 
 
 class QueueRecoveryTest(unittest.TestCase):
+    def test_default_rule_failure_does_not_block_release_dispatch(self):
+        for rules in [[], None]:
+            with self.subTest(rules=rules):
+                result = dispatch(
+                    method='dispatchCandidates',
+                    branch='release-2.18',
+                    defaultBranch='main',
+                    enabled=['~DEFAULT_BRANCH', 'release-2.18'],
+                    branchRules={
+                        'main': rules,
+                        'release-2.18': [{'type': 'merge_queue'}],
+                    },
+                )
+                self.assertTrue(result['error'].startswith('main: '), result)
+                self.assertNotIn('release-2.18:', result['error'])
+                self.assertEqual(len(result['dispatches']), 1, result)
+                self.assertEqual(
+                    result['dispatches'][0]['inputs']['queue_base_ref'],
+                    'release-2.18',
+                )
+                self.assertTrue(
+                    any(w['context'] == 'ci-passed' for w in result['writes']),
+                    result,
+                )
+
     def test_default_selector_dispatches_resolved_candidate_for_either_name(
         self,
     ):
@@ -457,7 +486,7 @@ class QueueDispatchTest(unittest.TestCase):
         )
 
     def test_missing_lane_dispatches_exact_candidate_for_either_branch(self):
-        for branch in ['master', 'main']:
+        for branch in ['master', 'main', 'release-2.18']:
             with self.subTest(branch=branch):
                 result = dispatch(branch=branch)
                 self.assertNotIn('error', result)

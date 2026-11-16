@@ -48,6 +48,22 @@ class QueueTestSourcesTest(unittest.TestCase):
                 sha,
             ),
         ]
+        cases.extend(
+            [
+                (
+                    'merge_group',
+                    'refs/heads/gh-readonly-queue/release-2.18/pr-7-test',
+                    {'merge_group': {'head_sha': sha}},
+                    sha,
+                ),
+                (
+                    'workflow_dispatch',
+                    'refs/heads/gh-readonly-queue/release-2.18/pr-7-test',
+                    {},
+                    sha,
+                ),
+            ]
+        )
         count = 0
         for filename in [
             'kfp-sdk-tests.yml',
@@ -138,7 +154,7 @@ class QueueTestSourcesTest(unittest.TestCase):
             if step.get('id') == 'run-tests'
         )
         sha = 'a' * 40
-        for branch in ['master', 'main']:
+        for branch in ['master', 'main', 'release-2.18']:
             queue = f'refs/heads/gh-readonly-queue/{branch}/pr-7-test'
             for event, ref, payload, expected in [
                 ('pull_request', 'refs/pull/7/merge', {}, branch),

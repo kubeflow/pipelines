@@ -18,7 +18,7 @@ const SHA = /^[0-9a-f]{40}$/;
 
 function candidate(context) {
   const run = context.payload.workflow_run;
-  const queue = /^gh-readonly-queue\/(master|main)\/pr-[1-9][0-9]*-[A-Za-z0-9-]+$/.exec(run?.head_branch || '');
+  const queue = /^gh-readonly-queue\/(master|main|release-2\.18)\/pr-[1-9][0-9]*-[A-Za-z0-9-]+$/.exec(run?.head_branch || '');
   if (context.eventName !== 'workflow_run' || !['merge_group', 'workflow_dispatch'].includes(run?.event) ||
       run.head_repository?.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
       !queue ||
@@ -36,6 +36,13 @@ async function readRef(github, context, branch) {
 function expectedWorkflows(inventory, workflowFiles, baseRef) {
   validateInventory(inventory, workflowFiles);
   const expected = [];
+  // Release image producers keep publishing PR/push paths separate from their
+  // read-only queue companions. Both paths must exist in the trusted inventory.
+  const companions = baseRef === 'release-2.18' ? {
+    '.github/workflows/build-tools-images.yml': '.github/workflows/build-tools-images-merge-group.yml',
+    '.github/workflows/runtime-base-images.yml': '.github/workflows/runtime-base-images-merge-group.yml',
+  } : {};
+  const requiredCompanions = [];
   for (const workflow of inventory.workflows) {
     const paused = workflow.path === '.github/workflows/upgrade-test.yml' &&
       workflow.disabled_for_migration === true;
@@ -60,8 +67,16 @@ function expectedWorkflows(inventory, workflowFiles, baseRef) {
       queueLane = applicable(branches, baseRef, []);
     }
     if (paused) continue;
-    if (basePR && !queueLane) throw new Error(`${baseRef} CI lane lacks merge_group coverage: ${workflow.path}`);
+    if (basePR && !queueLane) {
+      if (!companions[workflow.path]) {
+        throw new Error(`${baseRef} CI lane lacks merge_group coverage: ${workflow.path}`);
+      }
+      requiredCompanions.push(companions[workflow.path]);
+    }
     if (queueLane) expected.push(workflow.path);
+  }
+  for (const companion of requiredCompanions) {
+    if (!expected.includes(companion)) throw new Error(`Missing release queue companion: ${companion}`);
   }
   if (!expected.length) throw new Error('No expected merge_group workflows');
   return expected;

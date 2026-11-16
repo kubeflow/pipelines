@@ -181,6 +181,90 @@ const github = {rest: {repos: {get: async parameters => {
                     [read['route'] for read in result['reads']], ['repository']
                 )
 
+    def test_release_activation_artifacts_are_explicit_and_preserve_checks(
+        self,
+    ):
+        root = ROOT / 'docs/agents'
+        ruleset = json.loads(
+            (root / 'merge-queue-release-2.18-ruleset.json').read_text()
+        )
+        self.assertEqual(
+            ruleset['conditions']['ref_name']['include'],
+            ['refs/heads/release-2.18'],
+        )
+        self.assertEqual(ruleset['bypass_actors'], [])
+        rules = {rule['type']: rule['parameters'] for rule in ruleset['rules']}
+        self.assertEqual(rules['merge_queue']['max_entries_to_build'], 5)
+        self.assertEqual(rules['merge_queue']['max_entries_to_merge'], 5)
+        self.assertEqual(rules['merge_queue']['min_entries_to_merge'], 1)
+        checks = rules['required_status_checks']['required_status_checks']
+        self.assertEqual(
+            {c['context']: c['integration_id'] for c in checks},
+            {'DCO': 1861, 'pre-commit': 15368, 'ci-passed': 15368},
+        )
+        patch = json.loads(
+            (root / 'merge-queue-release-2.18-required-checks.json').read_text()
+        )
+        self.assertFalse(patch['strict'])
+        self.assertEqual(
+            {c['context']: c['app_id'] for c in patch['checks']},
+            {'DCO': 1861, 'pre-commit': 15368, 'ci-passed': 15368},
+        )
+        policy = json.loads(
+            (root / 'merge-queue-release-2.18-policy.json').read_text()
+        )
+        self.assertEqual(
+            policy['enabled_branches'], ['~DEFAULT_BRANCH', 'release-2.18']
+        )
+        # Shipping support alone must not activate a branch whose workflows are not ready.
+        self.assertEqual(
+            json.loads((ROOT / '.github/merge-queue-policy.json').read_text())[
+                'enabled_branches'
+            ],
+            ['~DEFAULT_BRANCH'],
+        )
+
+    def test_release_requires_explicit_opt_in_and_enforcement(self):
+        self.policy(['~DEFAULT_BRANCH', 'release-2.18'])
+        result = self.node('branches', defaultBranch='main')
+        self.assertNotIn('error', result)
+        self.assertEqual(result['result'], ['main', 'release-2.18'])
+        self.assertTrue(
+            self.node(
+                'enabled',
+                branch='release-2.18',
+                defaultBranch='main',
+                rules=[{'type': 'merge_queue'}],
+            )['result']
+        )
+        self.assertIn(
+            'enforced merge_queue',
+            self.node('enabled', branch='release-2.18', defaultBranch='main')[
+                'error'
+            ],
+        )
+        self.assertFalse(self.node('enabled', branch='release-2.19')['result'])
+        self.policy(['~DEFAULT_BRANCH', 'release-2.19'])
+        self.assertIn('error', self.node('load'))
+
+    def test_release_admission_uses_live_policy_after_opt_in(self):
+        self.policy(['release-2.18'])
+        result = self.exercise(
+            pr={
+                'base': {
+                    'ref': 'release-2.18',
+                    'sha': 'b' * 40,
+                    'repo': {'full_name': 'kubeflow/pipelines'},
+                }
+            }
+        )
+        self.assertEqual(result['status'], 'success', result)
+        self.assertTrue(
+            result['descriptions'][-1].startswith(
+                'Queue admission release-2.18 CI passed;'
+            )
+        )
+
     def test_default_selector_rereads_metadata_after_rename(self):
         self.policy(['~DEFAULT_BRANCH'])
         result = self.node(
@@ -403,7 +487,7 @@ const github = {rest: {repos: {get: async parameters => {
         self.assertEqual(disabled['status'], 'pending')
 
     def test_invalid_policy_fails_closed(self):
-        for branches in [['release-2.18'], ['master', 'master'], '*', [None]]:
+        for branches in [['release-2.19'], ['master', 'master'], '*', [None]]:
             with self.subTest(branches=branches):
                 self.policy(branches)
                 self.assertIn(
