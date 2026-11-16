@@ -247,14 +247,18 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 	}()
 
 	defer func() {
+		// Bounded even on the normal path: finalization (batch flush, GetRun,
+		// UpdateStatuses, and the FAILED fallback write) must not hang forever on
+		// an unresponsive API server. When the launcher ctx is already canceled
+		// (e.g. SIGTERM), finalize on a detached context instead, with the same
+		// bound, so terminal state still persists after the parent is gone.
 		finalizeCtx := ctx
 		if ctx.Err() != nil {
-			// The launcher ctx is already canceled (e.g. SIGTERM): finalize
-			// on a detached, bounded context so terminal state still persists.
-			var cancel context.CancelFunc
-			finalizeCtx, cancel = context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
-			defer cancel()
+			finalizeCtx = context.WithoutCancel(ctx)
 		}
+		var cancel context.CancelFunc
+		finalizeCtx, cancel = context.WithTimeout(finalizeCtx, 30*time.Second)
+		defer cancel()
 		executionErr = l.finalizeExecution(finalizeCtx, executionErr)
 	}()
 
@@ -265,13 +269,6 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 			_ = bucket.Close()
 		}
 	}()
-
-	// Required, not best effort: the defers above must already be registered so a
-	// write failure here still finalizes the task as FAILED instead of leaving it
-	// stuck, and still fails before any user code below has a chance to run.
-	if err := l.persistExecutorPod(ctx); err != nil {
-		return fmt.Errorf("failed to record executor pod before execution: %w", err)
-	}
 
 	if l.options.PluginDispatcher != nil {
 		dispatcher = l.options.PluginDispatcher
@@ -285,6 +282,14 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 	}
 	if taskProps := l.options.Task.GetStatusMetadata().GetCustomProperties(); len(taskProps) > 0 {
 		dispatcher.ApplyCustomProperties(structValuesToStringMap(taskProps))
+	}
+
+	// Required, not best effort: the defers above are already registered, including the
+	// real dispatcher selection, so a write failure here still finalizes the task as
+	// FAILED, still notifies the plugin dispatcher of that state, and still fails before
+	// any user code below has a chance to run.
+	if err := l.persistExecutorPod(ctx); err != nil {
+		return fmt.Errorf("failed to record executor pod before execution: %w", err)
 	}
 
 	// Fetch Launcher config and initialize KFP API client if not already set (testing mode)
@@ -410,7 +415,12 @@ func (l *LauncherV2) persistFailedTaskAfterFinalizationError(
 		l.options.Task.StatusMetadata = &apiV2.PipelineTask_StatusMetadata{}
 	}
 	l.options.Task.StatusMetadata.Message = finalizationErr.Error()
-	_, updateTaskErr := l.clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2.UpdateTaskRequest{
+	// A fresh, detached timeout: ctx may already be at or near its deadline after the
+	// finalization step that just failed, and FAILED state persisting is the one thing
+	// this fallback exists to do, so it gets its own budget rather than whatever is left.
+	fallbackCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer cancel()
+	_, updateTaskErr := l.clientManager.KFPAPIClient().UpdateTask(fallbackCtx, &apiV2.UpdateTaskRequest{
 		TaskId: l.options.Task.GetTaskId(),
 		Task:   l.options.Task,
 		RunId:  l.options.Task.GetRunId(),
