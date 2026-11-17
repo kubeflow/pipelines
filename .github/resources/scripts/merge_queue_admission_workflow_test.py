@@ -35,7 +35,11 @@ class AdmissionWorkflowTest(unittest.TestCase):
             (ROOT / '.github/merge-queue-policy.json').read_text()
         )
         self.assertEqual(
-            policy, {'version': 1, 'enabled_branches': ['~DEFAULT_BRANCH']}
+            policy,
+            {
+                'version': 1,
+                'enabled_branches': ['~DEFAULT_BRANCH', 'release-2.18'],
+            },
         )
         steps = self.job['steps']
         self.assertEqual(steps[0]['with']['ref'], '${{ github.workflow_sha }}')
