@@ -376,7 +376,6 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                 '${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar',
                 '${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.json',
                 '${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.provenance.json',
-                '${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.go-provenance/',
             ],
         )
         smoke = workflow('arm64-presubmit.yml')['jobs']['smoke']

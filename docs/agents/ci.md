@@ -719,3 +719,8 @@ Recipe paths are validated before image classification: absolute paths and paren
 traversal are rejected. Changes to the provenance wrapper, Git-context helper,
 or Go build-info reader explicitly select both shared-image architectures even
 when no consumer workflow's path filter matches.
+
+Go binary verification reports from shared CI image builds are retained in a
+separate `<image>[-arm64]-go-provenance-attempt-<attempt>` artifact. Image bundles
+contain only their registered archives, image identities, and checksum records;
+extra files still fail validation. Binary verification runs before either upload.

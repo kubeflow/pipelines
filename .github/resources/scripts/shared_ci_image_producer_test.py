@@ -154,6 +154,7 @@ assert.throws(() => architectures({}, 'merge_group',
                 step
                 for step in steps
                 if step.get('uses', '').startswith('actions/upload-artifact@')
+                and step.get('id') != 'upload-go-provenance'
             ]
             self.assertEqual(len(uploads), 1)
             upload = uploads[0]
@@ -237,7 +238,18 @@ assert.throws(() => architectures({}, 'merge_group',
             self.assertLess(steps.index(verify), steps.index(record))
             self.assertNotIn('always()', record['if'])
         upload = next(s for s in steps if s.get('id') == 'upload-image')
-        self.assertIn('.go-provenance/', upload['with']['path'])
+        self.assertNotIn('.go-provenance/', upload['with']['path'])
+        evidence = next(
+            s for s in steps if s.get('id') == 'upload-go-provenance'
+        )
+        self.assertIn('.go-provenance/', evidence['with']['path'])
+        self.assertIn('github.run_attempt', evidence['with']['name'])
+        self.assertIn('env.ARTIFACT_NAME', evidence['with']['name'])
+        self.assertEqual(
+            evidence['if'], "${{ steps.verify-go.outcome == 'success' }}"
+        )
+        self.assertEqual(evidence['with']['if-no-files-found'], 'error')
+        self.assertLess(steps.index(verify), steps.index(evidence))
 
     def test_live_pr_revision_changes_cannot_skip_an_architecture(self):
         script = """

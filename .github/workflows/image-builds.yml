@@ -337,6 +337,7 @@ jobs:
           outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
 
       - name: Verify native Go image provenance
+        id: verify-go
         if: ${{ matrix.image != 'frontend' && (steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
         env:
           DOCKERFILE: ${{ matrix.dockerfile }}
@@ -377,7 +378,16 @@ jobs:
             ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
             ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.json
             ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.provenance.json
-            ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.go-provenance/
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload Go binary evidence
+        id: upload-go-provenance
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: ${{ steps.verify-go.outcome == 'success' }}
+        with:
+          name: ${{ env.ARTIFACT_NAME }}-go-provenance-attempt-${{ github.run_attempt }}
+          path: ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.go-provenance/
           if-no-files-found: error
           retention-days: 1
 
