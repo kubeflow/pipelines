@@ -72,7 +72,7 @@ def evaluate(expression, event, matrix_check='static', **overrides):
 
 
 class MergeQueueWorkflowsTest(unittest.TestCase):
-    def test_all_pr_lanes_run_for_both_queues_without_path_filters(
+    def test_all_pr_lanes_run_for_supported_queues_without_path_filters(
         self,
     ):
         records = [
@@ -96,7 +96,7 @@ class MergeQueueWorkflowsTest(unittest.TestCase):
                     lane['merge_group'],
                     {
                         'types': ['checks_requested'],
-                        'branches': ['master', 'main'],
+                        'branches': ['master', 'main', 'release-2.18'],
                     },
                 )
         paused = next(

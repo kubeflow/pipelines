@@ -2,10 +2,12 @@
 
 The activation policy selects `~DEFAULT_BRANCH`, resolved from live repository
 metadata to either `master` or `main`. It never enables both names at once.
-**Do not merge this activation change until the coordinated cutover below.**
-An unmerged PR does not activate admission. The trusted default-branch controller requires both the enabled policy
+Support changes can merge with the current policy unchanged. Additional branch
+activation requires the coordinated sequence below. The trusted default-branch controller requires both the enabled policy
 and an active queue rule; enabling policy without that rule fails closed.
-The nondefault name and release branches retain existing behavior. Unexpected
+The nondefault name and unconfigured release branches retain existing behavior.
+`release-2.18` is explicitly enabled alongside the default selector; its workflow
+prerequisites landed in #15702 and #15703. See the release activation section below. Unexpected
 default branch names, unreadable metadata, or mismatched repository identity fail
 closed. The selector is resolved afresh at enforcement boundaries.
 
@@ -29,7 +31,11 @@ identify their target branch, and recovery revisits greens when policy mode or
 base policy changes. Queue candidates continue to run all applicable lanes against
 the exact combined SHA, with no relaxation of candidate freshness or image identity.
 
-The trusted `queue_admission` job runs after PR CI reconciliation, on approval,
+The trusted `queue_admission` job runs independently of the status-recovery
+matrix. Each newly verified queue-ready success wakes the default-branch
+recovery workflow with its exact PR head. Every surviving serialized controller
+catches up other likely ready PRs, including on the five-minute recovery
+schedule, and freshly verifies policy and CI before admission. It also runs on approval,
 hold, draft, retarget, and head-change events, and during scheduled recovery.
 Ordinary events inspect the affected PR and all current queue members; scheduled
 recovery alone sweeps all open PRs. A replaced pending event is therefore not the
@@ -124,11 +130,24 @@ operator investigation rather than an unbounded dispatch loop.
 Successful enqueue also records `queue-admission-attempt` on the PR head,
 consuming the workflow-attempt fingerprint bound to the successful PR status.
 Admission compares current evidence with that verified fingerprint, so a running
-or failed retry cannot reuse an older green. Recovery
-cannot repeatedly re-enqueue the same green head after a failed or removed queue
-candidate. After investigating, deliberately rerun PR CI to obtain a fresh
-successful admission status before retrying admission. This is separate from
-rerunning a failed candidate workflow while its queue entry still exists.
+or failed retry cannot reuse an older green. Recovery permits one automatic
+re-admission after GitHub removes a candidate for `failed_checks`, following a
+15-minute cooldown and fresh head, CI, approval, hold and enforcement checks.
+Manual removals do not qualify. The `queue-admission-retry` receipt consumes this
+retry before enqueue, so an ambiguous API response cannot cause a retry loop.
+If that retry fails, investigate and deliberately rerun PR CI to obtain a new
+verified workflow fingerprint. Merely restamping the existing success does not
+reset the budget. This is separate from rerunning a failed candidate workflow
+while its queue entry still exists.
+
+For an eligible PR blocked by failed admission CI, recovery can rerun PR Gate's
+membership-lookup infrastructure failure after 15 minutes. It considers only the
+authoritative matching run, ordered by current attempt time rather than original
+creation time, retries attempt 1 once, and reserves at most two distinct reruns
+per PR head. Authority is rechecked before each write; historical failures are
+never retried as a fallback. Failures in issue-admission rules or other steps are not
+retryable. Scheduled CI reconciliation must verify success before queue entry;
+recovery does not grant approval or bypass checks.
 
 The isolated full-CI test merged [PR #15620](https://github.com/kubeflow/pipelines/pull/15620)
 and [PR #15621](https://github.com/kubeflow/pipelines/pull/15621) through the native
@@ -257,3 +276,52 @@ PYTHONPATH=.github/resources/scripts python3 -m unittest \
 These deterministic fixtures exercise disabled and enabled policy, API failures,
 queued policy revocation, branch/head identity, and external Tide scope. They do
 not establish a live queue rollout or deployment of the external configuration.
+
+## Release-2.18 opt-in
+
+Release support is explicitly scoped to `release-2.18`; other release branches
+retain their current behavior. The active policy includes the release after its
+prerequisites landed. The controller accepts an explicit release alongside
+`~DEFAULT_BRANCH`, preserves the live default selector across renames, and requires
+an active queue rule independently for each enabled branch. Verified Dependabot PRs use the same automatic admission exception as the
+default branch: passing CI is required, but `lgtm` and `approved` are not. Holds
+still block admission; human-authored PRs retain both review labels.
+
+The trusted controller and publisher run on the default branch, using the live
+release tip for workflow policy and the exact queue candidate for execution.
+Release image producers have explicit read-only queue companions; both the PR
+producer and matching queue companion must appear in trusted workflow inventory.
+Default-branch dispatch registrations for release-only workflow paths fail closed
+if run there; the actual implementations execute at the release queue ref.
+
+Activation order (Tide configuration remains unchanged):
+
+1. Merge default-branch controller/registration support, then the release workflow
+   PR. Verify every required release lane has exact-ref/SHA dispatch guards,
+   automatic test selection and no image publication from queue candidates.
+2. Resolve the registered release-only workflow IDs and verify dispatch uses the
+   implementation on the release candidate, not the default-branch registration.
+3. Apply the explicit release policy from
+   [merge-queue-release-2.18-policy.json](merge-queue-release-2.18-policy.json) in a
+   reviewed default-branch activation commit. Coordinate its merge with the rule
+   below; the controller fails closed while an enabled branch has no rule.
+4. Create [the release ruleset](merge-queue-release-2.18-ruleset.json), scoped to
+   `refs/heads/release-2.18`, with five candidate builds, one-to-five merging PRs,
+   ALLGREEN, squash and a 120-minute timeout. Verify effective enforcement and
+   only the repository administrator role (ID 5) with `pull_request` bypass,
+   including no Tide App bypass, before relaxing freshness.
+5. Read the current release protection and reconcile any drift. Apply only
+   [the required-checks patch](merge-queue-release-2.18-required-checks.json):
+   preserve existing App-bound DCO and pre-commit checks, add App-bound ci-passed,
+   and set strict freshness false. Preserve every unrelated protection.
+6. Observe a normally approved release PR automatically enter the queue, run all
+   required exact-candidate lanes, publish DCO/pre-commit/ci-passed, and merge.
+   Verify scheduled recovery and a hold/revoked approval blocks merging. Tide
+   can still attempt direct merges but has no App bypass in the queue rule.
+   Repository administrators can explicitly bypass through a PR; this does not
+   grant direct-push bypass. Other organization and branch protections still apply.
+
+Do not enable the release rule while its dispatch prerequisites are missing.
+For rollback, freeze and drain release candidates, remove the explicit release
+policy entry and restore strict release freshness before removing queue
+protection. Preserve main's policy and queue rule throughout.

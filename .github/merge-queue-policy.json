@@ -1,6 +1,7 @@
 {
   "version": 1,
   "enabled_branches": [
-    "~DEFAULT_BRANCH"
+    "~DEFAULT_BRANCH",
+    "release-2.18"
   ]
 }

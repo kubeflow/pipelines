@@ -3,7 +3,7 @@ name: Runtime Base Images
 on:
   merge_group:
     types: [checks_requested]
-    branches: [master, main]
+    branches: [master, main, release-2.18]
   schedule:
     - cron: '17 0 * * *'
   workflow_dispatch:
@@ -14,7 +14,7 @@ on:
         type: string
         default: ''
       queue_base_ref:
-        description: Queue target branch, master or main (internal queue dispatch)
+        description: Queue target branch, master, main, or release-2.18 (internal queue dispatch)
         required: false
         type: string
         default: ''
