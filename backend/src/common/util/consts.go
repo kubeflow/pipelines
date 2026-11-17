@@ -53,6 +53,10 @@ const (
 	LabelKeyWorkflowRunId               = "pipeline/runid"
 	LabelKeyWorkflowPersistedFinalState = "pipeline/persistedFinalState"
 
+	// HeaderKeyAuthoritativeFinalStatus is the metadata/header key used by exit-handler
+	// and runtime callers to require authoritatively verified final status.
+	HeaderKeyAuthoritativeFinalStatus = "x-kfp-authoritative-final-status"
+
 	// LabelKeyWorkflowEpoch is a Workflow annotation key.
 	// It captures the the name of the Run.
 	AnnotationKeyRunName = "pipelines.kubeflow.org/run_name"

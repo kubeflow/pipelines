@@ -15,15 +15,18 @@
 package resolver
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
+	apicommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
@@ -35,6 +38,10 @@ import (
 )
 
 func resolveParameters(opts common.Options) ([]ParameterMetadata, error) {
+	return resolveParametersWithContext(context.Background(), &opts)
+}
+
+func resolveParametersWithContext(ctx context.Context, opts *common.Options) ([]ParameterMetadata, error) {
 	var parameters []ParameterMetadata
 	expr, err := expression.New()
 	if err != nil {
@@ -49,7 +56,7 @@ func resolveParameters(opts common.Options) ([]ParameterMetadata, error) {
 			}
 		}
 
-		v, ioType, err := ResolveInputParameter(opts, paramSpec, opts.ParentTask.Inputs.GetParameters())
+		v, ioType, err := ResolveInputParameterWithContext(ctx, opts, paramSpec, opts.ParentTask.Inputs.GetParameters())
 		if err != nil {
 			if !errors.Is(err, ErrResolvedParameterNull) {
 				return nil, err
@@ -142,7 +149,7 @@ func resolveParameters(opts common.Options) ([]ParameterMetadata, error) {
 		for name, paramSpec := range opts.Component.GetInputDefinitions().GetParameters() {
 			// Skip parameters that are already wired by the task or are injected by
 			// this task's own iterator after regular parameter resolution completes.
-			if existingParams[name] || isCurrentParameterIteratorInput(opts, name) {
+			if existingParams[name] || isCurrentParameterIteratorInput(*opts, name) {
 				continue
 			}
 
@@ -214,8 +221,8 @@ func emptyCollectedParameterOutput(key, producerTaskName string) *apiv2.Pipeline
 	}
 }
 
-func canonicalTaskFinalStatusCode(task *apiv2.PipelineTask) int32 {
-	if task != nil && task.GetState() == apiv2.PipelineTask_FAILED {
+func canonicalTaskFinalStatusCodeForState(state apiv2.PipelineTask_TaskState) int32 {
+	if state == apiv2.PipelineTask_FAILED {
 		return int32(codes.Unknown)
 	}
 	return int32(codes.OK)
@@ -283,16 +290,25 @@ func ResolveInputParameter(
 	paramSpec *pipelinespec.TaskInputsSpec_InputParameterSpec,
 	inputParams []*apiv2.PipelineTask_InputOutputs_IOParameter,
 ) (*apiv2.PipelineTask_InputOutputs_IOParameter, apiv2.IOType, error) {
+	return ResolveInputParameterWithContext(context.Background(), &opts, paramSpec, inputParams)
+}
+
+func ResolveInputParameterWithContext(
+	ctx context.Context,
+	opts *common.Options,
+	paramSpec *pipelinespec.TaskInputsSpec_InputParameterSpec,
+	inputParams []*apiv2.PipelineTask_InputOutputs_IOParameter,
+) (*apiv2.PipelineTask_InputOutputs_IOParameter, apiv2.IOType, error) {
 	switch t := paramSpec.Kind.(type) {
 	case *pipelinespec.TaskInputsSpec_InputParameterSpec_ComponentInputParameter:
 		glog.V(4).Infof("resolving component input parameter %s", paramSpec.GetComponentInputParameter())
-		resolvedInput, err := resolveParameterComponentInputParameter(opts, paramSpec, inputParams)
+		resolvedInput, err := resolveParameterComponentInputParameter(*opts, paramSpec, inputParams)
 		if err != nil {
 			return nil, apiv2.IOType_COMPONENT_INPUT, err
 		}
 		return resolvedInput, apiv2.IOType_COMPONENT_INPUT, nil
 	case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskOutputParameter:
-		parameter, err := resolveTaskOutputParameter(opts, paramSpec)
+		parameter, err := resolveTaskOutputParameter(*opts, paramSpec)
 		if err != nil {
 			return nil, apiv2.IOType_TASK_OUTPUT_INPUT, err
 		}
@@ -349,7 +365,7 @@ func ResolveInputParameter(
 				if !ok {
 					return nil, apiv2.IOType_RUNTIME_VALUE_INPUT, fmt.Errorf("pipeline channel %s not found in task %s", v.GetStringValue(), opts.TaskName)
 				}
-				return ResolveInputParameter(opts, channelParamSpec, inputParams)
+				return ResolveInputParameterWithContext(ctx, opts, channelParamSpec, inputParams)
 			}
 
 			ioParameter := &apiv2.PipelineTask_InputOutputs_IOParameter{
@@ -364,7 +380,7 @@ func ResolveInputParameter(
 			return nil, apiv2.IOType_UNSPECIFIED, paramError(paramSpec, fmt.Errorf("param runtime value spec of type %T not implemented", t))
 		}
 	case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskFinalStatus_:
-		value, err := resolveTaskFinalStatus(opts, paramSpec)
+		value, err := resolveTaskFinalStatusWithContext(ctx, opts, paramSpec)
 		if err != nil {
 			return nil, apiv2.IOType_TASK_FINAL_STATUS_OUTPUT, err
 		}
@@ -532,16 +548,126 @@ func resolveParameterIterator(
 	return parameterMetadataList, &count, nil
 }
 
+func isTerminalTaskState(state apiv2.PipelineTask_TaskState) bool {
+	switch state {
+	case apiv2.PipelineTask_SUCCEEDED,
+		apiv2.PipelineTask_FAILED,
+		apiv2.PipelineTask_SKIPPED,
+		apiv2.PipelineTask_CACHED:
+		return true
+	default:
+		return false
+	}
+}
+
+func findInconsistentFailedChild(producer *apiv2.PipelineTask, tasks []*apiv2.PipelineTask) (*apiv2.PipelineTask, bool) {
+	if producer == nil || len(tasks) == 0 {
+		return nil, false
+	}
+	switch producer.GetType() {
+	case apiv2.PipelineTask_DAG,
+		apiv2.PipelineTask_ROOT,
+		apiv2.PipelineTask_LOOP,
+		apiv2.PipelineTask_CONDITION,
+		apiv2.PipelineTask_CONDITION_BRANCH:
+	default:
+		return nil, false
+	}
+
+	childrenByParent := make(map[string][]*apiv2.PipelineTask)
+	for _, t := range tasks {
+		if t.GetParentTaskId() != "" {
+			childrenByParent[t.GetParentTaskId()] = append(childrenByParent[t.GetParentTaskId()], t)
+		}
+	}
+
+	queue := append([]*apiv2.PipelineTask{}, childrenByParent[producer.GetTaskId()]...)
+	visited := make(map[string]bool)
+	for len(queue) > 0 {
+		curr := queue[0]
+		queue = queue[1:]
+		if curr == nil || visited[curr.GetTaskId()] {
+			continue
+		}
+		visited[curr.GetTaskId()] = true
+
+		if curr.GetState() == apiv2.PipelineTask_FAILED {
+			return curr, true
+		}
+		if children, ok := childrenByParent[curr.GetTaskId()]; ok {
+			queue = append(queue, children...)
+		}
+	}
+	return nil, false
+}
+
+func findInconsistentRunningChild(producer *apiv2.PipelineTask, tasks []*apiv2.PipelineTask) (*apiv2.PipelineTask, bool) {
+	if producer == nil || len(tasks) == 0 {
+		return nil, false
+	}
+	switch producer.GetType() {
+	case apiv2.PipelineTask_DAG,
+		apiv2.PipelineTask_ROOT,
+		apiv2.PipelineTask_LOOP,
+		apiv2.PipelineTask_CONDITION,
+		apiv2.PipelineTask_CONDITION_BRANCH:
+	default:
+		return nil, false
+	}
+
+	childrenByParent := make(map[string][]*apiv2.PipelineTask)
+	for _, t := range tasks {
+		if t.GetParentTaskId() != "" {
+			childrenByParent[t.GetParentTaskId()] = append(childrenByParent[t.GetParentTaskId()], t)
+		}
+	}
+
+	queue := append([]*apiv2.PipelineTask{}, childrenByParent[producer.GetTaskId()]...)
+	visited := make(map[string]bool)
+	for len(queue) > 0 {
+		curr := queue[0]
+		queue = queue[1:]
+		if curr == nil || visited[curr.GetTaskId()] {
+			continue
+		}
+		visited[curr.GetTaskId()] = true
+
+		if curr.GetState() == apiv2.PipelineTask_RUNNING || curr.GetState() == apiv2.PipelineTask_RUNTIME_STATE_UNSPECIFIED {
+			return curr, true
+		}
+		if children, ok := childrenByParent[curr.GetTaskId()]; ok {
+			queue = append(queue, children...)
+		}
+	}
+	return nil, false
+}
+
+func isAuthoritativelyTerminal(producer *apiv2.PipelineTask, tasks []*apiv2.PipelineTask) bool {
+	if !isTerminalTaskState(producer.GetState()) {
+		return false
+	}
+	if _, hasRunning := findInconsistentRunningChild(producer, tasks); hasRunning {
+		return false
+	}
+	if producer.GetState() == apiv2.PipelineTask_SUCCEEDED || producer.GetState() == apiv2.PipelineTask_SKIPPED {
+		if _, hasFailed := findInconsistentFailedChild(producer, tasks); hasFailed {
+			return false
+		}
+	}
+	return true
+}
+
 func resolveTaskFinalStatus(opts common.Options,
 	spec *pipelinespec.TaskInputsSpec_InputParameterSpec,
 ) (*structpb.Value, error) {
-	tasks, err := getSubTasks(opts.ParentTask, opts.Run.Tasks, nil)
-	if err != nil {
-		return nil, err
-	}
-	if tasks == nil {
-		return nil, fmt.Errorf("failed to get sub tasks for task %s", opts.ParentTask.Name)
-	}
+	return resolveTaskFinalStatusWithContext(context.Background(), &opts, spec)
+}
+
+func resolveTaskFinalStatusWithContext(
+	ctx context.Context,
+	opts *common.Options,
+	spec *pipelinespec.TaskInputsSpec_InputParameterSpec,
+) (*structpb.Value, error) {
 	producerTaskAmbiguousName := spec.GetTaskFinalStatus().GetProducerTask()
 	if producerTaskAmbiguousName == "" {
 		return nil, fmt.Errorf("producerTask task cannot be empty")
@@ -550,22 +676,130 @@ func resolveTaskFinalStatus(opts common.Options,
 	if opts.IterationIndex >= 0 {
 		producerTaskUniqueName = getTaskNameWithIterationIndex(producerTaskUniqueName, int64(opts.IterationIndex))
 	}
-	producer, ok := tasks[producerTaskUniqueName]
 
 	if len(opts.Task.DependentTasks) == 0 {
 		return nil, fmt.Errorf("task %v has no dependent tasks", opts.Task.TaskInfo.GetName())
 	}
-	if !ok {
-		return nil, fmt.Errorf("producer task, %v, not in tasks", producer.GetName())
+
+	findProducer := func(run *apiv2.Run) (*apiv2.PipelineTask, error) {
+		if run == nil {
+			return nil, fmt.Errorf("run is nil")
+		}
+		tasks, err := getSubTasks(opts.ParentTask, run.Tasks, nil)
+		if err != nil {
+			return nil, err
+		}
+		if tasks == nil {
+			return nil, fmt.Errorf("failed to get sub tasks for task %s", opts.ParentTask.Name)
+		}
+		producer, ok := tasks[producerTaskUniqueName]
+		if !ok {
+			return nil, fmt.Errorf("producer task, %v, not in tasks", producerTaskUniqueName)
+		}
+		return producer, nil
+	}
+
+	producer, err := findProducer(opts.Run)
+	if err != nil {
+		return nil, err
+	}
+
+	if opts.RunRefresher != nil {
+		refreshedRun, refreshErr := opts.RunRefresher(apicommon.WithAuthoritativeRequirement(ctx))
+		if refreshErr != nil {
+			return nil, fmt.Errorf("failed to authoritatively verify run state for task %q: %w", opts.Task.GetTaskInfo().GetName(), refreshErr)
+		}
+		if refreshedRun != nil {
+			opts.Run = refreshedRun
+			producer, err = findProducer(refreshedRun)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	if !isAuthoritativelyTerminal(producer, opts.Run.Tasks) {
+		if opts.RunRefresher == nil {
+			if !isTerminalTaskState(producer.GetState()) {
+				return nil, fmt.Errorf("cannot resolve final status for task %q: producer task state %v is not terminal",
+					producer.GetName(), producer.GetState())
+			} else if failedChild, hasFailed := findInconsistentFailedChild(producer, opts.Run.Tasks); hasFailed {
+				glog.Warningf("Failing closed for task %q: producer %q marked %v but child task %q failed",
+					opts.Task.GetTaskInfo().GetName(), producer.GetName(), producer.GetState(), failedChild.GetName())
+			} else if runningChild, hasRunning := findInconsistentRunningChild(producer, opts.Run.Tasks); hasRunning {
+				return nil, fmt.Errorf("cannot resolve final status for task %q: producer task %q has non-terminal child task %q",
+					opts.Task.GetTaskInfo().GetName(), producer.GetName(), runningChild.GetName())
+			}
+		} else {
+			timeout := 30 * time.Second
+			if opts.FinalStatusTimeout > 0 {
+				timeout = opts.FinalStatusTimeout
+			}
+			pollInterval := 100 * time.Millisecond
+			if opts.FinalStatusPollInterval > 0 {
+				pollInterval = opts.FinalStatusPollInterval
+			}
+
+			waitCtx, cancel := context.WithTimeout(ctx, timeout)
+			defer cancel()
+			waitCtx = apicommon.WithAuthoritativeRequirement(waitCtx)
+
+			ticker := time.NewTicker(pollInterval)
+			defer ticker.Stop()
+
+		waitLoop:
+			for !isAuthoritativelyTerminal(producer, opts.Run.Tasks) {
+				select {
+				case <-waitCtx.Done():
+					if errors.Is(waitCtx.Err(), context.Canceled) {
+						return nil, fmt.Errorf("final status resolution for task %q canceled while waiting for producer %q: %w", opts.Task.GetTaskInfo().GetName(), producer.GetName(), waitCtx.Err())
+					}
+					if failedChild, hasFailed := findInconsistentFailedChild(producer, opts.Run.Tasks); hasFailed {
+						glog.Warningf("Timed out waiting for authoritative synchronization; failing closed to FAILED for producer %q with failed child %q", producer.GetName(), failedChild.GetName())
+						break waitLoop
+					}
+					return nil, fmt.Errorf("timed out waiting for producer task %q to reach terminal state (last state: %v): %w", producer.GetName(), producer.GetState(), waitCtx.Err())
+				case <-ticker.C:
+				}
+
+				refreshedRun, refreshErr := opts.RunRefresher(waitCtx)
+				if refreshErr != nil {
+					return nil, fmt.Errorf("failed to refresh run while waiting for producer task %q terminal state: %w", producer.GetName(), refreshErr)
+				}
+				if refreshedRun == nil {
+					return nil, fmt.Errorf("refreshed run is nil while waiting for producer task %q", producer.GetName())
+				}
+				opts.Run = refreshedRun
+				producer, err = findProducer(refreshedRun)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+
+	resolvedState := producer.GetState()
+	resolvedMessage := ""
+	if producer.GetStatusMetadata() != nil {
+		resolvedMessage = producer.GetStatusMetadata().GetMessage()
+	}
+
+	if failedChild, hasFailed := findInconsistentFailedChild(producer, opts.Run.Tasks); hasFailed {
+		if resolvedState != apiv2.PipelineTask_FAILED {
+			resolvedState = apiv2.PipelineTask_FAILED
+		}
+		if resolvedMessage == "" && failedChild.GetStatusMetadata() != nil {
+			resolvedMessage = failedChild.GetStatusMetadata().GetMessage()
+		}
 	}
 
 	finalStatus := pipelinespec.PipelineTaskFinalStatus{
-		State:                   producer.GetState().String(),
+		State:                   resolvedState.String(),
 		PipelineTaskName:        producer.GetName(),
 		PipelineJobResourceName: opts.RunName,
 		Error: &status.Status{
-			Message: producer.GetStatusMetadata().GetMessage(),
-			Code:    canonicalTaskFinalStatusCode(producer),
+			Message: resolvedMessage,
+			Code:    canonicalTaskFinalStatusCodeForState(resolvedState),
 		},
 	}
 	finalStatusJSON, err := protojson.Marshal(&finalStatus)

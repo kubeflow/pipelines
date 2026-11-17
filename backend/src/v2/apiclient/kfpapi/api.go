@@ -279,11 +279,14 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 			}
 		}
 
+		// Wait for running children to finish before aggregating terminal states.
+		if anyRunning {
+			return nil
+		}
+
 		// Propagate FAILED immediately instead of waiting for every expected child
 		// to exist; in fail-fast/sequential DAGs, downstream siblings may never be
-		// created after the first failure. A RUNNING sibling must not block this
-		// propagation — fail-fast means some siblings may never reach a terminal
-		// state after a definitive failure.
+		// created after the first failure.
 		if anyFailed {
 			if err := evaluateAndUpdateParentStatus(ctx, run, parentTask, kfpAPIClient); err != nil {
 				return fmt.Errorf("failed to evaluate parent task %s status: %w", parentTask.GetTaskId(), err)
@@ -304,11 +307,6 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 				return fmt.Errorf("updated parent task %s not found after refresh", parentTask.GetTaskId())
 			}
 			continue
-		}
-
-		// Wait for running children to finish before aggregating terminal states.
-		if anyRunning {
-			return nil
 		}
 
 		// If not all children created yet, exit traversal

@@ -2062,7 +2062,7 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2.Pipeline
 
 	// Extract additional fields from TypeAttrs
 	if modelTask.TypeAttrs != nil {
-		apiTypeAttrs, err := model.JSONDataToProtoMessage(
+		apiTypeAttrs, err := model.JSONDataToProtoMessageAllowUnknown(
 			modelTask.TypeAttrs,
 			func() *apiv2.PipelineTask_TypeAttributes {
 				return &apiv2.PipelineTask_TypeAttributes{}

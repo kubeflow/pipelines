@@ -254,7 +254,7 @@ func (s *ArtifactServer) validateArtifactOwnershipNoAuth(runID, taskID, artifact
 		return task, nil
 	}
 
-	run, err := s.resourceManager.GetRun(task.RunUUID)
+	run, err := s.resourceManager.GetRunWithHydration(task.RunUUID, false)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to get run")
 	}
@@ -284,7 +284,7 @@ func (s *ArtifactServer) validateArtifactTaskNamespaceOwnership(task *model.Task
 		return task.Namespace, nil
 	}
 
-	run, err := s.resourceManager.GetRun(task.RunUUID)
+	run, err := s.resourceManager.GetRunWithHydration(task.RunUUID, false)
 	if err != nil {
 		return "", util.Wrap(err, "Failed to get run for artifact-task namespace validation")
 	}
@@ -656,7 +656,7 @@ func (s *ArtifactServer) canAccessRun(ctx context.Context, runID string, resourc
 	}
 
 	if runID != "" {
-		run, err := s.resourceManager.GetRun(runID)
+		run, err := s.resourceManager.GetRunWithHydration(runID, false)
 		if err != nil {
 			return util.Wrapf(err, "Failed to authorize with the run ID %v", runID)
 		}
