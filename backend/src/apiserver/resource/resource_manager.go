@@ -4376,26 +4376,8 @@ func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus,
 // would pick up the failure of a same-named task that ran in another sub-DAG, since the skipped
 // one has no node of its own.
 func lifecycleMessageForTaskNode(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string, tasksByUUID map[string]*model.Task) (msg, phase string, matched bool) {
-	if task.Name == "" {
-		return "", "", false
-	}
-	scope, ok := parentTaskScope(task, tasksByUUID)
+	nodeID, ok := findScopedTaskNode(task, nodes, tasksByUUID)
 	if !ok {
-		return "", "", false
-	}
-	var nodeID string
-	count := 0
-	for id, node := range nodes {
-		if node.Type != "Retry" || node.DisplayName != task.Name {
-			continue
-		}
-		if !nodeInScope(id, scope, nodes) {
-			continue
-		}
-		nodeID = id
-		count++
-	}
-	if count != 1 {
 		return "", "", false
 	}
 	return resolved[nodeID], nodes[nodeID].State, true
@@ -4518,6 +4500,36 @@ func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bo
 	}
 }
 
+// findScopedTaskNode finds the Retry node that represents task by name and enclosing scope.
+// lifecycleMessageForTaskNode and executorFailureForTaskViaNode both need this same match, just
+// different evidence off the node once it's found, so they share it instead of each re-walking
+// nodes with their own copy of the loop. It reports false when the task's own name or parent chain
+// can't be resolved, or when the match is not unique, rather than guessing.
+func findScopedTaskNode(task *model.Task, nodes map[string]util.NodeStatus, tasksByUUID map[string]*model.Task) (nodeID string, ok bool) {
+	if task.Name == "" {
+		return "", false
+	}
+	scope, ok := parentTaskScope(task, tasksByUUID)
+	if !ok {
+		return "", false
+	}
+	count := 0
+	for id, node := range nodes {
+		if node.Type != "Retry" || node.DisplayName != task.Name {
+			continue
+		}
+		if !nodeInScope(id, scope, nodes) {
+			continue
+		}
+		nodeID = id
+		count++
+	}
+	if count != 1 {
+		return "", false
+	}
+	return nodeID, true
+}
+
 // persistTaskLifecycleMessages resolves pod lifecycle messages from the workflow and writes them
 // to the provided tasks. tasks should be the hydrated tasks already loaded for the run
 // (e.g. from run.Tasks) to avoid an additional database query.
@@ -4544,7 +4556,7 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 		// before marking the workflow persisted or deleting it, and once the workflow is gone
 		// the persistence agent stops retrying, so a caller that saw success here would have no
 		// other chance to reconcile this task. Returning the error keeps that from happening.
-		if _, err := r.reconcileTaskFailure(task, nodes, resolved); err != nil {
+		if _, err := r.reconcileTaskFailure(task, nodes, resolved, tasksByUUID); err != nil {
 			reconcileErrs = append(reconcileErrs, fmt.Errorf("reconciling task %q: %w", task.UUID, err))
 		}
 		msg, phase, matched := lifecycleMessageForTask(task, nodes, resolved, tasksByUUID)
