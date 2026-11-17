@@ -73,6 +73,10 @@ const http = require('node:http');
 
     def test_endpoint_categories_cover_gate_reads_and_writes(self):
         paths = {
+            '/repos/o/r': 'repository_metadata',
+            '/repos/o/r/rules/branches/release-2.18?page=2': 'branch_rules',
+            '/repos/o/r/actions/workflows/1/dispatches': 'workflow_dispatches',
+            '/repos/o/r/actions/workflows/1': 'workflow_definitions',
             '/repos/o/r/actions/workflows/1/runs': 'workflow_runs',
             '/repos/o/r/actions/runs/1/attempts/2/jobs': 'run_jobs',
             '/repos/o/r/actions/runs/1/artifacts': 'artifacts',
@@ -86,7 +90,7 @@ const http = require('node:http');
         script = r"""
 const dc = require('node:diagnostics_channel');
 for (const path of JSON.parse(process.argv[1])) {
- const request = {origin:'https://api.github.com', path, method:'GET'};
+ const request = {origin:'https://api.github.com', path, method:path.endsWith('/dispatches') ? 'POST' : 'GET'};
  dc.channel('undici:request:create').publish({request});
  dc.channel('undici:request:headers').publish({request, response:{statusCode:200, headers:[]}});
 }

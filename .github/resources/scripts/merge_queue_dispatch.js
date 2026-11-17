@@ -29,13 +29,30 @@ const DISPATCH_CONCURRENCY = 4;
 // use it for missing candidate runs while retaining native-run deduplication.
 // This workaround is specific to builtin-token admission, not a queue requirement.
 // Evidence and removal considerations: docs/agents/merge-queue-activation.md.
-async function dispatchGroup({github, context, group, core, root = process.env.GITHUB_WORKSPACE,
-  loadInventory = loadBaseInventory, now = () => Date.now()}) {
+async function dispatchGroup(options) {
+  const {group, core} = options;
   const ref = QUEUE_REF.exec(group.branch || '');
   if (!ref || ref[1] !== group.baseRef || !SHA.test(group.head || '')) {
     throw new Error('Invalid queue dispatch candidate');
   }
-  const initial = await inspectDispatchSnapshot({github, context, group, root});
+  const counts = {validations: 0, reservations: 0, dispatches: 0};
+  try {
+    await dispatchMissingWorkflows(options, counts);
+  } finally {
+    // Keep failed requests and early exits visible without adding API calls.
+    try {
+      core.info(JSON.stringify({event: 'queue_candidate_dispatch', candidate: group.head, ...counts}));
+    } catch { /* Accounting must preserve the dispatch result. */ }
+  }
+}
+
+async function dispatchMissingWorkflows({github, context, group, core, root = process.env.GITHUB_WORKSPACE,
+  loadInventory = loadBaseInventory, now = () => Date.now()}, counts) {
+  const inspect = () => {
+    counts.validations++;
+    return inspectDispatchSnapshot({github, context, group, root});
+  };
+  const initial = await inspect();
   if (initial === null || initial.head !== group.head) return;
   const {base, policy} = initial;
   const inventory = await loadInventory({github, ...context.repo, root,
@@ -50,16 +67,16 @@ async function dispatchGroup({github, context, group, core, root = process.env.G
     throw new Error('Incomplete queue dispatch reservations');
   }
   const current = async () => {
-    const snapshot = await inspectDispatchSnapshot({github, context, group, root});
+    const snapshot = await inspect();
     return snapshot !== null && snapshot.head === group.head && snapshot.base === base &&
       snapshot.policy === policy;
   };
   const failures = [];
-  const dispatchWorkflow = async workflow => {
+  const planReservation = workflow => {
     // Registered attempts, including failures/cancellations, are never silently
     // rerun. Latest evidence is handled by the publisher; deliberate retries use
     // Actions' rerun UI. The reservation handles only missing dispatch responses.
-    if (matchingRuns(runs, context, group, workflow).length) return true;
+    if (matchingRuns(runs, context, group, workflow).length) return null;
     const statusContext = `ci-queue-dispatch/${path.basename(workflow)}`;
     const previous = statuses.find(status => status.context === statusContext);
     let attempt = 1;
@@ -69,38 +86,59 @@ async function dispatchGroup({github, context, group, core, root = process.env.G
       if (!receipt || previous.state !== 'pending' || !Number.isFinite(created) || created > now()) {
         throw new Error('Invalid queue dispatch reservation');
       }
-      if (now() - created < REGISTRATION_GRACE_MS) return true;
+      if (now() - created < REGISTRATION_GRACE_MS) return null;
       attempt = Number(receipt[1]) + 1;
       if (attempt > MAX_DISPATCH_ATTEMPTS) {
         failures.push(`${workflow}: dispatch registration retries exhausted`);
-        return true;
+        return null;
       }
     }
-    if (!await current()) return false;
-    // CI Check and recovery serialize controller runs. Reserve this lane before
-    // dispatch so response loss or slow run registration cannot cause a storm.
-    await github.rest.repos.createCommitStatus({...context.repo, sha: group.head,
-      context: statusContext, state: 'pending',
-      description: `Queue dispatch attempt ${attempt}; base ${base}.`});
-    if (!await current()) return false;
-    try {
-      await github.rest.actions.createWorkflowDispatch({...context.repo,
-        workflow_id: path.basename(workflow), ref: group.branch,
-        inputs: {queue_head_sha: group.head, queue_base_ref: group.baseRef,
-          queue_base_sha: base}});
-    } catch (error) {
-      failures.push(`${workflow}: ${error.message}`);
-    }
-    return true;
+    return {workflow, statusContext, attempt};
   };
+
   for (let offset = 0; offset < expected.length; offset += DISPATCH_CONCURRENCY) {
-    // Each lane validates fresh policy around its own reservation. Bound the
-    // fanout and drain every active request before returning or reporting errors.
-    const results = await Promise.allSettled(
-      expected.slice(offset, offset + DISPATCH_CONCURRENCY).map(dispatchWorkflow));
-    const rejected = results.find(result => result.status === 'rejected');
-    if (rejected) throw rejected.reason;
-    if (results.some(result => result.value === false)) return;
+    const batch = [];
+    let reservationError;
+    for (const workflow of expected.slice(offset, offset + DISPATCH_CONCURRENCY)) {
+      try {
+        const lane = planReservation(workflow);
+        if (lane) batch.push(lane);
+      } catch (error) {
+        reservationError ??= error;
+      }
+    }
+    if (!batch.length) {
+      if (reservationError) throw reservationError;
+      continue;
+    }
+    if (!await current()) return;
+
+    // All reservations must settle before validating the candidate again. A
+    // slow receipt can span a queue rebuild even when its siblings are ready.
+    const reservations = await Promise.allSettled(batch.map(async ({statusContext, attempt}) => {
+      counts.reservations++;
+      await github.rest.repos.createCommitStatus({...context.repo, sha: group.head,
+        context: statusContext, state: 'pending',
+        description: `Queue dispatch attempt ${attempt}; base ${base}.`});
+    }));
+    const reserved = batch.filter((lane, index) => reservations[index].status === 'fulfilled');
+    reservationError ??= reservations.find(result => result.status === 'rejected')?.reason;
+    if (reserved.length && await current()) {
+      await Promise.all(reserved.map(async ({workflow}) => {
+        try {
+          counts.dispatches++;
+          await github.rest.actions.createWorkflowDispatch({...context.repo,
+            workflow_id: path.basename(workflow), ref: group.branch,
+            inputs: {queue_head_sha: group.head, queue_base_ref: group.baseRef,
+              queue_base_sha: base}});
+        } catch (error) {
+          failures.push(`${workflow}: ${error.message}`);
+        }
+      }));
+    } else if (!reservationError) {
+      return;
+    }
+    if (reservationError) throw reservationError;
   }
   if (failures.length) throw new Error(failures.join('; '));
   core.info(`Queue candidate ${group.head}: missing CI dispatch reconciled.`);

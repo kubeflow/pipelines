@@ -64,6 +64,13 @@ header deltas reflect the shared installation pool, not usage attributable to
 one step. These summaries add no API calls and do not change polling, retries,
 Dependabot scheduling, or rebase policy.
 
+Use the per-candidate `queue_candidate_dispatch` summary to correlate the SHA
+with validation attempts, reservation writes attempted and workflow dispatches
+attempted during one reconciliation. A validation can include both a GraphQL
+snapshot and a branch-rule REST read. The request summaries give the endpoint
+counts and response codes for those operations, including separate
+`branch_rules`, `repository_metadata` and `workflow_dispatches` categories.
+
 Run `github_request_accounting_test.py`, `node_http_accounting_test.py`, and
 `shared_ci_request_accounting_test.py` with the CI script tests.
 
@@ -607,8 +614,9 @@ image tags as part of the Git branch rename.
 
 Queue dispatch reads candidate/base refs, the current default branch, queue
 membership, and approval policy together through a fresh GraphQL snapshot, then
-checks the active queue rule. Each workflow repeats this validation before its
-reservation and before dispatch; mutable policy and refs are never cached.
+checks the active queue rule. Each batch shares one validation before its
+reservation writes and a fresh validation after all the writes settle.
+Subsequent batches recheck the live refs and policy.
 At most four workflow operations run concurrently within the serialized queue
 writer, and every started operation settles before the controller returns or
 emits its request-accounting summary. Healthy queued PRs share one policy read
