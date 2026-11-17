@@ -1,5 +1,7 @@
 # CI and Workflows
 
+The Go test action uses the repository default branch for nested SDK installs on ordinary runs; merge-queue runs retain their exact candidate SHA. The third-party OSV inventory job runs `setup-github-cli.sh` before branch discovery, so Linux runners without a preinstalled `gh` use the existing checksum-verified bootstrap. Local Go test invocations default to `main` and can override it with `-branchName`. Keep container `:master` tags unchanged: these are compatibility aliases, not Git branch references.
+
 Legacy v2 integration migration is tracked in #14950. The legacy v2 workflow is retired on master; the API workflow enforces its replacement coverage. Keep its completion-event subscription in `ci-checks.yml` while release branches still run it, so release reruns update `ci-passed`. Existing assertion parity and CI evidence are recorded in `backend/test/v2/api/legacy-migration.md`. The API workflow verifies the migration manifest against actual Ginkgo JSON reports in cache-enabled standalone and Kubernetes-native jobs; cache-disabled standalone jobs exclude cache-hit assertions. The retired API harness and its unused cleanup/diagnostic helpers are removed. The integration directory retains the standalone webhook tests and Makefile; database initialization remains in `backend/test/integration`.
 
 GitHub Actions workflows are in `.github/workflows/`; reusable composite actions are in `.github/actions/`.
@@ -11,7 +13,10 @@ CI Check's preparation, finalization, recovery discovery and merged-release
 recovery steps, plus stale-status revocation, emit one JSON log record with
 `event: github_request_accounting` in their finalizer, including on errors. The
 Octokit request hook includes REST pagination, GraphQL and status/label writes
-made by that particular github-script client. Parallel gate reads settle all
+made by that particular github-script client. Merge-group publication, queue
+admission/dispatch, and scheduled queue recovery also emit these summaries with
+the scopes `merge_group`, `queue_admission`, and `queue_recovery`. Parallel gate
+reads settle all
 sibling reads and pagination before the summary is emitted, retaining the first
 observed rejection when any read fails. `measurement` is
 `octokit_request_hook`; `hook_available` distinguishes a client without hooks
@@ -77,8 +82,12 @@ cache is unchanged. The paused upgrade workflow and its readiness job remain pau
 The producer publishes checkout identity before builds, then immutable
 attempt-specific image archives. Each archive includes its source identity and
 file checksums in a distinct `*.provenance.json` file, prepared before upload.
-The readiness job can complete once all selected artifacts exist; no aggregate
-publisher or additional record upload is required. A failed or skipped readiness
+After all seven application images build, a same-run artifact-service job
+verifies their current-attempt provenance and hashes and publishes one
+architecture-specific bundle. Runtime images remain separate. New readiness
+resolution waits for the bundle; it cannot fall back to individual artifacts
+while publication is pending. Previously prepared individual-artifact states
+remain valid only under the existing exact-source and producer-attempt checks. A failed or skipped readiness
 job prevents its deployment jobs from starting. Direct users of the deploy or
 shared-image action retain discovery and bounded polling by default.
 Consumers require the same repository, event/ref, actual checkout SHA (the PR
@@ -110,6 +119,13 @@ one selection, hashes every archive, and validates all records with one fresh
 artifact inventory and one live producer-run read before loading either set.
 This reduces verification metadata reads from four to two per deployment job
 for a single-page inventory (and removes a duplicate downloader invocation).
+The application bundle reduces the downloader selection from seven artifact IDs
+to one (two with runtime on an AMD64 cache miss). For a single-page inventory,
+application download plus verification therefore uses four REST requests instead
+of ten: one artifact listing, one download redirect, and two fresh verification
+reads. Runtime cache misses use five instead of eleven. Blob transfer is
+separate from these REST counts. The bundle adds one producer transfer/upload
+step; it does not remove per-image provenance checks or live consumer checks.
 Cache hits select only application images; ARM keeps its application-only path.
 Direct callers may still select an individual set. No metadata snapshot is
 cached across consumer jobs or reused after hashing. Authenticated conditional
@@ -123,7 +139,8 @@ shared scenarios separately so they do not compete for the same runner slots.
 When adding consumers or changing paths, update the producer trigger union and
 architecture planner, regenerate `ci-workflow-inventory.json`, and retain the
 `Shared CI Images` completion subscription in `ci-checks.yml`. Run the
-`shared_ci_images_test.py`, `shared_ci_combined_verification_test.py`,
+`shared_ci_images_test.py`, `shared_ci_bundle_test.py`,
+`shared_ci_combined_verification_test.py`,
 `shared_ci_image_producer_test.py`, artifact caller,
 and workflow overlap contracts with the rest of CI Scripts Tests.
 
@@ -586,7 +603,61 @@ image tags as part of the Git branch rename.
 - Scheduled recovery keeps the paginated REST PR listing and batches exact upstream-repository commit-status reads in sequential GraphQL groups of at most 50 unique heads. Missing or malformed commit evidence fails discovery; absent status contexts remain recovery candidates. Scheduled recovery also checks always-required, unfiltered PR lanes before starting a full assessment for a head whose aggregate status is already failure. A confirmed missing, failed, or old-base required lane can retain that existing failure. Pending statuses always receive full recovery, preserving missing-workflow deadlines and newly failed checks. Active or fresh attempts, successes, missing statuses, stale success labels, and ambiguous/API-error evidence also receive full recovery. This read-only check shares trusted base metadata only within one sweep; it never publishes success, caches mutable run evidence across sweeps, or changes the recovery interval. Run `ci_recovery_preflight_test.py` with the CI gate regressions when changing this selection.
 - Image-artifact readiness revalidates every REST page using ETags in a temporary per-wait cache. Only complete successful responses are returned; a 304 requires an exact-URL prior response. This reduces primary quota consumption, not HTTP request count or secondary-limit pressure. Preserve the configured polling cadence, producer/grace handling, and parallel image-build/cluster preparation.
 
-- Merge-queue admission is inactive unless `.github/merge-queue-policy.json` explicitly enables a development branch and GitHub reports an active `merge_queue` ruleset rule. Admission, explicit queue CI dispatch, and `ci-passed` writes use builtin `GITHUB_TOKEN`; no additional App or PAT is required. Recovery runs every five minutes, subject to GitHub scheduling delays. Per-candidate/workflow dispatch receipts allow 120 seconds for run registration and at most three dispatch attempts; registered failed/cancelled runs require an intentional rerun. A successful enqueue consumes the workflow snapshot fingerprint attached to the trusted PR success in `queue-admission-attempt`, preventing automatic re-enqueue loops after candidate failure/removal. Current run IDs, attempts, states and conclusions must match the published fingerprint; only a fresh verified success permits admission after a rerun. Preserve Prow approval and hold policy, current-head CI/retarget verification, and queue-candidate rechecks. See [activation and offline Tide patch](merge-queue-activation.md). Run `ci_merge_queue_policy_test.py`, `merge_queue_admission_test.py`, `merge_queue_admission_workflow_test.py`, `ci_merge_group_test.py`, `merge_queue_dispatch_test.py`, `merge_queue_dispatch_workflows_test.py`, and `prepare_tide_merge_queue_test.py` when changing this boundary.
+- Merge-queue admission is inactive unless `.github/merge-queue-policy.json` explicitly enables a development branch and GitHub reports an active `merge_queue` ruleset rule. Admission, explicit queue CI dispatch, and `ci-passed` writes use builtin `GITHUB_TOKEN`; no additional App or PAT is required. Recovery runs every five minutes, subject to GitHub scheduling delays. Per-candidate/workflow dispatch receipts allow 120 seconds for run registration and at most three dispatch attempts; registered failed/cancelled runs require an intentional rerun. A successful enqueue consumes the workflow snapshot fingerprint attached to the trusted PR success in `queue-admission-attempt`. If GitHub removes that candidate for failed checks, admission may retry once after a 15-minute cooldown, with unchanged head, fresh successful CI evidence, approvals and no holds. A durable `queue-admission-retry` reservation is written before enqueueing; the same fingerprint cannot retry again, even when an API response is lost. Manual removals do not qualify. Current run IDs, attempts, states and conclusions must still match the published fingerprint; a deliberate PR-workflow rerun followed by verified success starts a new admission budget. Preserve Prow approval and hold policy, current-head CI/retarget verification, and queue-candidate rechecks. See [activation and offline Tide patch](merge-queue-activation.md). Run `ci_merge_queue_policy_test.py`, `merge_queue_admission_test.py`, `merge_queue_admission_workflow_test.py`, `ci_merge_group_test.py`, `merge_queue_dispatch_test.py`, `merge_queue_dispatch_workflows_test.py`, and `prepare_tide_merge_queue_test.py` when changing this boundary.
+
+Queue dispatch reads candidate/base refs, the current default branch, queue
+membership, and approval policy together through a fresh GraphQL snapshot, then
+checks the active queue rule. Each workflow repeats this validation before its
+reservation and before dispatch; mutable policy and refs are never cached.
+At most four workflow operations run concurrently within the serialized queue
+writer, and every started operation settles before the controller returns or
+emits its request-accounting summary. Healthy queued PRs share one policy read
+per sweep; invalid members retain the fresh recheck and dequeue path. Preserve
+the read-budget, bounded-concurrency, sibling-draining, and policy-race tests
+when changing this controller.
+
+Before admission and dispatch, scheduled queue recovery cancels active CI for
+obsolete queue candidates. It scans active runs only; a queue workflow event
+limits discovery to that candidate SHA. Cleanup requires an enabled base branch,
+a trusted workflow path, the same repository, and a valid queue ref. Dispatched runs must have the GitHub Actions bot as their original actor (ID,
+login and type), checked again on the fresh run, plus a valid controller reservation for that workflow,
+created no later than the run; independent manual runs do not qualify. A missing
+or replaced candidate ref is confirmed again alongside the current run attempt
+before cancellation. Queue membership alone, API errors, and malformed evidence
+never prove obsolescence. Current candidates and unrelated PR/manual runs are left running. Run `merge_queue_cleanup_test.py` with the controller regressions.
+
+Admission does not wait for unrelated status-recovery matrix jobs. Each newly
+verified queue-ready PR success dispatches the trusted default-branch recovery
+workflow with its PR number and exact head, inside request accounting. Every
+surviving serialized controller also lists likely ready PRs, so replacement of
+a pending job cannot lose its admission request. Approval and `ci-passed` labels
+are only discovery filters; fresh policy and CI evidence still authorize entry.
+The five-minute recovery sweep performs this ready-PR catch-up too, while the
+15-minute full sweep also discovers failed aggregates eligible for PR Gate
+recovery. Both schedules are subject to GitHub scheduling delays. Wakeup failures
+warn without revoking valid CI, and a later controller catches up. The
+15-minute cooldown is a minimum, not a retry-time guarantee. After the retry
+budget is exhausted, fix or rerun PR CI; a new verified workflow fingerprint
+automatically permits admission again without adding queue labels manually.
+
+### Automatic PR Gate recovery
+
+When an otherwise eligible PR has a failed `ci-passed` aggregate, admission also
+checks for trusted PR Gate membership-lookup failures. After 15 minutes it may
+rerun failed jobs once, reserving the attempt before sending the rerun request.
+Only the authoritative matching run is considered, ordered by the latest of
+creation and attempt start time, matching the aggregate verifier. Authority is
+rechecked before reservation and rerun; historical failures are never retried
+as a fallback. A second run attempt is never retried automatically, and at
+most two distinct run reservations are allowed per PR head. The exact current PR head, repository, workflow,
+run attempt, approvals and holds are rechecked around the mutation.
+
+This recovers membership-service/API failures without treating contributor-rule
+rejections or arbitrary test failures as transient. Scheduled reconciliation
+must verify the new results before admission; rerunning a gate never grants
+approval or publishes successful CI by itself. Missing or ambiguous evidence
+fails closed. Run `merge_queue_pr_gate_recovery_test.py` and the admission suite
+when changing this recovery path.
 
 ### Native Go provenance in release qualification
 

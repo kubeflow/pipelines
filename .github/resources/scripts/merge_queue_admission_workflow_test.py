@@ -9,7 +9,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Guard the trusted, disabled-by-default queue admission workflow boundary."""
+"""Guard the trusted queue admission workflow boundary."""
 
 import json
 import re
@@ -30,11 +30,17 @@ class AdmissionWorkflowTest(unittest.TestCase):
         )
         cls.job = cls.workflow['jobs']['queue_admission']
 
-    def test_default_policy_disables_admission_and_dispatch(self):
+    def test_default_branch_activation_retains_trusted_policy_guard(self):
         policy = json.loads(
             (ROOT / '.github/merge-queue-policy.json').read_text()
         )
-        self.assertEqual(policy, {'version': 1, 'enabled_branches': []})
+        self.assertEqual(
+            policy,
+            {
+                'version': 1,
+                'enabled_branches': ['~DEFAULT_BRANCH', 'release-2.18'],
+            },
+        )
         steps = self.job['steps']
         self.assertEqual(steps[0]['with']['ref'], '${{ github.workflow_sha }}')
         self.assertEqual(steps[0]['with']['persist-credentials'], 'false')
@@ -80,7 +86,28 @@ class AdmissionWorkflowTest(unittest.TestCase):
         self.assertEqual(
             job['steps'][0]['with']['ref'], '${{ github.workflow_sha }}'
         )
-        self.assertIn('queueOnly: true', job['steps'][-1]['with']['script'])
+        self.assertIn(
+            "queueOnly: context.eventName === 'schedule'",
+            job['steps'][-1]['with']['script'],
+        )
+        self.assertIn('github.event.repository.default_branch', job['if'])
+        self.assertEqual(
+            set(recovery['on']['workflow_dispatch']['inputs']),
+            {'pr_number', 'head_sha'},
+        )
+
+    def test_verified_publisher_wakes_admission_with_accounting(self) -> None:
+        publisher = self.workflow['jobs']['check_ci_status']
+        self.assertEqual(publisher['permissions']['actions'], 'write')
+        script = publisher['steps'][-1]['with']['script']
+        self.assertIn('const pr = await finalize(', script)
+        self.assertIn(
+            'await wakeAdmission({github, context, core, pr})', script
+        )
+        self.assertLess(
+            script.index('withRequestAccounting({'),
+            script.index('await wakeAdmission('),
+        )
 
     def test_revocation_events_and_sweep_do_not_deadlock_ci(self):
         events = self.workflow['on']['pull_request_target']['types']
@@ -95,7 +122,7 @@ class AdmissionWorkflowTest(unittest.TestCase):
         ]:
             self.assertIn(event, events)
         self.assertIn('schedule', self.workflow['on'])
-        self.assertEqual(self.job['needs'], 'check_ci_status')
+        self.assertNotIn('needs', self.job)
         self.assertEqual(self.job['concurrency']['cancel-in-progress'], 'false')
         self.assertIn('always()', self.job['if'])
         self.assertIn("github.event.action == 'completed'", self.job['if'])

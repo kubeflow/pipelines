@@ -79,7 +79,7 @@ const fixture = {json.dumps(fixture)};
 const writes = [], requests = [], inventoryRequests = [], infos = [];
 const refCounts = new Map();
 let runCount = 0, triggerCount = 0;
-let queueCount = 0, prCount = 0;
+let queueCount = 0, prCount = 0, defaultBranchCount = 0;
 const github = {{
   rest: {{
     pulls: {{get: async () => ({{data: fixture.queuePRs[Math.min(prCount++, fixture.queuePRs.length - 1)]}})}},
@@ -88,7 +88,7 @@ const github = {{
       const count = refCounts.get(options.ref) || 0;
       refCounts.set(options.ref, count + 1);
       const values = fixture.refs[options.ref] ||
-        [['heads/master', 'heads/main'].includes(options.ref) ? {json.dumps(BASE)} : {json.dumps(HEAD)}];
+        [['heads/master', 'heads/main', 'heads/release-2.18'].includes(options.ref) ? {json.dumps(BASE)} : {json.dumps(HEAD)}];
       const sha = values[Math.min(count, values.length - 1)];
       if (sha === null) throw Object.assign(new Error('Ref not found'), {{status: 404}});
       return {{data: {{ref: 'refs/' + options.ref, object: {{type: 'commit', sha}}}}}};
@@ -99,7 +99,12 @@ const github = {{
       const snapshots = fixture.triggerSnapshots || [fixture.context.payload.workflow_run];
       return {{data: snapshots[Math.min(triggerCount++, snapshots.length - 1)]}};
     }}}},
-    repos: {{createCommitStatus: async options => {{
+    repos: {{get: async options => {{
+      requests.push({{route: 'repository', options}});
+      const defaults = fixture.defaultBranches || ['master'];
+      return {{data: {{full_name: 'owner/repo',
+        default_branch: defaults[Math.min(defaultBranchCount++, defaults.length - 1)]}}}};
+    }}, createCommitStatus: async options => {{
       writes.push(options);
       return {{data: options}};
     }}}},
@@ -143,18 +148,25 @@ const loadInventory = async options => {{
 const core = {{info: value => infos.push(value), warning: value => infos.push(value),
   setOutput: () => {{}}, error: value => infos.push(value)}};
 gate.reconcile({{github, context: fixture.context, core, loadInventory,
-  root: fixture.policyRoot || {json.dumps(str(ROOT))}, group: fixture.group}})
+  root: fixture.policyRoot || process.argv[2], group: fixture.group}})
   .then(result => console.log(JSON.stringify({{result, writes, requests, inventoryRequests, infos}})))
   .catch(error => console.log(JSON.stringify({{error: error.message, writes, requests, inventoryRequests, infos}})));
 """
-    completed = subprocess.run(
-        ['node'],
-        input=script,
-        text=True,
-        capture_output=True,
-        check=True,
-        cwd=ROOT,
-    )
+    # Native merge-group fixtures model the preactivation publisher. Explicit
+    # policyRoot cases below exercise enabled admission and queue membership.
+    with tempfile.TemporaryDirectory() as directory:
+        policy = Path(directory) / '.github/merge-queue-policy.json'
+        policy.parent.mkdir()
+        policy.write_text(json.dumps({'version': 1, 'enabled_branches': []}))
+        completed = subprocess.run(
+            ['node', '-', directory],
+            input=script,
+            text=True,
+            capture_output=True,
+            check=True,
+            cwd=ROOT,
+        )
+
     return json.loads(completed.stdout)
 
 
@@ -165,6 +177,63 @@ class MergeGroupTest(unittest.TestCase):
             'success',
             result,
         )
+
+    def test_release_image_companions_require_exact_queue_coverage(self):
+        for producer in ['build-tools-images', 'runtime-base-images']:
+            with self.subTest(producer=producer):
+                path = f'.github/workflows/{producer}.yml'
+                companion = f'.github/workflows/{producer}-merge-group.yml'
+                run = good_run(
+                    path=companion,
+                    head_branch='gh-readonly-queue/release-2.18/pr-7-abcdef',
+                )
+                original = lane(
+                    path=path,
+                    pull_request={'branches': ['release-2.18']},
+                    merge_group=None,
+                )
+                queue_lane = lane(
+                    path=companion,
+                    pull_request=None,
+                    merge_group={'branches': ['release-2.18']},
+                )
+                result = reconcile(
+                    event=run, runs=[run], lanes=[original, queue_lane]
+                )
+                self.assertNotIn('error', result)
+                self.assertTrue(result['writes'], result)
+                self.assertEqual(
+                    result['writes'][-1]['state'], 'success', result
+                )
+                self.assert_not_successful(
+                    reconcile(event=run, runs=[run], lanes=[original])
+                )
+                self.assert_not_successful(
+                    reconcile(
+                        event=run,
+                        runs=[run],
+                        lanes=[
+                            original,
+                            {
+                                **queue_lane,
+                                'merge_group': {'branches': ['main']},
+                            },
+                        ],
+                    )
+                )
+                self.assert_not_successful(
+                    reconcile(
+                        event=run,
+                        runs=[run],
+                        lanes=[
+                            {
+                                **original,
+                                'path': '.github/workflows/unmapped.yml',
+                            },
+                            queue_lane,
+                        ],
+                    )
+                )
 
     def test_success_is_bound_to_queue_sha_and_trusted_master_policy(self):
         result = reconcile()
@@ -186,6 +255,47 @@ class MergeGroupTest(unittest.TestCase):
                     ['merge_group', 'workflow_dispatch'],
                 )
                 self.assertEqual(request['options']['head_sha'], HEAD)
+
+    def test_default_branch_change_before_initial_snapshot_never_publishes_success(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as directory:
+            policy = Path(directory) / '.github/merge-queue-policy.json'
+            policy.parent.mkdir()
+            policy.write_text(
+                json.dumps(
+                    {'version': 1, 'enabled_branches': ['~DEFAULT_BRANCH']}
+                )
+            )
+            for branch in ['master', 'main']:
+                for event in ['merge_group', 'workflow_dispatch']:
+                    with self.subTest(branch=branch, event=event):
+                        other = 'main' if branch == 'master' else 'master'
+                        run = good_run(
+                            event=event,
+                            head_branch=f'gh-readonly-queue/{branch}/pr-7-abcdef',
+                        )
+                        result = reconcile(
+                            runs=[run],
+                            event=run,
+                            policyRoot=directory,
+                            defaultBranches=[branch, other],
+                            lanes=[
+                                lane(
+                                    pull_request={'branches': [branch]},
+                                    merge_group={
+                                        'types': ['checks_requested'],
+                                        'branches': [branch],
+                                    },
+                                )
+                            ],
+                        )
+                        self.assert_not_successful(result)
+                        self.assertNotIn(
+                            'success',
+                            [write['state'] for write in result['writes']],
+                            result,
+                        )
 
     def test_dispatch_evidence_requires_enabled_queue_and_latest_attempt(self):
         from merge_queue_admission_test import entry, pr, queue
@@ -323,7 +433,7 @@ class MergeGroupTest(unittest.TestCase):
     def test_enabled_queue_policy_blocks_or_revokes_unapproved_candidates(self):
         from merge_queue_admission_test import entry, pr, queue
 
-        for branch in ['master', 'main']:
+        for branch in ['master', 'main', 'release-2.18']:
             with (
                 self.subTest(branch=branch),
                 tempfile.TemporaryDirectory() as directory,
@@ -433,7 +543,7 @@ class MergeGroupTest(unittest.TestCase):
     def test_non_queue_events_do_not_publish(self):
         for changes in [
             {'event': 'pull_request'},
-            {'head_branch': 'gh-readonly-queue/release-2.18/pr-7-abcdef'},
+            {'head_branch': 'gh-readonly-queue/release-2.19/pr-7-abcdef'},
             {'head_branch': 'feature'},
             {'head_repository': {'full_name': 'fork/repo'}},
             {'head_sha': 'not-a-sha'},

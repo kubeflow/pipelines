@@ -33,6 +33,9 @@ jobs:
           tar -xzf "${RUNNER_TEMP}/${kustomize_archive}" -C "${RUNNER_TEMP}"
           chmod +x "${RUNNER_TEMP}/kustomize"
 
+      - name: Ensure GitHub CLI is available
+        run: bash .github/resources/scripts/setup-github-cli.sh
+
       - name: Resolve branch heads and render third-party inventory
         id: inventory
         env:

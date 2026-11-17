@@ -1,14 +1,25 @@
 # Trusted default-branch recovery; never executes candidate code or artifacts.
 name: Merge Queue Recovery
 on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR with newly verified admission CI
+        required: true
+        type: string
+      head_sha:
+        description: Verified PR head SHA
+        required: true
+        type: string
   schedule:
     - cron: '*/5 * * * *'
 permissions:
   contents: read
 jobs:
   queue_recovery:
-    # Each survivor checks all queue members plus the affected PR. Scheduled
-    # recovery sweeps all open PRs; replaced label events cannot strand holds.
+    if: github.event_name == 'schedule' || github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    # Every survivor checks queue members, the wakeup target, and ready PRs.
+    # This also recovers notifications replaced in the shared pending slot.
     concurrency:
       group: merge-queue-admission
       cancel-in-progress: false
@@ -47,4 +58,6 @@ jobs:
         with:
           script: |
             const {reconcileQueue} = require('./.github/resources/scripts/merge_queue_dispatch');
-            await reconcileQueue({github, context, core, queueOnly: true});
+            const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting');
+            return await withRequestAccounting({github, core, scope: 'queue_recovery'},
+              async () => await reconcileQueue({github, context, core, queueOnly: context.eventName === 'schedule'}));

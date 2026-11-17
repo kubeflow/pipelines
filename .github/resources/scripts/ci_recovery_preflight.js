@@ -22,10 +22,13 @@ function recoveryPreflight({github, context, root}) {
   const bases = new Map();
   async function baseEvidence(pr, queueAdmission) {
     const development = ['master', 'main'].includes(pr.base.ref);
-    const key = JSON.stringify([pr.base.ref, development ? null : pr.base.sha, queueAdmission]);
+    // Enabled release queues use the same live policy revision as publication.
+    // Frozen release policy could retain a failure for an already-retired lane.
+    const livePolicy = development || queueAdmission;
+    const key = JSON.stringify([pr.base.ref, livePolicy ? null : pr.base.sha, queueAdmission]);
     if (!bases.has(key)) bases.set(key, (async () => {
       let sha = pr.base.sha;
-      if (development) {
+      if (livePolicy) {
         const {data: ref} = await github.rest.git.getRef({
           ...context.repo, ref: `heads/${pr.base.ref}`,
         });
