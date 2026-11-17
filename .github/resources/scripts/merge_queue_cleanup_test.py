@@ -95,14 +95,16 @@ const github = {rest: {
 
 
 class CleanupTest(unittest.TestCase):
-    def test_manual_dispatch_after_controller_reservation_is_preserved(self):
+    def test_manual_dispatch_after_controller_reservation_is_preserved(
+        self,
+    ) -> None:
         manual = run()
         manual['actor'] = {'id': 123, 'login': 'maintainer', 'type': 'User'}
         result = cleanup(runs=[manual])
         self.assertEqual(result['cancelled'], [])
         self.assertFalse(any(kind == 'statuses' for kind, _ in result['calls']))
 
-    def test_dispatch_actor_is_rechecked_before_cancellation(self):
+    def test_dispatch_actor_is_rechecked_before_cancellation(self) -> None:
         for actor in (
             None,
             {'id': 123, 'login': 'maintainer', 'type': 'User'},
@@ -116,7 +118,7 @@ class CleanupTest(unittest.TestCase):
                 self.assertEqual(cleanup(live=current)['cancelled'], [])
                 self.assertEqual(cleanup(runs=[current])['cancelled'], [])
 
-    def test_human_rerun_keeps_original_controller_ownership(self):
+    def test_human_rerun_keeps_original_controller_ownership(self) -> None:
         candidate = run()
         candidate['run_attempt'] = 2
         candidate['triggering_actor'] = {
