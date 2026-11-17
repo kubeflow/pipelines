@@ -1,0 +1,23 @@
+name: Queue authorization probe
+on:
+  push:
+    branches: [codex/mq-auth-20261116-trigger-*]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            const q = await github.graphql(`query { viewer {login} repository(owner:"kubeflow",name:"pipelines") {viewerPermission pullRequests(baseRefName:"codex/mq-auth-20261116-base",states:OPEN,first:5) {nodes {id number}}}}`);
+            core.info(JSON.stringify(q));
+            const prs=q.repository.pullRequests.nodes;
+            if(prs.length!==1) throw new Error('Expected one isolated probe PR');
+            try {
+              const r=await github.graphql(`mutation($id:ID!) {enqueuePullRequest(input:{pullRequestId:$id}) {mergeQueueEntry {id}}}`,{id:prs[0].id});
+              core.info('ENQUEUE_SUCCESS '+JSON.stringify(r));
+            } catch(e) {core.setFailed('ENQUEUE_REJECTED '+e.message);}
