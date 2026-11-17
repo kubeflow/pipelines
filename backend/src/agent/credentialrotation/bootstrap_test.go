@@ -34,7 +34,7 @@ func bootstrapState(phase string) *corev1.Secret {
 
 func TestBootstrapCompletedMigrationNeedsNoJob(t *testing.T) {
 	client := fake.NewSimpleClientset()
-	if err := EnsureMigrationJob(context.Background(), client, "kubeflow", "image:new", 1000, bootstrapState(CompletePhase)); err != nil {
+	if err := EnsureMigrationJob(context.Background(), client, "kubeflow", "image:new", corev1.PullAlways, 1000, bootstrapState(CompletePhase)); err != nil {
 		t.Fatal(err)
 	}
 	if len(client.Actions()) != 0 {
@@ -48,7 +48,7 @@ func TestBootstrapCreatesOnePersistentJob(t *testing.T) {
 	state := bootstrapState(PreparedPhase)
 	before := state.DeepCopy()
 	for range 2 {
-		if err := EnsureMigrationJob(ctx, client, "kubeflow", "image:new", 1000, state); err != nil {
+		if err := EnsureMigrationJob(ctx, client, "kubeflow", "image:new", corev1.PullAlways, 1000, state); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -70,6 +70,9 @@ func TestBootstrapCreatesOnePersistentJob(t *testing.T) {
 		t.Fatal("bootstrap must not give credentials a Job owner or mutate them")
 	}
 	pod := job.Spec.Template.Spec
+	if pod.Containers[0].ImagePullPolicy != corev1.PullAlways {
+		t.Fatal("mutable migration image must not reuse a cached binary")
+	}
 	if pod.ServiceAccountName != MigrationJobLabel || pod.Containers[0].Command[1] != "--mode=migrate" {
 		t.Fatal("wrong migration identity or command")
 	}
@@ -85,7 +88,7 @@ func TestBootstrapUsesAllocatedOpenShiftIdentity(t *testing.T) {
 	uid := int64(1000780000)
 	client := fake.NewSimpleClientset()
 	state := bootstrapState(PreparedPhase)
-	if err := EnsureMigrationJob(context.Background(), client, "kubeflow", "image:new", uid, state); err != nil {
+	if err := EnsureMigrationJob(context.Background(), client, "kubeflow", "image:new", corev1.PullAlways, uid, state); err != nil {
 		t.Fatal(err)
 	}
 	job, _ := client.BatchV1().Jobs("kubeflow").Get(context.Background(), MigrationJobName(state), metav1.GetOptions{})
@@ -95,15 +98,17 @@ func TestBootstrapUsesAllocatedOpenShiftIdentity(t *testing.T) {
 }
 
 func TestBootstrapForegroundReplacementWaitsBeforeCreating(t *testing.T) {
-	for _, reason := range []string{"image", "pull-secrets", "failed", "incomplete-success"} {
+	for _, reason := range []string{"image", "pull-policy", "pull-secrets", "failed", "incomplete-success"} {
 		t.Run(reason, func(t *testing.T) {
 			ctx := context.Background()
 			state := bootstrapState(DrainingPhase)
-			existing := migrationJob("kubeflow", "image:new", 1000, state)
+			existing := migrationJob("kubeflow", "image:new", corev1.PullAlways, 1000, state)
 			existing.UID = types.UID("old-job")
 			switch reason {
 			case "image":
 				existing.Spec.Template.Spec.Containers[0].Image = "image:old"
+			case "pull-policy":
+				existing.Spec.Template.Spec.Containers[0].ImagePullPolicy = corev1.PullIfNotPresent
 			case "pull-secrets":
 				existing.Spec.Template.Spec.ImagePullSecrets = []corev1.LocalObjectReference{{Name: "stale-registry"}}
 			case "failed":
@@ -128,7 +133,7 @@ func TestBootstrapForegroundReplacementWaitsBeforeCreating(t *testing.T) {
 				return true, nil, nil
 			})
 			for range 2 {
-				if err := EnsureMigrationJob(ctx, client, "kubeflow", "image:new", 1000, state); !IsWaiting(err) {
+				if err := EnsureMigrationJob(ctx, client, "kubeflow", "image:new", corev1.PullAlways, 1000, state); !IsWaiting(err) {
 					t.Fatalf("want healthy replacement wait, got %v", err)
 				}
 			}
@@ -143,7 +148,7 @@ func TestBootstrapForegroundReplacementWaitsBeforeCreating(t *testing.T) {
 			if err := client.Tracker().Delete(batchv1.SchemeGroupVersion.WithResource("jobs"), "kubeflow", existing.Name); err != nil {
 				t.Fatal(err)
 			}
-			if err := EnsureMigrationJob(ctx, client, "kubeflow", "image:new", 1000, state); err != nil {
+			if err := EnsureMigrationJob(ctx, client, "kubeflow", "image:new", corev1.PullAlways, 1000, state); err != nil {
 				t.Fatal(err)
 			}
 			replacement, err := client.BatchV1().Jobs("kubeflow").Get(ctx, existing.Name, metav1.GetOptions{})
@@ -156,11 +161,11 @@ func TestBootstrapForegroundReplacementWaitsBeforeCreating(t *testing.T) {
 
 func TestBootstrapRefusesUnrelatedJobCollision(t *testing.T) {
 	state := bootstrapState(PreparedPhase)
-	job := migrationJob("kubeflow", "image:old", 1000, state)
+	job := migrationJob("kubeflow", "image:old", corev1.PullAlways, 1000, state)
 	job.UID = "unrelated"
 	job.Annotations[StateUIDAnnotation] = "another-secret"
 	client := fake.NewSimpleClientset(job)
-	err := EnsureMigrationJob(context.Background(), client, "kubeflow", "image:new", 1000, state)
+	err := EnsureMigrationJob(context.Background(), client, "kubeflow", "image:new", corev1.PullAlways, 1000, state)
 	if err == nil || IsWaiting(err) {
 		t.Fatalf("want actionable identity failure, got %v", err)
 	}
@@ -177,7 +182,7 @@ func TestBootstrapRejectsMissingIdentityAndRoot(t *testing.T) {
 		uid   int64
 	}{{nil, 1000}, {&corev1.Secret{}, 1000}, {bootstrapState(PreparedPhase), 0}} {
 		client := fake.NewSimpleClientset()
-		if err := EnsureMigrationJob(context.Background(), client, "kubeflow", "image:new", input.uid, input.state); err == nil || IsWaiting(err) {
+		if err := EnsureMigrationJob(context.Background(), client, "kubeflow", "image:new", corev1.PullAlways, input.uid, input.state); err == nil || IsWaiting(err) {
 			t.Fatalf("invalid bootstrap accepted: %v", err)
 		}
 		if len(client.Actions()) != 0 {
@@ -190,7 +195,7 @@ func TestBootstrapPreservesPrivateImagePullSecrets(t *testing.T) {
 	client := fake.NewSimpleClientset()
 	state := bootstrapState(PreparedPhase)
 	pulls := []corev1.LocalObjectReference{{Name: "private-registry"}}
-	if err := EnsureMigrationJob(context.Background(), client, "kubeflow", "private/image:new", 1000, state, pulls...); err != nil {
+	if err := EnsureMigrationJob(context.Background(), client, "kubeflow", "private/image:new", corev1.PullAlways, 1000, state, pulls...); err != nil {
 		t.Fatal(err)
 	}
 	job, err := client.BatchV1().Jobs("kubeflow").Get(context.Background(), MigrationJobName(state), metav1.GetOptions{})
@@ -199,5 +204,29 @@ func TestBootstrapPreservesPrivateImagePullSecrets(t *testing.T) {
 	}
 	if !reflect.DeepEqual(job.Spec.Template.Spec.ImagePullSecrets, pulls) {
 		t.Fatal("lost bootstrap image pull credentials")
+	}
+}
+
+func TestBootstrapPreservesExplicitPreloadedImagePolicy(t *testing.T) {
+	client := fake.NewSimpleClientset()
+	state := bootstrapState(PreparedPhase)
+	err := EnsureMigrationJob(context.Background(), client, "kubeflow", "kind-registry:5000/apiserver:latest", corev1.PullIfNotPresent, 1000, state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	job, err := client.BatchV1().Jobs("kubeflow").Get(context.Background(), MigrationJobName(state), metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if job.Spec.Template.Spec.Containers[0].ImagePullPolicy != corev1.PullIfNotPresent {
+		t.Fatal("explicit preloaded fixture policy was lost")
+	}
+}
+
+func TestBootstrapRejectsUnspecifiedImagePolicy(t *testing.T) {
+	client := fake.NewSimpleClientset()
+	err := EnsureMigrationJob(context.Background(), client, "kubeflow", "image:new", "", 1000, bootstrapState(PreparedPhase))
+	if err == nil || len(client.Actions()) != 0 {
+		t.Fatal("missing policy reached Kubernetes")
 	}
 }

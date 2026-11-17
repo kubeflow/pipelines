@@ -29,7 +29,7 @@ spec:
       initContainers:
       - name: prepare-storage-credentials
         image: ghcr.io/kubeflow/kfp-api-server:dummy
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         command: ["/bin/credential-rotation", "--mode=bootstrap"]
         env:
         - name: POD_NAMESPACE

@@ -31,7 +31,7 @@ import third_party_upgrade_compatibility as compatibility
 class CompatibilityTest(unittest.TestCase):
 
     def test_baseline_render_uses_loaded_migrator_without_replacing_storage(
-            self):
+            self) -> None:
         deployment = {
             'kind': 'Deployment',
             'metadata': {
@@ -67,7 +67,7 @@ class CompatibilityTest(unittest.TestCase):
         self.assertEqual(spec['initContainers'][0]['imagePullPolicy'],
                          'IfNotPresent')
 
-    def test_current_and_legacy_baselines_are_both_exercised(self):
+    def test_current_and_legacy_baselines_are_both_exercised(self) -> None:
         with (
                 tempfile.TemporaryDirectory() as directory,
                 patch.object(compatibility, 'exercise') as exercise,
@@ -88,7 +88,7 @@ class CompatibilityTest(unittest.TestCase):
             kubectl.assert_called_once_with('delete', 'namespace', 'kubeflow',
                                             '--wait=true', '--timeout=180s')
 
-    def test_legacy_baseline_rejects_already_rotated_credentials(self):
+    def test_legacy_baseline_rejects_already_rotated_credentials(self) -> None:
         with (
                 patch.object(compatibility, 'rendered', return_value=[]),
                 patch.object(
@@ -104,7 +104,7 @@ class CompatibilityTest(unittest.TestCase):
                     Path('evidence'), Path('baseline'), require_legacy=True)
             drain.assert_not_called()
 
-    def test_fresh_bootstrap_closes_plain_sdk_clients(self):
+    def test_fresh_bootstrap_closes_plain_sdk_clients(self) -> None:
 
         class ClientError(Exception):
 
@@ -159,7 +159,7 @@ class CompatibilityTest(unittest.TestCase):
         authorized.close.assert_called_once_with()
         invalid.close.assert_called_once_with()
 
-    def test_workload_drain_closes_plain_sdk_clients(self):
+    def test_workload_drain_closes_plain_sdk_clients(self) -> None:
         s3 = Mock(spec=['head_bucket', 'close'])
         iam = Mock(spec=['list_users', 'close'])
         state = {
@@ -201,11 +201,13 @@ class CompatibilityTest(unittest.TestCase):
         iam.list_users.assert_called_once_with()
         iam.close.assert_called_once_with()
 
-    def test_old_credentials_probes_close_plain_sdk_clients(self):
+    def test_old_credentials_probes_close_plain_sdk_clients(self) -> None:
 
         class ClientError(Exception):
 
-            def __init__(self, status, code='InvalidAccessKeyId'):
+            def __init__(self,
+                         status: int,
+                         code: str = 'InvalidAccessKeyId') -> None:
                 self.response = {
                     'ResponseMetadata': {
                         'HTTPStatusCode': status
@@ -255,7 +257,64 @@ class CompatibilityTest(unittest.TestCase):
                 else:
                     iam.close.assert_not_called()
 
-    def test_authorization_denial_is_not_credential_revocation(self):
+    def test_unchanged_shipped_credentials_still_require_revocation(
+            self) -> None:
+
+        class ClientError(Exception):
+
+            def __init__(self,
+                         status: int,
+                         code: str = 'InvalidAccessKeyId') -> None:
+                self.response = {
+                    'ResponseMetadata': {
+                        'HTTPStatusCode': status
+                    },
+                    'Error': {
+                        'Code': code
+                    }
+                }
+
+        for accepted in (None, 's3', 'iam'):
+            with self.subTest(accepted=accepted):
+                s3 = Mock(spec=['get_bucket_location', 'close'])
+                iam = Mock(spec=['list_users', 'close'])
+                if accepted != 's3':
+                    s3.get_bucket_location.side_effect = ClientError(403)
+                if accepted != 'iam':
+                    iam.list_users.side_effect = ClientError(
+                        403, 'InvalidClientTokenId')
+                with (
+                        patch.dict(
+                            sys.modules, {
+                                'botocore.exceptions':
+                                    SimpleNamespace(ClientError=ClientError),
+                            }),
+                        patch.object(
+                            compatibility,
+                            'forward',
+                            side_effect=lambda *args: nullcontext(
+                                'http://localhost')),
+                        patch.object(compatibility, 'client', return_value=s3),
+                        patch.object(
+                            compatibility, 'iam_client', return_value=iam),
+                ):
+                    if accepted is None:
+                        compatibility.verify_old_credentials_rejected(
+                            ('minio', 'minio123'), ('minio', 'minio123'),
+                            Path('.'))
+                    else:
+                        with self.assertRaisesRegex(AssertionError,
+                                                    'still accepted'):
+                            compatibility.verify_old_credentials_rejected(
+                                ('minio', 'minio123'), ('minio', 'minio123'),
+                                Path('.'))
+                s3.close.assert_called_once_with()
+                if accepted != 's3':
+                    iam.close.assert_called_once_with()
+                else:
+                    iam.close.assert_not_called()
+
+    def test_authorization_denial_is_not_credential_revocation(self) -> None:
 
         class ClientError(Exception):
 
@@ -298,7 +357,7 @@ class CompatibilityTest(unittest.TestCase):
                                 ('old', 'old-secret'), ('new', 'new-secret'),
                                 Path('.'))
 
-    def test_secret_credentials_string_and_encoded_data(self):
+    def test_secret_credentials_string_and_encoded_data(self) -> None:
         self.assertEqual(
             compatibility.secret_credentials({
                 'data': {
@@ -321,7 +380,7 @@ class CompatibilityTest(unittest.TestCase):
             ('override', 'minio123'),
         )
 
-    def test_invalid_secret_credentials_fail_closed(self):
+    def test_invalid_secret_credentials_fail_closed(self) -> None:
         for secret in (
             {},
             {
@@ -354,7 +413,8 @@ class CompatibilityTest(unittest.TestCase):
             ):
                 compatibility.secret_credentials(secret)
 
-    def test_seed_uses_manifest_credentials_without_overwriting_secret(self):
+    def test_seed_uses_manifest_credentials_without_overwriting_secret(
+            self) -> None:
         storage = [
             {
                 'kind': 'Deployment',
@@ -414,7 +474,7 @@ class CompatibilityTest(unittest.TestCase):
             [('manifest-user', 'manifest-key')],
         )
 
-    def test_command_failure_surfaces_stderr(self):
+    def test_command_failure_surfaces_stderr(self) -> None:
         failure = subprocess.CalledProcessError(
             1, ['kubectl'], stderr='forbidden')
         with (
@@ -426,7 +486,7 @@ class CompatibilityTest(unittest.TestCase):
                 compatibility.run('kubectl', 'apply')
         self.assertIn('forbidden', errors.getvalue())
 
-    def test_cleanup_does_not_replace_original_failure(self):
+    def test_cleanup_does_not_replace_original_failure(self) -> None:
         with (
                 patch.object(
                     compatibility,
@@ -442,7 +502,7 @@ class CompatibilityTest(unittest.TestCase):
                     compatibility.delete_cluster()
         self.assertIn('Cluster cleanup failed', errors.getvalue())
 
-    def test_baseline_image_is_read_from_rendered_base_ref(self):
+    def test_baseline_image_is_read_from_rendered_base_ref(self) -> None:
 
         def store(image):
             return [{
@@ -504,7 +564,7 @@ class CompatibilityTest(unittest.TestCase):
         result.assert_called_once_with(
             Path('evidence'), 'baseline:4.49', 'candidate:4.50', 'pvc')
 
-    def test_migration_wait_does_not_treat_draining_as_completion(self):
+    def test_migration_wait_does_not_treat_draining_as_completion(self) -> None:
 
         def state(phase):
             return json.dumps({
@@ -535,7 +595,7 @@ class CompatibilityTest(unittest.TestCase):
         self.assertEqual(get.call_count, 3)
         sleep.assert_called_once_with(2)
 
-    def test_iam_reachability_accepts_method_not_allowed(self):
+    def test_iam_reachability_accepts_method_not_allowed(self) -> None:
         process = Mock()
         process.poll.return_value = None
         unavailable_health = urllib.error.HTTPError('http://fixture/status',
@@ -561,7 +621,8 @@ class CompatibilityTest(unittest.TestCase):
         sleep.assert_not_called()
         process.terminate.assert_called_once()
 
-    def test_bootstrap_probe_requires_explicit_authentication_rejection(self):
+    def test_bootstrap_probe_requires_explicit_authentication_rejection(
+            self) -> None:
         for status in (401, 403, 404, 500):
             error = urllib.error.HTTPError('http://fixture', status, 'fixture',
                                            {}, None)
@@ -585,7 +646,7 @@ class CompatibilityTest(unittest.TestCase):
             with self.assertRaisesRegex(AssertionError, 'Unauthenticated'):
                 compatibility.require_authentication_rejection('http://fixture')
 
-    def test_manifest_reapply_preserves_both_runtime_secrets(self):
+    def test_manifest_reapply_preserves_both_runtime_secrets(self) -> None:
         secret = json.dumps({
             'metadata': {
                 'uid': 'same'
@@ -606,7 +667,7 @@ class CompatibilityTest(unittest.TestCase):
         self.assertEqual(kubectl.call_count, 7)
         self.assertIn('--server-side', kubectl.call_args_list[4].args)
 
-    def test_manifest_reapply_detects_secret_replacement(self):
+    def test_manifest_reapply_detects_secret_replacement(self) -> None:
         original = json.dumps({
             'metadata': {
                 'uid': 'old'
@@ -635,24 +696,24 @@ class CompatibilityTest(unittest.TestCase):
                                         'Client-side apply changed'):
                 compatibility.verify_manifest_reapply([])
 
-    def test_ambiguous_baseline_image_fails(self):
+    def test_ambiguous_baseline_image_fails(self) -> None:
         with self.assertRaisesRegex(ValueError, 'Expected one'):
             compatibility.storage_image([])
 
-    def test_corrupted_persistent_object_fails(self):
+    def test_corrupted_persistent_object_fails(self) -> None:
         s3 = Mock()
         s3.get_object.return_value = {'Body': io.BytesIO(b'changed')}
         with self.assertRaisesRegex(AssertionError, 'changed during upgrade'):
             compatibility.verify_payload(s3, 'object')
 
-    def test_missing_lifecycle_rule_fails(self):
+    def test_missing_lifecycle_rule_fails(self) -> None:
         s3 = Mock()
         s3.get_object.return_value = {'Body': io.BytesIO(compatibility.PAYLOAD)}
         s3.get_bucket_lifecycle_configuration.return_value = {'Rules': []}
         with self.assertRaisesRegex(AssertionError, 'Lifecycle configuration'):
             compatibility.verify_state(s3)
 
-    def test_persistent_data_and_lifecycle_pass(self):
+    def test_persistent_data_and_lifecycle_pass(self) -> None:
         s3 = Mock()
         s3.get_object.return_value = {'Body': io.BytesIO(compatibility.PAYLOAD)}
         s3.get_bucket_lifecycle_configuration.return_value = {
@@ -669,7 +730,7 @@ class CompatibilityTest(unittest.TestCase):
         }
         compatibility.verify_state(s3)
 
-    def test_lifecycle_scope_changes_fail(self):
+    def test_lifecycle_scope_changes_fail(self) -> None:
         expected = {
             'ID': 'private-artifacts',
             'Status': 'Enabled',
@@ -721,7 +782,7 @@ class CompatibilityTest(unittest.TestCase):
                                             'Lifecycle configuration'):
                     compatibility.verify_state(s3)
 
-    def test_additional_lifecycle_rule_fails(self):
+    def test_additional_lifecycle_rule_fails(self) -> None:
         s3 = Mock()
         s3.get_object.return_value = {'Body': io.BytesIO(compatibility.PAYLOAD)}
         s3.get_bucket_lifecycle_configuration.return_value = {
@@ -751,7 +812,7 @@ class CompatibilityTest(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, 'Lifecycle configuration'):
             compatibility.verify_state(s3)
 
-    def test_reconciliation_sends_existing_credentials(self):
+    def test_reconciliation_sends_existing_credentials(self) -> None:
         secret = {
             'kind': 'Secret',
             'metadata': {
@@ -785,7 +846,8 @@ class CompatibilityTest(unittest.TestCase):
             {'user/mlpipeline-minio-artifact': secret},
         )
 
-    def test_reconciliation_rejects_missing_or_ambiguous_artifact_secret(self):
+    def test_reconciliation_rejects_missing_or_ambiguous_artifact_secret(
+            self) -> None:
         secret = {
             'kind': 'Secret',
             'metadata': {
