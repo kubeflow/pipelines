@@ -330,6 +330,29 @@ class MergeGroupTest(unittest.TestCase):
         )
         self.assertEqual(['pending'], [w['state'] for w in result['writes']])
 
+    def test_verified_receipt_rechecks_attempts_after_current_refs(self):
+        initial = reconcile()['writes'][-1]
+        prior = {
+            'context': 'ci-passed',
+            'state': 'SUCCESS',
+            'description': initial['description'],
+            'targetUrl': initial['target_url'],
+            'creator': {'__typename': 'Bot', 'login': 'github-actions'},
+        }
+        finished = [good_run()]
+        for changed in [
+            good_run(run_attempt=2, status='in_progress', conclusion=None),
+            good_run(run_attempt=2),
+        ]:
+            with self.subTest(changed=changed):
+                result = reconcile(
+                    priorStatus=prior,
+                    runSnapshots=[finished, [], finished, [], [changed], []],
+                )
+                self.assertEqual(
+                    ['pending'], [w['state'] for w in result['writes']]
+                )
+
     def test_success_is_bound_to_queue_sha_and_trusted_master_policy(self):
         result = reconcile()
         self.assertNotIn('error', result)

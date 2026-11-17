@@ -222,7 +222,13 @@ async function reconcile({github, context, core, root = process.env.GITHUB_WORKS
       return;
     }
     // The existing green already covers these exact attempts and queue policy.
-    if (receipt === verified) return;
+    if (receipt === verified) {
+      // Ref/policy reads above can overlap a rerun. Observe attempts once more
+      // before retaining green; later reruns require their next invocation.
+      const latest = await evidence(github, context, group, expected, allowDispatch);
+      if (!latest.passed || fingerprint(latest.attempts) !== verified) await markPending();
+      return;
+    }
     await publish('success', `All expected ${group.baseRef} merge-group workflows passed.`,
       `#queue-attempts=${verified}`);
     let queueHead;
