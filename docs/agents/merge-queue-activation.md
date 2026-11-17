@@ -31,7 +31,11 @@ identify their target branch, and recovery revisits greens when policy mode or
 base policy changes. Queue candidates continue to run all applicable lanes against
 the exact combined SHA, with no relaxation of candidate freshness or image identity.
 
-The trusted `queue_admission` job runs after PR CI reconciliation, on approval,
+The trusted `queue_admission` job runs independently of the status-recovery
+matrix. Each newly verified queue-ready success wakes the default-branch
+recovery workflow with its exact PR head. Every surviving serialized controller
+catches up other likely ready PRs, including on the five-minute recovery
+schedule, and freshly verifies policy and CI before admission. It also runs on approval,
 hold, draft, retarget, and head-change events, and during scheduled recovery.
 Ordinary events inspect the affected PR and all current queue members; scheduled
 recovery alone sweeps all open PRs. A replaced pending event is therefore not the
@@ -126,11 +130,24 @@ operator investigation rather than an unbounded dispatch loop.
 Successful enqueue also records `queue-admission-attempt` on the PR head,
 consuming the workflow-attempt fingerprint bound to the successful PR status.
 Admission compares current evidence with that verified fingerprint, so a running
-or failed retry cannot reuse an older green. Recovery
-cannot repeatedly re-enqueue the same green head after a failed or removed queue
-candidate. After investigating, deliberately rerun PR CI to obtain a fresh
-successful admission status before retrying admission. This is separate from
-rerunning a failed candidate workflow while its queue entry still exists.
+or failed retry cannot reuse an older green. Recovery permits one automatic
+re-admission after GitHub removes a candidate for `failed_checks`, following a
+15-minute cooldown and fresh head, CI, approval, hold and enforcement checks.
+Manual removals do not qualify. The `queue-admission-retry` receipt consumes this
+retry before enqueue, so an ambiguous API response cannot cause a retry loop.
+If that retry fails, investigate and deliberately rerun PR CI to obtain a new
+verified workflow fingerprint. Merely restamping the existing success does not
+reset the budget. This is separate from rerunning a failed candidate workflow
+while its queue entry still exists.
+
+For an eligible PR blocked by failed admission CI, recovery can rerun PR Gate's
+membership-lookup infrastructure failure after 15 minutes. It considers only the
+authoritative matching run, ordered by current attempt time rather than original
+creation time, retries attempt 1 once, and reserves at most two distinct reruns
+per PR head. Authority is rechecked before each write; historical failures are
+never retried as a fallback. Failures in issue-admission rules or other steps are not
+retryable. Scheduled CI reconciliation must verify success before queue entry;
+recovery does not grant approval or bypass checks.
 
 The isolated full-CI test merged [PR #15620](https://github.com/kubeflow/pipelines/pull/15620)
 and [PR #15621](https://github.com/kubeflow/pipelines/pull/15621) through the native
