@@ -4416,14 +4416,6 @@ func nodeParent(id string, nodes map[string]util.NodeStatus) (string, bool) {
 	return node.BoundaryID, true
 }
 
-// compilerRootTaskName is the Argo task name KFP's compiler always gives the extra DAG
-// invocation it inserts between the entrypoint and every top-level task (argocompiler/dag.go's
-// entrypoint template invokes compiler.RootComponentName, "root", which in turn invokes the
-// pipeline's own root DAG template). It is a reserved, compiler-only name, so a Retry node with
-// this DisplayName is always that synthetic wrapper, never a real enclosing task that stuck-pod
-// matching should preserve.
-const compilerRootTaskName = "root"
-
 // nodeInScope reports whether the nearest Retry ancestors of the node are the enclosing tasks in
 // scope, nearest first, and nothing more. Once scope is exhausted (including the empty, top-level
 // case), any further Retry ancestor before the root means the node is nested deeper than the task
@@ -4431,11 +4423,14 @@ const compilerRootTaskName = "root"
 //
 // Two compiler-inserted wrappers are the exception. KFP's neutralizeDAGRetries gives every DAG
 // template a zero-limit retry strategy, and the compiler always wraps the entrypoint DAG in its
-// own Retry node, which itself invokes a second, reserved "root" task that in turn invokes the
-// pipeline's real root DAG. Neither is a real task or sits inside any task's own scope: the "root"
-// wrapper is recognized by its reserved name and skipped outright, and reaching the outermost
-// wrapper, with nothing of its own above it, is treated the same as reaching the true root. Both
-// disqualify nothing.
+// own Retry node, which itself invokes a second, reserved "root" task (compiler.RootComponentName)
+// that in turn invokes the pipeline's real root DAG. Neither is a real task or sits inside any
+// task's own scope, so both disqualify nothing. They are identified structurally, not by name,
+// since "root" is also a name a user's own nested pipeline step can legitimately have: the
+// outermost wrapper is the Retry with no parent of its own; the inner "root" wrapper is the Retry
+// exactly two hops below that outermost one (its own parent's parent has no parent). A real task
+// that merely happens to be named "root" sits somewhere else in the tree and fails that structural
+// test, so it is still rejected like any other extra nesting.
 func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bool {
 	seen := map[string]bool{id: true}
 	current := id
@@ -4463,12 +4458,19 @@ func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bo
 		}
 		seen[parentID] = true
 		current = parentID
-		if node := nodes[parentID]; node.Type == "Retry" {
-			if node.DisplayName == compilerRootTaskName {
-				continue
-			}
-			if _, hasParent := nodeParent(parentID, nodes); !hasParent {
+		if nodes[parentID].Type == "Retry" {
+			hop1, hasHop1 := nodeParent(parentID, nodes)
+			if !hasHop1 {
+				// No parent of its own: this is the outermost compiler wrapper, structurally
+				// equivalent to the true root.
 				return true
+			}
+			if hop2, hasHop2 := nodeParent(hop1, nodes); hasHop2 {
+				if _, hasHop3 := nodeParent(hop2, nodes); !hasHop3 {
+					// Exactly two hops below a parentless Retry: this is the compiler's reserved
+					// "root" wrapper by structural position, not a real task boundary.
+					continue
+				}
 			}
 			return false
 		}
@@ -4494,8 +4496,11 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 		}
 	}
 	for _, task := range tasks {
+		// A failure reconciling one task's state must not stop lifecycle messages from being
+		// persisted for every other task in the run; log it and keep going; the next
+		// reconciliation pass will retry this task.
 		if _, err := r.reconcileTaskFailure(task, nodes, resolved); err != nil {
-			return err
+			glog.Errorf("Failed to reconcile task failure for task %q: %v", task.UUID, err)
 		}
 		msg, phase, matched := lifecycleMessageForTask(task, nodes, resolved, tasksByUUID)
 		if !matched {

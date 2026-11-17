@@ -9199,10 +9199,10 @@ func TestLifecycleMessageForTask_NestedTaskMatchesThroughCompilerRootWrapper(t *
 	assert.Equal(t, imagePullMsg, msg)
 }
 
-// TestLifecycleMessageForTask_NestedTaskNamedRootStillMatchesItsOwnScope guards the
-// compilerRootTaskName special case in nodeInScope: it must only apply to the reserved "root"
-// Retry reached after a task's own scope is exhausted, never to a real enclosing task that simply
-// happens to be named "root" one level up from the task actually being matched.
+// TestLifecycleMessageForTask_NestedTaskNamedRootStillMatchesItsOwnScope guards the structural
+// (not name-based) root-wrapper check in nodeInScope: a real enclosing task that simply happens
+// to be named "root" one level up from the task actually being matched must still be matched
+// against its own scope, not mistaken for the compiler's reserved wrapper.
 func TestLifecycleMessageForTask_NestedTaskNamedRootStillMatchesItsOwnScope(t *testing.T) {
 	nodes := map[string]util.NodeStatus{
 		"branch-a":  {ID: "branch-a", DisplayName: "branch-a", Type: "Retry", State: "Running", Children: []string{"branch-a0"}},
@@ -9219,6 +9219,92 @@ func TestLifecycleMessageForTask_NestedTaskNamedRootStillMatchesItsOwnScope(t *t
 	msg, _, matched := lifecycleMessageForTask(tasks["userroot"], nodes, resolved, tasks)
 	assert.True(t, matched)
 	assert.Equal(t, imagePullMsg, msg)
+}
+
+// userDefinedRootPipelineNodes models Jeff's [P2] finding: a real, user-authored top-level task
+// literally named "root" (a nested pipeline, sibling of another unrelated top-level task),
+// wrapped in the compiler's own two reserved levels (workflow/workflow0 outer, root/root0 inner,
+// the same as every other run). The user's "root" task invokes its own sub-DAG, userRoot0, whose
+// child "leaf" is nested three hops below the absolute top, not two, so it must never be confused
+// with the compiler's reserved root wrapper.
+func userDefinedRootPipelineNodes() map[string]util.NodeStatus {
+	return map[string]util.NodeStatus{
+		"workflow":    {ID: "workflow", DisplayName: "my-pipeline-run", Type: "Retry", State: "Running", Children: []string{"workflow0"}},
+		"workflow0":   {ID: "workflow0", DisplayName: "my-pipeline-run(0)", Type: "DAG", State: "Running", Children: []string{"root"}},
+		"root":        {ID: "root", DisplayName: "root", Type: "Retry", State: "Running", Children: []string{"root0"}, BoundaryID: "workflow0"},
+		"root0":       {ID: "root0", DisplayName: "root(0)", Type: "DAG", State: "Running", Children: []string{"user-root"}, BoundaryID: "workflow0"},
+		"user-root":   {ID: "user-root", DisplayName: "root", Type: "Retry", State: "Running", Children: []string{"user-root0"}, BoundaryID: "root0"},
+		"user-root0":  {ID: "user-root0", DisplayName: "root(0)", Type: "DAG", State: "Running", Children: []string{"leaf"}, BoundaryID: "root0"},
+		"leaf":        {ID: "leaf", DisplayName: "leaf", Type: "Retry", State: "Running", Children: []string{"wf-pod-leaf"}, BoundaryID: "user-root0"},
+		"wf-pod-leaf": {ID: "wf-pod-leaf", DisplayName: "leaf(0)", Type: "Pod", State: "Pending", Message: imagePullMsg, BoundaryID: "user-root0"},
+	}
+}
+
+func TestLifecycleMessageForTask_ChildOfUserDefinedRootPipelineNotMisplacedAtTopLevel(t *testing.T) {
+	// This is Jeff's [P2] regression: a different, top-level task that happens to share the name
+	// "leaf" with the one actually nested three hops down under the user-defined "root" pipeline,
+	// and has no Argo node of its own yet. Its empty scope must not pick up that nested leaf's
+	// failure just because the search is by display name.
+	nodes := userDefinedRootPipelineNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	tasks := map[string]*model.Task{
+		"wf-root":       {UUID: "wf-root", Name: "wf-root"},
+		"leaf-toplevel": scopedTask(t, "leaf-toplevel", "leaf", "wf-root"),
+	}
+	_, _, matched := lifecycleMessageForTask(tasks["leaf-toplevel"], nodes, resolved, tasks)
+	assert.False(t, matched)
+}
+
+func TestLifecycleMessageForTask_ChildOfUserDefinedRootPipelineMatchesItsRealScope(t *testing.T) {
+	nodes := userDefinedRootPipelineNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	tasks := map[string]*model.Task{
+		"wf-root":   {UUID: "wf-root", Name: "wf-root"},
+		"user-root": scopedTask(t, "user-root", "root", "wf-root"),
+		"leaf":      scopedTask(t, "leaf", "leaf", "user-root"),
+	}
+	msg, _, matched := lifecycleMessageForTask(tasks["leaf"], nodes, resolved, tasks)
+	assert.True(t, matched)
+	assert.Equal(t, imagePullMsg, msg)
+}
+
+// loopIterationNodes models a top-level loop task compiled via Argo's withSequence (see
+// argocompiler/dag.go's iterationItemTask): each iteration is its own sibling Retry node directly
+// under root0, Display-named "<loop-task>-iterations(<index>)". That shape syntactically matches
+// retryAttemptDisplayName, the same pattern nodeParent uses to recognize a genuine retry attempt of
+// a Retry node sharing its base name. There is no such bare-named Retry node for a loop, so this
+// locks in that the lookup comes up empty and falls through to BoundaryID instead of wrongly
+// treating one iteration's node as an "attempt" of some unrelated node.
+func loopIterationNodes() map[string]util.NodeStatus {
+	return map[string]util.NodeStatus{
+		"workflow":      {ID: "workflow", DisplayName: "my-pipeline-run", Type: "Retry", State: "Running", Children: []string{"workflow0"}},
+		"workflow0":     {ID: "workflow0", DisplayName: "my-pipeline-run(0)", Type: "DAG", State: "Running", Children: []string{"root"}},
+		"root":          {ID: "root", DisplayName: "root", Type: "Retry", State: "Running", Children: []string{"root0"}, BoundaryID: "workflow0"},
+		"root0":         {ID: "root0", DisplayName: "root(0)", Type: "DAG", State: "Running", Children: []string{"loop-0", "loop-1"}, BoundaryID: "workflow0"},
+		"loop-0":        {ID: "loop-0", DisplayName: "loop-iterations(0)", Type: "Retry", State: "Failed", Children: []string{"wf-pod-loop-0"}, BoundaryID: "root0"},
+		"wf-pod-loop-0": {ID: "wf-pod-loop-0", DisplayName: "loop-iterations(0)(0)", Type: "Pod", State: "Failed", Message: imagePullMsg, BoundaryID: "root0"},
+		"loop-1":        {ID: "loop-1", DisplayName: "loop-iterations(1)", Type: "Retry", State: "Succeeded", Children: []string{"wf-pod-loop-1"}, BoundaryID: "root0"},
+		"wf-pod-loop-1": {ID: "wf-pod-loop-1", DisplayName: "loop-iterations(1)(0)", Type: "Pod", State: "Succeeded", BoundaryID: "root0"},
+	}
+}
+
+func TestLifecycleMessageForTask_LoopIterationMatchedThroughTaskNodeNotConfusedWithSibling(t *testing.T) {
+	nodes := loopIterationNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	tasks := map[string]*model.Task{
+		"wf-root": {UUID: "wf-root", Name: "wf-root"},
+		"loop-0":  scopedTask(t, "loop-0", "loop-iterations(0)", "wf-root"),
+		"loop-1":  scopedTask(t, "loop-1", "loop-iterations(1)", "wf-root"),
+	}
+
+	msg0, phase0, matched0 := lifecycleMessageForTask(tasks["loop-0"], nodes, resolved, tasks)
+	assert.True(t, matched0)
+	assert.Equal(t, imagePullMsg, msg0)
+	assert.Equal(t, "Failed", phase0)
+
+	msg1, _, matched1 := lifecycleMessageForTask(tasks["loop-1"], nodes, resolved, tasks)
+	assert.True(t, matched1)
+	assert.Equal(t, "", msg1)
 }
 
 func TestLifecycleMessageForTask_TaskNodeUnmatchedWhenParentChainBroken(t *testing.T) {
