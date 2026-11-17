@@ -4416,16 +4416,26 @@ func nodeParent(id string, nodes map[string]util.NodeStatus) (string, bool) {
 	return node.BoundaryID, true
 }
 
+// compilerRootTaskName is the Argo task name KFP's compiler always gives the extra DAG
+// invocation it inserts between the entrypoint and every top-level task (argocompiler/dag.go's
+// entrypoint template invokes compiler.RootComponentName, "root", which in turn invokes the
+// pipeline's own root DAG template). It is a reserved, compiler-only name, so a Retry node with
+// this DisplayName is always that synthetic wrapper, never a real enclosing task that stuck-pod
+// matching should preserve.
+const compilerRootTaskName = "root"
+
 // nodeInScope reports whether the nearest Retry ancestors of the node are the enclosing tasks in
 // scope, nearest first, and nothing more. Once scope is exhausted (including the empty, top-level
 // case), any further Retry ancestor before the root means the node is nested deeper than the task
 // actually is, so it is rejected rather than treated as a match.
 //
-// The one exception is the compiler-inserted root Retry wrapper: KFP's neutralizeDAGRetries gives
-// every DAG template, including the entrypoint, a zero-limit retry strategy, so Argo wraps the
-// entrypoint DAG in its own Retry node above every top-level task. That wrapper isn't a real task
-// and sits outside any task's own scope, so reaching it with nothing of its own above it is
-// treated the same as reaching the true root: it disqualifies nothing.
+// Two compiler-inserted wrappers are the exception. KFP's neutralizeDAGRetries gives every DAG
+// template a zero-limit retry strategy, and the compiler always wraps the entrypoint DAG in its
+// own Retry node, which itself invokes a second, reserved "root" task that in turn invokes the
+// pipeline's real root DAG. Neither is a real task or sits inside any task's own scope: the "root"
+// wrapper is recognized by its reserved name and skipped outright, and reaching the outermost
+// wrapper, with nothing of its own above it, is treated the same as reaching the true root. Both
+// disqualify nothing.
 func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bool {
 	seen := map[string]bool{id: true}
 	current := id
@@ -4453,7 +4463,10 @@ func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bo
 		}
 		seen[parentID] = true
 		current = parentID
-		if nodes[parentID].Type == "Retry" {
+		if node := nodes[parentID]; node.Type == "Retry" {
+			if node.DisplayName == compilerRootTaskName {
+				continue
+			}
 			if _, hasParent := nodeParent(parentID, nodes); !hasParent {
 				return true
 			}

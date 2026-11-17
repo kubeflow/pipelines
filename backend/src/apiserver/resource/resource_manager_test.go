@@ -9034,14 +9034,17 @@ func scopedTask(t *testing.T, uuid, name, parentUUID string) *model.Task {
 
 // twoSubDAGNodes has the same group name in two sub-DAGs. Only the group in branch-b ran and got
 // stuck on an image pull. The copy in branch-a was skipped, so it has no node of its own.
-// BoundaryID mirrors how Argo actually nests these, including the compiler-inserted root Retry
-// wrapper (root/root0) that KFP's neutralizeDAGRetries puts around every entrypoint DAG: branch-a
-// and branch-b are top-level, so their BoundaryID is root0, not empty; group-b and its attempt sit
-// inside branch-b's DAG attempt, branch-b0, so that is their BoundaryID.
+// BoundaryID mirrors how Argo actually nests these, including both compiler-inserted wrappers:
+// the entrypoint DAG's own Retry (workflow/workflow0) and, inside that, the reserved "root" task
+// (root/root0) that argocompiler/dag.go's entrypoint always invokes. branch-a and branch-b are
+// top-level, so their BoundaryID is root0, not empty; group-b and its attempt sit inside branch-b's
+// DAG attempt, branch-b0, so that is their BoundaryID.
 func twoSubDAGNodes() map[string]util.NodeStatus {
 	return map[string]util.NodeStatus{
-		"root":      {ID: "root", DisplayName: "my-pipeline", Type: "Retry", State: "Running", Children: []string{"root0"}},
-		"root0":     {ID: "root0", DisplayName: "my-pipeline(0)", Type: "DAG", State: "Running", Children: []string{"branch-a", "branch-b"}},
+		"workflow":  {ID: "workflow", DisplayName: "my-pipeline-run", Type: "Retry", State: "Running", Children: []string{"workflow0"}},
+		"workflow0": {ID: "workflow0", DisplayName: "my-pipeline-run(0)", Type: "DAG", State: "Running", Children: []string{"root"}},
+		"root":      {ID: "root", DisplayName: "root", Type: "Retry", State: "Running", Children: []string{"root0"}, BoundaryID: "workflow0"},
+		"root0":     {ID: "root0", DisplayName: "root(0)", Type: "DAG", State: "Running", Children: []string{"branch-a", "branch-b"}, BoundaryID: "workflow0"},
 		"branch-a":  {ID: "branch-a", DisplayName: "branch-a", Type: "Retry", State: "Succeeded", Children: []string{"branch-a0"}, BoundaryID: "root0"},
 		"branch-a0": {ID: "branch-a0", DisplayName: "branch-a(0)", Type: "DAG", State: "Succeeded", BoundaryID: "root0"},
 		"branch-b":  {ID: "branch-b", DisplayName: "branch-b", Type: "Retry", State: "Running", Children: []string{"branch-b0"}, BoundaryID: "root0"},
@@ -9053,29 +9056,34 @@ func twoSubDAGNodes() map[string]util.NodeStatus {
 
 // siblingDependencyNodes models the Children edge Argo adds for task dependencies: b depends on
 // a, so a's last attempt (a0) lists b's Retry node as a child, even though b is not nested under
-// a. Both a and b are top-level, so their BoundaryID is root0, the compiler-inserted entrypoint
-// wrapper's DAG attempt, not empty.
+// a. Both a and b are top-level, so their BoundaryID is root0, the reserved "root" task's DAG
+// attempt that sits inside the entrypoint's own wrapper (workflow/workflow0), not empty.
 func siblingDependencyNodes() map[string]util.NodeStatus {
 	return map[string]util.NodeStatus{
-		"root":     {ID: "root", DisplayName: "my-pipeline", Type: "Retry", State: "Running", Children: []string{"root0"}},
-		"root0":    {ID: "root0", DisplayName: "my-pipeline(0)", Type: "DAG", State: "Running", Children: []string{"a", "b"}},
-		"a":        {ID: "a", DisplayName: "a", Type: "Retry", State: "Succeeded", Children: []string{"a0"}, BoundaryID: "root0"},
-		"a0":       {ID: "a0", DisplayName: "a(0)", Type: "DAG", State: "Succeeded", Children: []string{"b"}, BoundaryID: "root0"},
-		"b":        {ID: "b", DisplayName: "b", Type: "Retry", State: "Pending", Children: []string{"wf-pod-b"}, BoundaryID: "root0"},
-		"wf-pod-b": {ID: "wf-pod-b", DisplayName: "b(0)", Type: "Pod", State: "Pending", Message: imagePullMsg, BoundaryID: "root0"},
+		"workflow":  {ID: "workflow", DisplayName: "my-pipeline-run", Type: "Retry", State: "Running", Children: []string{"workflow0"}},
+		"workflow0": {ID: "workflow0", DisplayName: "my-pipeline-run(0)", Type: "DAG", State: "Running", Children: []string{"root"}},
+		"root":      {ID: "root", DisplayName: "root", Type: "Retry", State: "Running", Children: []string{"root0"}, BoundaryID: "workflow0"},
+		"root0":     {ID: "root0", DisplayName: "root(0)", Type: "DAG", State: "Running", Children: []string{"a", "b"}, BoundaryID: "workflow0"},
+		"a":         {ID: "a", DisplayName: "a", Type: "Retry", State: "Succeeded", Children: []string{"a0"}, BoundaryID: "root0"},
+		"a0":        {ID: "a0", DisplayName: "a(0)", Type: "DAG", State: "Succeeded", Children: []string{"b"}, BoundaryID: "root0"},
+		"b":         {ID: "b", DisplayName: "b", Type: "Retry", State: "Pending", Children: []string{"wf-pod-b"}, BoundaryID: "root0"},
+		"wf-pod-b":  {ID: "wf-pod-b", DisplayName: "b(0)", Type: "Pod", State: "Pending", Message: imagePullMsg, BoundaryID: "root0"},
 	}
 }
 
-// rootWrapperNodes models the compiler-inserted root Retry wrapper: KFP's neutralizeDAGRetries
-// gives every DAG template, including the entrypoint, a zero-limit retry strategy, so Argo wraps
-// the entrypoint DAG (root0) in its own Retry node (root) above every top-level task. Top-level
-// tasks are therefore not hanging off nothing: their BoundaryID is root0, not empty, same as any
-// other nested task. branch/nested mirror that same wrapping one level deeper, inside branch's
-// own sub-DAG, to cover a nested task exhausting its own scope and then meeting the root wrapper.
+// rootWrapperNodes models both compiler-inserted wrappers Jeff's review identified: the
+// entrypoint DAG's own Retry (workflow/workflow0), and, inside that, the reserved "root" task
+// (root/root0) that argocompiler/dag.go's entrypoint template always invokes before reaching the
+// pipeline's real root DAG. Top-level tasks are therefore not hanging off nothing: their
+// BoundaryID is root0, not empty, same as any other nested task. branch/nested mirror that same
+// wrapping one level deeper, inside branch's own sub-DAG, to cover a nested task exhausting its
+// own scope and then meeting both wrappers.
 func rootWrapperNodes() map[string]util.NodeStatus {
 	return map[string]util.NodeStatus{
-		"root":          {ID: "root", DisplayName: "my-pipeline", Type: "Retry", State: "Running", Children: []string{"root0"}},
-		"root0":         {ID: "root0", DisplayName: "my-pipeline(0)", Type: "DAG", State: "Running", Children: []string{"top", "branch"}},
+		"workflow":      {ID: "workflow", DisplayName: "my-pipeline-run", Type: "Retry", State: "Running", Children: []string{"workflow0"}},
+		"workflow0":     {ID: "workflow0", DisplayName: "my-pipeline-run(0)", Type: "DAG", State: "Running", Children: []string{"root"}},
+		"root":          {ID: "root", DisplayName: "root", Type: "Retry", State: "Running", Children: []string{"root0"}, BoundaryID: "workflow0"},
+		"root0":         {ID: "root0", DisplayName: "root(0)", Type: "DAG", State: "Running", Children: []string{"top", "branch"}, BoundaryID: "workflow0"},
 		"top":           {ID: "top", DisplayName: "top", Type: "Retry", State: "Running", Children: []string{"wf-pod-top"}, BoundaryID: "root0"},
 		"wf-pod-top":    {ID: "wf-pod-top", DisplayName: "top(0)", Type: "Pod", State: "Pending", Message: imagePullMsg, BoundaryID: "root0"},
 		"branch":        {ID: "branch", DisplayName: "branch", Type: "Retry", State: "Running", Children: []string{"branch0"}, BoundaryID: "root0"},
@@ -9187,6 +9195,28 @@ func TestLifecycleMessageForTask_NestedTaskMatchesThroughCompilerRootWrapper(t *
 		"nested": scopedTask(t, "nested", "nested", "branch"),
 	}
 	msg, _, matched := lifecycleMessageForTask(tasks["nested"], nodes, resolved, tasks)
+	assert.True(t, matched)
+	assert.Equal(t, imagePullMsg, msg)
+}
+
+// TestLifecycleMessageForTask_NestedTaskNamedRootStillMatchesItsOwnScope guards the
+// compilerRootTaskName special case in nodeInScope: it must only apply to the reserved "root"
+// Retry reached after a task's own scope is exhausted, never to a real enclosing task that simply
+// happens to be named "root" one level up from the task actually being matched.
+func TestLifecycleMessageForTask_NestedTaskNamedRootStillMatchesItsOwnScope(t *testing.T) {
+	nodes := map[string]util.NodeStatus{
+		"branch-a":  {ID: "branch-a", DisplayName: "branch-a", Type: "Retry", State: "Running", Children: []string{"branch-a0"}},
+		"branch-a0": {ID: "branch-a0", DisplayName: "branch-a(0)", Type: "DAG", State: "Running", Children: []string{"userroot"}},
+		"userroot":  {ID: "userroot", DisplayName: "root", Type: "Retry", State: "Running", Children: []string{"wf-pod-ur"}, BoundaryID: "branch-a0"},
+		"wf-pod-ur": {ID: "wf-pod-ur", DisplayName: "root(0)", Type: "Pod", State: "Pending", Message: imagePullMsg, BoundaryID: "branch-a0"},
+	}
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	tasks := map[string]*model.Task{
+		"root-task": {UUID: "root-task", Name: "root-task"},
+		"branch-a":  scopedTask(t, "branch-a", "branch-a", "root-task"),
+		"userroot":  scopedTask(t, "userroot", "root", "branch-a"),
+	}
+	msg, _, matched := lifecycleMessageForTask(tasks["userroot"], nodes, resolved, tasks)
 	assert.True(t, matched)
 	assert.Equal(t, imagePullMsg, msg)
 }
