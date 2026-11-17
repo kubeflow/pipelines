@@ -14,11 +14,11 @@
 # limitations under the License.
 
 import os
+from pathlib import Path
 import subprocess
 import tempfile
 import time
 import unittest
-from pathlib import Path
 
 SCRIPT = Path(__file__).with_name('wait-for-seaweedfs-iam.sh')
 DEPLOY_SCRIPT = Path(__file__).with_name('deploy-kfp.sh')

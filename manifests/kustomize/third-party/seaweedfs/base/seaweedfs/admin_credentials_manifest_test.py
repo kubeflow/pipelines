@@ -11,10 +11,10 @@
 """Verify rendered manifests: set SEAWEEDFS_RENDERED to kubectl kustomize output."""
 
 import os
+from pathlib import Path
 import shlex
 import subprocess
 import unittest
-from pathlib import Path
 
 import yaml
 
