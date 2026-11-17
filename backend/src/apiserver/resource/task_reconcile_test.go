@@ -457,7 +457,7 @@ func TestReconcileTaskFailure_NodeRecoveryDoesNotOverwriteARegisteredAttempt(t *
 	require.NoError(t, err)
 
 	nodes := reconcileTestWorkflow(run.K8SName, run.UUID, unregisteredOomWorkflowNodes()).ExecutionStatus().NodeStatuses()
-	applied, err := manager.reconcileTaskFailure(staleSnapshot, nodes, util.ResolveNodeLifecycleMessages(nodes), nil)
+	applied, err := manager.reconcileTaskFailure(staleSnapshot, nodes, util.ResolveNodeLifecycleMessages(nodes), nil, 0)
 	require.NoError(t, err)
 	assert.False(t, applied)
 
@@ -575,7 +575,7 @@ func TestReconcileTaskFailure_DoesNotFailARetryThatResetTheTask(t *testing.T) {
 	require.NoError(t, store.TaskStore().ResetTasksForRetry([]string{task.UUID}))
 
 	nodes := reconcileTestWorkflow(run.K8SName, run.UUID, oomedWorkflowNodes()).ExecutionStatus().NodeStatuses()
-	applied, err := manager.reconcileTaskFailure(staleSnapshot, nodes, util.ResolveNodeLifecycleMessages(nodes), nil)
+	applied, err := manager.reconcileTaskFailure(staleSnapshot, nodes, util.ResolveNodeLifecycleMessages(nodes), nil, 0)
 	require.NoError(t, err)
 	assert.False(t, applied)
 
@@ -601,7 +601,7 @@ func TestReconcileTaskFailure_DoesNotFailANewerAttemptOnAnotherPod(t *testing.T)
 	require.NoError(t, err)
 
 	nodes := reconcileTestWorkflow(run.K8SName, run.UUID, oomedWorkflowNodes()).ExecutionStatus().NodeStatuses()
-	applied, err := manager.reconcileTaskFailure(staleSnapshot, nodes, util.ResolveNodeLifecycleMessages(nodes), nil)
+	applied, err := manager.reconcileTaskFailure(staleSnapshot, nodes, util.ResolveNodeLifecycleMessages(nodes), nil, 0)
 	require.NoError(t, err)
 	assert.False(t, applied)
 

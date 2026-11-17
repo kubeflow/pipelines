@@ -2621,7 +2621,7 @@ func (r *ResourceManager) reportWorkflowResource(
 		// reach task failure reconciliation just the same, so this check is not limited to that
 		// case.
 		staleRetryGenerationReport := run.RetryGeneration > 0 && reportedRetryGeneration(objMeta) < run.RetryGeneration
-		if err := r.persistTaskLifecycleMessages(run.Tasks, execSpec, staleRetryGenerationReport); err != nil {
+		if err := r.persistTaskLifecycleMessages(run.Tasks, execSpec, staleRetryGenerationReport, reportedRetryGeneration(objMeta)); err != nil {
 			return nil, util.Wrapf(err, "Failed to persist pod lifecycle messages for run %s", run.UUID)
 		}
 	}
@@ -4592,7 +4592,7 @@ func findScopedTaskNode(task *model.Task, nodes map[string]util.NodeStatus, task
 // persistTaskLifecycleMessages resolves pod lifecycle messages from the workflow and writes them
 // to the provided tasks. tasks should be the hydrated tasks already loaded for the run
 // (e.g. from run.Tasks) to avoid an additional database query.
-func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, execSpec util.ExecutionSpec, skipFailureReconciliation bool) error {
+func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, execSpec util.ExecutionSpec, skipFailureReconciliation bool, reportedGeneration int64) error {
 	if execSpec == nil || execSpec.ExecutionStatus() == nil || len(tasks) == 0 {
 		return nil
 	}
@@ -4622,9 +4622,10 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 		// read before the retry (still carrying the old attempt's now-stale node evidence) would
 		// otherwise pass that guard and fail the new attempt using the old one's message and
 		// finish time. The reset clears the pods, so no pod registration ever closes this window;
-		// only comparing retry generations does.
+		// only comparing retry generations does. This is an early-out on a snapshot; the guarded
+		// write rechecks the generation under the task row lock, which is what closes the race.
 		if !skipFailureReconciliation {
-			if _, err := r.reconcileTaskFailure(task, nodes, resolved, tasksByUUID); err != nil {
+			if _, err := r.reconcileTaskFailure(task, nodes, resolved, tasksByUUID, reportedGeneration); err != nil {
 				reconcileErrs = append(reconcileErrs, fmt.Errorf("reconciling task %q: %w", task.UUID, err))
 			}
 		}

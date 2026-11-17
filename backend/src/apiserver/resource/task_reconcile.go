@@ -260,7 +260,7 @@ func failureStatusMetadata(existing model.JSONData, message string) (model.JSOND
 // because no pod was ever registered, still no pod at all. So neither a state the launcher
 // reported in the meantime, nor a registration that eventually landed, nor a retry that reset the
 // task after this report was read, is overwritten. It returns true when the task was updated.
-func (r *ResourceManager) reconcileTaskFailure(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string, tasksByUUID map[string]*model.Task) (bool, error) {
+func (r *ResourceManager) reconcileTaskFailure(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string, tasksByUUID map[string]*model.Task, reportedRetryGeneration int64) (bool, error) {
 	failure, ok := executorFailureForTask(task, nodes, resolved, tasksByUUID)
 	if !ok {
 		return false, nil
@@ -269,7 +269,7 @@ func (r *ResourceManager) reconcileTaskFailure(task *model.Task, nodes map[strin
 	if err != nil {
 		return false, err
 	}
-	guard := storage.TaskAttemptGuard{State: model.TaskStatus(apiv2.PipelineTask_RUNNING)}
+	guard := storage.TaskAttemptGuard{State: model.TaskStatus(apiv2.PipelineTask_RUNNING), RetryGeneration: reportedRetryGeneration}
 	if failure.viaNode {
 		guard.RequireNoExecutorPod = true
 	} else {
