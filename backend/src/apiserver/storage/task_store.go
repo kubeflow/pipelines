@@ -1099,17 +1099,30 @@ type TaskAttemptGuard struct {
 	State model.TaskStatus
 	// ExecutorPod is the name of the executor pod that must still be the latest one recorded on
 	// the stored task. A retry reset clears the pods, and a newer attempt records a different pod,
-	// so a stale snapshot of an older attempt no longer matches.
+	// so a stale snapshot of an older attempt no longer matches. Mutually exclusive with
+	// RequireNoExecutorPod: set exactly one of the two.
 	ExecutorPod string
+	// RequireNoExecutorPod guards that the stored task still has no executor pod recorded at all,
+	// instead of a specific one. It is for a writer with no pod identity of its own to fence
+	// on, such as reconciling a task whose launcher never managed to register its executor pod
+	// before dying (an API outage covering both the registration write and every fallback write).
+	// If a pod is recorded by the time the guarded write runs, whether because the registration
+	// eventually landed or a retry started, the guard fails like any other stale attempt.
+	// Mutually exclusive with ExecutorPod: set exactly one of the two.
+	RequireNoExecutorPod bool
 }
 
 // UpdateTaskIfAttempt updates a task like UpdateTask, but only while the stored task is in the
-// guard's state and its latest executor pod is the guard's pod. It is for writers that infer an
-// outcome from outside evidence and must not overwrite a report that arrived first, or a retry
-// that started after the evidence was read. applied is false, with no error, when the guard fails.
+// guard's state and its latest executor pod matches the guard: either the named ExecutorPod, or,
+// with RequireNoExecutorPod, no executor pod at all. It is for writers that infer an outcome from
+// outside evidence and must not overwrite a report that arrived first, or a retry that started
+// after the evidence was read. applied is false, with no error, when the guard fails.
 func (s *TaskStore) UpdateTaskIfAttempt(guard TaskAttemptGuard, new *model.Task) (*model.Task, bool, error) {
-	if guard.ExecutorPod == "" {
-		return nil, false, util.NewInvalidInputError("Failed to update task: the guard needs an executor pod")
+	if guard.ExecutorPod == "" && !guard.RequireNoExecutorPod {
+		return nil, false, util.NewInvalidInputError("Failed to update task: the guard needs an executor pod or RequireNoExecutorPod")
+	}
+	if guard.ExecutorPod != "" && guard.RequireNoExecutorPod {
+		return nil, false, util.NewInvalidInputError("Failed to update task: the guard cannot set both ExecutorPod and RequireNoExecutorPod")
 	}
 	updated, err := s.updateTask(new, &guard)
 	if errors.Is(err, errTaskAttemptMismatch) {
@@ -1174,7 +1187,11 @@ func (s *TaskStore) updateTask(new *model.Task, guard *TaskAttemptGuard) (*model
 		if err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to read pods of task %s", new.UUID)
 		}
-		if latestPod != guard.ExecutorPod {
+		if guard.RequireNoExecutorPod {
+			if latestPod != "" {
+				return nil, errTaskAttemptMismatch
+			}
+		} else if latestPod != guard.ExecutorPod {
 			return nil, errTaskAttemptMismatch
 		}
 	}
