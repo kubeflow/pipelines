@@ -1,0 +1,15 @@
+{
+  "source_sha": "f7422e1e7ed1eb64e6d2a1b5f0b1de105b221e79",
+  "tooling_sha": "62b3ef0d3a97be1c916def4058e8034036b16e06",
+  "platform": "linux/amd64",
+  "pairs": {
+    "seaweedfs": {
+      "baseline": "ghcr.io/chrislusf/seaweedfs:4.53@sha256:ccad23e18639c8b98cee17e7100b95830a06077b56d8e5b006d6dcf8ec5e94a0",
+      "candidate": "ghcr.io/chrislusf/seaweedfs:4.54@sha256:4b42c212543a0acd4c0e675215ecdcaf62a186ef98def76c7e12701871222d15"
+    },
+    "metacontroller": {
+      "baseline": "ghcr.io/metacontroller/metacontroller:v4.17.7@sha256:c55e154f99dc1cadb8a17e98b212922693a1e4962add2a7f72f1f747cc77b345",
+      "candidate": "ghcr.io/metacontroller/metacontroller:v4.17.9@sha256:9c33122e55a130852b6c5f79755f9552eac2f7d42930fc3b228ba3be2e2545e6"
+    }
+  }
+}
