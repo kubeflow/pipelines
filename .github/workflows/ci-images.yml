@@ -50,6 +50,8 @@ on:
       - 'kubernetes_platform/**'
       - 'manifests/kustomize/**'
       - 'proxy/**'
+      - 'release/kfpr/go_build_provenance.py'
+      - 'release/kfpr/read_go_buildinfo.go'
       - 'pyproject.toml'
       - 'samples/**'
       - 'sdk/**'
