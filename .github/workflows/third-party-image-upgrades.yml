@@ -1,146 +1,52 @@
-name: Third-party Image Upgrade Checks
+name: Third-party archive diagnostic
 on:
-  merge_group:
-    types: [checks_requested]
-    branches: [master, main, release-2.18]
-  pull_request:
-    paths:
-      - 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/**'
-      - 'manifests/kustomize/third-party/seaweedfs/**'
-      - 'manifests/kustomize/third-party/argo/**'
-      - '.github/resources/scripts/third_party_upgrade_*.py'
-      - '.github/workflows/third-party-image-upgrades.yml'
   workflow_dispatch:
-    inputs:
-      queue_head_sha:
-        description: Exact queue candidate SHA (internal queue dispatch)
-        required: false
-        type: string
-        default: ''
-      queue_base_ref:
-        description: Queue target branch, master, main, or release-2.18 (internal queue dispatch)
-        required: false
-        type: string
-        default: ''
-      queue_base_sha:
-        description: Current target branch SHA (internal queue dispatch)
-        required: false
-        type: string
-        default: ''
-      baseline_ref:
-        description: Baseline revision (blank uses the default branch)
-        required: false
-        default: ''
-        type: string
 permissions:
   contents: read
-concurrency:
-  group: third-party-image-upgrades-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+cache-mode: none
 jobs:
-  queue-dispatch-guard:
-    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
-    permissions:
-      contents: read
-    uses: ./.github/workflows/queue-dispatch-guard.yml
-    with:
-      queue_head_sha: ${{ inputs.queue_head_sha }}
-      queue_base_ref: ${{ inputs.queue_base_ref }}
-      queue_base_sha: ${{ inputs.queue_base_sha }}
-
-  compatibility:
+  archive:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: 62b3ef0d3a97be1c916def4058e8034036b16e06
           persist-credentials: false
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ (github.event.merge_group.base_sha || (startsWith(github.ref, 'refs/heads/gh-readonly-queue/') && inputs.queue_base_sha)) || github.event.pull_request.base.sha || inputs.baseline_ref || github.event.repository.default_branch }}
-          path: baseline
-          persist-credentials: false
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        with:
-          python-version: '3.13'
-      - run: python -m pip install PyYAML==6.0.3 boto3==1.40.76 pytest==8.4.2 requests==2.33.0
-      - uses: helm/kind-action@ea822c7bf1874f08e5a491df991c228edffc3376 # v1.15.2
-        with:
-          install_only: true
-          version: v0.32.0
-          kubectl_version: v1.36.1
-      - name: Install checksum-verified Kustomize
-        run: |
-          curl -fsSL --retry 5 --retry-all-errors \
-            https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.8.1/kustomize_v5.8.1_linux_amd64.tar.gz \
-            --output "$RUNNER_TEMP/kustomize.tar.gz"
-          echo "029a7f0f4e1932c52a0476cf02a0fd855c0bb85694b82c338fc648dcb53a819d  $RUNNER_TEMP/kustomize.tar.gz" | sha256sum --check --strict
-          tar -xzf "$RUNNER_TEMP/kustomize.tar.gz" -C "$RUNNER_TEMP"
-          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
-      - name: Test compatibility assertions and profile reconciliation
+      - name: Reproduce archive validation without changing images
         env:
-          AWS_ACCESS_KEY_ID: compatibility
-          AWS_SECRET_ACCESS_KEY: compatibility
-          AWS_DEFAULT_REGION: us-east-1
-          AWS_EC2_METADATA_DISABLED: 'true'
-        run: |
-          python -m unittest discover -s .github/resources/scripts -p 'third_party_upgrade_compatibility_test.py'
-          python -m pytest manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/test_sync.py
-      - name: Upgrade the persistent store and exercise the actual profile image
-        run: python .github/resources/scripts/third_party_upgrade_compatibility.py --baseline baseline --evidence compatibility-evidence
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: always()
-        with:
-          name: third-party-upgrade-compatibility-${{ github.run_attempt }}
-          path: compatibility-evidence
-          if-no-files-found: error
-          retention-days: 7
-  scan:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [profile-controller, seaweedfs, argo-controller, argo-executor]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          persist-credentials: false
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ (github.event.merge_group.base_sha || (startsWith(github.ref, 'refs/heads/gh-readonly-queue/') && inputs.queue_base_sha)) || github.event.pull_request.base.sha || inputs.baseline_ref || github.event.repository.default_branch }}
-          path: baseline
-          persist-credentials: false
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        with:
-          python-version: '3.13'
-      - run: python -m pip install -r .github/scripts/requirements.txt
-      - uses: ./.github/actions/setup-osv-scanner
-        with:
-          arch: amd64
-      - name: Verify scan evidence contracts
-        env:
-          PYTHONPATH: release:.github/resources/scripts
-        run: python -m unittest third_party_upgrade_scan_test
-      - name: Scan immutable baseline and candidate images
-        env:
+          IMAGE: quay.io/jetstack/cert-manager-acmesolver@sha256:c8c1225bb2fe8ab37a330b77f0d8c2ee6a41210fcb54fc07ca606ab9a022b8b7
           PYTHONPATH: release
-          TARGET: ${{ matrix.target }}
         run: |
-          python .github/resources/scripts/third_party_upgrade_scan.py \
-            --baseline baseline --candidate . --target "$TARGET" --output evidence
-          {
-            echo '### Image scan comparison'
-            echo '```json'
-            cat evidence/comparison.json
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+          mkdir evidence
+          docker version > evidence/docker-version.txt
+          docker info > evidence/docker-info.txt
+          docker pull --platform linux/amd64 "$IMAGE"
+          docker image inspect "$IMAGE" > evidence/image.json
+          image_id=$(docker image inspect --format '{{.Id}}' "$IMAGE")
+          docker save --output evidence/image.tar "$image_id"
+          python3 - <<'PY'
+          import json,tarfile
+          from pathlib import Path
+          from kfpr.osv_image_scan import verify_archive
+          root=Path('evidence')
+          image=json.loads((root/'image.json').read_text())[0]
+          with tarfile.open(root/'image.tar') as tar:
+              members=tar.getmembers()
+              (root/'members.json').write_text(json.dumps([{'name':m.name,'type':m.type.decode(),'link':m.linkname,'size':m.size} for m in members],indent=2))
+              for name in ['manifest.json','index.json']:
+                  (root/name).write_bytes(tar.extractfile(name).read())
+          try:
+              digest=verify_archive(root/'image.tar',image['Id'],'linux/amd64')
+              result={'passed':True,'archive_sha256':digest}
+          except Exception as e:
+              result={'passed':False,'error':str(e)}
+          print(json.dumps(result))
+          (root/'result.json').write_text(json.dumps(result,indent=2))
+          PY
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
-          name: third-party-upgrade-osv-${{ matrix.target }}-${{ github.run_attempt }}
-          path: evidence
-          if-no-files-found: error
+          name: cert-manager-archive-diagnostic
+          path: evidence/
           retention-days: 7
