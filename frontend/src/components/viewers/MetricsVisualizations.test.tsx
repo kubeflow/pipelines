@@ -21,6 +21,7 @@ import { Artifact, Event } from 'src/third_party/mlmd';
 import { LinkedArtifact } from 'src/mlmd/MlmdUtils';
 import { Struct, Value } from 'google-protobuf/google/protobuf/struct_pb';
 import {
+  ConfusionMatrixSection,
   ConfidenceMetricsFilter,
   ConfidenceMetricsSection,
   ConfidenceMetricsSectionProps,
@@ -404,5 +405,53 @@ describe('ConfidenceMetricsSection', () => {
     screen.getByText('execution1 > artifact1');
     screen.getByText('Run name');
     screen.getByText('Run ID #2');
+  });
+});
+
+describe('ConfusionMatrixSection validation', () => {
+  const validMatrix = {
+    annotationSpecs: [{ displayName: 'cat' }, { displayName: 'dog' }],
+    rows: [{ row: [7, 2] }, { row: [1, 9] }],
+  };
+
+  function renderMatrix(matrix: unknown) {
+    const artifact = new Artifact();
+    artifact.getCustomPropertiesMap().set('display_name', new Value().setStringValue('matrix'));
+    artifact
+      .getCustomPropertiesMap()
+      .set(
+        'confusionMatrix',
+        new Value().setStructValue(Struct.fromJavaScript({ struct: matrix })),
+      );
+    return render(
+      <CommonTestWrapper>
+        <ConfusionMatrixSection artifact={artifact} />
+      </CommonTestWrapper>,
+    );
+  }
+
+  it('renders valid nested numeric rows and string labels', () => {
+    const { container } = renderMatrix(validMatrix);
+    expect(screen.getByText('Confusion Matrix: matrix')).toBeInTheDocument();
+    const cells = Array.from(container.querySelectorAll('td'), (cell) => cell.textContent?.trim());
+    expect(cells).toContain('7');
+    expect(cells).toContain('9');
+  });
+
+  it.each([
+    ['missing rows', { annotationSpecs: validMatrix.annotationSpecs }],
+    ['nonnumeric cells', { ...validMatrix, rows: [{ row: ['bad', 2] }, { row: [1, 9] }] }],
+    [
+      'nonstring labels',
+      { ...validMatrix, annotationSpecs: [{ displayName: 1 }, { displayName: 'dog' }] },
+    ],
+    ['mismatched label count', { ...validMatrix, annotationSpecs: [{ displayName: 'cat' }] }],
+    ['nonsquare rows', { ...validMatrix, rows: [{ row: [7] }, { row: [1, 9] }] }],
+  ])('shows a validation error for %s', (_name, matrix) => {
+    renderMatrix(matrix);
+    expect(
+      screen.getByText("Error in matrix artifact's confusionMatrix data format."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Confusion Matrix: matrix')).not.toBeInTheDocument();
   });
 });

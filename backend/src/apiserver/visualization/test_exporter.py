@@ -106,6 +106,58 @@ class TestExporterMethods(snapshottest.TestCase):
             self.assertIn(value, ''.join(tables))
             self.assertIn(value, html)
 
+    def test_builtin_table_exports_rows_with_and_without_headers(self):
+        for headers in (None, ['label', 'score']):
+            with self.subTest(headers=headers):
+                nb = new_notebook()
+                # Isolate cloud-file discovery while exercising real pandas,
+                # itables and notebook export with local CSV data.
+                nb.cells.append(
+                    exporter.create_cell_from_custom_code([
+                        "import sys, types, tempfile",
+                        "from pathlib import Path",
+                        "from unittest.mock import Mock",
+                        "csv = tempfile.NamedTemporaryFile(suffix='.csv', delete=False)",
+                        "source = csv.name",
+                        "csv.close()",
+                        "Path(source).write_text(" +
+                        repr("positive,0.75\nnegative,0.25\n" if headers else
+                             "label,score\npositive,0.75\nnegative,0.25\n") +
+                        ")",
+                        "io = types.ModuleType('tensorflow.python.lib.io')",
+                        "io.file_io = Mock()",
+                        "io.file_io.get_matching_files.return_value = [source]",
+                        "previous_io = sys.modules.get('tensorflow.python.lib.io')",
+                        "sys.modules['tensorflow.python.lib.io'] = io",
+                        "variables = " +
+                        repr({'headers': headers} if headers else {}),
+                    ]))
+                nb.cells.append(
+                    exporter.create_cell_from_file('types/table.py'))
+                nb.cells.append(
+                    exporter.create_cell_from_custom_code([
+                        "Path(source).unlink()",
+                        "if previous_io is None:",
+                        "    sys.modules.pop('tensorflow.python.lib.io', None)",
+                        "else:",
+                        "    sys.modules['tensorflow.python.lib.io'] = previous_io",
+                    ]))
+                html = self.exporter.generate_html_from_notebook(nb)
+                outputs = nb.cells[1].outputs
+                errors = [
+                    output for output in outputs
+                    if output.output_type == 'error'
+                ]
+                self.assertFalse(errors, errors)
+                tables = ''.join(
+                    output.get('data', {}).get('text/html', '')
+                    for output in outputs)
+                for value in ('label', 'score', 'positive', 'negative', '0.75',
+                              '0.25'):
+                    self.assertIn(value, tables)
+                    self.assertIn(value, html)
+                self.assertIn('<table', tables)
+
     def test_custom_pillow_image_is_embedded_as_png(self):
         nb = new_notebook()
         nb.cells.append(

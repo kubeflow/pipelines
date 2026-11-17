@@ -1,4 +1,4 @@
-import { Array as ArrayRunType, Number, Record, ValidationError } from 'runtypes';
+import { Array as ArrayRunType, Number, Object as ObjectRunType, ValidationError } from 'runtypes';
 import { ROCCurveConfig } from './ROCCurve';
 import { PlotType } from './Viewer';
 
@@ -8,7 +8,7 @@ type ConfidenceMetric = {
   recall: number;
 };
 
-const ConfidenceMetricRunType = Record({
+const ConfidenceMetricRunType = ObjectRunType({
   confidenceThreshold: Number,
   falsePositiveRate: Number,
   recall: Number,

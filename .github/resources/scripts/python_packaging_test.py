@@ -19,12 +19,55 @@ import shlex
 import unittest
 
 from packaging.requirements import Requirement
+from packaging.version import Version
 import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
 
 
 class PythonPackagingTest(unittest.TestCase):
+
+    def test_runtime_asn1_and_tornado_security_floors(self):
+        for relative in ('backend', 'backend/src/apiserver/visualization',
+                         'backend/src/tensorboard'):
+            lines = (ROOT / relative /
+                     'requirements.txt').read_text().splitlines()
+            pins = {
+                line.split('==')[0]: line.split('==')[1].split()[0]
+                for line in lines
+                if '==' in line and not line.startswith((' ', '#'))
+            }
+            with self.subTest(runtime=relative):
+                self.assertGreaterEqual(
+                    Version(pins['pyasn1']), Version('0.6.5'))
+                if 'tornado' in pins:
+                    self.assertGreaterEqual(
+                        Version(pins['tornado']), Version('6.6'))
+
+    def test_artifact_preview_torch_platform_wheels(self) -> None:
+        lines = (ROOT / 'samples/core/artifact_previews/requirements.txt'
+                ).read_text().splitlines()
+        self.assertIn('--extra-index-url https://download.pytorch.org/whl/cpu',
+                      lines)
+        requirements = [
+            Requirement(line) for line in lines if line.startswith('torch==')
+        ]
+        versions = {}
+        for platform in ('linux', 'darwin', 'win32'):
+            with self.subTest(platform=platform):
+                selected = [
+                    r for r in requirements if not r.marker or
+                    r.marker.evaluate({'sys_platform': platform})
+                ]
+                self.assertEqual(len(selected), 1)
+                versions[platform] = next(iter(selected[0].specifier)).version
+                if platform == 'linux':
+                    self.assertTrue(versions[platform].endswith('+cpu'))
+                else:
+                    self.assertNotIn('+', versions[platform])
+        self.assertEqual(versions['linux'].removesuffix('+cpu'),
+                         versions['darwin'])
+        self.assertEqual(versions['darwin'], versions['win32'])
 
     def test_docs_requirements_are_independent_of_checkout_paths(self) -> None:
         # Dependabot evaluates /docs without the repository-root SDK checkout.

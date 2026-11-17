@@ -17,7 +17,14 @@
 import HelpIcon from '@mui/icons-material/Help';
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Array as ArrayRunType, Failure, Number, Record, String, ValidationError } from 'runtypes';
+import {
+  Array as ArrayRunType,
+  Failure,
+  Number,
+  Object as ObjectRunType,
+  String,
+  ValidationError,
+} from 'runtypes';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import { color, commonCss, padding } from 'src/Css';
 import { useKeyedState } from 'src/hooks/useKeyedState';
@@ -745,13 +752,13 @@ export function ConfusionMatrixSection({ artifact }: ConfusionMatrixProps) {
   );
 }
 
-const ConfusionMatrixInputRunType = Record({
+const ConfusionMatrixInputRunType = ObjectRunType({
   annotationSpecs: ArrayRunType(
-    Record({
+    ObjectRunType({
       displayName: String,
     }),
   ),
-  rows: ArrayRunType(Record({ row: ArrayRunType(Number) })),
+  rows: ArrayRunType(ObjectRunType({ row: ArrayRunType(Number) })),
 });
 function validateConfusionMatrix(input: any): { error?: string } {
   if (!input) return { error: 'confusionMatrix does not exist.' };
