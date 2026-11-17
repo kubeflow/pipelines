@@ -33,6 +33,7 @@ IMAGE_PATHS = (
     'base/pipeline/metadata-writer/kustomization.yaml',
     'base/pipeline/kustomization.yaml',
     'env/gcp/inverse-proxy/kustomization.yaml',
+    'third-party/seaweedfs/base/kustomization.yaml',
 )
 
 
