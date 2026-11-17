@@ -3341,7 +3341,25 @@ func (r *ResourceManager) ReportScheduledWorkflowResource(swf *util.ScheduledWor
 		}
 		return r.jobStore.UpdateJobStatus(swf)
 	}
-	return r.jobStore.UpdateJob(swf)
+	// Serialize validation and reporting with API mode writes. A live read before
+	// acquiring the row lock would still allow a completed Disable to be undone
+	// by a report that observed the preceding enabled generation.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return r.jobStore.UpdateJobWithGuard(ctx, swf, func(ctx context.Context) (bool, error) {
+		current, err := r.getScheduledWorkflowClient(swf.Namespace).Get(ctx, swf.Name, v1.GetOptions{})
+		if err != nil {
+			return false, util.Wrap(err, "Failed to verify live ScheduledWorkflow before reporting recurring run")
+		}
+		if current == nil || current.UID != swf.UID || current.Name != swf.Name || current.Namespace != swf.Namespace {
+			return false, util.NewInvalidInputError("ScheduledWorkflow identity changed before reporting recurring run %s", swf.UID)
+		}
+		if current.Generation != swf.Generation {
+			glog.Infof("Skipping stale ScheduledWorkflow report for recurring run %s: reported generation %d, live generation %d", swf.UID, swf.Generation, current.Generation)
+			return false, nil
+		}
+		return true, nil
+	})
 }
 
 // Returns a workflow template based on the manifest in the following priority:
