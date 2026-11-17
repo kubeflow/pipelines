@@ -85,7 +85,7 @@ def select_producer_run_id(payload: Any,
                 isinstance(head_repository, dict) and
                 isinstance(run_path, str) and
                 run_path.split('@', 1)[0] == QUEUE_PRODUCER_WORKFLOW and
-                run.get('event') == 'merge_group' and
+                run.get('event') in ('merge_group', 'workflow_dispatch') and
                 run.get('head_sha') == source_sha and
                 run.get('head_branch') == head_branch and
                 run.get('status') == 'completed' and

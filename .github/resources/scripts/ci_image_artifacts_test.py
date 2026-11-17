@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 from pathlib import Path
 import re
@@ -121,9 +122,28 @@ class CiImageArtifactsTest(unittest.TestCase):
 
     def test_merge_group_requires_exact_runtime_base_image_producer_sha(self):
         workflow = IMAGE_BUILDS_WORKFLOW.read_text(encoding='utf-8')
-        self.assertIn(
-            "REQUIRE_SOURCE_SHA: ${{ github.event_name == 'merge_group' }}",
-            workflow)
+        jobs = yaml.safe_load(workflow)['jobs']
+        step = next(step for step in jobs['runtime-base-images']['steps']
+                    if 'REQUIRE_SOURCE_SHA' in step.get('env', {}))
+        expression = step['env']['REQUIRE_SOURCE_SHA'][3:-2].strip()
+        for event, ref, expected in [
+            ('merge_group',
+             'refs/heads/gh-readonly-queue/release-2.18/pr-7-candidate', True),
+            ('workflow_dispatch',
+             'refs/heads/gh-readonly-queue/release-2.18/pr-7-candidate', True),
+            ('workflow_dispatch', 'refs/heads/release-2.18', False),
+            ('pull_request', 'refs/pull/7/merge', False),
+        ]:
+            with self.subTest(event=event, ref=ref):
+                script = (
+                    "const startsWith = (value, prefix) => value.startsWith(prefix);"
+                    f"const github = {json.dumps({'event_name': event, 'ref': ref})};"
+                    f"process.stdout.write(JSON.stringify({expression}));")
+                result = subprocess.run(['node', '-e', script],
+                                        check=True,
+                                        capture_output=True,
+                                        text=True)
+                self.assertEqual(json.loads(result.stdout), expected)
         self.assertIn('producer_args+=(--require-source-sha)', workflow)
         self.assertIn(
             'actions/workflows/runtime-base-images-merge-group.yml/runs',

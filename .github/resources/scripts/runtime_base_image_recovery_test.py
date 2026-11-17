@@ -195,7 +195,18 @@ class ProducerLookupRecoveryTest(FakeCommandsTestCase):
         self.assertEqual(output, 'run-id=10\n')
         self.assertEqual(len(requests), 2)
         self.assertIn('head_sha=current-source-sha', requests[1])
-        self.assertIn('event=merge_group', requests[1])
+        self.assertNotIn('event=', requests[1])
+        self.assertEqual(self.sleeps(), [])
+
+    def test_dispatched_queue_producer_returns_without_waiting(self):
+        candidate, run = self.queue_producer()
+        run['event'] = 'workflow_dispatch'
+        result, output, requests = self.run_lookup([candidate],
+                                                   queue_runs=[run])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(output, 'run-id=10\n')
+        self.assertEqual(len(requests), 2)
+        self.assertNotIn('event=', requests[1])
         self.assertEqual(self.sleeps(), [])
 
     def test_queue_mismatch_rebuilds_instead_of_using_main(self):

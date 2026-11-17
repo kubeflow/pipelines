@@ -440,3 +440,25 @@ gh response pages and gh invocation counts overlap within their own boundaries
 and must not be added indiscriminately. Quota header changes reflect the shared
 installation pool, not traffic attributable solely to a step. No Dependabot
 schedule or rebase strategy changes are needed for this instrumentation.
+
+
+### Release merge queue dispatch
+
+The release-2.18 queue lanes accept explicit dispatch from the trusted default-
+branch controller using `queue_head_sha`, `queue_base_ref`, and `queue_base_sha`.
+The queue ref selects automatic coverage even for manually dispatchable API/E2E
+workflows. Every dispatched candidate includes the read-only reusable identity
+guard; its failure blocks the trusted aggregate. It validates acceptance of the
+result, not test execution scheduling: read-only test jobs may run in parallel
+with it, matching the default-branch controller design. Preserve native merge-group and
+ordinary manual behavior. SDK tests, pre-commit ranges, compatibility baselines,
+and runtime image artifacts must use the exact candidate/base identities.
+
+Build-tools and runtime-base image checks retain separate read-only queue
+companions. Do not add package publishing, cache deletion, or privileged tokens
+to these companions. The default-branch controller must recognize these explicit
+companion paths and register release-only dispatch workflows before activation.
+This preparation does not enable queue policy or change GitHub/Tide settings.
+Run `release_queue_dispatch_test`, `release_merge_group_workflows_test`,
+`runtime_base_image_artifacts_test`, and `pre_commit_workflow_test` when modifying
+this boundary.

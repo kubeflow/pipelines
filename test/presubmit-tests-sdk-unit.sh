@@ -46,7 +46,7 @@ fi
 
 if [[ -n "${KFP_TEST_SOURCE_SHA:-}" ]]; then
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@${KFP_TEST_SOURCE_SHA}#egg=kfp&subdirectory=sdk/python"
-elif [[ "${GITHUB_EVENT_NAME:-}" == "merge_group" ]]; then
+elif [[ "${GITHUB_EVENT_NAME:-}" == "merge_group" || "${GITHUB_REF:-}" == refs/heads/gh-readonly-queue/release-2.18/* ]]; then
   : "${GITHUB_SHA:?merge_group requires the queued commit SHA}"
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@${GITHUB_SHA}#egg=kfp&subdirectory=sdk/python"
 elif [[ -z "${PULL_NUMBER}" ]]; then

@@ -228,7 +228,7 @@ class PreCommitWorkflowTest(unittest.TestCase):
         self.assertIn('  merge_group:\n    types: [checks_requested]',
                       self.workflow)
         self.assertIn(
-            'github.event.merge_group.base_sha || '
+            'github.event.merge_group.base_sha || inputs.queue_base_sha || '
             'github.event.pull_request.base.sha || '
             'github.event.before', self.workflow)
 
