@@ -51,6 +51,19 @@ labels or waives checks. It uses `enqueuePullRequest` with `expectedHeadOid` and
 `jump: false`; it never directly merges or enables auto-merge as a fallback.
 GitHub still enforces DCO and the other configured required checks.
 
+Before automatic admission, the controller checks for dependency manifests or
+lockfiles changed by both the incoming PR and an earlier PR in the same queue.
+Two PRs can edit the same file and merge cleanly. For an overlap, the controller
+tests the combined changes with Git and defers the incoming PR only if Git
+reports a conflict on an overlapping dependency file. Other ready PRs can still
+enter the queue. An inconclusive probe leaves the merge decision to GitHub.
+
+A confirmed conflict is recorded against the PR head, target branch tip and
+ordered queue snapshot. Recovery can reuse that decision while those inputs
+match and checks again when they change. Deferral does not consume the retry
+reserved for a PR removed after failed queue CI. If a conflicting change has
+already merged, the incoming PR may still need to update its branch.
+
 The bridge rereads PR policy around admission and attempts dequeue when policy
 changes or admission becomes uncertain. It invalidates affected queue-candidate
 statuses before removal where possible; status-write failure does not suppress

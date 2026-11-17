@@ -15,14 +15,19 @@ const {workflowAttempts, publishedAttempts} = require('./ci_workflow_attempts');
 const {recoverPRGate} = require('./merge_queue_pr_gate_recovery');
 const {invalidRunMetadata} = require('./ci_expected_workflows');
 const {QUEUE_BRANCHES, loadPolicy, enabledBranches, queueEnabled, requireQueueRule} = require('./merge_queue_policy');
+const {checkDependencyConflict} = require('./queue_dependency_conflicts');
 const SHA = /^[0-9a-f]{40}$/;
-const QUEUE = `query($owner:String!, $repo:String!, $branch:String!) {
-  repository(owner:$owner, name:$repo) { nameWithOwner mergeQueue(branch:$branch) {
-    entries(first:100) { totalCount pageInfo { hasNextPage } nodes {
-      id position headCommit { oid } baseCommit { oid }
-      pullRequest { number headRefOid baseRefName }
-    } }
-  } }
+const QUEUE = `query($owner:String!, $repo:String!, $branch:String!, $ref:String!) {
+  repository(owner:$owner, name:$repo) {
+    nameWithOwner
+    baseRef: ref(qualifiedName:$ref) { target { oid } }
+    mergeQueue(branch:$branch) {
+      entries(first:100) { totalCount pageInfo { hasNextPage } nodes {
+        id position headCommit { oid } baseCommit { oid }
+        pullRequest { number headRefOid baseRefName }
+      } }
+    }
+  }
 }`;
 
 function policyReason(pr, repository, branch) {
@@ -57,8 +62,12 @@ async function readPR(github, context, number) {
 }
 
 async function readQueue(github, context, branch) {
-  const response = await github.graphql(QUEUE, {...context.repo, branch});
-  return queueEntries(response, context, branch);
+  return (await readQueueSnapshot(github, context, branch)).entries;
+}
+
+async function readQueueSnapshot(github, context, branch) {
+  const response = await github.graphql(QUEUE, {...context.repo, branch, ref: `refs/heads/${branch}`});
+  return {base: response?.repository?.baseRef?.target?.oid, entries: queueEntries(response, context, branch)};
 }
 
 function queueEntries(response, context, branch) {
@@ -239,10 +248,14 @@ async function retryRemoval(github, context, pr, consumed, now) {
   return event.id;
 }
 
-async function admissionPassed(github, context, pr, {now = () => Date.now(), reservation, afterEnqueue = false, onFailure} = {}) {
-  const statuses = await github.paginate(github.rest.repos.listCommitStatusesForRef, {
+function readStatuses(github, context, pr) {
+  return github.paginate(github.rest.repos.listCommitStatusesForRef, {
     ...context.repo, ref: pr.head.sha, per_page: 100,
   });
+}
+
+async function admissionPassed(github, context, pr, {now = () => Date.now(), reservation, afterEnqueue = false, onFailure, statuses} = {}) {
+  statuses ??= await readStatuses(github, context, pr);
   const status = statuses.find(status => status.context === 'ci-passed');
   if (status?.state === 'failure' && onFailure) await onFailure({github, context, pr});
   const prefix = `Queue admission ${pr.base.ref} CI passed; base policy `;
@@ -298,9 +311,11 @@ async function dequeue(github, pr) {
   }`, {id: pr.node_id});
 }
 
-async function reconcilePR({github, context, number, branch, root, core, now = () => Date.now(), onFailure}) {
+async function reconcilePR({github, context, number, branch, root, core, now = () => Date.now(), onFailure,
+  conflictCheck = checkDependencyConflict, cache = new Map()}) {
   if (!await queueEnabled({github, context, branch, root})) return;
-  let entries = await readQueue(github, context, branch);
+  const initialQueue = await readQueueSnapshot(github, context, branch);
+  let entries = initialQueue.entries;
   const entry = entries.find(entry => entry.pullRequest.number === number);
   let pr;
   let enqueueAttempted = false;
@@ -320,8 +335,7 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
           const current = await readPR(github, context, failedPR.number);
           if (snapshot(current) !== beforeRecovery ||
               policyReason(current, `${context.repo.owner}/${context.repo.repo}`, branch)) return false;
-          const statuses = await github.paginate(github.rest.repos.listCommitStatusesForRef,
-            {...context.repo, ref: failedPR.head.sha, per_page: 100});
+          const statuses = await readStatuses(github, context, failedPR);
           if (!Array.isArray(statuses) || statuses.length >= 1000) {
             throw new Error('Incomplete PR Gate recovery status evidence');
           }
@@ -329,12 +343,20 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
             await queueEnabled({github, context, branch, root});
         }});
     });
-    const admission = await admissionPassed(github, context, pr, {now, onFailure: recoverFailure});
+    const statuses = await readStatuses(github, context, pr);
+    const admission = await admissionPassed(github, context, pr, {now, statuses, onFailure: recoverFailure});
     if (!admission) return;
+    if (!SHA.test(initialQueue.base || '')) throw new Error('Missing live base for queue admission');
     const before = snapshot(pr);
+    if (entries.length && await conflictCheck({github, context, pr, entries,
+      base: initialQueue.base, core, cache, statuses})) return;
     pr = await readPR(github, context, number);
     if (snapshot(pr) !== before || JSON.stringify(await admissionPassed(github, context, pr, {now})) !== JSON.stringify(admission)) return;
     if (!await queueEnabled({github, context, branch, root})) return;
+    // Manual queue changes can race even an empty queue. Compare the live base,
+    // ordered membership and candidate SHAs before reserving a retry or enqueuing.
+    const currentQueue = await readQueueSnapshot(github, context, branch);
+    if (JSON.stringify(currentQueue) !== JSON.stringify(initialQueue)) return;
     let reservation;
     if (admission.removal) {
       const {data} = await github.rest.repos.createCommitStatus({...context.repo, sha:pr.head.sha,
@@ -434,11 +456,12 @@ async function eventTargets(github, context) {
     pr.head.repo?.full_name === run.head_repository.full_name).map(pr => pr.number);
 }
 
-async function sweep({github, context, root, core, queueOnly = false, now, onFailure}) {
+async function sweep({github, context, root, core, queueOnly = false, now, onFailure, conflictCheck}) {
   const branches = await enabledBranches({github, context, root});
   if (!branches.length) return;
   const targets = queueOnly ? [] : await eventTargets(github, context);
   const failures = [];
+  const cache = new Map();
   for (const branch of branches) {
     // A broken queue must not prevent other enabled branches from progressing.
     try {
@@ -474,7 +497,7 @@ async function sweep({github, context, root, core, queueOnly = false, now, onFai
         // the existing fresh read and fail-closed invalidation/dequeue path.
         if (healthy.has(number)) continue;
         try {
-          await reconcilePR({github, context, number, branch, root, core, now, onFailure});
+          await reconcilePR({github, context, number, branch, root, core, now, onFailure, conflictCheck, cache});
         } catch (error) {
           failures.push(`#${number}: ${error.message}`);
         }

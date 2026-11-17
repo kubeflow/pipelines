@@ -87,11 +87,12 @@ def entry(number=7, branch='master', position=1, **overrides):
     }
 
 
-def queue(entries=None, **overrides):
+def queue(entries=None, *, base=BASE, **overrides):
     entries = [] if entries is None else entries
     return {
         'repository': {
             'nameWithOwner': 'owner/repo',
+            'baseRef': {'target': {'oid': base}},
             'mergeQueue': {
                 'entries': {
                     'nodes': entries,
@@ -240,7 +241,12 @@ const github = {{rest: {{
   calls.push({{route:'queue',options}});
   return next('queues',f.queues);
 }}}};
-const args = {{github, context:{{repo:{{owner:'owner',repo:'repo'}},eventName:f.eventName,payload:f.payload,ref:f.ref}},
+const conflictCheck = async ({{pr, entries, base, statuses, cache}}) => {{
+  calls.push({{route:'dependency-check',number:pr.number,entries,base,
+    status:statuses[0]?.context,cache:cache instanceof Map}});
+  return (f.conflicted || []).includes(pr.number);
+}};
+const args = {{github, conflictCheck, context:{{repo:{{owner:'owner',repo:'repo'}},eventName:f.eventName,payload:f.payload,ref:f.ref}},
   queueOnly:f.queueOnly || false, root:{json.dumps(str(root))}, number:f.number, branch:f.branch,
   group:{{baseRef:f.branch,branch:'gh-readonly-queue/' + f.branch + '/pr-7-test',head:f.candidate || {json.dumps(CANDIDATE)}}},
   core:{{info:()=>{{}}}}, now:()=>Date.parse(f.now || '2026-11-13T13:00:00Z')}};
@@ -748,6 +754,51 @@ class QueueAdmissionTest(unittest.TestCase):
                 )
                 self.assertEqual(result['writes'], [], result)
 
+    def test_queue_admission_rechecks_probe_input_before_enqueue(self):
+        queued = queue([entry(8)])
+        for first, current in [
+            (queue(), queued),
+            (queued, queue()),
+            (queued, queue([entry(8)], base=OTHER)),
+            (queued, queue([entry(8, headCommit={'oid': OTHER})])),
+            (queued, queue([entry(9)])),
+        ]:
+            with self.subTest(first=first, current=current):
+                result = run_case(queues=[first, current])
+                self.assertNotIn('error', result, result)
+                self.assertEqual(result['writes'], [], result)
+        result = run_case(
+            prs={'7': [pr(), pr(head={'sha': OTHER})]}, queues=[queued]
+        )
+        self.assertNotIn('error', result, result)
+        self.assertEqual(result['writes'], [], result)
+
+    def test_sweep_checks_new_unbuilt_entry_and_admits_independent_pr(self):
+        newly_admitted = entry(7, headCommit=None, baseCommit=None)
+        queued = queue([newly_admitted])
+        result = run_case(
+            'sweep',
+            listed=[{'number': n} for n in [7, 8, 9]],
+            prs={str(n): [pr(n)] for n in [7, 8, 9]},
+            queues=[queue(), queue(), queue(), queued],
+            conflicted=[8],
+        )
+        self.assertNotIn('error', result, result)
+        self.assertEqual(
+            [
+                w['options']['id']
+                for w in result['writes']
+                if w['route'] == 'enqueue'
+            ],
+            ['PR_7', 'PR_9'],
+        )
+        checks = [
+            c for c in result['calls'] if c['route'] == 'dependency-check'
+        ]
+        self.assertEqual([c['number'] for c in checks], [8, 9])
+        self.assertTrue(all(c['entries'] == [newly_admitted] for c in checks))
+        self.assertTrue(all(c['cache'] for c in checks))
+
     def test_pre_enqueue_head_or_label_changes_do_not_enqueue(self):
         for changed in [pr(head={'sha': OTHER}), pr(labels=[]), pr(draft=True)]:
             result = run_case(prs={'7': [pr(), changed]})
@@ -762,7 +813,7 @@ class QueueAdmissionTest(unittest.TestCase):
         ]:
             result = run_case(
                 prs={'7': [pr(), pr(), changed]},
-                queues=[queue(), queue([entry()])],
+                queues=[queue(), queue(), queue([entry()])],
             )
             self.assertNotIn('error', result)
             self.assertEqual(
@@ -811,7 +862,9 @@ class QueueAdmissionTest(unittest.TestCase):
             },
         ]:
             with self.subTest(options=options):
-                result = run_case(queues=[queue(), queue([entry()])], **options)
+                result = run_case(
+                    queues=[queue(), queue(), queue([entry()])], **options
+                )
                 self.assertIn('error', result)
                 self.assertTrue(
                     any(
@@ -888,7 +941,7 @@ class QueueAdmissionTest(unittest.TestCase):
         self.assertEqual(changed['writes'], [], changed)
         changed_after = run_case(
             runs=[[run], [run], [dict(run, run_attempt=2)]],
-            queues=[queue(), queue([entry()])],
+            queues=[queue(), queue(), queue([entry()])],
         )
         self.assertEqual(
             [w['route'] for w in changed_after['writes']],
@@ -991,7 +1044,8 @@ class QueueAdmissionTest(unittest.TestCase):
             [write['route'] for write in result['writes']], ['enqueue']
         )
         ambiguous = run_case(
-            queues=[queue([entry(8)]), None], enqueueError=True
+            queues=[queue([entry(8)]), queue([entry(8)]), None],
+            enqueueError=True,
         )
         self.assertIn('Enqueue rejected', ambiguous['error'])
         self.assertEqual(
@@ -1498,6 +1552,29 @@ class AutomaticRetryTest(unittest.TestCase):
             **changes,
         }
 
+    def test_dependency_conflict_preserves_retry_budget(self) -> None:
+        earlier = entry(8, headCommit=None)
+        result = run_case(
+            **self.fixture(queues=[queue([earlier])], conflicted=[7])
+        )
+        self.assertNotIn('error', result, result)
+        self.assertEqual(result['writes'], [], result)
+        checks = [
+            c for c in result['calls'] if c['route'] == 'dependency-check'
+        ]
+        self.assertEqual(len(checks), 1, checks)
+        self.assertEqual(checks[0]['entries'], [earlier])
+        self.assertEqual(checks[0]['base'], BASE)
+        self.assertEqual(checks[0]['status'], 'ci-passed')
+
+    def test_queue_change_after_clean_probe_does_not_reserve_retry(self):
+        result = run_case(**self.fixture(queues=[queue([entry(8)]), queue()]))
+        self.assertNotIn('error', result, result)
+        self.assertEqual(result['writes'], [], result)
+        retried = run_case(**self.fixture(queues=[queue()]))
+        self.assertNotIn('error', retried, retried)
+        self.assertIn('enqueue', [w['route'] for w in retried['writes']])
+
     def test_retry_is_reserved_before_enqueue(self) -> None:
         result = run_case(**self.fixture())
         self.assertNotIn('error', result)
@@ -1641,7 +1718,7 @@ class AutomaticRetryTest(unittest.TestCase):
         result = run_case(
             **self.fixture(
                 prs={'7': [pr(), pr(), pr(), pr(head={'sha': OTHER})]},
-                queues=[queue(), queue([entry()])],
+                queues=[queue(), queue(), queue([entry()])],
             )
         )
         self.assertIn('dequeue', [w['route'] for w in result['writes']])
