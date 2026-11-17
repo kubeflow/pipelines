@@ -86,6 +86,19 @@ class DeployKfpCertificateWaitTest(unittest.TestCase):
         self.assertLess(kfp_apply, cert_wait)
         self.assertLess(cert_wait, pods_ready)
 
+    def test_tls_flag_rejects_unsupported_combinations(self):
+        """CACHE_DISABLED, USE_PROXY, and MULTI_USER take precedence over the
+        TLS flag in overlay selection, and those overlays contain no
+        Certificate resources.
+
+        Reject the combinations up front instead of failing later on a
+        zero-match certificate wait.
+        """
+        guard = self.script.index('POD_TO_POD_TLS_ENABLED cannot be combined')
+        overlay_selection = self.script.index('cache-disabled-proxy')
+
+        self.assertLess(guard, overlay_selection)
+
     def test_manifest_apply_retries_transient_webhook_rejections(self):
         """Predicting exactly when the cert-manager webhook starts serving is
         fragile; the apply is idempotent, so retry it instead.
@@ -106,18 +119,21 @@ class DeployKfpCertificateWaitTest(unittest.TestCase):
     def test_certificate_wait_covers_all_cert_backed_lanes(self):
         """The wait must cover every lane that applies Certificate resources:
         the TLS lane (base-tls-certs) and the kubernetes-native lane
-        (base-webhook-certs) — the same condition that installs cert-manager.
+        (base-webhook-certs). Both conditions that install cert-manager must
+        reach the wait, so a new cert-backed lane cannot be added to the
+        install gate without the wait following.
         """
-        gate_text = (
-            '"${PIPELINES_STORE}" == "kubernetes" ] || '
-            '[ "${POD_TO_POD_TLS_ENABLED}" == "true"'
-        )
         cert_manager_install = self.script.index(
             'make -C ./backend install-cert-manager'
         )
-        # The wait's gate is the second occurrence of this condition (the
-        # first guards the cert-manager install itself).
-        gate = self.script.index(gate_text, cert_manager_install)
+        # The wait's gate: everything the install gate covers, minus
+        # multi-user (multi-user overlays never apply Certificates).
+        gate = self.script.index(
+            'if [ "${MULTI_USER}" == "false" ] && '
+            '{ [ "${PIPELINES_STORE}" == "kubernetes" ] || '
+            '[ "${POD_TO_POD_TLS_ENABLED}" == "true" ]; }; then',
+            cert_manager_install,
+        )
         cert_wait = self.script.index('wait --for=condition=Ready certificate')
         # Containment: the wait must run inside the gated block. An ungated
         # wait breaks every lane without cert-manager CRDs installed, because
@@ -128,15 +144,32 @@ class DeployKfpCertificateWaitTest(unittest.TestCase):
         self.assertLess(gate, cert_wait)
         self.assertLess(cert_wait, gate_end)
 
-        # Symmetry: the exact gate line must appear exactly twice — once for
-        # the cert-manager install and once for this wait. If the install gate
-        # grows a new cert-backed lane without the wait gate following, that
-        # lane reintroduces the race these tests pin.
-        gate_line = (
+        # The install gate must be a superset of the wait gate's lane
+        # conditions: if it grows a new cert-backed lane, this count no
+        # longer matches and the wait gate must be revisited.
+        install_gate = (
             'if [ "${PIPELINES_STORE}" == "kubernetes" ] || '
             '[ "${POD_TO_POD_TLS_ENABLED}" == "true" ]; then'
         )
-        self.assertEqual(self.script.count(gate_line), 2)
+        self.assertEqual(self.script.count(install_gate), 1)
+
+    def test_multi_user_deployments_skip_the_certificate_wait(self):
+        """Multi-user overlays apply no Certificate resources, and the store
+        flag is ignored by their overlay selection.
+
+        The wait must not fire
+        there: `kubectl wait certificate --all` errors on zero matches.
+        """
+        gate = self.script.index(
+            'if [ "${MULTI_USER}" == "false" ] && '
+            '{ [ "${PIPELINES_STORE}" == "kubernetes" ] || '
+            '[ "${POD_TO_POD_TLS_ENABLED}" == "true" ]; }; then'
+        )
+        cert_wait = self.script.index('wait --for=condition=Ready certificate')
+        gate_end = self.script.index('\nfi', gate)
+
+        self.assertLess(gate, cert_wait)
+        self.assertLess(cert_wait, gate_end)
 
     def test_certificate_wait_failure_is_fatal(self):
         """Pins the full wait line and the EXIT_CODE wiring.
