@@ -200,6 +200,10 @@ func TestExecutorFailureForTask_UnfinishedNodeFallsBackToNow(t *testing.T) {
 func taskRetryNodes(taskName, taskState, executorState string, pod util.NodeStatus) map[string]util.NodeStatus {
 	pod.Type = "Pod"
 	pod.BoundaryID = "task0"
+	// Real Argo pods carry their Retry group's attempt-display-name convention
+	// ("executor(0)"), which nodeParent relies on to recognize the pod as executor's own
+	// attempt rather than something directly contained by task0.
+	pod.DisplayName = "executor(0)"
 	return map[string]util.NodeStatus{
 		"task":     {ID: "task", DisplayName: taskName, Type: "Retry", State: taskState, Children: []string{"task0"}},
 		"task0":    {ID: "task0", DisplayName: taskName + "(0)", Type: "DAG", State: taskState, Children: []string{"executor"}},
@@ -280,6 +284,24 @@ func TestExecutorFailureForTaskViaNode(t *testing.T) {
 		_, ok := executorFailureForTask(topLevelLeaf, nodes, resolved, tasksByUUID)
 		assert.False(t, ok, "a node nested elsewhere must not be mistaken for this task's own node")
 	})
+}
+
+// TestNodeFinishTime_DoesNotBorrowADependentSiblingsFinishTime is CodeRabbit's regression: task
+// "a"'s own DAG attempt (a0) lists "b" among its Children, but that edge records dependency
+// ordering (b depends on a, so a's last attempt points at b's Retry node per Argo convention), not
+// containment -- b's own BoundaryID is root0, the same as a's, so b is a's sibling, not its
+// descendant. Neither "a" nor "a0" ever gets a FinishTime of their own in this scenario, so a blind
+// walk down Children would reach b's terminal pod and wrongly report its finish time as a's.
+func TestNodeFinishTime_DoesNotBorrowADependentSiblingsFinishTime(t *testing.T) {
+	nodes := map[string]util.NodeStatus{
+		"root0":    {ID: "root0", DisplayName: "root(0)", Type: "DAG", State: "Running", Children: []string{"a", "b"}, BoundaryID: "workflow0"},
+		"a":        {ID: "a", DisplayName: "a", Type: "Retry", State: "Succeeded", Children: []string{"a0"}, BoundaryID: "root0"},
+		"a0":       {ID: "a0", DisplayName: "a(0)", Type: "DAG", State: "Succeeded", Children: []string{"b"}, BoundaryID: "root0"},
+		"b":        {ID: "b", DisplayName: "b", Type: "Retry", State: "Failed", Children: []string{"wf-pod-b"}, BoundaryID: "root0", FinishTime: 555},
+		"wf-pod-b": {ID: "wf-pod-b", DisplayName: "b(0)", Type: "Pod", State: "Failed", FinishTime: 555, BoundaryID: "root0"},
+	}
+	assert.Equal(t, int64(0), nodeFinishTime("a", nodes, map[string]bool{}),
+		"a dependency edge to a downstream sibling must not be followed as if it were a's own descendant")
 }
 
 func reconcileTestWorkflow(runName, runUUID string, nodes map[string]v1alpha1.NodeStatus) *util.Workflow {
