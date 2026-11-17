@@ -240,6 +240,9 @@ class CompatibilityTest(unittest.TestCase):
             patch.object(compatibility, 'client'),
             patch.object(compatibility, 'verify_payload'),
             patch.object(compatibility, 'verify_state'),
+            patch.object(
+                compatibility, 'exercise_profile_rollback'
+            ) as rollback,
         ):
             self.assertEqual(
                 compatibility.exercise_profile(
@@ -267,8 +270,229 @@ class CompatibilityTest(unittest.TestCase):
             'restart',
             'deployment/kubeflow-pipelines-profile-controller',
         )
+        rollback.assert_called_once_with(
+            receipt['image'], secret, ('admin', 'key'), Path(directory)
+        )
         self.assertEqual(sync.call_count, 3)
         self.assertEqual(sync.call_args.args[-1], secret)
+
+    def test_profile_rollback_preserves_credentials_and_objects_both_ways(
+        self,
+    ) -> None:
+        secret = {'data': {'accesskey': 'dXNlcg==', 'secretkey': 'a2V5'}}
+        objects = {
+            'private-artifacts/compat-user/after-upgrade': compatibility.PAYLOAD
+        }
+        user = Mock()
+
+        def put_object(*, Bucket: str, Key: str, Body: bytes) -> None:
+            objects[Key] = Body
+
+        def get_object(*, Bucket: str, Key: str) -> dict:
+            return {'Body': io.BytesIO(objects[Key])}
+
+        user.put_object.side_effect = put_object
+        user.get_object.side_effect = get_object
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch.object(compatibility, 'run') as run,
+            patch.object(compatibility, 'kubectl') as kubectl,
+            patch.object(compatibility, 'wait_ready'),
+            patch.object(
+                compatibility,
+                'profile_running_image',
+                side_effect=lambda image: {
+                    'image': image,
+                    'image_id': 'sha256:test',
+                },
+            ) as running,
+            patch.object(
+                compatibility,
+                'forward',
+                side_effect=lambda *args: nullcontext('http://localhost'),
+            ),
+            patch.object(
+                compatibility, 'sync_profile', return_value=secret
+            ) as sync,
+            patch.object(compatibility, 'client', return_value=user) as client,
+            patch.object(compatibility, 'verify_state'),
+        ):
+            compatibility.exercise_profile_rollback(
+                'candidate:tested', secret, ('admin', 'key'), Path(directory)
+            )
+            receipts = json.loads(
+                (Path(directory) / 'profile-rollback.json').read_text()
+            )
+        self.assertEqual(
+            [call.args[-1] for call in kubectl.call_args_list],
+            [
+                f'profile-controller={compatibility.PROFILE_ROLLBACK_IMAGE}',
+                'profile-controller=candidate:tested',
+            ],
+        )
+        self.assertEqual(
+            [call.args[0] for call in running.call_args_list],
+            [compatibility.PROFILE_ROLLBACK_IMAGE, 'candidate:tested'],
+        )
+        self.assertEqual(
+            [item['phase'] for item in receipts], ['rollback', 'restore']
+        )
+        self.assertEqual(user.close.call_count, 4)
+        self.assertEqual(sync.call_count, 4)
+        self.assertTrue(
+            all(call.args[-1] == secret for call in sync.call_args_list)
+        )
+        self.assertEqual(
+            [call.args[1:] for call in client.call_args_list],
+            [('admin', 'key'), ('user', 'key')] * 2,
+        )
+        self.assertEqual(
+            [call.kwargs['Key'] for call in user.get_object.call_args_list],
+            [
+                'private-artifacts/compat-user/after-upgrade',
+                'private-artifacts/compat-user/after-rollback',
+                'private-artifacts/compat-user/after-upgrade',
+                'private-artifacts/compat-user/after-rollback',
+                'private-artifacts/compat-user/after-restore',
+            ],
+        )
+        self.assertEqual(
+            run.call_args_list[0].args[-1], compatibility.PROFILE_ROLLBACK_IMAGE
+        )
+        self.assertEqual(
+            run.call_args_list[1].args,
+            (
+                'kind',
+                'load',
+                'docker-image',
+                '--name',
+                compatibility.CLUSTER,
+                compatibility.PROFILE_ROLLBACK_IMAGE,
+            ),
+        )
+
+    def test_profile_rollback_fails_on_credential_rotation_in_either_direction(
+        self,
+    ) -> None:
+        secret = {'data': {'accesskey': 'dXNlcg==', 'secretkey': 'a2V5'}}
+        for responses in ([{'data': {}}], [secret, secret, {'data': {}}]):
+            with (
+                self.subTest(responses=responses),
+                tempfile.TemporaryDirectory() as directory,
+                patch.object(compatibility, 'run'),
+                patch.object(compatibility, 'kubectl'),
+                patch.object(compatibility, 'wait_ready'),
+                patch.object(
+                    compatibility, 'profile_running_image', return_value={}
+                ),
+                patch.object(
+                    compatibility,
+                    'forward',
+                    side_effect=lambda *args: nullcontext('http://localhost'),
+                ),
+                patch.object(
+                    compatibility, 'sync_profile', side_effect=responses
+                ),
+                patch.object(compatibility, 'client'),
+                patch.object(compatibility, 'verify_state'),
+                patch.object(compatibility, 'verify_payload'),
+            ):
+                with self.assertRaisesRegex(
+                    AssertionError, 'replaced existing credentials'
+                ):
+                    compatibility.exercise_profile_rollback(
+                        'candidate:tested',
+                        secret,
+                        ('admin', 'key'),
+                        Path(directory),
+                    )
+                self.assertFalse(
+                    (Path(directory) / 'profile-rollback.json').exists()
+                )
+
+    def test_profile_rollback_failures_do_not_write_success_receipt(
+        self,
+    ) -> None:
+        secret = {'data': {'accesskey': 'dXNlcg==', 'secretkey': 'a2V5'}}
+        for failed_step in (
+            'wait_ready',
+            'profile_running_image',
+            'forward',
+            'verify_payload',
+        ):
+            with (
+                self.subTest(failed_step=failed_step),
+                tempfile.TemporaryDirectory() as directory,
+                patch.object(compatibility, 'run'),
+                patch.object(compatibility, 'kubectl'),
+                patch.object(compatibility, 'wait_ready'),
+                patch.object(
+                    compatibility, 'profile_running_image', return_value={}
+                ),
+                patch.object(
+                    compatibility,
+                    'forward',
+                    side_effect=lambda *args: nullcontext('http://localhost'),
+                ),
+                patch.object(
+                    compatibility, 'sync_profile', return_value=secret
+                ),
+                patch.object(compatibility, 'client'),
+                patch.object(compatibility, 'verify_state'),
+                patch.object(compatibility, 'verify_payload'),
+            ):
+                getattr(compatibility, failed_step).side_effect = RuntimeError(
+                    'smoke failed'
+                )
+                with self.assertRaisesRegex(RuntimeError, 'smoke failed'):
+                    compatibility.exercise_profile_rollback(
+                        'candidate:tested',
+                        secret,
+                        ('admin', 'key'),
+                        Path(directory),
+                    )
+                self.assertFalse(
+                    (Path(directory) / 'profile-rollback.json').exists()
+                )
+
+    def test_profile_running_image_requires_requested_ready_runtime(
+        self,
+    ) -> None:
+        pod = {
+            'metadata': {'uid': 'pod'},
+            'spec': {
+                'containers': [
+                    {'name': 'profile-controller', 'image': 'candidate:tested'}
+                ]
+            },
+            'status': {
+                'containerStatuses': [
+                    {
+                        'name': 'profile-controller',
+                        'ready': True,
+                        'state': {'running': {}},
+                        'imageID': 'sha256:test',
+                    }
+                ]
+            },
+        }
+        with patch.object(
+            compatibility, 'kubectl', return_value=json.dumps({'items': [pod]})
+        ):
+            self.assertEqual(
+                compatibility.profile_running_image('candidate:tested')[
+                    'image_id'
+                ],
+                'sha256:test',
+            )
+            with self.assertRaisesRegex(AssertionError, 'requested image'):
+                compatibility.profile_running_image('prior:tested')
+        pod['status']['containerStatuses'][0]['ready'] = False
+        with patch.object(
+            compatibility, 'kubectl', return_value=json.dumps({'items': [pod]})
+        ):
+            with self.assertRaisesRegex(AssertionError, 'requested image'):
+                compatibility.profile_running_image('candidate:tested')
 
     def test_ambiguous_baseline_image_fails(self):
         with self.assertRaisesRegex(ValueError, 'Expected one'):

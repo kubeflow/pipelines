@@ -34,3 +34,55 @@ Validate profile reconciliation with `run_tests.sh`. Image acceptance must also
 exercise the existing UID, ConfigMap mount, health endpoint, and SeaweedFS IAM/S3
 behavior using the built image; dependency resolution and unit tests alone do not
 establish container compatibility.
+
+## Roll back the runtime
+
+If the new runtime prevents profile reconciliation, temporarily restore the
+previous runtime image. Use your installation's namespace instead of `kubeflow`
+if different. Save the current image first so you can restore the exact candidate
+(tag or digest) after investigating:
+
+```bash
+namespace=kubeflow
+candidate_image=$(kubectl -n "$namespace" get deployment kubeflow-pipelines-profile-controller \
+  -o jsonpath='{.spec.template.spec.containers[?(@.name=="profile-controller")].image}')
+kubectl -n "$namespace" set image deployment/kubeflow-pipelines-profile-controller \
+  profile-controller=docker.io/alpine/k8s:1.37.2
+kubectl -n "$namespace" rollout status deployment/kubeflow-pipelines-profile-controller --timeout=360s
+```
+
+This changes only the runtime, retaining the mounted controller code, security
+context, configuration, and existing credentials. Do not delete profile Secrets
+or storage PVCs. Confirm the pod is ready, profile reconciliation succeeds, and
+existing credentials still read and write artifacts. This is a temporary recovery
+option: the previous toolbox image restores the larger dependency surface.
+
+For a durable rollback, add this image override to the installation's Kustomize
+overlay and apply that overlay through your normal deployment process. Update any
+GitOps desired state too, so it does not undo the rollback:
+
+```yaml
+images:
+- name: ghcr.io/kubeflow/kfp-profile-controller
+  newName: docker.io/alpine/k8s
+  newTag: 1.37.2
+```
+
+Replace an existing entry for this image rather than adding a duplicate; remove
+any `digest` field in that entry when switching to the rollback tag. Render the
+overlay first and verify the profile controller's image is
+`docker.io/alpine/k8s:1.37.2`. When the runtime is ready again, remove the rollback
+override and restore the intended candidate in desired state. For an immediate
+restore using the saved image:
+
+```bash
+kubectl -n "$namespace" set image deployment/kubeflow-pipelines-profile-controller \
+  profile-controller="$candidate_image"
+kubectl -n "$namespace" rollout status deployment/kubeflow-pipelines-profile-controller --timeout=360s
+```
+
+The third-party upgrade compatibility workflow exercises candidate → previous
+runtime → candidate in its disposable Kind cluster. It checks ready running
+images, health, repeated reconciliation without credential changes, and reads
+and writes with the same credentials across both transitions. Receipts are saved
+in `profile-rollback.json`; this does not modify a deployed installation.
