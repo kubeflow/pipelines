@@ -334,6 +334,11 @@ Keep fixture grants scoped to that account and namespace and authorization enabl
 
 ## Common CI failures
 
+- For a green PR that is not queued, inspect its optional `merge-queue-admission`
+  status and unresolved review conversations. A cancelled shared `queue_admission`
+  job is not a per-PR eligibility result. See [queue admission diagnostics](merge-queue-activation.md#why-a-pr-is-waiting).
+  Keep this diagnostic out of required checks and CI evidence to avoid an enqueue cycle.
+
 - Read the Docs release-readiness builds limit `sphinx_immaterial` font fetching to four workers with `SPHINX_IMMATERIAL_FONT_FETCH_MAX_WORKERS`, rather than its default 128. This reduces connection pressure on Google Fonts after observed TLS EOF and remote-disconnect failures. Both SDK documentation steps inherit the limit; fonts are still bundled, TLS verification stays enabled, and Sphinx errors still fail the job.
 
 - The `sdk-viewer-assets` pre-commit hook rebuilds the SDK bundle on frontend, bundled-asset, or hook/workflow configuration changes; modified outputs fail the check and must be committed. Pre-commit CI installs the pinned Node/npm toolchain and locked dependencies only for these changes or configuration smoke tests. Local contributors must run `npm ci` in `frontend` first, and again after lockfile changes. See [viewer build instructions](../../frontend/src/standalone/README.md#rebuild-the-sdk-assets).

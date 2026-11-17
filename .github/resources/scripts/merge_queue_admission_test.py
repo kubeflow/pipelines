@@ -114,7 +114,15 @@ def run_case(method='reconcilePR', branch='master', **options):
         'enabled': [branch],
         'prs': {'7': [pr(branch=branch)]},
         'queues': [queue()],
-        'rules': [[{'type': 'merge_queue'}]],
+        'rules': [
+            [
+                {'type': 'merge_queue'},
+                {
+                    'type': 'pull_request',
+                    'parameters': {'required_review_thread_resolution': True},
+                },
+            ]
+        ],
         'statuses': [
             [
                 {
@@ -160,7 +168,7 @@ def run_case(method='reconcilePR', branch='master', **options):
             root = ROOT
         script = f"""
 const f = {json.dumps(fixture)};
-const writes = [], calls = [];
+const writes = [], calls = [], diagnostics = [];
 if (f.mockGateRecovery) {{
   const helper = require({json.dumps(str(MODULE.with_name('merge_queue_pr_gate_recovery.js')))});
   helper.recoverPRGate = async options => {{
@@ -187,7 +195,13 @@ const github = {{rest: {{
     calls.push({{route:'repository',options}});
     if (f.repositoryError) throw new Error('Repository unavailable');
     return {{data:{{full_name:'owner/repo',default_branch:f.defaultBranch || f.branch}}}};
-  }}, listCommitStatusesForRef:'statuses', createCommitStatus: async options => {{
+  }}, getCombinedStatusForRef: async options => ({{data:{{statuses:f.diagnosticStatuses || []}}}}),
+  listCommitStatusesForRef:'statuses', createCommitStatus: async options => {{
+    if (options.context === 'merge-queue-admission') {{
+      diagnostics.push(options);
+      if (f.diagnosticWriteError) throw new Error('Diagnostic write failed');
+      return {{data:{{...options,id:901}}}};
+    }}
     writes.push({{route:'status', options}});
     if (f.statusWriteError) throw new Error('Status write failed');
     const data = {{...options, id: 900, created_at: '2026-11-13T13:00:00Z'}};
@@ -207,11 +221,29 @@ const github = {{rest: {{
 }}, graphql: async (query, options) => {{
   if (query.includes('enqueuePullRequest')) {{
     writes.push({{route:'enqueue',options,query}});
-    if (f.enqueueError) throw new Error('Enqueue rejected');
+    if (f.enqueueError) {{
+      const error = new Error('Enqueue rejected');
+      if (Array.isArray(f.enqueueError)) error.errors = f.enqueueError;
+      throw error;
+    }}
+    if ('enqueueResponse' in f) return f.enqueueResponse;
     return {{enqueuePullRequest:{{mergeQueueEntry:{{id:'ENTRY_7'}}}}}};
   }}
   if (query.includes('dequeuePullRequest')) {{
     writes.push({{route:'dequeue',options,query}}); return {{}};
+  }}
+  if (query.includes('query AdmissionReviewPolicy')) {{
+    calls.push({{route:'review-policy',options,query}});
+    if (f.reviewPolicies) return next('review-policy',f.reviewPolicies);
+    return {{repository:{{nameWithOwner:'owner/repo',ref:{{name:f.branch,
+      branchProtectionRule:f.classicPolicy === null ? null : {{requiresConversationResolution:f.classicPolicy !== false}}}}}}}};
+  }}
+  if (query.includes('query AdmissionConversations')) {{
+    calls.push({{route:'conversations',options,query}});
+    if (f.conversations) return next('conversations',f.conversations);
+    const pr = f.prs[String(options.number)][0];
+    return {{repository:{{nameWithOwner:'owner/repo',pullRequest:{{id:pr.node_id,headRefOid:pr.head.sha,
+      reviewThreads:{{totalCount:0,nodes:[],pageInfo:{{hasNextPage:false,endCursor:null}}}}}}}}}};
   }}
   if (query.includes('query RetryRemoval')) {{
     calls.push({{route:'removal',options,query}});
@@ -243,15 +275,15 @@ const github = {{rest: {{
 const args = {{github, context:{{repo:{{owner:'owner',repo:'repo'}},eventName:f.eventName,payload:f.payload,ref:f.ref}},
   queueOnly:f.queueOnly || false, root:{json.dumps(str(root))}, number:f.number, branch:f.branch,
   group:{{baseRef:f.branch,branch:'gh-readonly-queue/' + f.branch + '/pr-7-test',head:f.candidate || {json.dumps(CANDIDATE)}}},
-  core:{{info:()=>{{}}}}, now:()=>Date.parse(f.now || '2026-11-13T13:00:00Z')}};
+  core:{{info:()=>{{}},warning:()=>{{}}}}, now:()=>Date.parse(f.now || '2026-11-13T13:00:00Z')}};
 (async () => {{
   try {{
     let result;
     if (f.method === 'readQueue') result = await gate.readQueue(github,args.context,f.branch);
     else if (f.method === 'policyReason') result = gate.policyReason(f.prs['7'][0],'owner/repo',f.branch);
     else result = await gate[f.method](args);
-    console.log(JSON.stringify({{result,writes,calls}}));
-  }} catch(error) {{console.log(JSON.stringify({{error:error.message,writes,calls}}));}}
+    console.log(JSON.stringify({{result,writes,calls,diagnostics}}));
+  }} catch(error) {{console.log(JSON.stringify({{error:error.message,writes,calls,diagnostics}}));}}
 }})();
 """
         result = subprocess.run(
@@ -777,6 +809,7 @@ class QueueAdmissionTest(unittest.TestCase):
             {'prs': {'7': [pr(), pr(), None]}},
             {
                 'rules': [
+                    [{'type': 'merge_queue'}],
                     [{'type': 'merge_queue'}],
                     [{'type': 'merge_queue'}],
                     [],
@@ -1674,6 +1707,331 @@ class AutomaticRetryTest(unittest.TestCase):
         )
         self.assertNotIn('error', result)
         self.assertEqual(result['writes'][0]['route'], 'enqueue')
+
+
+def conversations(
+    nodes=None, *, head=HEAD, number=7, total=None, has_next=False, cursor=None
+):
+    nodes = [] if nodes is None else nodes
+    return {
+        'repository': {
+            'nameWithOwner': 'owner/repo',
+            'pullRequest': {
+                'id': f'PR_{number}',
+                'headRefOid': head,
+                'reviewThreads': {
+                    'totalCount': len(nodes) if total is None else total,
+                    'nodes': nodes,
+                    'pageInfo': {'hasNextPage': has_next, 'endCursor': cursor},
+                },
+            },
+        }
+    }
+
+
+class AdmissionDiagnosticsTest(unittest.TestCase):
+    def test_unresolved_conversations_explain_blocker_without_enqueue(self):
+        result = run_case(
+            conversations=[
+                conversations(
+                    [
+                        {'isResolved': False},
+                        {'isResolved': True},
+                        {'isResolved': False},
+                    ]
+                )
+            ]
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(result['writes'], [])
+        self.assertEqual(len(result['diagnostics']), 1)
+        diagnostic = result['diagnostics'][0]
+        self.assertEqual(diagnostic['state'], 'pending')
+        self.assertEqual(diagnostic['sha'], HEAD)
+        self.assertEqual(
+            diagnostic['description'],
+            'Waiting for 2 unresolved review conversations.',
+        )
+
+    def test_resolved_conversations_transition_to_queued(self):
+        result = run_case(conversations=[conversations([{'isResolved': True}])])
+        self.assertNotIn('error', result)
+        self.assertEqual(result['writes'][0]['route'], 'enqueue')
+        self.assertEqual(result['diagnostics'][-1]['state'], 'success')
+        self.assertEqual(
+            result['diagnostics'][-1]['description'],
+            'Queued; awaiting merge-group checks.',
+        )
+
+    def test_healthy_queue_fast_path_updates_previously_blocked_status(self):
+        result = run_case('sweep', queues=[queue([entry()])], listed=[pr()])
+        self.assertNotIn('error', result)
+        self.assertEqual(result['writes'], [])
+        self.assertEqual(result['diagnostics'][-1]['state'], 'success')
+        self.assertEqual(
+            result['diagnostics'][-1]['description'],
+            'Queued; awaiting merge-group checks.',
+        )
+
+    def test_later_conversation_page_is_checked(self):
+        result = run_case(
+            conversations=[
+                conversations(
+                    [{'isResolved': True}] * 100,
+                    total=101,
+                    has_next=True,
+                    cursor='page1',
+                ),
+                conversations([{'isResolved': False}], total=101),
+            ]
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(result['writes'], [])
+        self.assertEqual(
+            result['diagnostics'][-1]['description'],
+            'Waiting for 1 unresolved review conversation.',
+        )
+        requests = [
+            call for call in result['calls'] if call['route'] == 'conversations'
+        ]
+        self.assertEqual(requests[1]['options']['cursor'], 'page1')
+
+    def test_incomplete_or_malformed_conversations_never_enqueue(self):
+        malformed = conversations([{'isResolved': 'false'}])
+        missing_count = conversations()
+        del missing_count['repository']['pullRequest']['reviewThreads'][
+            'totalCount'
+        ]
+        for pages in [
+            [conversations([], total=1)],
+            [malformed],
+            [missing_count],
+            [conversations([], has_next=True)],
+            [
+                conversations(
+                    [{'isResolved': True}] * 100,
+                    total=300,
+                    has_next=True,
+                    cursor='same',
+                )
+            ],
+            [conversations([], total=1000)],
+        ]:
+            with self.subTest(pages=pages):
+                result = run_case(conversations=pages)
+                self.assertIn('error', result)
+                self.assertFalse(
+                    any(
+                        write['route'] == 'enqueue'
+                        for write in result['writes']
+                    )
+                )
+
+    def test_conversation_head_mismatch_never_enqueues(self):
+        result = run_case(conversations=[conversations(head=OTHER)])
+        self.assertIn('error', result)
+        self.assertFalse(
+            any(write['route'] == 'enqueue' for write in result['writes'])
+        )
+
+    def test_conversation_rule_absence_does_not_add_requirement(self):
+        result = run_case(
+            rules=[[{'type': 'merge_queue'}]],
+            classicPolicy=False,
+            conversations=[conversations([{'isResolved': False}])],
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(result['writes'][0]['route'], 'enqueue')
+        self.assertFalse(
+            any(call['route'] == 'conversations' for call in result['calls'])
+        )
+
+    def test_classic_branch_protection_also_requires_resolution(self):
+        result = run_case(
+            rules=[
+                [
+                    {'type': 'merge_queue'},
+                    {
+                        'type': 'pull_request',
+                        'parameters': {
+                            'required_review_thread_resolution': False
+                        },
+                    },
+                ]
+            ],
+            classicPolicy=True,
+            conversations=[conversations([{'isResolved': False}])],
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(result['writes'], [])
+        self.assertEqual(
+            result['diagnostics'][-1]['description'],
+            'Waiting for 1 unresolved review conversation.',
+        )
+
+    def test_ruleset_requirement_applies_without_classic_protection(self):
+        result = run_case(
+            classicPolicy=None,
+            conversations=[conversations([{'isResolved': False}])],
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(result['writes'], [])
+        self.assertEqual(
+            result['diagnostics'][-1]['description'],
+            'Waiting for 1 unresolved review conversation.',
+        )
+
+    def test_no_classic_or_ruleset_requirement_allows_unresolved_threads(self):
+        result = run_case(
+            rules=[[{'type': 'merge_queue'}]],
+            classicPolicy=None,
+            conversations=[conversations([{'isResolved': False}])],
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(result['writes'][0]['route'], 'enqueue')
+        self.assertFalse(
+            any(call['route'] == 'conversations' for call in result['calls'])
+        )
+
+    def test_unreadable_review_policy_fails_closed(self):
+        for policy in [
+            None,
+            {'repository': {'nameWithOwner': 'owner/repo', 'ref': None}},
+            {
+                'repository': {
+                    'nameWithOwner': 'owner/repo',
+                    'ref': {
+                        'name': 'master',
+                        'branchProtectionRule': {},
+                    },
+                }
+            },
+            {
+                'repository': {
+                    'nameWithOwner': 'owner/repo',
+                    'ref': {
+                        'name': 'different-branch',
+                        'branchProtectionRule': None,
+                    },
+                }
+            },
+        ]:
+            with self.subTest(policy=policy):
+                result = run_case(reviewPolicies=[policy])
+                self.assertIn('error', result)
+                self.assertFalse(
+                    any(
+                        write['route'] == 'enqueue'
+                        for write in result['writes']
+                    )
+                )
+
+    def test_identical_blocker_status_is_not_republished(self):
+        pages = [conversations([{'isResolved': False}])]
+        first = run_case(conversations=pages)
+        self.assertEqual(len(first['diagnostics']), 1)
+        result = run_case(
+            conversations=pages, diagnosticStatuses=first['diagnostics']
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(result['diagnostics'], [])
+        self.assertEqual(result['writes'], [])
+
+    def test_known_enqueue_rejection_is_pending_without_shared_failure(self):
+        result = run_case(
+            enqueueError=[
+                {
+                    'type': 'UNPROCESSABLE',
+                    'path': ['enqueuePullRequest'],
+                    'message': 'Pull request All comments must be resolved.',
+                }
+            ]
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(result['diagnostics'][-1]['state'], 'pending')
+        self.assertIn(
+            'review conversation',
+            result['diagnostics'][-1]['description'].lower(),
+        )
+        self.assertFalse(
+            any(write['route'] == 'dequeue' for write in result['writes'])
+        )
+
+    def test_unknown_enqueue_failure_is_not_hidden(self):
+        result = run_case(enqueueError=True)
+        self.assertIn('error', result)
+        self.assertNotEqual(result['diagnostics'][-1]['state'], 'success')
+
+    def test_diagnostic_write_failure_does_not_revoke_queue_member(self):
+        result = run_case(queues=[queue([entry()])], diagnosticWriteError=True)
+        self.assertNotIn('error', result)
+        self.assertEqual(result['writes'], [])
+
+    def test_diagnostic_failure_does_not_prevent_initial_enqueue(self):
+        result = run_case(diagnosticWriteError=True)
+        self.assertNotIn('error', result)
+        self.assertEqual(result['writes'][0]['route'], 'enqueue')
+
+    def test_incomplete_enqueue_response_cannot_report_queued(self):
+        result = run_case(enqueueResponse=None)
+        self.assertIn('Incomplete enqueue response', result['error'])
+        self.assertFalse(
+            any(d['state'] == 'success' for d in result['diagnostics'])
+        )
+
+    def test_known_required_check_and_conflict_rejections_are_waiting(self):
+        for message in [
+            'Required status check DCO is pending.',
+            'Pull request is not mergeable.',
+        ]:
+            with self.subTest(message=message):
+                result = run_case(
+                    enqueueError=[
+                        {
+                            'type': 'UNPROCESSABLE',
+                            'path': ['enqueuePullRequest'],
+                            'message': message,
+                        }
+                    ]
+                )
+                self.assertNotIn('error', result)
+                self.assertEqual(result['diagnostics'][-1]['state'], 'pending')
+
+    def test_unknown_policy_rejection_is_not_hidden(self):
+        result = run_case(
+            enqueueError=[
+                {
+                    'type': 'UNPROCESSABLE',
+                    'path': ['enqueuePullRequest'],
+                    'message': 'An unexpected policy was rejected.',
+                }
+            ]
+        )
+        self.assertIn('Enqueue rejected', result['error'])
+
+    def test_known_rejection_with_ambiguous_membership_still_fails_closed(self):
+        result = run_case(
+            queues=[queue(), None],
+            enqueueError=[
+                {
+                    'type': 'UNPROCESSABLE',
+                    'path': ['enqueuePullRequest'],
+                    'message': 'Pull request All comments must be resolved.',
+                }
+            ],
+        )
+        self.assertIn('error', result)
+        self.assertIn('dequeue', [write['route'] for write in result['writes']])
+
+    def test_ci_wait_has_separate_pending_diagnostic(self):
+        result = run_case(statuses=[[]])
+        self.assertNotIn('error', result)
+        self.assertEqual(result['writes'], [])
+        self.assertEqual(result['diagnostics'][-1]['state'], 'pending')
+        self.assertEqual(
+            result['diagnostics'][-1]['description'],
+            'Waiting for current-head CI or eligible queue retry.',
+        )
 
 
 if __name__ == '__main__':
