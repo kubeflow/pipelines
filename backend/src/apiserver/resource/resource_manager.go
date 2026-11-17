@@ -4495,12 +4495,16 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 			tasksByUUID[task.UUID] = task
 		}
 	}
+	var reconcileErrs []error
 	for _, task := range tasks {
 		// A failure reconciling one task's state must not stop lifecycle messages from being
-		// persisted for every other task in the run; log it and keep going; the next
-		// reconciliation pass will retry this task.
+		// persisted for every other task in the run, so keep going. The error itself is
+		// collected and returned below instead of being swallowed: ReportWorkflow calls this
+		// before marking the workflow persisted or deleting it, and once the workflow is gone
+		// the persistence agent stops retrying, so a caller that saw success here would have no
+		// other chance to reconcile this task. Returning the error keeps that from happening.
 		if _, err := r.reconcileTaskFailure(task, nodes, resolved); err != nil {
-			glog.Errorf("Failed to reconcile task failure for task %q: %v", task.UUID, err)
+			reconcileErrs = append(reconcileErrs, fmt.Errorf("reconciling task %q: %w", task.UUID, err))
 		}
 		msg, phase, matched := lifecycleMessageForTask(task, nodes, resolved, tasksByUUID)
 		if !matched {
@@ -4530,6 +4534,13 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 		}); err != nil {
 			return err
 		}
+	}
+	if len(reconcileErrs) > 0 {
+		msgs := make([]string, len(reconcileErrs))
+		for i, e := range reconcileErrs {
+			msgs[i] = e.Error()
+		}
+		return fmt.Errorf("failed to reconcile %d task(s): %s", len(reconcileErrs), strings.Join(msgs, "; "))
 	}
 	return nil
 }
