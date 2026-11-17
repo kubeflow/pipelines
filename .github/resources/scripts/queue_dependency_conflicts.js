@@ -25,7 +25,8 @@ const DEPENDENCIES = new Set([
 function isDependencyPath(path) {
   if (typeof path !== 'string') return false;
   const name = path.split('/').pop();
-  return DEPENDENCIES.has(name) || /^(?:[\w.-]+-)?requirements(?:[-.][\w.-]+)?\.(?:in|txt)$/.test(name);
+  return /^\.github\/workflows\/[^/]+\.ya?ml$/.test(path) ||
+    /^\.github\/actions\/.+\/action\.ya?ml$/.test(path) || DEPENDENCIES.has(name) || /^(?:[\w.-]+-)?requirements(?:[-.][\w.-]+)?\.(?:in|txt)$/.test(name);
 }
 
 const BUDGET = Symbol('dependency probe budget');
@@ -69,24 +70,16 @@ async function checkDependencyConflict({github, context, pr, entries, base, core
     });
     if (!Array.isArray(data.files)) throw new Error('missing changed files');
     let files = data.files;
-    // The comparison API truncates the combined file list at 300. Use the
-    // PR files endpoint for large changes, checking the head after pagination.
-    if (files.length >= 300) {
-      files = [];
-      for (let page = 1; page <= 30; page++) {
-        read();
-        const {data: batch} = await github.rest.pulls.listFiles({owner, repo, pull_number: number, page, per_page: 100});
-        if (!Array.isArray(batch)) throw new Error('missing PR files page');
-        files.push(...batch);
-        if (batch.length < 100) break;
-      }
-      read();
-      const {data: current} = await github.rest.pulls.get({owner, repo, pull_number: number});
-      if (current.head?.sha !== sha || current.changed_files !== files.length || current.base?.ref !== branch) {
-        throw new Error('changed or incomplete PR file list');
+    // PR-number pagination cannot bind paths to this immutable SHA (including
+    // an away-and-back head race). A truncated comparison is inconclusive.
+    if (files.length >= 300) throw new Error('truncated SHA-bound comparison');
+    const paths = new Map();
+    for (const file of files) {
+      const aliases = [file.filename, file.previous_filename].filter(path => typeof path === 'string');
+      if (aliases.some(isDependencyPath)) {
+        for (const path of aliases) paths.set(path, new Set(aliases));
       }
     }
-    const paths = new Set(files.flatMap(file => [file.filename, file.previous_filename]).filter(isDependencyPath));
     cache.set(key, paths);
     return paths;
   }
@@ -101,10 +94,13 @@ async function checkDependencyConflict({github, context, pr, entries, base, core
     for (const [index, entry] of entries.entries()) {
       if (!entry.headCommit && index < lastBuilt) continue;
       const queued = entry.pullRequest;
-      for (const path of await pathsFor(queued.number, queued.headRefOid)) {
-        if (incoming.has(path) && !overlaps.has(path)) overlaps.set(path, queued.number);
+      for (const [path, aliases] of await pathsFor(queued.number, queued.headRefOid)) {
+        if (incoming.has(path)) {
+          for (const alias of new Set([...aliases, ...incoming.get(path)])) {
+            if (!overlaps.has(alias)) overlaps.set(alias, queued.number);
+          }
+        }
       }
-      if (overlaps.size === incoming.size) break;
     }
     if (!overlaps.size) return false;
     // Each probe has a 45s timeout. Stop starting probes after 45s of Git

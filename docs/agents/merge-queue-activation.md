@@ -52,17 +52,27 @@ labels or waives checks. It uses `enqueuePullRequest` with `expectedHeadOid` and
 GitHub still enforces DCO and the other configured required checks.
 
 Before automatic admission, the controller checks for dependency manifests or
-lockfiles changed by both the incoming PR and an earlier PR in the same queue.
+lockfiles (including GitHub workflow and action definitions) changed by both the incoming PR and an earlier PR in the same queue.
 Two PRs can edit the same file and merge cleanly. For an overlap, the controller
 tests the combined changes with Git and defers the incoming PR only if Git
 reports a conflict on an overlapping dependency file. Other ready PRs can still
-enter the queue. An inconclusive probe leaves the merge decision to GitHub.
+enter the queue. Rename aliases are retained on both sides. File discovery uses only immutable
+base/head comparisons; a truncated comparison is inconclusive rather than
+falling back to a moving PR file list. An inconclusive probe leaves the merge
+decision to GitHub.
 
 A confirmed conflict is recorded against the PR head, target branch tip and
 ordered queue snapshot. Recovery can reuse that decision while those inputs
 match and checks again when they change. Deferral does not consume the retry
 reserved for a PR removed after failed queue CI. If a conflicting change has
 already merged, the incoming PR may still need to update its branch.
+
+The controller also checks the live base and predecessors after enqueue. A race
+causes a compensating dequeue before admission consumption is recorded. A
+reserved retry is released only after removal is confirmed, using a bot-authored
+receipt bound to the original admission ID and CI fingerprint. Uncertain removal
+keeps the retry consumed. A new sweep must recheck the queue and all admission
+requirements before retrying; the original admission budget is not reset.
 
 The bridge rereads PR policy around admission and attempts dequeue when policy
 changes or admission becomes uncertain. It invalidates affected queue-candidate

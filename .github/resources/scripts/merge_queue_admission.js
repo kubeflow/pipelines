@@ -284,12 +284,30 @@ async function admissionPassed(github, context, pr, {now = () => Date.now(), res
   }
   const description = `Retry ${pr.base.ref}; CI attempts ${fingerprint}.`;
   const retry = statuses.find(item => item.context === 'queue-admission-retry' && item.description === description);
+  const compensated = item => {
+    const prefix = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/`;
+    const suffix = `#queue-retry-compensation=${consumed.id}:${fingerprint}`;
+    const url = item?.target_url;
+    return item?.context === 'queue-admission-retry' && item.state === 'error' && item.creator?.type === 'Bot' &&
+      item.creator.login === 'github-actions[bot]' && Number.isSafeInteger(item.id) && item.id > 0 &&
+      Number.isSafeInteger(consumed.id) && consumed.id > 0 && typeof url === 'string' &&
+      url.startsWith(prefix) && url.endsWith(suffix) &&
+      /^[1-9][0-9]*$/.test(url.slice(prefix.length, -suffix.length));
+  };
   if (retry) {
-    // Only this controller invocation may finish its pre-reserved retry. Every
-    // later sweep sees a consumed retry, including after an ambiguous enqueue.
+    // Only a confirmed compensating dequeue may release a reserved retry.
+    // Bind that receipt to the consumed initial admission, not just PR/head.
+    if (compensated(retry)) return {fingerprint, removal: `compensated:${retry.id}`, compensation: retry.id};
+    // Only this invocation may finish its pending reservation. Lost responses
+    // and failed cleanup keep the retry consumed.
     if (!reservation || retry.id !== reservation.id || retry.state !== 'pending' ||
         reservation.fingerprint !== fingerprint) return null;
-    if (!afterEnqueue && await retryRemoval(github, context, pr, consumed, now) !== reservation.admission.removal) return null;
+    if (!afterEnqueue) {
+      if (reservation.admission.compensation) {
+        if (!statuses.some(item => item.id === reservation.admission.compensation &&
+            item.description === description && compensated(item))) return null;
+      } else if (await retryRemoval(github, context, pr, consumed, now) !== reservation.admission.removal) return null;
+    }
     return reservation.admission;
   }
   const removal = await retryRemoval(github, context, pr, consumed, now);
@@ -380,6 +398,29 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
     }`, {id: pr.node_id, head: pr.head.sha});
     const after = await readPR(github, context, number);
     if (after.merged === true) return;
+    const afterQueue = await readQueueSnapshot(github, context, branch);
+    const admittedIndex = afterQueue.entries.findIndex(item => item.pullRequest.number === number);
+    if (admittedIndex < 0) throw new Error('Enqueued PR missing from queue snapshot');
+    const predecessors = {base: afterQueue.base, entries: afterQueue.entries.slice(0, admittedIndex)};
+    if (JSON.stringify(predecessors) !== JSON.stringify(initialQueue)) {
+      // A manual enqueue or base move raced our final pre-enqueue snapshot.
+      // Remove this admission before recording consumption; do not invalidate
+      // unrelated predecessors or accept their unprobed dependency changes.
+      await dequeue(github, after);
+      const removed = await readQueueSnapshot(github, context, branch);
+      if (removed.entries.some(item => item.pullRequest.number === number)) {
+        throw new Error('Compensating dequeue not confirmed');
+      }
+      if (reservation) {
+        const consumed = statuses.find(item => item.context === 'queue-admission-attempt');
+        if (!Number.isSafeInteger(consumed?.id) || consumed.id <= 0) throw new Error('Missing consumed admission for compensation');
+        await github.rest.repos.createCommitStatus({...context.repo, sha:pr.head.sha,
+          context:'queue-admission-retry', state:'error',
+          description:`Retry ${branch}; CI attempts ${admission.fingerprint}.`,
+          target_url:`https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}#queue-retry-compensation=${consumed.id}:${admission.fingerprint}`});
+      }
+      return;
+    }
     if (snapshot(after) !== before || JSON.stringify(await admissionPassed(github, context, after, {now, reservation, afterEnqueue:true})) !== JSON.stringify(admission) ||
         !await queueEnabled({github, context, branch, root})) {
       entries = await readQueue(github, context, branch);

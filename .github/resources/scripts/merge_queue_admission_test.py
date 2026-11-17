@@ -87,7 +87,9 @@ def entry(number=7, branch='master', position=1, **overrides):
     }
 
 
-def queue(entries=None, *, base=BASE, **overrides):
+def queue(
+    entries: list[dict] | None = None, *, base: str = BASE, **overrides: object
+) -> dict:
     entries = [] if entries is None else entries
     return {
         'repository': {
@@ -105,7 +107,9 @@ def queue(entries=None, *, base=BASE, **overrides):
     }
 
 
-def run_case(method='reconcilePR', branch='master', **options):
+def run_case(
+    method: str = 'reconcilePR', branch: str = 'master', **options: object
+) -> dict:
     fixture = {
         'method': method,
         'branch': branch,
@@ -171,6 +175,7 @@ if (f.mockGateRecovery) {{
 }}
 const gate = require({json.dumps(str(MODULE))});
 let retryStatus;
+let enqueued = false;
 const counts = {{}};
 function next(name, values) {{
   const n = counts[name] || 0; counts[name] = n + 1;
@@ -191,7 +196,7 @@ const github = {{rest: {{
   }}, listCommitStatusesForRef:'statuses', createCommitStatus: async options => {{
     writes.push({{route:'status', options}});
     if (f.statusWriteError) throw new Error('Status write failed');
-    const data = {{...options, id: 900, created_at: '2026-11-13T13:00:00Z'}};
+    const data = {{...options, id: 900, creator:{{type:'Bot',login:'github-actions[bot]'}}, created_at: '2026-11-13T13:00:00Z'}};
     if (options.context === 'queue-admission-retry') retryStatus = data;
     return {{data}};
   }}}},
@@ -209,10 +214,11 @@ const github = {{rest: {{
   if (query.includes('enqueuePullRequest')) {{
     writes.push({{route:'enqueue',options,query}});
     if (f.enqueueError) throw new Error('Enqueue rejected');
+    enqueued = Number(options.id.split('_')[1]);
     return {{enqueuePullRequest:{{mergeQueueEntry:{{id:'ENTRY_7'}}}}}};
   }}
   if (query.includes('dequeuePullRequest')) {{
-    writes.push({{route:'dequeue',options,query}}); return {{}};
+    writes.push({{route:'dequeue',options,query}}); enqueued = false; return {{}};
   }}
   if (query.includes('query RetryRemoval')) {{
     calls.push({{route:'removal',options,query}});
@@ -239,14 +245,23 @@ const github = {{rest: {{
     return {{repository}};
   }}
   calls.push({{route:'queue',options}});
-  return next('queues',f.queues);
+  const result = structuredClone(next('queues',f.queues));
+  if (enqueued && !f.queueAdmissionMissing && result?.repository?.mergeQueue?.entries) {{
+    const collection = result.repository.mergeQueue.entries;
+    if (!collection.nodes.some(e => e.pullRequest.number === enqueued)) {{
+      collection.nodes.push({{id:'ENTRY_' + enqueued,position:collection.nodes.length+1,headCommit:null,baseCommit:null,
+        pullRequest:{{number:enqueued,headRefOid:{json.dumps(HEAD)},baseRefName:f.branch}}}});
+      collection.totalCount = collection.nodes.length;
+    }}
+  }}
+  return result;
 }}}};
 const conflictCheck = async ({{pr, entries, base, statuses, cache}}) => {{
   calls.push({{route:'dependency-check',number:pr.number,entries,base,
     status:statuses[0]?.context,cache:cache instanceof Map}});
   return (f.conflicted || []).includes(pr.number);
 }};
-const args = {{github, conflictCheck, context:{{repo:{{owner:'owner',repo:'repo'}},eventName:f.eventName,payload:f.payload,ref:f.ref}},
+const args = {{github, conflictCheck, context:{{repo:{{owner:'owner',repo:'repo'}},runId:42,eventName:f.eventName,payload:f.payload,ref:f.ref}},
   queueOnly:f.queueOnly || false, root:{json.dumps(str(root))}, number:f.number, branch:f.branch,
   group:{{baseRef:f.branch,branch:'gh-readonly-queue/' + f.branch + '/pr-7-test',head:f.candidate || {json.dumps(CANDIDATE)}}},
   core:{{info:()=>{{}}}}, now:()=>Date.parse(f.now || '2026-11-13T13:00:00Z')}};
@@ -754,7 +769,7 @@ class QueueAdmissionTest(unittest.TestCase):
                 )
                 self.assertEqual(result['writes'], [], result)
 
-    def test_queue_admission_rechecks_probe_input_before_enqueue(self):
+    def test_queue_admission_rechecks_probe_input_before_enqueue(self) -> None:
         queued = queue([entry(8)])
         for first, current in [
             (queue(), queued),
@@ -773,14 +788,16 @@ class QueueAdmissionTest(unittest.TestCase):
         self.assertNotIn('error', result, result)
         self.assertEqual(result['writes'], [], result)
 
-    def test_sweep_checks_new_unbuilt_entry_and_admits_independent_pr(self):
+    def test_sweep_checks_new_unbuilt_entry_and_admits_independent_pr(
+        self,
+    ) -> None:
         newly_admitted = entry(7, headCommit=None, baseCommit=None)
         queued = queue([newly_admitted])
         result = run_case(
             'sweep',
             listed=[{'number': n} for n in [7, 8, 9]],
             prs={str(n): [pr(n)] for n in [7, 8, 9]},
-            queues=[queue(), queue(), queue(), queued],
+            queues=[queue(), queue(), queue(), queue(), queued],
             conflicted=[8],
         )
         self.assertNotIn('error', result, result)
@@ -798,6 +815,24 @@ class QueueAdmissionTest(unittest.TestCase):
         self.assertEqual([c['number'] for c in checks], [8, 9])
         self.assertTrue(all(c['entries'] == [newly_admitted] for c in checks))
         self.assertTrue(all(c['cache'] for c in checks))
+
+    def test_post_enqueue_predecessor_race_is_compensated_without_consumption(
+        self,
+    ) -> None:
+        result = run_case(queues=[queue(), queue(), queue([entry(8)])])
+        self.assertNotIn('error', result, result)
+        self.assertEqual(
+            [w['route'] for w in result['writes']], ['enqueue', 'dequeue']
+        )
+
+    def test_post_enqueue_append_does_not_change_predecessors(self) -> None:
+        result = run_case(
+            queues=[queue(), queue(), queue([entry(), entry(8, position=2)])]
+        )
+        self.assertNotIn('error', result, result)
+        self.assertEqual(
+            [w['route'] for w in result['writes']], ['enqueue', 'status']
+        )
 
     def test_pre_enqueue_head_or_label_changes_do_not_enqueue(self):
         for changed in [pr(head={'sha': OTHER}), pr(labels=[]), pr(draft=True)]:
@@ -1567,13 +1602,64 @@ class AutomaticRetryTest(unittest.TestCase):
         self.assertEqual(checks[0]['base'], BASE)
         self.assertEqual(checks[0]['status'], 'ci-passed')
 
-    def test_queue_change_after_clean_probe_does_not_reserve_retry(self):
+    def test_queue_change_after_clean_probe_does_not_reserve_retry(
+        self,
+    ) -> None:
         result = run_case(**self.fixture(queues=[queue([entry(8)]), queue()]))
         self.assertNotIn('error', result, result)
         self.assertEqual(result['writes'], [], result)
         retried = run_case(**self.fixture(queues=[queue()]))
         self.assertNotIn('error', retried, retried)
         self.assertIn('enqueue', [w['route'] for w in retried['writes']])
+
+    def test_post_enqueue_race_releases_retry_only_after_confirmed_dequeue(
+        self,
+    ) -> None:
+        result = run_case(
+            **self.fixture(queues=[queue(), queue(), queue([entry(8)])])
+        )
+        self.assertNotIn('error', result, result)
+        self.assertEqual(
+            [w['route'] for w in result['writes']],
+            ['status', 'enqueue', 'dequeue', 'status'],
+        )
+        compensation = result['writes'][-1]['options']
+        self.assertEqual(compensation['context'], 'queue-admission-retry')
+        self.assertEqual(compensation['state'], 'error')
+        self.assertIn(
+            '#queue-retry-compensation=11:', compensation['target_url']
+        )
+        compensation.update(
+            id=901, creator={'type': 'Bot', 'login': 'github-actions[bot]'}
+        )
+        fixture = self.fixture()
+        fixture['statuses'][0].insert(0, compensation)
+        retried = run_case(**fixture)
+        self.assertNotIn('error', retried, retried)
+        self.assertEqual(
+            [w['route'] for w in retried['writes']],
+            ['status', 'enqueue', 'status'],
+        )
+        for change in (
+            {'creator': {'type': 'User', 'login': 'someone'}},
+            {'target_url': compensation['target_url'].replace('=11:', '=12:')},
+        ):
+            invalid = self.fixture()
+            invalid['statuses'][0].insert(0, dict(compensation, **change))
+            rejected = run_case(**invalid)
+            self.assertEqual(rejected['writes'], [])
+
+    def test_failed_compensation_does_not_release_retry(self) -> None:
+        result = run_case(
+            **self.fixture(queues=[queue(), queue(), queue([entry(8)]), None])
+        )
+        self.assertIn('error', result)
+        self.assertFalse(
+            any(
+                w['route'] == 'status' and w['options'].get('state') == 'error'
+                for w in result['writes']
+            )
+        )
 
     def test_retry_is_reserved_before_enqueue(self) -> None:
         result = run_case(**self.fixture())

@@ -24,7 +24,7 @@ MODULE = Path(__file__).with_name('queue_dependency_merge.js').resolve()
 
 
 class DependencyMergeTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
@@ -52,22 +52,24 @@ class DependencyMergeTest(unittest.TestCase):
         )
         wrapper.chmod(0o755)
 
-    def git(self, *args):
+    def git(self, *args: str) -> str:
         return subprocess.check_output(
             ['git', *args], cwd=self.repo, text=True, stderr=subprocess.PIPE
         ).strip()
 
-    def commit(self, content):
+    def commit(self, content: str) -> str:
         (self.repo / 'package-lock.json').write_text(content)
         self.git('add', 'package-lock.json')
         self.git('commit', '--quiet', '-m', 'fixture')
         return self.git('rev-parse', 'HEAD')
 
-    def branch(self, start, content):
+    def branch(self, start: str, content: str) -> str:
         self.git('checkout', '--quiet', '--detach', start)
         return self.commit(content)
 
-    def probe(self, entries, head):
+    def probe(
+        self, entries: list[dict], head: str
+    ) -> subprocess.CompletedProcess[str]:
         params = json.dumps(
             {
                 'context': {'repo': {'owner': 'owner', 'repo': 'repo'}},
@@ -98,14 +100,14 @@ class DependencyMergeTest(unittest.TestCase):
         self.assertEqual([], list(self.root.glob('kfp-queue-merge-*')))
         return result
 
-    def entry(self, queued, candidate=None):
+    def entry(self, queued: str, candidate: str | None = None) -> dict:
         return {
             'baseCommit': {'oid': self.base},
             'pullRequest': {'headRefOid': queued},
             'headCommit': {'oid': candidate} if candidate else None,
         }
 
-    def test_same_file_clean_and_conflicting_merges(self):
+    def test_same_file_clean_and_conflicting_merges(self) -> None:
         original = (self.repo / 'package-lock.json').read_text()
         first = self.branch(self.base, original.replace('two', 'queued'))
         conflicting = self.branch(
@@ -124,7 +126,7 @@ class DependencyMergeTest(unittest.TestCase):
                 self.assertEqual(0, result.returncode, result.stderr)
                 self.assertIsNone(json.loads(result.stdout))
 
-    def test_materialized_candidate_bypasses_an_unapplied_entry(self):
+    def test_materialized_candidate_bypasses_an_unapplied_entry(self) -> None:
         original = (self.repo / 'package-lock.json').read_text()
         skipped = self.branch(self.base, original.replace('seven', 'skipped'))
         built = self.branch(self.base, original.replace('two', 'built'))
@@ -141,7 +143,34 @@ class DependencyMergeTest(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertIsNone(json.loads(result.stdout))
 
-    def test_unknown_prefix_is_not_a_conflict(self):
+    def test_shared_materialized_group_is_probed_once(self) -> None:
+        original = (self.repo / 'package-lock.json').read_text()
+        built = self.branch(self.base, original.replace('two', 'built'))
+        incoming = self.branch(self.base, original.replace('two', 'incoming'))
+        result = self.probe(
+            [self.entry(built, built), self.entry(built, built)], incoming
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            json.loads(result.stdout), {'paths': ['package-lock.json']}
+        )
+
+    def test_rename_delete_reports_destination(self) -> None:
+        self.git('mv', 'package-lock.json', 'renamed-lock')
+        with (self.repo / 'renamed-lock').open('a') as f:
+            f.write('queued addition\n')
+        self.git('add', '.')
+        self.git('commit', '--quiet', '-m', 'rename and edit')
+        queued = self.git('rev-parse', 'HEAD')
+        self.git('checkout', '--quiet', '--detach', self.base)
+        self.git('rm', 'package-lock.json')
+        self.git('commit', '--quiet', '-m', 'incoming deletion')
+        incoming = self.git('rev-parse', 'HEAD')
+        result = self.probe([self.entry(queued)], incoming)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('renamed-lock', json.loads(result.stdout)['paths'])
+
+    def test_unknown_prefix_is_not_a_conflict(self) -> None:
         original = (self.repo / 'package-lock.json').read_text()
         first = self.branch(self.base, original.replace('two', 'queued'))
         other = self.branch(self.base, original.replace('two', 'later'))
@@ -157,7 +186,9 @@ class DependencyMergeTest(unittest.TestCase):
                 self.assertEqual(0, result.returncode, result.stderr)
                 self.assertIsNone(json.loads(result.stdout))
 
-    def test_fetch_error_cleans_up_and_cannot_be_classified_as_conflict(self):
+    def test_fetch_error_cleans_up_and_cannot_be_classified_as_conflict(
+        self,
+    ) -> None:
         result = self.probe([], 'f' * 40)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('failed during git fetch', result.stderr)

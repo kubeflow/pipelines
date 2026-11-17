@@ -23,7 +23,7 @@ from pathlib import Path
 MODULE = Path(__file__).with_name('queue_dependency_conflicts.js')
 
 
-def exercise(steps):
+def exercise(steps: list[dict]) -> list[dict]:
     script = r"""
 const {checkDependencyConflict} = require(process.argv[1]);
 const fs = require('node:fs');
@@ -89,7 +89,9 @@ async function step(options) {
 
 
 class DependencyConflictTest(unittest.TestCase):
-    def test_only_defer_actual_conflicts_on_shared_dependency_paths(self):
+    def test_only_defer_actual_conflicts_on_shared_dependency_paths(
+        self,
+    ) -> None:
         steps = [
             {'empty': True},
             {'incoming': ['frontend/src/test.js']},
@@ -114,7 +116,7 @@ class DependencyConflictTest(unittest.TestCase):
             self.assertNotIn('merge-tree', res['calls'])
         self.assertIn('receipt', results[-1]['calls'])
 
-    def test_receipt_is_bound_to_pr_and_ordered_queue_inputs(self):
+    def test_receipt_is_bound_to_pr_and_ordered_queue_inputs(self) -> None:
         for changed in [
             {'head': 'e' * 40},
             {'base': 'e' * 40},
@@ -133,7 +135,7 @@ class DependencyConflictTest(unittest.TestCase):
                 self.assertEqual(unchanged['calls'], [])
                 self.assertIn('merge-tree', updated['calls'])
 
-    def test_receipt_invalidates_on_queue_membership_and_order(self):
+    def test_receipt_invalidates_on_queue_membership_and_order(self) -> None:
         original, extended, reordered = exercise(
             [{}, {'append': True}, {'append': True, 'reverse': True}]
         )
@@ -141,7 +143,9 @@ class DependencyConflictTest(unittest.TestCase):
             self.assertTrue(result['defer'])
             self.assertIn('merge-tree', result['calls'])
 
-    def test_skips_bypassed_unbuilt_member_while_including_unbuilt_tail(self):
+    def test_skips_bypassed_unbuilt_member_while_including_unbuilt_tail(
+        self,
+    ) -> None:
         bypassed, trailing = exercise(
             [{'bypassed': True, 'files': []}, {'unbuilt': True}]
         )
@@ -149,12 +153,12 @@ class DependencyConflictTest(unittest.TestCase):
         self.assertNotIn('a' * 40 + '...' + '9' * 40, bypassed['calls'])
         self.assertTrue(trailing['defer'])
 
-    def test_untrusted_receipt_does_not_defer_pr(self):
+    def test_untrusted_receipt_does_not_defer_pr(self) -> None:
         _, second = exercise([{'badWriter': True}, {'clean': True}])
         self.assertFalse(second['defer'])
         self.assertIn('merge-tree', second['calls'])
 
-    def test_path_discovery_is_reused_within_sweep(self):
+    def test_path_discovery_is_reused_within_sweep(self) -> None:
         first, second = exercise(
             [
                 {'clean': True},
@@ -165,24 +169,55 @@ class DependencyConflictTest(unittest.TestCase):
         self.assertEqual(len(second['calls']), 2)
         self.assertTrue(second['calls'][0].endswith('e' * 40))
 
-    def test_large_diff_uses_paginated_files_and_validates_head(self):
-        large = {
-            'incoming': [f'code/{i}' for i in range(300)],
-            'pages': [
-                [f'code/{i}' for i in range(100)],
-                ['frontend/package.json'],
-            ],
-            'fileCount': 101,
-        }
-        yes, raced = exercise(
-            [dict(large, badWriter=True), dict(large, racedHead='e' * 40)]
+    def test_truncated_compare_never_uses_unbound_pr_file_pages(self) -> None:
+        result = exercise(
+            [
+                {
+                    'incoming': [f'code/{i}' for i in range(300)],
+                    'pages': [['frontend/package.json']],
+                    'fileCount': 1,
+                }
+            ]
+        )[0]
+        self.assertFalse(result['defer'])
+        self.assertNotIn('merge-tree', result['calls'])
+        self.assertFalse(
+            any(call.startswith('page') for call in result['calls'])
         )
-        self.assertTrue(yes['defer'])
-        self.assertIn('page2', yes['calls'])
-        self.assertFalse(raced['defer'])
-        self.assertNotIn('merge-tree', raced['calls'])
+        self.assertIn('truncated SHA-bound', result['logs'][0])
 
-    def test_sweep_git_budget_charges_time_spent_including_failed_probes(self):
+    def test_rename_aliases_match_destination_conflicts_on_either_side(
+        self,
+    ) -> None:
+        rename = {
+            'filename': 'frontend/renamed',
+            'previous_filename': 'frontend/package.json',
+        }
+        for side in ('incoming', 'files'):
+            with self.subTest(side=side):
+                result = exercise(
+                    [{side: [rename], 'conflicts': ['frontend/renamed']}]
+                )[0]
+                self.assertTrue(result['defer'])
+                result = exercise(
+                    [{side: [rename], 'conflicts': ['unrelated']}]
+                )[0]
+                self.assertFalse(result['defer'])
+
+    def test_action_and_workflow_dependency_updates_are_probed(self) -> None:
+        for path in (
+            '.github/workflows/test.yaml',
+            '.github/actions/setup/action.yml',
+        ):
+            with self.subTest(path=path):
+                result = exercise(
+                    [{'incoming': [path], 'files': [path], 'conflicts': [path]}]
+                )[0]
+                self.assertTrue(result['defer'])
+
+    def test_sweep_git_budget_charges_time_spent_including_failed_probes(
+        self,
+    ) -> None:
         results = exercise(
             [
                 {'duration': 25000, 'probeError': True},

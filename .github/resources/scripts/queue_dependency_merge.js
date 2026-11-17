@@ -27,12 +27,21 @@ async function probeDependencyConflict({context, base, entries, head}) {
 
   let tip = base;
   const pending = [];
+  const built = new Set();
   for (const entry of entries) {
     if (!SHA.test(entry.pullRequest.headRefOid)) throw new Error('Invalid queued PR head');
     if (entry.headCommit) {
+      const pair = JSON.stringify([entry.baseCommit?.oid, entry.headCommit.oid]);
+      // One materialized group can appear on each member's queue entry.
+      if (built.has(pair)) {
+        if (tip !== entry.headCommit.oid) return null;
+        pending.length = 0;
+        continue;
+      }
       // GitHub can build past an unmergeable entry. A candidate based on
       // the last materialized tip proves those intervening entries were skipped.
       if (entry.baseCommit?.oid !== tip || !SHA.test(entry.headCommit.oid)) return null;
+      built.add(pair);
       pending.length = 0;
       tip = entry.headCommit.oid;
     } else {
