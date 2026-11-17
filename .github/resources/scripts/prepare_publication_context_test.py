@@ -66,6 +66,32 @@ class PublicationContextTest(unittest.TestCase):
                 Path('/unused'),
             )
 
+    def test_unregistered_image_rejects_equivalent_go_recipe_paths(self):
+        for dockerfile in publication.GO_IMAGES.values():
+            for alias in (
+                './' + dockerfile,
+                'backend/../' + dockerfile,
+                str(Path(dockerfile).resolve()),
+            ):
+                with (
+                    self.subTest(alias=alias),
+                    self.assertRaisesRegex(
+                        ValueError, 'registered publication image'
+                    ),
+                ):
+                    publication.prepare(
+                        'custom-api', '.', alias, 'a' * 40, Path('/unused')
+                    )
+        with tempfile.TemporaryDirectory() as temporary:
+            alias = Path(temporary) / 'Dockerfile'
+            alias.symlink_to(Path('backend/Dockerfile').resolve())
+            with self.assertRaisesRegex(
+                ValueError, 'registered publication image'
+            ):
+                publication.prepare(
+                    'custom-api', '.', str(alias), 'a' * 40, Path('/unused')
+                )
+
     def test_non_go_context_is_unchanged(self):
         for image, context, dockerfile in [
             ('frontend', '.', 'frontend/Dockerfile'),

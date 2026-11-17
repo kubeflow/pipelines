@@ -18,7 +18,9 @@ GO_IMAGES = {
 
 def prepare(image, context, dockerfile, sha, destination):
     if image not in GO_IMAGES:
-        if dockerfile in GO_IMAGES.values():
+        if Path(dockerfile).resolve() in {
+            Path(recipe).resolve() for recipe in GO_IMAGES.values()
+        }:
             raise ValueError(
                 'Go Dockerfile requires its registered publication image'
             )
