@@ -31,7 +31,11 @@ identify their target branch, and recovery revisits greens when policy mode or
 base policy changes. Queue candidates continue to run all applicable lanes against
 the exact combined SHA, with no relaxation of candidate freshness or image identity.
 
-The trusted `queue_admission` job runs after PR CI reconciliation, on approval,
+The trusted `queue_admission` job runs independently of the status-recovery
+matrix. Each newly verified queue-ready success wakes the default-branch
+recovery workflow with its exact PR head. Every surviving serialized controller
+catches up other likely ready PRs, including on the five-minute recovery
+schedule, and freshly verifies policy and CI before admission. It also runs on approval,
 hold, draft, retarget, and head-change events, and during scheduled recovery.
 Ordinary events inspect the affected PR and all current queue members; scheduled
 recovery alone sweeps all open PRs. A replaced pending event is therefore not the
@@ -138,8 +142,10 @@ while its queue entry still exists.
 
 For an eligible PR blocked by failed admission CI, recovery can rerun PR Gate's
 membership-lookup infrastructure failure after 15 minutes. It considers only the
-latest two matching runs, retries attempt 1 once, and reserves at most two such
-reruns per PR head. Failures in issue-admission rules or other steps are not
+authoritative matching run, ordered by current attempt time rather than original
+creation time, retries attempt 1 once, and reserves at most two distinct reruns
+per PR head. Authority is rechecked before each write; historical failures are
+never retried as a fallback. Failures in issue-admission rules or other steps are not
 retryable. Scheduled CI reconciliation must verify success before queue entry;
 recovery does not grant approval or bypass checks.
 

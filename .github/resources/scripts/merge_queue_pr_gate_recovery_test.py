@@ -57,7 +57,7 @@ JOB = {
 }
 
 
-def exercise(**overrides):
+def exercise(**overrides: object) -> dict[str, object]:
     fixture = {
         'pr': PR,
         'runs': [RUN],
@@ -71,13 +71,13 @@ def exercise(**overrides):
 const fs = require('node:fs');
 const f = JSON.parse(fs.readFileSync(0, 'utf8'));
 const calls = [], reruns = [], writes = [];
-let validation = 0, currentIndex = 0;
+let validation = 0, currentIndex = 0, runsIndex = 0;
 const github = {rest:{
  actions:{listWorkflowRunsForRepo:'runs',listJobsForWorkflowRunAttempt:'jobs',
  getWorkflowRun:async o=>{calls.push(['current',o]);return {data:f.currents ? f.currents[Math.min(currentIndex++,f.currents.length-1)] : f.current||f.runs.find(r=>r.id===o.run_id)};},
  reRunWorkflowFailedJobs:async o=>{calls.push(['rerun',o]);if(f.rerunError)throw Error('rerun failed');reruns.push(o.run_id);}},
  repos:{listCommitStatusesForRef:'statuses',createCommitStatus:async o=>{calls.push(['reserve',o]);if(f.reserveError)throw Error('reservation failed');writes.push(o);f.statuses.unshift(o);}},
- pulls:{list:'prs'}},paginate:async(route,o)=>{calls.push([route,o]);if(f.apiError===route)throw Error('API unavailable');return {runs:f.runs,jobs:f.jobs.map(j=>({run_id:o.run_id,head_sha:f.pr.head.sha,...j})),statuses:f.statuses,prs:f.headPRs}[route];}};
+ pulls:{list:'prs'}},paginate:async(route,o)=>{calls.push([route,o]);if(f.apiError===route)throw Error('API unavailable');return {runs:route==='runs' && f.runLists ? f.runLists[Math.min(runsIndex++,f.runLists.length-1)] : f.runs,jobs:f.jobs.map(j=>({run_id:o.run_id,head_sha:f.pr.head.sha,...j})),statuses:f.statuses,prs:f.headPRs}[route];}};
 (async()=>{let error,result=false;
  try{if(fs.existsSync(process.argv[1]))result=await require(process.argv[1]).recoverPRGate({github,
  context:{repo:{owner:'owner',repo:'repo'}},pr:f.pr,core:{info:()=>{}},now:()=>Date.parse(f.now),
@@ -96,7 +96,7 @@ const github = {rest:{
 
 
 class PRGateRecoveryTest(unittest.TestCase):
-    def test_membership_failure_retries_once_after_cooldown(self):
+    def test_membership_failure_retries_once_after_cooldown(self) -> None:
         result = exercise()
         self.assertEqual(result['reruns'], [100])
         self.assertTrue(result['result'])
@@ -107,7 +107,7 @@ class PRGateRecoveryTest(unittest.TestCase):
         again = exercise(statuses=result['writes'])
         self.assertEqual(again['reruns'], [])
 
-    def test_second_attempt_and_active_runs_are_preserved(self):
+    def test_second_attempt_and_active_runs_are_preserved(self) -> None:
         for updates in (
             {'run_attempt': 2},
             {'status': 'in_progress', 'conclusion': None},
@@ -119,7 +119,7 @@ class PRGateRecoveryTest(unittest.TestCase):
             run = {**RUN, **updates}
             self.assertEqual(exercise(runs=[run])['reruns'], [])
 
-    def test_wrong_identity_is_not_retried(self):
+    def test_wrong_identity_is_not_retried(self) -> None:
         for updates in (
             {'path': '.github/workflows/untrusted.yml'},
             {'event': 'pull_request'},
@@ -130,7 +130,7 @@ class PRGateRecoveryTest(unittest.TestCase):
         ):
             self.assertEqual(exercise(runs=[{**RUN, **updates}])['reruns'], [])
 
-    def test_admission_or_other_failure_is_not_infrastructure(self):
+    def test_admission_or_other_failure_is_not_infrastructure(self) -> None:
         for name in (
             'Check linked issue admission for external contributors',
             'Checkout trusted membership helper',
@@ -145,7 +145,9 @@ class PRGateRecoveryTest(unittest.TestCase):
         self.assertEqual(exercise(jobs=[])['reruns'], [])
         self.assertEqual(exercise(jobs=[JOB, JOB])['reruns'], [])
 
-    def test_head_policy_attempt_changes_and_ambiguous_pr_preserve_runs(self):
+    def test_head_policy_attempt_changes_and_ambiguous_pr_preserve_runs(
+        self,
+    ) -> None:
         for validations in ([False], [True, False]):
             self.assertEqual(exercise(validations=validations)['reruns'], [])
         for updates in (
@@ -165,25 +167,91 @@ class PRGateRecoveryTest(unittest.TestCase):
         self.assertEqual(len(result['writes']), 1)
         self.assertEqual(exercise(statuses=result['writes'])['reruns'], [])
 
-    def test_at_most_two_runs_per_head_and_latest_success_stops_recovery(self):
+    def test_only_authoritative_run_is_retried_not_historical_failures(
+        self,
+    ) -> None:
         runs = [
             {**RUN, 'id': n, 'created_at': f'2026-11-17T00:00:0{n - 100}Z'}
             for n in range(100, 103)
         ]
         result = exercise(runs=runs)
-        self.assertEqual(result['reruns'], [102, 101])
+        self.assertEqual(result['reruns'], [102])
+        self.assertEqual(
+            [o['run_id'] for route, o in result['calls'] if route == 'jobs'],
+            [102],
+        )
+        # A consumed authoritative attempt must not fall back to older failures.
         self.assertEqual(
             exercise(runs=runs, statuses=result['writes'])['reruns'], []
         )
         runs[-1]['conclusion'] = 'success'
         self.assertEqual(exercise(runs=runs)['reruns'], [])
 
-    def test_new_attempt_after_reservation_is_preserved(self):
+    def test_newer_attempt_of_older_run_supersedes_newer_created_failure(
+        self,
+    ) -> None:
+        stale_failure = {**RUN, 'id': 101, 'created_at': '2026-11-17T00:00:05Z'}
+        for updates in (
+            {'status': 'in_progress', 'conclusion': None},
+            {'status': 'completed', 'conclusion': 'success'},
+            {'status': 'completed', 'conclusion': 'failure'},
+        ):
+            with self.subTest(updates=updates):
+                rerun = {
+                    **RUN,
+                    'run_attempt': 2,
+                    'run_started_at': '2026-11-17T00:00:10Z',
+                    **updates,
+                }
+                result = exercise(runs=[rerun, stale_failure])
+                self.assertEqual(result['reruns'], [])
+                self.assertEqual(result['writes'], [])
+
+    def test_authority_changes_at_write_boundaries_stop_recovery(self) -> None:
+        for replacement in (
+            {**RUN, 'id': 101, 'created_at': '2026-11-17T00:00:05Z'},
+            {
+                **RUN,
+                'id': 99,
+                'run_attempt': 2,
+                'run_started_at': '2026-11-17T00:00:10Z',
+                'status': 'in_progress',
+                'conclusion': None,
+            },
+        ):
+            for boundary in (1, 2):
+                with self.subTest(replacement=replacement, boundary=boundary):
+                    result = exercise(
+                        runLists=[[RUN]] * boundary + [[RUN, replacement]]
+                    )
+                    self.assertEqual(result['reruns'], [])
+                    self.assertEqual(len(result['writes']), boundary - 1)
+
+    def test_attempt_time_ties_use_larger_run_id(self) -> None:
+        active = {**RUN, 'id': 101, 'status': 'in_progress', 'conclusion': None}
+        self.assertEqual(exercise(runs=[active, RUN])['reruns'], [])
+        self.assertEqual(exercise(runs=[RUN, active])['reruns'], [])
+
+    def test_retry_budget_caps_distinct_authoritative_runs_per_head(
+        self,
+    ) -> None:
+        first = exercise()
+        second_run = {**RUN, 'id': 101, 'created_at': '2026-11-17T00:00:02Z'}
+        second = exercise(runs=[RUN, second_run], statuses=first['writes'])
+        self.assertEqual(second['reruns'], [101])
+        third_run = {**RUN, 'id': 102, 'created_at': '2026-11-17T00:00:03Z'}
+        third = exercise(
+            runs=[RUN, second_run, third_run],
+            statuses=first['writes'] + second['writes'],
+        )
+        self.assertEqual(third['reruns'], [])
+
+    def test_new_attempt_after_reservation_is_preserved(self) -> None:
         result = exercise(currents=[RUN, {**RUN, 'run_attempt': 2}])
         self.assertEqual(result['reruns'], [])
         self.assertEqual(len(result['writes']), 1)
 
-    def test_foreign_job_and_incomplete_discovery_fail_closed(self):
+    def test_foreign_job_and_incomplete_discovery_fail_closed(self) -> None:
         self.assertEqual(exercise(jobs=[{**JOB, 'run_id': 999}])['reruns'], [])
         self.assertEqual(
             exercise(jobs=[{**JOB, 'head_sha': 'b' * 40}])['reruns'], []
@@ -191,7 +259,7 @@ class PRGateRecoveryTest(unittest.TestCase):
         self.assertEqual(exercise(runs=[RUN] * 1000)['reruns'], [])
         self.assertEqual(exercise(statuses=[{}] * 1000)['reruns'], [])
 
-    def test_valid_fork_identity_is_supported(self):
+    def test_valid_fork_identity_is_supported(self) -> None:
         pr = copy.deepcopy(PR)
         pr['head']['repo'] = {
             'full_name': 'fork/repo',
@@ -202,7 +270,7 @@ class PRGateRecoveryTest(unittest.TestCase):
             exercise(pr=pr, runs=[run], headPRs=[pr])['reruns'], [100]
         )
 
-    def test_api_failure_never_reruns(self):
+    def test_api_failure_never_reruns(self) -> None:
         for route in ('runs', 'jobs', 'statuses', 'prs'):
             self.assertEqual(exercise(apiError=route)['reruns'], [])
 

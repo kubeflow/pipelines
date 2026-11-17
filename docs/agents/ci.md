@@ -604,8 +604,16 @@ per sweep; invalid members retain the fresh recheck and dequeue path. Preserve
 the read-budget, bounded-concurrency, sibling-draining, and policy-race tests
 when changing this controller.
 
-Removed PRs are reconsidered by the full scheduled admission sweep (every
-15 minutes, subject to GitHub scheduling delays) or a relevant PR event. The
+Admission does not wait for unrelated status-recovery matrix jobs. Each newly
+verified queue-ready PR success dispatches the trusted default-branch recovery
+workflow with its PR number and exact head, inside request accounting. Every
+surviving serialized controller also lists likely ready PRs, so replacement of
+a pending job cannot lose its admission request. Approval and `ci-passed` labels
+are only discovery filters; fresh policy and CI evidence still authorize entry.
+The five-minute recovery sweep performs this ready-PR catch-up too, while the
+15-minute full sweep also discovers failed aggregates eligible for PR Gate
+recovery. Both schedules are subject to GitHub scheduling delays. Wakeup failures
+warn without revoking valid CI, and a later controller catches up. The
 15-minute cooldown is a minimum, not a retry-time guarantee. After the retry
 budget is exhausted, fix or rerun PR CI; a new verified workflow fingerprint
 automatically permits admission again without adding queue labels manually.
@@ -615,8 +623,11 @@ automatically permits admission again without adding queue labels manually.
 When an otherwise eligible PR has a failed `ci-passed` aggregate, admission also
 checks for trusted PR Gate membership-lookup failures. After 15 minutes it may
 rerun failed jobs once, reserving the attempt before sending the rerun request.
-Only the latest two matching runs are considered, and a second run attempt is
-never retried automatically. The exact current PR head, repository, workflow,
+Only the authoritative matching run is considered, ordered by the latest of
+creation and attempt start time, matching the aggregate verifier. Authority is
+rechecked before reservation and rerun; historical failures are never retried
+as a fallback. A second run attempt is never retried automatically, and at
+most two distinct run reservations are allowed per PR head. The exact current PR head, repository, workflow,
 run attempt, approvals and holds are rechecked around the mutation.
 
 This recovers membership-service/API failures without treating contributor-rule

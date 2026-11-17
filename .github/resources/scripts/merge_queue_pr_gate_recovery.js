@@ -50,15 +50,21 @@ async function recoverPRGate({github, context, pr, revalidate, core, now = () =>
     run.run_attempt === 1 && run.status === 'completed' && run.conclusion === 'failure' &&
     Number.isFinite(Date.parse(run.updated_at)) && Date.parse(run.updated_at) >= Date.parse(run.created_at) &&
     Date.parse(run.updated_at) <= now() - COOLDOWN_MS;
-  const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
-    ...context.repo, event: 'pull_request_target', head_sha: pr.head.sha, per_page: 100,
-  });
-  if (!Array.isArray(runs) || runs.length >= 1000) throw new Error('Incomplete PR Gate workflow discovery');
-  const candidates = runs.filter(matches);
-  if (candidates.some(run => invalidRunMetadata(run))) throw new Error('Invalid PR Gate workflow metadata');
-  candidates.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at) || b.id - a.id);
+  // Match ci_check_runs.js: reruns can supersede runs created more recently.
+  const attemptTime = run => Math.max(Date.parse(run.created_at), Date.parse(run.run_started_at) || 0);
+  const authoritativeRun = async () => {
+    const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
+      ...context.repo, event: 'pull_request_target', head_sha: pr.head.sha, per_page: 100,
+    });
+    if (!Array.isArray(runs) || runs.length >= 1000) throw new Error('Incomplete PR Gate workflow discovery');
+    const candidates = runs.filter(matches);
+    if (candidates.some(run => invalidRunMetadata(run))) throw new Error('Invalid PR Gate workflow metadata');
+    candidates.sort((a, b) => attemptTime(b) - attemptTime(a) || b.id - a.id || b.run_attempt - a.run_attempt);
+    return candidates[0];
+  };
+  const run = await authoritativeRun();
   // A newer success or running attempt supersedes the historical incident.
-  if (!candidates.length || !retryable(candidates[0])) return false;
+  if (!run || !retryable(run)) return false;
   const statuses = await github.paginate(github.rest.repos.listCommitStatusesForRef, {
     ...context.repo, ref: pr.head.sha, per_page: 100,
   });
@@ -73,29 +79,30 @@ async function recoverPRGate({github, context, pr, revalidate, core, now = () =>
   const heads = prs.filter(candidate => candidate.head?.sha === pr.head.sha &&
     candidate.head.ref === pr.head.ref && candidate.head.repo?.full_name === pr.head.repo.full_name);
   if (heads.length !== 1 || heads[0].number !== pr.number) return false;
-  let retried = false;
-  for (const run of candidates.slice(0, MAX_RETRIES_PER_HEAD)) {
-    const statusContext = `${RECEIPT}${run.id}`;
-    if (consumed.size >= MAX_RETRIES_PER_HEAD || consumed.has(statusContext) || !retryable(run)) continue;
-    const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRunAttempt, {
-      ...context.repo, run_id: run.id, attempt_number: run.run_attempt, per_page: 100,
-    });
-    if (!membershipFailure(jobs, run)) continue;
-    const {data: current} = await github.rest.actions.getWorkflowRun({...context.repo, run_id: run.id});
-    if (current.id !== run.id || !retryable(current) || !await revalidate()) continue;
-    // Serialize with queue admission and reserve before requesting a rerun.
-    // A lost response consumes the budget rather than causing an endless retry.
-    await github.rest.repos.createCommitStatus({...context.repo, sha: pr.head.sha,
-      context: statusContext, state: 'pending', description: `PR Gate run ${run.id}: automatic infrastructure retry reserved.`});
-    consumed.add(statusContext);
-    if (!await revalidate()) continue;
-    const {data: fresh} = await github.rest.actions.getWorkflowRun({...context.repo, run_id: run.id});
-    if (fresh.id !== run.id || !retryable(fresh)) continue;
-    await github.rest.actions.reRunWorkflowFailedJobs({...context.repo, run_id: run.id});
-    retried = true;
-    core.info(`Requested one infrastructure retry for PR Gate run ${run.id}.`);
-  }
-  return retried;
+  // Retrying a historical failure would make it authoritative again. Only the
+  // current run may consume a retry, even if its receipt already exists.
+  const statusContext = `${RECEIPT}${run.id}`;
+  if (consumed.has(statusContext)) return false;
+  const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRunAttempt, {
+    ...context.repo, run_id: run.id, attempt_number: run.run_attempt, per_page: 100,
+  });
+  if (!membershipFailure(jobs, run)) return false;
+  const {data: current} = await github.rest.actions.getWorkflowRun({...context.repo, run_id: run.id});
+  if (current.id !== run.id || !retryable(current) || !await revalidate()) return false;
+  const authoritative = await authoritativeRun();
+  if (authoritative?.id !== run.id || !retryable(authoritative)) return false;
+  // Serialize with queue admission and reserve before requesting a rerun.
+  // A lost response consumes the budget rather than causing an endless retry.
+  await github.rest.repos.createCommitStatus({...context.repo, sha: pr.head.sha,
+    context: statusContext, state: 'pending', description: `PR Gate run ${run.id}: automatic infrastructure retry reserved.`});
+  if (!await revalidate()) return false;
+  const {data: fresh} = await github.rest.actions.getWorkflowRun({...context.repo, run_id: run.id});
+  if (fresh.id !== run.id || !retryable(fresh)) return false;
+  const latest = await authoritativeRun();
+  if (latest?.id !== run.id || !retryable(latest)) return false;
+  await github.rest.actions.reRunWorkflowFailedJobs({...context.repo, run_id: run.id});
+  core.info(`Requested one infrastructure retry for PR Gate run ${run.id}.`);
+  return true;
 }
 
 module.exports = {recoverPRGate, membershipFailure};

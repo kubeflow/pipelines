@@ -240,8 +240,8 @@ const github = {{rest: {{
   calls.push({{route:'queue',options}});
   return next('queues',f.queues);
 }}}};
-const args = {{github, context:{{repo:{{owner:'owner',repo:'repo'}},eventName:f.eventName,payload:f.payload}},
-  root:{json.dumps(str(root))}, number:f.number, branch:f.branch,
+const args = {{github, context:{{repo:{{owner:'owner',repo:'repo'}},eventName:f.eventName,payload:f.payload,ref:f.ref}},
+  queueOnly:f.queueOnly || false, root:{json.dumps(str(root))}, number:f.number, branch:f.branch,
   group:{{baseRef:f.branch,branch:'gh-readonly-queue/' + f.branch + '/pr-7-test',head:f.candidate || {json.dumps(CANDIDATE)}}},
   core:{{info:()=>{{}}}}, now:()=>Date.parse(f.now || '2026-11-13T13:00:00Z')}};
 (async () => {{
@@ -300,7 +300,7 @@ def dispatch_snapshot(branch='master', entries=None, prs=None, **overrides):
 
 
 class RecoveryIntegrationTest(unittest.TestCase):
-    def test_failed_aggregate_uses_production_recovery_callback(self):
+    def test_failed_aggregate_uses_production_recovery_callback(self) -> None:
         result = run_case(
             mockGateRecovery=True,
             statuses=[[{'context': 'ci-passed', 'state': 'failure'}]],
@@ -312,7 +312,9 @@ class RecoveryIntegrationTest(unittest.TestCase):
             1,
         )
 
-    def test_recovery_rechecks_hold_head_success_and_queue_enforcement(self):
+    def test_recovery_rechecks_hold_head_success_and_queue_enforcement(
+        self,
+    ) -> None:
         failure = [{'context': 'ci-passed', 'state': 'failure'}]
         for changes in (
             {'prs': {'7': [pr(), pr(labels=[{'name': 'do-not-merge/hold'}])]}},
@@ -340,7 +342,7 @@ class RecoveryIntegrationTest(unittest.TestCase):
                     self.assertNotIn('error', result)
                 self.assertEqual(result['writes'], [])
 
-    def test_successful_aggregate_does_not_run_gate_recovery(self):
+    def test_successful_aggregate_does_not_run_gate_recovery(self) -> None:
         result = run_case(mockGateRecovery=True)
         self.assertFalse(
             any(c['route'] == 'gate-recovery' for c in result['calls'])
@@ -1175,6 +1177,108 @@ class QueueAdmissionTest(unittest.TestCase):
         )
         self.assertIn('error', held_suffix)
 
+    def test_surviving_writer_admits_ready_pr_without_unrelated_recovery(
+        self,
+    ) -> None:
+        ready = pr(
+            labels=[
+                {'name': name} for name in ['lgtm', 'approved', 'ci-passed']
+            ]
+        )
+        listed = [ready, pr(99, labels=[])]
+        for options in [
+            {
+                'eventName': 'pull_request_target',
+                'payload': {'pull_request': {'number': 8}},
+            },
+            {'queueOnly': True},
+            {
+                'eventName': 'workflow_dispatch',
+                'ref': 'refs/heads/master',
+                'payload': {
+                    'repository': {'default_branch': 'master'},
+                    'inputs': {'pr_number': '8', 'head_sha': HEAD},
+                },
+            },
+        ]:
+            with self.subTest(options=options):
+                result = run_case(
+                    'sweep',
+                    listed=listed,
+                    prs={'7': [ready], '8': [pr(8, labels=[])]},
+                    **options,
+                )
+                self.assertNotIn('error', result, result)
+                self.assertEqual(
+                    len(
+                        [w for w in result['writes'] if w['route'] == 'enqueue']
+                    ),
+                    1,
+                    result,
+                )
+                self.assertEqual(
+                    len([c for c in result['calls'] if c['route'] == 'pulls']),
+                    1,
+                )
+                self.assertNotIn(
+                    99,
+                    [
+                        c['options']['pull_number']
+                        for c in result['calls']
+                        if c['route'] == 'pr'
+                    ],
+                )
+
+    def test_ready_label_cannot_override_hold_or_stale_evidence(self) -> None:
+        ready = pr(
+            labels=[
+                {'name': name} for name in ['lgtm', 'approved', 'ci-passed']
+            ]
+        )
+        held = copy.deepcopy(ready)
+        held['labels'].append({'name': 'do-not-merge/hold'})
+        for options in [{'prs': {'7': [held]}}, {'statuses': [[]]}]:
+            result = run_case(
+                'sweep', queueOnly=True, listed=[ready], **options
+            )
+            self.assertFalse(
+                [w for w in result['writes'] if w['route'] == 'enqueue'], result
+            )
+        result = run_case('sweep', queueOnly=True, listed=[held])
+        self.assertFalse([c for c in result['calls'] if c['route'] == 'pr'])
+
+    def test_wakeup_requires_trusted_branch_and_matching_head(self) -> None:
+        payload = {
+            'repository': {'default_branch': 'master'},
+            'inputs': {'pr_number': '7', 'head_sha': HEAD},
+        }
+        result = run_case(
+            'sweep',
+            eventName='workflow_dispatch',
+            ref='refs/heads/master',
+            payload=payload,
+            listed=[],
+        )
+        self.assertNotIn('error', result, result)
+        self.assertTrue(
+            [w for w in result['writes'] if w['route'] == 'enqueue']
+        )
+        for ref in ['refs/heads/feature', None]:
+            result = run_case(
+                'sweep', eventName='workflow_dispatch', ref=ref, payload=payload
+            )
+            self.assertIn('Invalid trusted', result['error'])
+            self.assertEqual(result['writes'], [])
+        payload['inputs']['head_sha'] = OTHER
+        result = run_case(
+            'sweep',
+            eventName='workflow_dispatch',
+            ref='refs/heads/master',
+            payload=payload,
+            listed=[],
+        )
+        self.assertEqual(result['writes'], [])
+
     def test_pr_event_reconciles_only_affected_pr_and_all_queue_members(self):
         result = run_case(
             'sweep',
@@ -1185,8 +1289,9 @@ class QueueAdmissionTest(unittest.TestCase):
             prs={'7': [pr(labels=[])], '8': [pr(8, labels=[])]},
         )
         self.assertNotIn('error', result)
-        self.assertFalse(
-            [call for call in result['calls'] if call['route'] == 'pulls']
+        self.assertEqual(
+            len([call for call in result['calls'] if call['route'] == 'pulls']),
+            1,
         )
         self.assertEqual(
             {
@@ -1252,7 +1357,14 @@ class QueueAdmissionTest(unittest.TestCase):
                     'state': 'open',
                     'head': 'contributor:feature',
                     'per_page': 100,
-                }
+                },
+                {
+                    'owner': 'owner',
+                    'repo': 'repo',
+                    'state': 'open',
+                    'base': 'master',
+                    'per_page': 100,
+                },
             ],
         )
         self.assertEqual(
@@ -1341,7 +1453,7 @@ class QueueAdmissionTest(unittest.TestCase):
 
 
 class AutomaticRetryTest(unittest.TestCase):
-    def fixture(self, **changes):
+    def fixture(self, **changes: object) -> dict:
         stamp = attempts_url([admitted_run()]).split('=')[-1]
         passed = {
             'id': 10,
@@ -1386,7 +1498,7 @@ class AutomaticRetryTest(unittest.TestCase):
             **changes,
         }
 
-    def test_retry_is_reserved_before_enqueue(self):
+    def test_retry_is_reserved_before_enqueue(self) -> None:
         result = run_case(**self.fixture())
         self.assertNotIn('error', result)
         self.assertEqual(
@@ -1397,7 +1509,9 @@ class AutomaticRetryTest(unittest.TestCase):
             result['writes'][0]['options']['context'], 'queue-admission-retry'
         )
 
-    def test_consumed_retry_and_restamped_green_cannot_retry_again(self):
+    def test_consumed_retry_and_restamped_green_cannot_retry_again(
+        self,
+    ) -> None:
         fixture = self.fixture()
         first = run_case(**fixture)
         receipt = dict(first['writes'][0]['options'], id=900)
@@ -1415,7 +1529,7 @@ class AutomaticRetryTest(unittest.TestCase):
                 any(c['route'] == 'removal' for c in result['calls'])
             )
 
-    def test_retry_waits_fifteen_minutes_after_removal(self):
+    def test_retry_waits_fifteen_minutes_after_removal(self) -> None:
         result = run_case(**self.fixture(now='2026-11-13T12:44:59Z'))
         self.assertEqual(result['writes'], [], result)
         result = run_case(**self.fixture(now='2026-11-13T12:45:00Z'))
@@ -1424,7 +1538,7 @@ class AutomaticRetryTest(unittest.TestCase):
             ['status', 'enqueue', 'status'],
         )
 
-    def test_manual_unknown_and_active_queue_events_do_not_retry(self):
+    def test_manual_unknown_and_active_queue_events_do_not_retry(self) -> None:
         for reason in ('manually_removed', 'merged', 'unknown', None):
             fixture = self.fixture()
             fixture['removals'][0]['repository']['pullRequest'][
@@ -1464,7 +1578,7 @@ class AutomaticRetryTest(unittest.TestCase):
             self.assertIn('error', result)
             self.assertEqual(result['writes'], [])
 
-    def test_hold_or_changed_head_prevents_retry(self):
+    def test_hold_or_changed_head_prevents_retry(self) -> None:
         for changed in (
             pr(
                 labels=[
@@ -1479,7 +1593,9 @@ class AutomaticRetryTest(unittest.TestCase):
             result = run_case(**fixture)
             self.assertEqual(result['writes'], [], result)
 
-    def test_hold_after_reservation_consumes_budget_without_enqueue(self):
+    def test_hold_after_reservation_consumes_budget_without_enqueue(
+        self,
+    ) -> None:
         held = pr(
             labels=[{'name': 'approved'}, {'name': 'lgtm'}, {'name': 'hold'}]
         )
@@ -1489,7 +1605,7 @@ class AutomaticRetryTest(unittest.TestCase):
             result['writes'][0]['options']['context'], 'queue-admission-retry'
         )
 
-    def test_new_removal_after_reservation_prevents_enqueue(self):
+    def test_new_removal_after_reservation_prevents_enqueue(self) -> None:
         fixture = self.fixture()
         changed = copy.deepcopy(fixture['removals'][0])
         changed['repository']['pullRequest']['timelineItems']['nodes'][0][
@@ -1503,12 +1619,12 @@ class AutomaticRetryTest(unittest.TestCase):
         result = run_case(**fixture)
         self.assertEqual([w['route'] for w in result['writes']], ['status'])
 
-    def test_failed_retry_reservation_never_enqueues(self):
+    def test_failed_retry_reservation_never_enqueues(self) -> None:
         result = run_case(**self.fixture(statusWriteError=True))
         self.assertIn('error', result)
         self.assertFalse(any(w['route'] == 'enqueue' for w in result['writes']))
 
-    def test_ambiguous_enqueue_does_not_restore_retry_budget(self):
+    def test_ambiguous_enqueue_does_not_restore_retry_budget(self) -> None:
         fixture = self.fixture(enqueueError=True)
         result = run_case(**fixture)
         self.assertIn('error', result)
@@ -1521,7 +1637,7 @@ class AutomaticRetryTest(unittest.TestCase):
         )
         self.assertEqual(result['writes'], [])
 
-    def test_post_enqueue_head_change_dequeues_retry(self):
+    def test_post_enqueue_head_change_dequeues_retry(self) -> None:
         result = run_case(
             **self.fixture(
                 prs={'7': [pr(), pr(), pr(), pr(head={'sha': OTHER})]},
@@ -1530,19 +1646,19 @@ class AutomaticRetryTest(unittest.TestCase):
         )
         self.assertIn('dequeue', [w['route'] for w in result['writes']])
 
-    def test_partial_history_response_cannot_retry(self):
+    def test_partial_history_response_cannot_retry(self) -> None:
         fixture = self.fixture()
         fixture['removals'][0]['errors'] = [{'message': 'Partial history'}]
         result = run_case(**fixture)
         self.assertIn('error', result)
         self.assertEqual(result['writes'], [])
 
-    def test_history_api_failure_cannot_retry(self):
+    def test_history_api_failure_cannot_retry(self) -> None:
         result = run_case(**self.fixture(removals=[None]))
         self.assertIn('error', result)
         self.assertEqual(result['writes'], [])
 
-    def test_new_verified_workflow_attempt_resets_retry_budget(self):
+    def test_new_verified_workflow_attempt_resets_retry_budget(self) -> None:
         fixture = self.fixture()
         result = run_case(**fixture)
         retry = dict(result['writes'][0]['options'], id=900)

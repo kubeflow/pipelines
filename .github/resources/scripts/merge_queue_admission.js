@@ -400,6 +400,17 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
 
 async function eventTargets(github, context) {
   if (context.eventName === 'schedule') return null;
+  if (context.eventName === 'workflow_dispatch') {
+    const branch = context.payload.repository?.default_branch;
+    const number = Number(context.payload.inputs?.pr_number);
+    const head = context.payload.inputs?.head_sha;
+    if (!['main', 'master'].includes(branch) || context.ref !== `refs/heads/${branch}` ||
+        !Number.isSafeInteger(number) || number <= 0 || !SHA.test(head || '')) {
+      throw new Error('Invalid trusted queue admission wakeup');
+    }
+    const pr = await readPR(github, context, number);
+    return pr.head?.sha === head ? [number] : [];
+  }
   if (context.eventName === 'pull_request_target') {
     const number = context.payload.pull_request?.number;
     if (!Number.isSafeInteger(number) || number <= 0) throw new Error('Invalid PR event number');
@@ -433,10 +444,18 @@ async function sweep({github, context, root, core, queueOnly = false, now, onFai
     try {
       if (!await queueEnabled({github, context, branch, root})) continue;
       const entries = await readQueue(github, context, branch);
-      const affected = targets ?? (await github.paginate(github.rest.pulls.list, {
+      const listed = await github.paginate(github.rest.pulls.list, {
         ...context.repo, base: branch, state: 'open', per_page: 100,
-      })).map(pr => pr.number);
-      const numbers = new Set([...affected, ...entries.map(entry => entry.pullRequest.number)]);
+      });
+      if (!Array.isArray(listed)) throw new Error('Invalid ready PR discovery response');
+      // Concurrency coalesces pending wakeups. Every surviving writer catches up
+      // eligible green PRs, including the five-minute queue recovery. The label
+      // is only a cheap filter; reconcilePR rechecks authoritative fresh evidence.
+      const ready = listed.filter(pr => pr.labels?.some(label => label.name === 'ci-passed') &&
+        !policyReason({...pr, merged: false}, `${context.repo.owner}/${context.repo.repo}`, branch));
+      const affected = targets ?? listed.map(pr => pr.number);
+      const numbers = new Set([...affected, ...ready.map(pr => pr.number),
+        ...entries.map(entry => entry.pullRequest.number)]);
       if (numbers.size > 256 || [...numbers].some(number => !Number.isSafeInteger(number) || number <= 0)) {
         throw new Error('Queue admission sweep exceeds bounds or has invalid PR identities');
       }
