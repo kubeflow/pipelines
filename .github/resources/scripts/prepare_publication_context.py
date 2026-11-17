@@ -16,7 +16,9 @@ GO_IMAGES = {
 }
 
 
-def prepare(image, context, dockerfile, sha, destination):
+def prepare(
+    image: str, context: str, dockerfile: str, sha: str, destination: Path
+) -> dict[str, str]:
     if image not in GO_IMAGES:
         if Path(dockerfile).resolve() in {
             Path(recipe).resolve() for recipe in GO_IMAGES.values()
@@ -40,7 +42,7 @@ def prepare(image, context, dockerfile, sha, destination):
     }
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     for name in (
         'image',

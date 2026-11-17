@@ -82,7 +82,7 @@ cache is unchanged. The paused upgrade workflow and its readiness job remain pau
 The producer publishes checkout identity before builds, then immutable
 attempt-specific image archives. Each archive includes its source identity and
 file checksums in a distinct `*.provenance.json` file, prepared before upload.
-After all seven application images build, a same-run artifact-service job
+After all eight application images build, a same-run artifact-service job
 verifies their current-attempt provenance and hashes and publishes one
 architecture-specific bundle. Runtime images remain separate. New readiness
 resolution waits for the bundle; it cannot fall back to individual artifacts
@@ -119,11 +119,11 @@ one selection, hashes every archive, and validates all records with one fresh
 artifact inventory and one live producer-run read before loading either set.
 This reduces verification metadata reads from four to two per deployment job
 for a single-page inventory (and removes a duplicate downloader invocation).
-The application bundle reduces the downloader selection from seven artifact IDs
+The application bundle reduces the downloader selection from eight artifact IDs
 to one (two with runtime on an AMD64 cache miss). For a single-page inventory,
 application download plus verification therefore uses four REST requests instead
-of ten: one artifact listing, one download redirect, and two fresh verification
-reads. Runtime cache misses use five instead of eleven. Blob transfer is
+of eleven: one artifact listing, one download redirect, and two fresh verification
+reads. Runtime cache misses use five instead of twelve. Blob transfer is
 separate from these REST counts. The bundle adds one producer transfer/upload
 step; it does not remove per-image provenance checks or live consumer checks.
 Cache hits select only application images; ARM keeps its application-only path.

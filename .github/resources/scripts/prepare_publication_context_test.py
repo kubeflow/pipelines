@@ -17,7 +17,7 @@ import prepare_publication_context as publication
 
 
 class PublicationContextTest(unittest.TestCase):
-    def test_each_go_image_uses_sanitized_context_and_exact_sha(self):
+    def test_each_go_image_uses_sanitized_context_and_exact_sha(self) -> None:
         for image, dockerfile in publication.GO_IMAGES.items():
             with (
                 self.subTest(image=image),
@@ -41,7 +41,7 @@ class PublicationContextTest(unittest.TestCase):
                 )
                 self.assertEqual(result['source_sha'], 'a' * 40)
 
-    def test_wrong_go_context_or_recipe_is_rejected(self):
+    def test_wrong_go_context_or_recipe_is_rejected(self) -> None:
         for context, dockerfile in [
             ('backend', 'backend/Dockerfile'),
             ('.', 'frontend/Dockerfile'),
@@ -66,7 +66,9 @@ class PublicationContextTest(unittest.TestCase):
                 Path('/unused'),
             )
 
-    def test_unregistered_image_rejects_equivalent_go_recipe_paths(self):
+    def test_unregistered_image_rejects_equivalent_go_recipe_paths(
+        self,
+    ) -> None:
         for dockerfile in publication.GO_IMAGES.values():
             for alias in (
                 './' + dockerfile,
@@ -92,7 +94,7 @@ class PublicationContextTest(unittest.TestCase):
                     'custom-api', '.', str(alias), 'a' * 40, Path('/unused')
                 )
 
-    def test_non_go_context_is_unchanged(self):
+    def test_non_go_context_is_unchanged(self) -> None:
         for image, context, dockerfile in [
             ('frontend', '.', 'frontend/Dockerfile'),
             ('kfp-profile-controller', 'profile', 'profile/Dockerfile'),
@@ -114,7 +116,7 @@ class PublicationContextTest(unittest.TestCase):
                     },
                 )
 
-    def test_old_source_fails_with_release_workflow_guidance(self):
+    def test_old_source_fails_with_release_workflow_guidance(self) -> None:
         workflow = yaml.safe_load(
             (ROOT / '.github/workflows/build-and-push.yml').read_text()
         )
@@ -135,7 +137,7 @@ class PublicationContextTest(unittest.TestCase):
         self.assertIn('Use its release-branch workflow', result.stdout)
         self.assertNotIn('No such file', result.stderr)
 
-    def test_push_and_dry_run_use_prepared_context_before_export(self):
+    def test_push_and_dry_run_use_prepared_context_before_export(self) -> None:
         workflow = yaml.safe_load(
             (ROOT / '.github/workflows/build-and-push.yml').read_text()
         )

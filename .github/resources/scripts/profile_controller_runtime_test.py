@@ -31,7 +31,9 @@ IMAGE = 'ghcr.io/kubeflow/kfp-profile-controller'
 
 
 class ProfileControllerRuntimeTests(unittest.TestCase):
-    def test_recipe_requires_hashed_wheels_from_a_pinned_python_base(self):
+    def test_recipe_requires_hashed_wheels_from_a_pinned_python_base(
+        self,
+    ) -> None:
         self.assertTrue(
             (COMPONENT / 'Dockerfile').is_file(),
             'Missing dedicated profile runtime recipe',
@@ -72,7 +74,9 @@ class ProfileControllerRuntimeTests(unittest.TestCase):
                 name, version = line.split('==')
                 self.assertEqual(packages[name], version)
 
-    def test_runtime_identity_and_command_match_the_mounted_controller(self):
+    def test_runtime_identity_and_command_match_the_mounted_controller(
+        self,
+    ) -> None:
         self.assertTrue(
             (COMPONENT / 'Dockerfile').is_file(),
             'Missing dedicated profile runtime recipe',
@@ -112,7 +116,7 @@ class ProfileControllerRuntimeTests(unittest.TestCase):
     @unittest.skipUnless(
         shutil.which('yq'), 'yq is required for release manifest rewriting'
     )
-    def test_release_preparation_retags_profile_controller(self):
+    def test_release_preparation_retags_profile_controller(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             manifests = Path(temporary) / 'manifests'
             shutil.copytree(ROOT / 'manifests/kustomize', manifests)

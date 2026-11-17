@@ -27,7 +27,7 @@ BINARIES = {
 
 
 class PublicationGoBinaryContractTest(unittest.TestCase):
-    def test_every_go_builder_verifies_before_export(self):
+    def test_every_go_builder_verifies_before_export(self) -> None:
         for recipe, binary in BINARIES.items():
             with self.subTest(recipe=recipe):
                 text = (ROOT / recipe).read_text()
@@ -57,7 +57,7 @@ class PublicationGoBinaryContractTest(unittest.TestCase):
 @unittest.skipUnless(shutil.which('go'), 'Requires the Go compiler')
 class PublicationGoBinaryTest(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.temporary = tempfile.TemporaryDirectory(prefix='publication-go-')
         cls.root = Path(cls.temporary.name)
         cls.environment = dict(
@@ -104,11 +104,11 @@ class PublicationGoBinaryTest(unittest.TestCase):
         cls.unstamped_binary = cls.build(cls.without_git, 'unstamped')
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         cls.temporary.cleanup()
 
     @classmethod
-    def build(cls, source, name):
+    def build(cls, source: Path, name: str) -> Path:
         binary = cls.root / name
         subprocess.run(
             [
@@ -128,7 +128,9 @@ class PublicationGoBinaryTest(unittest.TestCase):
         )
         return binary
 
-    def verify(self, binary, sha=None):
+    def verify(
+        self, binary: Path, sha: str | None = None
+    ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             ['sh', str(VERIFIER), str(binary), sha or self.sha],
             cwd=self.prepared,
@@ -137,7 +139,9 @@ class PublicationGoBinaryTest(unittest.TestCase):
             text=True,
         )
 
-    def test_buildvcs_succeeds_without_git_but_verifier_rejects_binary(self):
+    def test_buildvcs_succeeds_without_git_but_verifier_rejects_binary(
+        self,
+    ) -> None:
         info = subprocess.check_output(
             ['go', 'version', '-m', str(self.unstamped_binary)],
             env=self.environment,
@@ -147,17 +151,17 @@ class PublicationGoBinaryTest(unittest.TestCase):
         self.assertTrue(VERIFIER.is_file(), 'Publication verifier is missing')
         self.assertNotEqual(self.verify(self.unstamped_binary).returncode, 0)
 
-    def test_sanitized_source_binary_passes(self):
+    def test_sanitized_source_binary_passes(self) -> None:
         result = self.verify(self.clean_binary)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-    def test_wrong_source_sha_fails(self):
+    def test_wrong_source_sha_fails(self) -> None:
         self.assertTrue(VERIFIER.is_file(), 'Publication verifier is missing')
         self.assertNotEqual(
             self.verify(self.clean_binary, 'a' * 40).returncode, 0
         )
 
-    def test_dirty_source_binary_fails(self):
+    def test_dirty_source_binary_fails(self) -> None:
         self.assertTrue(VERIFIER.is_file(), 'Publication verifier is missing')
         dirty = self.root / 'dirty-source'
         shutil.copytree(self.prepared, dirty)
