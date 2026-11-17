@@ -26,7 +26,7 @@ CONTROL_PLANE_IMAGE_ARTIFACTS=(
   "cache-server"
   "metadata-envoy"
 )
-RUNTIME_IMAGE_ARTIFACTS=("driver" "launcher")
+RUNTIME_IMAGE_ARTIFACTS=("driver" "launcher" "profile-controller")
 ALL_CI_IMAGE_ARTIFACTS=(
   "${CONTROL_PLANE_IMAGE_ARTIFACTS[@]}"
   "${RUNTIME_IMAGE_ARTIFACTS[@]}"

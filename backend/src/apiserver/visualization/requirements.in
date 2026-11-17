@@ -21,7 +21,8 @@ werkzeug==3.1.9
 oauthlib>=4.0.1,<5
 urllib3>=2.8.0,<3
 multidict>=6.9.1
-soupsieve>=2.9.0
+# Patched selectors require Python >=3.11.5 in the visualization runtime.
+soupsieve>=4.0.0,<5
 
 # Security floors for runtime dependencies also pulled in transitively.
 Pillow>=13.0.0,<14

@@ -85,6 +85,8 @@ do not establish that the connected cluster is unaffected. OSV matches the broad
 `k8s.io/kubernetes` module records, whose affected ranges have no fixed boundary.
 
 GO-2026-5158 / CVE-2026-41178 concerns OpenTelemetry baggage-header parsing.
-The kubectl build pins OTel 1.44.0, the patched version identified by the
+The kubectl and proxy-agent builds pin the stable OTel family to 1.47.0.
+The kubectl graph also verifies its matching experimental metric/x 0.69.0.
+This retains the baggage-header fix identified by the
 [upstream advisory](https://github.com/open-telemetry/opentelemetry-go/security/advisories/GHSA-5wrp-cwcj-q835).
 Verify its absence using the actual rebuilt image scan, not this review text.

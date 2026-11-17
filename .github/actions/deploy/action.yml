@@ -100,11 +100,11 @@ runs:
         ./.github/resources/scripts/load-kind-image-archives.sh \
           "${{ inputs.cluster_name }}" 2 "${ARCHIVES[@]}"
 
-    - name: Load Driver and Launcher Images Into Kind
+    - name: Load Runtime Images Into Kind
       shell: bash
       run: |
-        # Runtime-generated workflow pods inherit these refs from the API server
-        # environment. Tagging them away from `latest` makes Kubernetes default
+        # Workflow pods and the profile-controller CI overlays use :ci refs.
+        # Tagging these images away from `latest` makes Kubernetes default
         # them to IfNotPresent, so they can also be loaded directly into Kind.
         source .github/resources/scripts/ci-image-artifacts.sh
         for app in "${RUNTIME_IMAGE_ARTIFACTS[@]}"; do

@@ -150,6 +150,53 @@ def image_reference(checkout: Path, target: str) -> str:
     return reference
 
 
+def build_profile_image(checkout: Path, reference: str,
+                        sha: str) -> dict | None:
+    """Build the first-party profile runtime from this checkout, never its
+    tag."""
+    repository = reference.split('@', 1)[0].rsplit(':', 1)[0]
+    if repository.rsplit('/', 1)[-1] != 'kfp-profile-controller':
+        return None
+    if not re.fullmatch(r'[0-9a-f]{40}', sha):
+        raise ValueError('Invalid profile runtime source SHA')
+    context = checkout / Path(TARGETS['profile-controller'][0]).parent
+    files = ('Dockerfile', 'requirements.txt')
+    hashes = {}
+    for name in files:
+        path = context / name
+        content = path.read_bytes()
+        tracked = subprocess.check_output([
+            'git',
+            '-C',
+            str(checkout),
+            'show',
+            f'{sha}:{path.relative_to(checkout).as_posix()}',
+        ])
+        if content != tracked:
+            raise ValueError(f'Profile runtime {name} differs from source SHA')
+        hashes[name] = hashlib.sha256(content).hexdigest()
+    local = f'kfp-profile-controller:compat-{sha}'
+    subprocess.run(
+        [
+            'bash',
+            str(checkout /
+                '.github/resources/scripts/docker-buildx-build-with-retry.sh'),
+            '--load',
+            '--platform',
+            PLATFORM,
+            '--tag',
+            local,
+            '--label',
+            f'org.opencontainers.image.revision={sha}',
+            '--file',
+            str(context / 'Dockerfile'),
+            str(context),
+        ],
+        check=True,
+    )
+    return {'source_sha': sha, 'image': local, 'recipe_sha256': hashes}
+
+
 def compare_reports(baseline: dict, candidate: dict) -> dict:
     """Group transitive advisory aliases across both reports, not packages.
 
@@ -207,11 +254,16 @@ def capture(checkout: Path, target: str, output: Path) -> tuple[dict, dict]:
         reference, provenance = image_reference(checkout, target), {}
     sha = subprocess.check_output(
         ['git', '-C', str(checkout), 'rev-parse', 'HEAD'], text=True).strip()
-    subprocess.run(['docker', 'pull', '--platform', PLATFORM, reference],
-                   check=True)
+    build = (
+        build_profile_image(checkout, reference, sha)
+        if target == 'profile-controller' else None)
+    resolved_reference = build['image'] if build else reference
+    if not build:
+        subprocess.run(['docker', 'pull', '--platform', PLATFORM, reference],
+                       check=True)
     inspected = json.loads(
-        subprocess.check_output(['docker', 'image', 'inspect', reference],
-                                text=True))
+        subprocess.check_output(
+            ['docker', 'image', 'inspect', resolved_reference], text=True))
     if len(inspected) != 1:
         raise ValueError('Expected exactly one inspected image')
     metadata = inspected[0]
@@ -220,8 +272,14 @@ def capture(checkout: Path, target: str, output: Path) -> tuple[dict, dict]:
         raise ValueError('Invalid immutable image ID')
     if (metadata.get('Os'), metadata.get('Architecture')) != ('linux', 'amd64'):
         raise ValueError('Image platform does not match Linux amd64')
-    digests = metadata.get('RepoDigests')
-    if not isinstance(digests, list) or not digests:
+    digests = metadata.get('RepoDigests', [])
+    if build:
+        if (metadata.get('Config',
+                         {}).get('Labels',
+                                 {}).get('org.opencontainers.image.revision')
+                != sha):
+            raise ValueError('Built profile image does not match source SHA')
+    elif not isinstance(digests, list) or not digests:
         raise ValueError('Pulled image has no repository digest')
     subject = {
         'source_sha': sha,
@@ -232,6 +290,8 @@ def capture(checkout: Path, target: str, output: Path) -> tuple[dict, dict]:
         'platform': PLATFORM,
         **provenance,
     }
+    if build:
+        subject['build'] = build
     (output / 'subject.json').write_text(json.dumps(subject, indent=2) + '\n')
     report = None
     for report_format in ('json', 'sarif'):

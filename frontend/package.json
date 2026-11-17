@@ -183,7 +183,9 @@
       "postcss-nested": {
         "postcss-selector-parser": "^7.1.6"
       }
-    }
+    },
+    "glob@>=9 <14.0.2": "14.0.6",
+    "minimatch@>=9 <11.0.1": "11.0.8"
   },
   "homepage": "./",
   "browserslist": {

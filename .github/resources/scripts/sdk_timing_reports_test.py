@@ -40,6 +40,7 @@ class SdkTimingReportsTest(unittest.TestCase):
                             '    output = pathlib.Path(sys.argv[sys.argv.index("--wheel-dir") + 1])\n'
                             '    (output / "kfp-test.whl").touch()\n'
                             '    sys.exit(0)\n'
+                            'if sys.argv[1:3] != ["-m", "pytest"]: sys.exit(0)\n'
                             'pathlib.Path("args.json").write_text(json.dumps(sys.argv[1:]))\n'
                             'print("slowest durations: timing sentinel", flush=True)\n'
                             'print("stderr sentinel", file=sys.stderr, flush=True)\n'

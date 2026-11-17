@@ -704,7 +704,7 @@ exports[`CompareV1 > creates a map of viewers 1`] = `
                         class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
                         id="viewer-tb-image-select"
                         tabindex="-1"
-                        value="ghcr.io/kubeflow/kfp-tensorboard:2.18.0"
+                        value="ghcr.io/kubeflow/kfp-tensorboard:2.18.1"
                       />
                       <svg
                         aria-hidden="true"
@@ -1680,7 +1680,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                         class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
                         id="viewer-tb-image-select"
                         tabindex="-1"
-                        value="ghcr.io/kubeflow/kfp-tensorboard:2.18.0"
+                        value="ghcr.io/kubeflow/kfp-tensorboard:2.18.1"
                       />
                       <svg
                         aria-hidden="true"
@@ -1793,7 +1793,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                         class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
                         id="viewer-tb-image-select"
                         tabindex="-1"
-                        value="ghcr.io/kubeflow/kfp-tensorboard:2.18.0"
+                        value="ghcr.io/kubeflow/kfp-tensorboard:2.18.1"
                       />
                       <svg
                         aria-hidden="true"
@@ -1906,7 +1906,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                         class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
                         id="viewer-tb-image-select"
                         tabindex="-1"
-                        value="ghcr.io/kubeflow/kfp-tensorboard:2.18.0"
+                        value="ghcr.io/kubeflow/kfp-tensorboard:2.18.1"
                       />
                       <svg
                         aria-hidden="true"
@@ -6404,7 +6404,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                         class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
                         id="viewer-tb-image-select"
                         tabindex="-1"
-                        value="ghcr.io/kubeflow/kfp-tensorboard:2.18.0"
+                        value="ghcr.io/kubeflow/kfp-tensorboard:2.18.1"
                       />
                       <svg
                         aria-hidden="true"
@@ -6517,7 +6517,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                         class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
                         id="viewer-tb-image-select"
                         tabindex="-1"
-                        value="ghcr.io/kubeflow/kfp-tensorboard:2.18.0"
+                        value="ghcr.io/kubeflow/kfp-tensorboard:2.18.1"
                       />
                       <svg
                         aria-hidden="true"
@@ -6630,7 +6630,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                         class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
                         id="viewer-tb-image-select"
                         tabindex="-1"
-                        value="ghcr.io/kubeflow/kfp-tensorboard:2.18.0"
+                        value="ghcr.io/kubeflow/kfp-tensorboard:2.18.1"
                       />
                       <svg
                         aria-hidden="true"

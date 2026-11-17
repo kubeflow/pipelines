@@ -8,6 +8,15 @@
 
 ## Bug fixes and other changes
 
+# 2.18.1
+
+## Bug fixes and other changes
+
+- Fix compilation when both a pipeline and a nested pipeline component use `dsl.If`; recompile affected pipelines ([#15267](https://github.com/kubeflow/pipelines/pull/15267)).
+- Evaluate local conditions without executing task-output text as Python code ([#15260](https://github.com/kubeflow/pipelines/pull/15260)).
+- Validate HTTPS authority before automatic Google Application Default Credentials selection, preserve credential provenance during refresh, and bound polling authentication-refresh retries. Explicit credentials take precedence over automatic ADC ([#15254](https://github.com/kubeflow/pipelines/pull/15254), [#15262](https://github.com/kubeflow/pipelines/pull/15262)).
+- Refresh dependencies while retaining Python 3.9 compatibility through interpreter-specific dependency selections. Older Python dependency branches retain known security limitations; these changes do not establish that all findings are resolved.
+
 # 2.18.0
 
 ## Features

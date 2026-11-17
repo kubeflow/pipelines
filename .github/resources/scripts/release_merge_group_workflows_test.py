@@ -158,7 +158,7 @@ class ReleaseMergeGroupWorkflowsTest(unittest.TestCase):
             capture_path = temp_path / 'package-path'
             fake_python = temp_path / 'python'
             fake_python.write_text(
-                '#!/bin/sh\nprintf "%s" "$KFP_PACKAGE_PATH" > "$KFP_PACKAGE_CAPTURE"\n',
+                '#!/bin/sh\n[ "$2" = pytest ] || exit 0\nprintf "%s" "$KFP_PACKAGE_PATH" > "$KFP_PACKAGE_CAPTURE"\n',
                 encoding='utf-8')
             fake_python.chmod(0o755)
 

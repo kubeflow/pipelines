@@ -33,7 +33,7 @@ RUN GO111MODULE=on go mod download
 
 COPY . .
 
-RUN GO111MODULE=on go build -o /bin/cache_server backend/src/cache/*.go
+RUN GO111MODULE=on go build -buildvcs=true -mod=readonly -o /bin/cache_server ./backend/src/cache
 
 FROM alpine:3.21
 

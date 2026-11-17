@@ -32,6 +32,72 @@ CI_SCRIPTS_WORKFLOW = ROOT / '.github' / 'workflows' / 'ci-scripts-tests.yml'
 
 class CiImageArtifactsTest(unittest.TestCase):
 
+    def test_profile_runtime_has_both_publication_architectures(self):
+        context = 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller'
+        for line in ('master', 'release'):
+            jobs = yaml.safe_load(
+                (ROOT / '.github/workflows' /
+                 f'image-builds-{line}.yml').read_text())['jobs']
+            matrix = jobs[f'build-images-for-{line}']['strategy']['matrix']
+            profile = [
+                item for item in matrix['image']
+                if item['name'] == 'kfp-profile-controller'
+            ]
+            self.assertEqual(profile, [{
+                'name': 'kfp-profile-controller',
+                'dockerfile': context + '/Dockerfile',
+                'context': context
+            }])
+            self.assertEqual({item['platform'] for item in matrix['arch']},
+                             {'linux/amd64', 'linux/arm64'})
+            self.assertFalse(
+                any(item['image']['name'] == 'kfp-profile-controller'
+                    for item in matrix.get('exclude', [])))
+            self.assertIn(
+                {'image': 'kfp-profile-controller'},
+                jobs['create-manifests']['strategy']['matrix']['component'])
+
+    def test_multiuser_profile_image_is_loaded_with_manifest_tag(self):
+        action = yaml.safe_load(
+            (ROOT / '.github/actions/deploy/action.yml').read_text())
+        step = next(step for step in action['runs']['steps']
+                    if step['name'] == 'Load Runtime Images Into Kind')
+        script = step['run']
+        for name, value in {
+                'image_path':
+                    '/tmp/images',
+                'image_registry':
+                    'kind-registry:5000',
+                'image_tag':
+                    yaml.safe_load(IMAGE_BUILDS_WORKFLOW.read_text())['env']
+                    ['IMAGE_TAG'],
+                'cluster_name':
+                    'kfp',
+        }.items():
+            script = script.replace('${{ inputs.' + name + ' }}', value)
+        stubs = """docker() { :; }
+kind() { printf '%s\\n' "$*"; }
+rm() { :; }
+"""
+        result = subprocess.run(['bash', '-eu', '-c', stubs + script],
+                                cwd=ROOT,
+                                capture_output=True,
+                                text=True,
+                                check=True)
+        loaded = set(result.stdout.splitlines())
+        for overlay in ('default', 'cache-disabled', 'artifact-proxy',
+                        'postgresql'):
+            with self.subTest(overlay=overlay):
+                manifest = yaml.safe_load(
+                    (ROOT / '.github/resources/manifests/multiuser' / overlay /
+                     'kustomization.yaml').read_text())
+                profile = next(image for image in manifest['images']
+                               if image['name'] ==
+                               'ghcr.io/kubeflow/kfp-profile-controller')
+                reference = profile['newName'] + ':' + str(profile['newTag'])
+                self.assertIn('--name kfp load docker-image ' + reference,
+                              loaded)
+
     def test_artifact_list_matches_image_build_matrix(self):
         result = subprocess.run(
             [

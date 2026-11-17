@@ -31,6 +31,7 @@ ARTIFACTS = (
     'frontend',
     'metadata-writer',
     'viewer-crd-controller',
+    'profile-controller',
     'visualization-server',
     'tensorboard',
     'cache-deployer',
@@ -192,8 +193,9 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         result, attempts = self._run(ready_after=1)
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('All 13 branch image artifacts are available',
-                      result.stdout)
+        self.assertIn(
+            f'All {len(ARTIFACTS) - 1} branch image artifacts are available',
+            result.stdout)
         self.assertEqual(attempts, 1)
 
     def test_accounting_failure_preserves_wait_result(self):
@@ -264,8 +266,9 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(attempts, 4)
         self.assertIn('Extending image artifact wait', result.stdout)
-        self.assertIn('All 14 branch image artifacts are available',
-                      result.stdout)
+        self.assertIn(
+            f'All {len(ARTIFACTS)} branch image artifacts are available',
+            result.stdout)
 
     def test_rejects_invalid_publication_grace(self):
         result, attempts = self._run(

@@ -10,3 +10,4 @@ oauthlib>=4.0.1,<5
 
 # Reject malformed ASN.1 input with the patched runtime decoder.
 pyasn1>=0.6.5,<0.7
+opentelemetry-api>=1.45.2
