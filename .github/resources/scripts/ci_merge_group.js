@@ -11,9 +11,9 @@
 
 'use strict';
 
-const {missingReleasePreCommit, applicable, validateInventory, invalidRunMetadata, loadBaseInventory} = require('./ci_expected_workflows');
+const {applicable, validateInventory, invalidRunMetadata, loadBaseInventory} = require('./ci_expected_workflows');
 const {inspectQueue} = require('./merge_queue_admission');
-const {queueEnabled} = require('./merge_queue_policy');
+const {queueEnabled, missingReleasePreCommit} = require('./merge_queue_policy');
 const SHA = /^[0-9a-f]{40}$/;
 
 function candidate(context) {

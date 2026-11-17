@@ -14,6 +14,7 @@
 
 'use strict';
 
+const {missingReleasePreCommit} = require('./merge_queue_policy');
 const {workflowAttempts} = require('./ci_workflow_attempts');
 
 // Only these trusted publisher jobs use this runner-local cache. Never restore it
@@ -216,11 +217,6 @@ async function baseArrivedAt({github, owner, repo, baseSha, baseRef}) {
   } catch (error) {
     return {status: 'error'};
   }
-}
-
-// The release queue relies on ci-passed to enforce pre-commit for both events.
-function missingReleasePreCommit(baseRef, expectedPaths) {
-  return baseRef === 'release-2.18' && !expectedPaths.includes('.github/workflows/pre-commit.yml');
 }
 
 async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSha, liveBase, inventory,
@@ -486,5 +482,5 @@ function loadLocalInventory(root) {
   return {inventory, workflowFiles};
 }
 
-module.exports = {missingReleasePreCommit, globRegex, matchesPatterns, applicable, validateInventory, invalidRunMetadata,
+module.exports = {globRegex, matchesPatterns, applicable, validateInventory, invalidRunMetadata,
   verifyExpectedWorkflows, loadLocalInventory, loadBaseInventory, baseArrivedAt, triggerHeader};
