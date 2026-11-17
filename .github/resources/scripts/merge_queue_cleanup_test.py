@@ -44,7 +44,7 @@ def cleanup(**options):
     script = r"""
 const gate = require(process.argv[1]);
 const root = require('node:path').resolve(require('node:path').dirname(process.argv[1]), '../../..');
-const f = JSON.parse(process.argv[2]);
+const f = JSON.parse(require('node:fs').readFileSync(0, 'utf8'));
 const calls = [], cancelled = [];
 let refIndex = 0;
 const github = {rest: {
@@ -81,7 +81,8 @@ const github = {rest: {
 })();
 """
     result = subprocess.run(
-        ['node', '-e', script, str(MODULE), json.dumps(fixture)],
+        ['node', '-e', script, str(MODULE)],
+        input=json.dumps(fixture),
         check=True,
         text=True,
         capture_output=True,
