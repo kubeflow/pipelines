@@ -32,15 +32,14 @@ base policy changes. Queue candidates continue to run all applicable lanes again
 the exact combined SHA, with no relaxation of candidate freshness or image identity.
 
 The trusted `queue_admission` job runs independently of the status-recovery
-matrix. Each newly verified queue-ready success wakes the default-branch
-recovery workflow with its exact PR head. Every surviving serialized controller
-catches up other likely ready PRs, including on the five-minute recovery
-schedule, and freshly verifies policy and CI before admission. It also runs on approval,
-hold, draft, retarget, and head-change events, and during scheduled recovery.
-Ordinary events inspect the affected PR and all current queue members; scheduled
-recovery alone sweeps all open PRs. A replaced pending event is therefore not the
-only opportunity to remove a held PR. Admission is excluded from the aggregate's test
-checks to avoid a dependency cycle; it does not constitute CI evidence.
+matrix. A PR event reconciles admission or revocation for the affected PR.
+A newly verified PR success wakes admission for that exact head. When enqueue
+returns a built candidate, the controller can start its missing CI immediately.
+A queue workflow completion reconciles only the reported queue ref and SHA.
+The per-SHA publisher verifies the aggregate result. Scheduled recovery
+discovers candidates that GitHub built or replaced later, checks current
+queue members, and revisits ready PRs whose pending event was replaced. Admission is excluded
+from the aggregate's test checks to avoid a dependency cycle.
 
 Eligibility preserves Prow's `lgtm` plus `approved` requirement for normal PRs.
 Only the exact `dependabot[bot]` Bot identity receives the existing development
