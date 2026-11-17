@@ -1010,12 +1010,10 @@ class TestPydanticBasemodelRuntimeIsolation(_TestCaseWithThirdPartyPackage):
         isolated_cwd = tempfile.TemporaryDirectory()
         self.addCleanup(isolated_cwd.cleanup)
 
-        # sys.path in this test process includes self.tmp_dir.name (appended
-        # by setUpClass so `from my_pydantic_models import MyModel` resolves
-        # in-process); exclude it here so the subprocess's PYTHONPATH is
-        # governed solely by extra_pythonpath_entries.
+        # Keep the SDK importable without inheriting ambient sys.path entries.
+        # The interpreter still initializes its own standard/site packages.
         pythonpath_entries = extra_pythonpath_entries + [
-            p for p in sys.path if p and p != self.tmp_dir.name
+            os.path.dirname(os.path.dirname(kfp.__file__))
         ]
         env = {
             'PATH': os.environ.get('PATH', ''),
@@ -1060,6 +1058,7 @@ class TestPydanticBasemodelRuntimeIsolation(_TestCaseWithThirdPartyPackage):
                     'PYTHONPATH': '/ambient/imports',
                 },
             ),
+            mock.patch.object(sys, 'path', [*sys.path, '/ambient/imports']),
             mock.patch.object(subprocess, 'run') as run,
         ):
             self._run_isolated(func, {}, [])
@@ -1069,6 +1068,10 @@ class TestPydanticBasemodelRuntimeIsolation(_TestCaseWithThirdPartyPackage):
             '/ambient/imports', env['PYTHONPATH'].split(os.pathsep)
         )
         self.assertNotIn(self.tmp_dir.name, env['PYTHONPATH'].split(os.pathsep))
+        self.assertIn(
+            os.path.dirname(os.path.dirname(kfp.__file__)),
+            env['PYTHONPATH'].split(os.pathsep),
+        )
 
     def test_model_on_runtime_path_executes_successfully_in_isolation(self):
         from my_pydantic_models import MyModel
