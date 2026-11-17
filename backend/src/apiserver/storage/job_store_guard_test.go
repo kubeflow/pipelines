@@ -20,14 +20,17 @@ import (
 	"database/sql/driver"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func guardedReport() *util.ScheduledWorkflow {
@@ -215,6 +218,107 @@ func TestUpdateJobWithGuard_ProductionDialectLockOrdering(t *testing.T) {
 						require.Error(t, err)
 						require.Equal(t, []string{"begin", "lock", "guard", "update", "commit"}, state.events)
 					}
+				})
+			}
+		})
+	}
+}
+
+// Use independent production-engine connections: PostgreSQL can skip a locked
+// row when an UPDATE predicate excludes its last committed mode.
+func TestJobModeWritesWaitForGuardedReportProductionDatabases(t *testing.T) {
+	for _, engine := range []string{"mysql", "pgx"} {
+		t.Run(engine, func(t *testing.T) {
+			dbs, d := recurringIntegrationDatabases(t, engine)
+			for _, operation := range []string{"disable", "enable", "archive"} {
+				t.Run(operation, func(t *testing.T) {
+					id := "mode-" + operation
+					expID := util.NewDeterministicUUID("experiment-" + operation)
+					wantEnabled := operation == "enable"
+					jobs := NewJobStore(dbs[0], util.NewFakeTimeForEpoch(), nil, d)
+					modeJobs := NewJobStore(dbs[1], util.NewFakeTimeForEpoch(), nil, d)
+					experiments, err := NewExperimentStore(dbs[1], util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(expID, nil), d)
+					require.NoError(t, err)
+					_, err = experiments.CreateExperiment(&model.Experiment{Name: expID, Namespace: "test"})
+					require.NoError(t, err)
+					_, err = jobs.CreateJob(&model.Job{UUID: id, DisplayName: id, Namespace: "test", Enabled: wantEnabled, ExperimentId: expID})
+					require.NoError(t, err)
+
+					sessionQuery := "SELECT CONNECTION_ID()"
+					waitQuery := `SELECT COUNT(*) FROM performance_schema.data_lock_waits w JOIN performance_schema.threads t ON t.THREAD_ID = w.REQUESTING_THREAD_ID WHERE t.PROCESSLIST_ID = ?`
+					if engine == "pgx" {
+						sessionQuery = "SELECT pg_backend_pid()"
+						waitQuery = `SELECT COUNT(*) FROM pg_stat_activity WHERE pid = $1 AND wait_event_type = 'Lock'`
+					}
+					var sessionID int64
+					require.NoError(t, dbs[1].QueryRow(sessionQuery).Scan(&sessionID))
+					ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+					defer cancel()
+					locked := make(chan struct{})
+					release := make(chan struct{})
+					var once sync.Once
+					releaseReport := func() { once.Do(func() { close(release) }) }
+					defer releaseReport()
+					reportDone := make(chan error, 1)
+					report := guardedReport()
+					report.UID = types.UID(id)
+					report.Spec.Enabled = !wantEnabled // A current direct CR edit, not yet committed to SQL.
+					go func() {
+						reportDone <- jobs.UpdateJobWithGuard(ctx, report, func(ctx context.Context) (bool, error) {
+							close(locked)
+							select {
+							case <-release:
+								return true, nil
+							case <-ctx.Done():
+								return false, ctx.Err()
+							}
+						})
+					}()
+					select {
+					case <-locked:
+					case err := <-reportDone:
+						t.Fatalf("report failed before acquiring its row lock: %v", err)
+					case <-ctx.Done():
+						t.Fatal(ctx.Err())
+					}
+					modeDone := make(chan error, 1)
+					go func() {
+						if operation == "archive" {
+							modeDone <- experiments.ArchiveExperiment(expID)
+						} else {
+							modeDone <- modeJobs.ChangeJobMode(id, wantEnabled)
+						}
+					}()
+					completedEarly := false
+					var modeErr error
+					require.Eventually(t, func() bool {
+						select {
+						case modeErr = <-modeDone:
+							completedEarly = true
+							return true
+						default:
+						}
+						var waiting int
+						err := dbs[2].QueryRowContext(ctx, waitQuery, sessionID).Scan(&waiting)
+						if err != nil {
+							t.Errorf("inspect row-lock wait: %v", err)
+							return false
+						}
+						return waiting > 0
+					}, 10*time.Second, 10*time.Millisecond, "mode write did not reach the report's row lock")
+					require.False(t, completedEarly, "no-op %s returned before the locked report committed: %v", operation, modeErr)
+					releaseReport()
+					for _, done := range []<-chan error{reportDone, modeDone} {
+						select {
+						case err := <-done:
+							require.NoError(t, err)
+						case <-ctx.Done():
+							t.Fatal(ctx.Err())
+						}
+					}
+					job, err := jobs.GetJob(id)
+					require.NoError(t, err)
+					require.Equal(t, wantEnabled, job.Enabled, "%s must win over the earlier report", operation)
 				})
 			}
 		})

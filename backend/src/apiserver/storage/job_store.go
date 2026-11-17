@@ -460,6 +460,8 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 }
 
 func (s *JobStore) ChangeJobMode(id string, enabled bool) error {
+	// Match by identity even for no-op requests so PostgreSQL waits for an
+	// in-flight report's row lock before applying the requested mode.
 	now := s.time.Now().Unix()
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
@@ -470,7 +472,6 @@ func (s *JobStore) ChangeJobMode(id string, enabled bool) error {
 			q("UpdatedAtInSec"): now,
 		}).
 		Where(sq.Eq{q("UUID"): id}).
-		Where(sq.Eq{q("Enabled"): !enabled}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Error when creating query to enable job %v to %v", id, enabled)
