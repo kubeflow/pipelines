@@ -43,10 +43,6 @@
           {
             "context": "DCO",
             "integration_id": 1861
-          },
-          {
-            "context": "pre-commit",
-            "integration_id": 15368
           }
         ]
       }

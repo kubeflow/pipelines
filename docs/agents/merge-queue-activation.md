@@ -312,10 +312,12 @@ Activation order (Tide configuration remains unchanged):
    including no Tide App bypass, before relaxing freshness.
 5. Read the current release protection and reconcile any drift. Apply only
    [the required-checks patch](merge-queue-release-2.18-required-checks.json):
-   preserve existing App-bound DCO and pre-commit checks, add App-bound ci-passed,
-   and set strict freshness false. Preserve every unrelated protection.
+   require App-bound DCO and ci-passed and set strict freshness false. The
+   ci-passed publisher verifies pre-commit on release PRs and queue candidates.
+   A dispatched pre-commit job can pass on the candidate SHA while GitHub
+   omits it from the queue’s check rollup, so requiring it separately stalls merging.
 6. Observe a normally approved release PR automatically enter the queue, run all
-   required exact-candidate lanes, publish DCO/pre-commit/ci-passed, and merge.
+   required candidate lanes including pre-commit, pass DCO and ci-passed, and merge.
    Verify scheduled recovery and a hold/revoked approval blocks merging. Tide
    can still attempt direct merges but has no App bypass in the queue rule.
    Repository administrators can explicitly bypass through a PR; this does not

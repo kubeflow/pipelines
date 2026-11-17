@@ -218,6 +218,11 @@ async function baseArrivedAt({github, owner, repo, baseSha, baseRef}) {
   }
 }
 
+// The release queue relies on ci-passed to enforce pre-commit for both events.
+function missingReleasePreCommit(baseRef, expectedPaths) {
+  return baseRef === 'release-2.18' && !expectedPaths.includes('.github/workflows/pre-commit.yml');
+}
+
 async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSha, liveBase, inventory,
   workflowFiles, freshAfter = null, registrationStartedAt = null, now = Date.now(), bindAttempts = false}) {
   validateInventory(inventory, workflowFiles);
@@ -261,6 +266,9 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
     }
   }
   const expected = applicableWorkflows.filter(workflow => !disabled.some(item => item.path === workflow.path));
+  if (missingReleasePreCommit(pullRequest.base.ref, expected.map(workflow => workflow.path))) {
+    failures.push('release-2.18 requires an applicable pre-commit PR workflow');
+  }
   const pending = [];
   const missing = [];
   let documentation = null;
@@ -478,5 +486,5 @@ function loadLocalInventory(root) {
   return {inventory, workflowFiles};
 }
 
-module.exports = {globRegex, matchesPatterns, applicable, validateInventory, invalidRunMetadata,
+module.exports = {missingReleasePreCommit, globRegex, matchesPatterns, applicable, validateInventory, invalidRunMetadata,
   verifyExpectedWorkflows, loadLocalInventory, loadBaseInventory, baseArrivedAt, triggerHeader};
