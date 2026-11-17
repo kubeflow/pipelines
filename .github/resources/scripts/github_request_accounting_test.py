@@ -270,6 +270,8 @@ async function exercise(timelineFailsFirst) {
    return pagination;
  };
  const sandbox = {module: {exports: {}}, process, require: name => {
+   // Exercise evidence accounting independently of the checked-in activation policy.
+   if (name === './merge_queue_policy') return {queueEnabled: async () => false};
    if (name === './ci_expected_workflows') return {
      loadBaseInventory: () => request('/graphql', async () => {
        if (timelineFailsFirst) {await delayed; throw later;}
