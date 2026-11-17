@@ -475,3 +475,17 @@ remain supported. See the overlay README for the injection-settings refresh
 procedure.
 
 - CI imports the profile-controller runtime through `RUNTIME_IMAGE_ARTIFACTS`, retagging the built image to `:ci` before loading Kind, matching all multi-user overlay references. Keep this loader/manifest contract covered by `ci_image_artifacts_test.py`.
+
+### SDK nested subprocess dependencies
+
+The SDK unit runner builds local `kfp-pipeline-spec` and `kfp-server-api` wheels
+before pytest and exposes them through `PIP_FIND_LINKS`. Notebook and component
+subprocesses create fresh environments, so packages installed in the parent
+alone cannot satisfy versions that have not yet been published. The temporary
+wheel directory remains available for the whole test run and is removed on
+success or failure. Existing pip search locations and exact-checkout SDK source
+selection remain intact; dependencies are still resolved and installed normally.
+With `SETUP_ENV=true`, generate the pipeline spec and prepare these wheels before
+installing SDK requirements. Run `sdk_nested_dependencies_test.py`,
+`sdk_timing_reports_test.py`, and `release_merge_group_workflows_test.py` when
+changing this boundary.

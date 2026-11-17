@@ -28,20 +28,27 @@ if [ "${SETUP_ENV}" = "true" ]; then
   source venv/bin/activate
 
   python3 -m pip install --upgrade pip
+  python3 -m pip install setuptools wheel==0.42.0
+  # Generate the checkout's pipeline spec before resolving SDK dependencies.
+  (cd api && make clean python)
+fi
+
+# Local execution starts fresh subprocess environments. Installing companions in
+# the parent is insufficient when this checkout's versions are not on PyPI yet.
+sdk_dependency_wheels=$(mktemp -d "${TMPDIR:-/tmp}/kfp-sdk-wheels.XXXXXX")
+trap 'rm -rf -- "$sdk_dependency_wheels"' EXIT
+python -m pip wheel --no-deps --wheel-dir "$sdk_dependency_wheels" \
+  "$source_root/api/v2alpha1/python" \
+  "$source_root/backend/api/v2beta1/python_http_client"
+export PIP_FIND_LINKS="$sdk_dependency_wheels${PIP_FIND_LINKS:+ $PIP_FIND_LINKS}"
+
+if [ "${SETUP_ENV}" = "true" ]; then
   python3 -m pip install -r sdk/python/requirements.txt
   python3 -m pip install -r sdk/python/requirements-dev.txt
-  python3 -m pip install setuptools
-  python3 -m pip install wheel==0.42.0
   python3 -m pip install pytest-cov
   python3 -m pip install --upgrade protobuf
   python3 -m pip install sdk/python
-
-  # regenerate the kfp-pipeline-spec
-  cd api/
-  make clean python
-  cd ..
-  # install the local kfp-pipeline-spec
-  python3 -m pip install -I api/v2alpha1/python
+  python3 -m pip install --force-reinstall "$sdk_dependency_wheels"/*.whl
 fi
 
 if [[ -n "${KFP_TEST_SOURCE_SHA:-}" ]]; then
