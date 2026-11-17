@@ -306,7 +306,8 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
   let pr;
   let enqueueAttempted = false;
   let enqueueConfirmed = false;
-  const report = (description, state = 'pending') => publishAdmissionStatus({github, context, pr, core, description, state});
+  const report = (description, state = 'pending') => pr?.base?.ref === branch &&
+    publishAdmissionStatus({github, context, pr, core, description, state});
   try {
     pr = await readPR(github, context, number);
     const reason = policyReason(pr, `${context.repo.owner}/${context.repo.repo}`, branch);

@@ -803,6 +803,10 @@ class QueueAdmissionTest(unittest.TestCase):
             )
             self.assertEqual(result['writes'][1]['options']['sha'], CANDIDATE)
             self.assertEqual(result['writes'][1]['options']['state'], 'failure')
+            self.assertEqual(
+                result['diagnostics'][-1]['description'],
+                'PR eligibility changed; awaiting fresh admission.',
+            )
 
     def test_post_enqueue_api_or_enforcement_failure_removes_admission(self):
         for options in [
@@ -1730,6 +1734,31 @@ def conversations(
 
 
 class AdmissionDiagnosticsTest(unittest.TestCase):
+    def test_stale_queue_head_reports_fresh_admission_needed(self):
+        result = run_case(
+            prs={'7': [pr(head={'sha': OTHER})]},
+            queues=[queue([entry()])],
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(
+            result['diagnostics'][-1]['description'],
+            'PR head changed; awaiting fresh admission.',
+        )
+
+    def test_other_branch_pass_preserves_diagnostic_and_queue_cleanup(self):
+        for queued in [False, True]:
+            with self.subTest(queued=queued):
+                result = run_case(
+                    prs={'7': [pr(branch='release-2.18')]},
+                    queues=[queue([entry()] if queued else [])],
+                )
+                self.assertNotIn('error', result)
+                self.assertEqual(result['diagnostics'], [])
+                self.assertEqual(
+                    [write['route'] for write in result['writes']],
+                    ['status', 'dequeue'] if queued else [],
+                )
+
     def test_unresolved_conversations_explain_blocker_without_enqueue(self):
         result = run_case(
             conversations=[
@@ -1936,6 +1965,47 @@ class AdmissionDiagnosticsTest(unittest.TestCase):
         self.assertNotIn('error', result)
         self.assertEqual(result['diagnostics'], [])
         self.assertEqual(result['writes'], [])
+
+    def test_changed_state_or_target_republishes_blocker(self):
+        pages = [conversations([{'isResolved': False}])]
+        first = run_case(conversations=pages)['diagnostics'][0]
+        for change in [
+            {'state': 'success'},
+            {'target_url': 'https://old.example'},
+        ]:
+            with self.subTest(change=change):
+                result = run_case(
+                    conversations=pages,
+                    diagnosticStatuses=[{**first, **change}],
+                )
+                self.assertNotIn('error', result)
+                self.assertEqual(result['diagnostics'], [first])
+
+    def test_combined_enqueue_blocker_is_truncated(self):
+        result = run_case(
+            enqueueError=[
+                {
+                    'type': 'UNPROCESSABLE',
+                    'path': ['enqueuePullRequest'],
+                    'message': message,
+                }
+                for message in [
+                    'All comments must be resolved.',
+                    'Required status check DCO is pending.',
+                    'Pull request is not mergeable.',
+                ]
+            ]
+        )
+        description = (
+            'Waiting for unresolved review conversations. '
+            'Waiting for required GitHub checks; see PR checks. '
+            'GitHub reports the PR is not mergeable; see PR merge requirements.'
+        )
+        self.assertNotIn('error', result)
+        self.assertGreater(len(description), 140)
+        self.assertEqual(
+            result['diagnostics'][-1]['description'], description[:140]
+        )
 
     def test_known_enqueue_rejection_is_pending_without_shared_failure(self):
         result = run_case(
