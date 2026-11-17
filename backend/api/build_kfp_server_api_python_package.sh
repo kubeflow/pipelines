@@ -48,7 +48,7 @@ if [ -z "$VERSION" ]; then
     exit 1
 fi
 
-codegen_file=/tmp/openapi-generator-cli.jar
+codegen_file="${TMPDIR:-/tmp}/openapi-generator-cli.jar"
 bash "$DIR/download_openapi_generator.sh" "$codegen_file"
 
 pushd "$(dirname "$0")"
