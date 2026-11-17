@@ -76,8 +76,10 @@ reservation and again before enqueue; later manual queue actions invalidate
 the receipt. Uncertain or stale removal evidence keeps the retry consumed.
 An acknowledged enqueue that disappears before observation still records its
 admission attempt; it cannot bypass the retry cooldown or limit on the next
-sweep. Read failures after acknowledgment also attempt to record consumption
-while retaining the independent cleanup path. A new sweep must recheck the queue and all admission
+sweep. The receipt retains GitHub’s enqueue timestamp so removal chronology
+does not depend on when the status write finishes; earlier-admission removals
+remain ineligible. Read failures after acknowledgment also attempt to record
+consumption while retaining the independent cleanup path. A new sweep must recheck the queue and all admission
 requirements before retrying; the original admission budget is not reset.
 
 The bridge rereads PR policy around admission and attempts dequeue when policy

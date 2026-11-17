@@ -216,7 +216,7 @@ const github = {{rest: {{
     writes.push({{route:'enqueue',options,query}});
     if (f.enqueueError) throw new Error('Enqueue rejected');
     enqueued = Number(options.id.split('_')[1]);
-    return {{enqueuePullRequest:{{mergeQueueEntry:{{id:'ENTRY_7'}}}}}};
+    return {{enqueuePullRequest:{{mergeQueueEntry:{{id:'ENTRY_7',enqueuedAt:f.enqueuedAt || '2026-11-13T13:00:00Z'}}}}}};
   }}
   if (query.includes('dequeuePullRequest')) {{
     writes.push({{route:'dequeue',options,query}}); enqueued = false; compensatingRemoval = true; return {{}};
@@ -1723,20 +1723,45 @@ class AutomaticRetryTest(unittest.TestCase):
             [w['route'] for w in first['writes']], ['enqueue', 'status']
         )
         consumed = first['writes'][-1]['options']
-        consumed.update(id=901, created_at='2026-11-13T13:00:00Z')
+        consumed.update(
+            id=901,
+            created_at='2026-11-13T13:00:03Z',
+            creator={'type': 'Bot', 'login': 'github-actions[bot]'},
+        )
         second = self.fixture()
         second['statuses'][0][-1] = consumed
         event = second['removals'][0]['repository']['pullRequest'][
             'timelineItems'
         ]['nodes'][0]
-        event['createdAt'] = '2026-11-13T13:00:00Z'
-        immediate = run_case(**second)
+        event['createdAt'] = '2026-11-13T13:00:01Z'
+        immediate = run_case(**second, now='2026-11-13T13:00:04Z')
         self.assertEqual(immediate['writes'], [], immediate)
         delayed = run_case(**second, now='2026-11-13T13:16:00Z')
         self.assertEqual(
             [w['route'] for w in delayed['writes']],
             ['status', 'enqueue', 'status'],
         )
+        event['createdAt'] = '2026-11-13T12:59:59Z'
+        older = run_case(**second, now='2026-11-13T13:16:00Z')
+        self.assertEqual(older['writes'], [], older)
+        event['createdAt'] = '2026-11-13T13:00:01Z'
+        for change in (
+            {'creator': {'type': 'User', 'login': 'someone'}},
+            {
+                'target_url': consumed['target_url'].replace(
+                    'owner/repo', 'other/repo'
+                )
+            },
+            {
+                'target_url': consumed['target_url'].replace(
+                    '13%3A00%3A00', '13%3A01%3A00'
+                )
+            },
+        ):
+            invalid = copy.deepcopy(second)
+            invalid['statuses'][0][-1].update(change)
+            rejected = run_case(**invalid, now='2026-11-13T13:16:00Z')
+            self.assertEqual(rejected['writes'], [], rejected)
 
     def test_acknowledged_enqueue_read_failure_records_consumption(
         self,

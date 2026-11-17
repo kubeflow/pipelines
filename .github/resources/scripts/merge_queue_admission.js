@@ -240,8 +240,26 @@ async function latestQueueEvent(github, context, pr) {
   return events[0];
 }
 
-async function retryRemoval(github, context, pr, consumed, now) {
-  const admittedAt = Date.parse(consumed.created_at);
+async function retryRemoval(github, context, pr, consumed, now, fingerprint) {
+  const publishedAt = Date.parse(consumed.created_at);
+  if (!Number.isFinite(publishedAt) || publishedAt > now()) return null;
+  let admittedAt = publishedAt;
+  if (consumed.target_url) {
+    // Status publication can follow GitHub's removal. Use the server's actual
+    // enqueue time from this trusted, fingerprint-bound admission receipt.
+    const prefix = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/`;
+    const marker = `#queue-admission-time=${fingerprint}:`;
+    if (typeof consumed.target_url !== 'string' || consumed.creator?.type !== 'Bot' || consumed.creator.login !== 'github-actions[bot]' ||
+        !consumed.target_url.startsWith(prefix)) return null;
+    const [run, encodedTime, ...extra] = consumed.target_url.slice(prefix.length).split(marker);
+    if (!/^[1-9][0-9]*$/.test(run) || !encodedTime || extra.length) return null;
+    try {
+      const timestamp = decodeURIComponent(encodedTime);
+      if (encodeURIComponent(timestamp) !== encodedTime) return null;
+      admittedAt = Date.parse(timestamp);
+    } catch { return null; }
+    if (admittedAt > publishedAt) return null;
+  }
   if (!Number.isFinite(admittedAt) || admittedAt > now()) return null;
   const event = await latestQueueEvent(github, context, pr);
   if (!event || event.__typename !== 'RemovedFromMergeQueueEvent' || event.reason !== 'failed_checks') return null;
@@ -325,11 +343,11 @@ async function admissionPassed(github, context, pr, {now = () => Date.now(), res
         const receipt = statuses.find(item => item.id === reservation.admission.compensation &&
           item.description === description);
         if (!await stillCompensated(receipt)) return null;
-      } else if (await retryRemoval(github, context, pr, consumed, now) !== reservation.admission.removal) return null;
+      } else if (await retryRemoval(github, context, pr, consumed, now, fingerprint) !== reservation.admission.removal) return null;
     }
     return reservation.admission;
   }
-  const removal = await retryRemoval(github, context, pr, consumed, now);
+  const removal = await retryRemoval(github, context, pr, consumed, now, fingerprint);
   return removal ? {fingerprint, removal} : null;
 }
 
@@ -411,17 +429,21 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
     // GITHUB_TOKEN admission does not reliably trigger merge_group Actions runs;
     // merge_queue_dispatch supplies missing CI via the workflow_dispatch exception.
     enqueueAttempted = true;
-    await github.graphql(`mutation($id:ID!, $head:GitObjectID!) {
+    const enqueued = await github.graphql(`mutation($id:ID!, $head:GitObjectID!) {
       enqueuePullRequest(input:{pullRequestId:$id,expectedHeadOid:$head,jump:false}) {
-        mergeQueueEntry { id }
+        mergeQueueEntry { id enqueuedAt }
       }
     }`, {id: pr.node_id, head: pr.head.sha});
+    const enqueuedAt = enqueued?.enqueuePullRequest?.mergeQueueEntry?.enqueuedAt;
+    const admissionTime = typeof enqueuedAt === 'string' && Number.isFinite(Date.parse(enqueuedAt)) ?
+      `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}#queue-admission-time=${admission.fingerprint}:${encodeURIComponent(enqueuedAt)}` : undefined;
     let admissionRecorded = false;
     recordAcknowledgedAdmission = async () => {
       if (admissionRecorded) return;
       await github.rest.repos.createCommitStatus({...context.repo, sha: pr.head.sha,
         context: 'queue-admission-attempt', state: 'pending',
-        description: `Admission ${branch}; CI attempts ${admission.fingerprint}.`});
+        description: `Admission ${branch}; CI attempts ${admission.fingerprint}.`,
+        ...(admissionTime ? {target_url: admissionTime} : {})});
       admissionRecorded = true;
     };
     const after = await readPR(github, context, number);
