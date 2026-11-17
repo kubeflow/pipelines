@@ -201,3 +201,31 @@ func TestRevocationDoesNotDeleteFromStaleS3Acceptance(t *testing.T) {
 		t.Fatalf("deleted=%v err=%v", deleted, err)
 	}
 }
+
+func TestRevocationRejectsIAMErrorBodyOnSuccessfulHTTP(t *testing.T) {
+	deleted := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			fmt.Fprint(w, "<LocationConstraint/>")
+			return
+		}
+		if err := r.ParseForm(); err != nil {
+			t.Error(err)
+			return
+		}
+		if r.Form.Get("Action") == "DeleteAccessKey" {
+			deleted = true
+		}
+		fmt.Fprint(w, "<ErrorResponse><Error><Code>AccessDenied</Code></Error></ErrorResponse>")
+	}))
+	defer server.Close()
+	storage, err := NewRemoteStorage(testPair, server.URL, server.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer storage.Close()
+	err = storage.RevokeDefault(context.Background())
+	if err == nil || deleted || !strings.Contains(err.Error(), "S3 and IAM disagree") {
+		t.Fatalf("deleted=%v error=%v", deleted, err)
+	}
+}

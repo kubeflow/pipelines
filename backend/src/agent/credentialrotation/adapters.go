@@ -268,7 +268,7 @@ func (s *RemoteStorage) RevokeDefault(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if status != http.StatusOK {
+	if status != http.StatusOK || proof.Code != "" || proof.ErrorCode != "" {
 		return failure("S3 and IAM disagree about the shipped credential; reconcile storage identity caches before retrying", nil)
 	}
 	owner, err := s.defaultOwner(ctx)
