@@ -548,7 +548,7 @@ async function finalize({github, context, core, number, head, before, preparatio
       }
     }
     if (state === 'failure') errorReason = reason;
-    await publish(github, context, original, state,
+    const published = await publish(github, context, original, state,
       state === 'success' ? successDescription(pr, validatedBaseSha, validatedQueueAdmission) : reason,
       {attemptFingerprint: validatedQueueAdmission ? validatedAttempts : null});
     // Status/label writes are not atomic with PR or CI changes. Revalidate
@@ -573,6 +573,9 @@ async function finalize({github, context, core, number, head, before, preparatio
         if (changed) {
           if (changed.state === 'failure') errorReason = changed.reasons.join('; ');
           await publish(github, context, original, changed.state, changed.reasons.join('; '));
+        }
+        if (!changed && published && validatedQueueAdmission && results[0].attempts === validatedAttempts) {
+          return after;
         }
       }
     }

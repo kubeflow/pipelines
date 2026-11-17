@@ -279,7 +279,7 @@ github.paginate.iterator = async function* () {
   yield {data: {statuses: status ? [{id: statusId, context: 'ci-passed', state: status, description, target_url: statusTarget}] : []}};
 };
 (async () => {
-  let error;
+  let error, finalized;
   const recoveryBefore = options.verifyRecovery ? await gate.recoveryCandidates({github, context, root}) : null;
   for (cycle = 0; cycle < (options.cycles || 1); cycle++) {
   context.runId = 99 + cycle;
@@ -301,7 +301,7 @@ github.paginate.iterator = async function* () {
   if (options.mergeBeforeFinal) {pr.merged = true; pr.state = 'closed';}
   if (options.unreadableBeforeFinal) options.pullFailure = true;
   try {
-    await (options.mergedRecovery ? (gate.finalizeMergedRecovery || gate.finalize) : gate.finalize)({github, context, core, root, number: outputs.pr_number,
+    finalized = await (options.mergedRecovery ? (gate.finalizeMergedRecovery || gate.finalize) : gate.finalize)({github, context, core, root, number: outputs.pr_number,
       head: outputs.head_sha, before: outputs.snapshot,
       preparedResult: options.preparedResultOverride ?? (!error ? outputs.prepared_result : ''),
       preparationSucceeded: !error && !options.preparationInterrupted,
@@ -310,7 +310,7 @@ github.paginate.iterator = async function* () {
   } catch (e) {error = e.message;}
   }
   const recoveryAfter = options.verifyRecovery ? await gate.recoveryCandidates({github, context, root}) : null;
-  console.log(JSON.stringify({calls, outputs, error, status, descriptions, targetUrls, recoveryBefore, recoveryAfter, labels: pr.labels, requestCounts}));
+  console.log(JSON.stringify({calls, outputs, error, finalized: finalized ?? null, status, descriptions, targetUrls, recoveryBefore, recoveryAfter, labels: pr.labels, requestCounts}));
 })().catch(e => {console.error(e); process.exit(1);});
 """
     # Publisher fixtures default to strict preactivation freshness. Queue-mode
@@ -599,6 +599,85 @@ class MergedReleaseRecoveryTest(unittest.TestCase):
                 self.assertFalse(
                     [c for c in result['calls'] if c[0] == 'status'], result
                 )
+
+
+class FinalizeAdmissionSignalTest(unittest.TestCase):
+    def setUp(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.root = Path(directory.name)
+        (self.root / '.github').mkdir()
+        (self.root / '.github/resources').symlink_to(ROOT / '.github/resources')
+        (self.root / '.github/merge-queue-policy.json').write_text(
+            json.dumps({'version': 1, 'enabled_branches': ['master', 'main']})
+        )
+
+    def queue_result(self, **options: object) -> dict[str, object]:
+        return exercise(
+            {'queueRules': [{'type': 'merge_queue'}], **options},
+            policy_root=self.root,
+        )
+
+    def test_only_verified_queue_success_returns_current_pr(self) -> None:
+        result = self.queue_result()
+        self.assertEqual(result['status'], 'success', result)
+        self.assertEqual(result['finalized']['number'], 7)
+        self.assertEqual(result['finalized']['head']['sha'], 'head')
+        self.assertEqual(result['finalized']['state'], 'open')
+        strict = exercise()
+        self.assertEqual(strict['status'], 'success', strict)
+        self.assertIsNone(strict['finalized'])
+
+    def test_pending_and_failure_never_return_admission_candidate(self) -> None:
+        for options in (
+            {'runStatus': 'in_progress'},
+            {'conclusion': 'failure'},
+            {'checkConclusion': 'failure'},
+            {'preparationInterrupted': True},
+            {'missing': True},
+        ):
+            with self.subTest(options=options):
+                result = self.queue_result(**options)
+                self.assertNotEqual(result['status'], 'success', result)
+                self.assertIsNone(result['finalized'])
+
+    def test_postpublication_changes_never_return_admission_candidate(
+        self,
+    ) -> None:
+        for options in (
+            *(
+                {'drift': drift}
+                for drift in (
+                    'head',
+                    'base',
+                    'hold',
+                    'closed',
+                    'merged',
+                    'rerun',
+                    'successful-rerun',
+                    'external-failure',
+                    'external-rerun',
+                )
+            ),
+            {'queueRemovedAfterSuccess': True},
+        ):
+            with self.subTest(options=options):
+                result = self.queue_result(**options)
+                self.assertIn(['status', 'success', 'head'], result['calls'])
+                self.assertIsNone(result['finalized'], result)
+
+    def test_unchanged_success_does_not_return_another_admission_signal(
+        self,
+    ) -> None:
+        first = self.queue_result()
+        result = self.queue_result(
+            beforeFinalStatus='success',
+            beforeFinalDescription=first['descriptions'][-1],
+            beforeFinalTarget=first['targetUrls'][-1],
+        )
+        self.assertEqual(result['status'], 'success', result)
+        self.assertNotIn(['status', 'success', 'head'], result['calls'])
+        self.assertIsNone(result['finalized'], result)
 
 
 class CIPassedTest(unittest.TestCase):
