@@ -1022,6 +1022,9 @@ class TestPydanticBasemodelRuntimeIsolation(_TestCaseWithThirdPartyPackage):
             'PYTHONPATH': os.pathsep.join(pythonpath_entries),
             '_KFP_RUNTIME': 'true',
         }
+        # setup-python's relocated interpreter may need its shared-library path.
+        if 'LD_LIBRARY_PATH' in os.environ:
+            env['LD_LIBRARY_PATH'] = os.environ['LD_LIBRARY_PATH']
 
         return subprocess.run(
             [
@@ -1040,6 +1043,32 @@ class TestPydanticBasemodelRuntimeIsolation(_TestCaseWithThirdPartyPackage):
             capture_output=True,
             text=True,
         )
+
+    def test_isolated_runtime_preserves_loader_path_without_import_leakage(
+        self,
+    ):
+        from unittest import mock
+
+        def func():
+            pass
+
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    'LD_LIBRARY_PATH': '/fixture/python/lib',
+                    'PYTHONPATH': '/ambient/imports',
+                },
+            ),
+            mock.patch.object(subprocess, 'run') as run,
+        ):
+            self._run_isolated(func, {}, [])
+        env = run.call_args.kwargs['env']
+        self.assertEqual(env.get('LD_LIBRARY_PATH'), '/fixture/python/lib')
+        self.assertNotIn(
+            '/ambient/imports', env['PYTHONPATH'].split(os.pathsep)
+        )
+        self.assertNotIn(self.tmp_dir.name, env['PYTHONPATH'].split(os.pathsep))
 
     def test_model_on_runtime_path_executes_successfully_in_isolation(self):
         from my_pydantic_models import MyModel
