@@ -70,8 +70,10 @@ already merged, the incoming PR may still need to update its branch.
 The controller also checks the live base and predecessors after enqueue. A race
 causes a compensating dequeue before admission consumption is recorded. A
 reserved retry is released only after removal is confirmed, using a bot-authored
-receipt bound to the original admission ID and CI fingerprint. Uncertain removal
-keeps the retry consumed. A new sweep must recheck the queue and all admission
+receipt bound to the original admission ID, CI fingerprint and confirmed
+removal event ID. The removal must remain the latest queue event before
+reservation and again before enqueue; later manual queue actions invalidate
+the receipt. Uncertain or stale removal evidence keeps the retry consumed. A new sweep must recheck the queue and all admission
 requirements before retrying; the original admission budget is not reset.
 
 The bridge rereads PR policy around admission and attempts dequeue when policy

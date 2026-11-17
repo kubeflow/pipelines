@@ -176,6 +176,7 @@ if (f.mockGateRecovery) {{
 const gate = require({json.dumps(str(MODULE))});
 let retryStatus;
 let enqueued = false;
+let compensatingRemoval = false;
 const counts = {{}};
 function next(name, values) {{
   const n = counts[name] || 0; counts[name] = n + 1;
@@ -218,11 +219,17 @@ const github = {{rest: {{
     return {{enqueuePullRequest:{{mergeQueueEntry:{{id:'ENTRY_7'}}}}}};
   }}
   if (query.includes('dequeuePullRequest')) {{
-    writes.push({{route:'dequeue',options,query}}); enqueued = false; return {{}};
+    writes.push({{route:'dequeue',options,query}}); enqueued = false; compensatingRemoval = true; return {{}};
   }}
   if (query.includes('query RetryRemoval')) {{
     calls.push({{route:'removal',options,query}});
-    return next('removal', f.removals || []);
+    const result = structuredClone(next('removal', f.removals || []));
+    if (compensatingRemoval && !f.staleCompensationEvent) {{
+      result.repository.pullRequest.timelineItems.nodes = [{{
+        __typename:'RemovedFromMergeQueueEvent',id:'COMPENSATING_REMOVAL',reason:'manually_removed',
+        createdAt:'2026-11-13T13:00:00Z',beforeCommit:{{oid:{json.dumps(CANDIDATE)}}}}}];
+    }}
+    return result;
   }}
   if (query.includes('query DispatchSnapshot')) {{
     calls.push({{route:'dispatch-snapshot',options,query}});
@@ -1634,12 +1641,41 @@ class AutomaticRetryTest(unittest.TestCase):
         )
         fixture = self.fixture()
         fixture['statuses'][0].insert(0, compensation)
+        fixture['removals'][0]['repository']['pullRequest']['timelineItems'][
+            'nodes'
+        ][0]['id'] = 'COMPENSATING_REMOVAL'
         retried = run_case(**fixture)
         self.assertNotIn('error', retried, retried)
         self.assertEqual(
             [w['route'] for w in retried['writes']],
             ['status', 'enqueue', 'status'],
         )
+        # A later manual removal or enqueue cannot revive this old receipt.
+        for later in (
+            {
+                '__typename': 'RemovedFromMergeQueueEvent',
+                'id': 'MANUAL_REMOVAL',
+                'reason': 'manually_removed',
+            },
+            {'__typename': 'AddedToMergeQueueEvent', 'id': 'MANUAL_ENQUEUE'},
+        ):
+            for before_enqueue in (False, True):
+                with self.subTest(later=later, before_enqueue=before_enqueue):
+                    moved = self.fixture()
+                    moved['statuses'][0].insert(0, compensation)
+                    old = copy.deepcopy(fixture['removals'][0])
+                    new = copy.deepcopy(old)
+                    new['repository']['pullRequest']['timelineItems'][
+                        'nodes'
+                    ] = [later]
+                    moved['removals'] = (
+                        [old, old, new] if before_enqueue else [new]
+                    )
+                    rejected = run_case(**moved)
+                    self.assertNotIn('error', rejected, rejected)
+                    self.assertNotIn(
+                        'enqueue', [w['route'] for w in rejected['writes']]
+                    )
         for change in (
             {'creator': {'type': 'User', 'login': 'someone'}},
             {'target_url': compensation['target_url'].replace('=11:', '=12:')},
@@ -1654,6 +1690,23 @@ class AutomaticRetryTest(unittest.TestCase):
             **self.fixture(queues=[queue(), queue(), queue([entry(8)]), None])
         )
         self.assertIn('error', result)
+        self.assertFalse(
+            any(
+                w['route'] == 'status' and w['options'].get('state') == 'error'
+                for w in result['writes']
+            )
+        )
+
+    def test_stale_compensating_event_cannot_release_retry(self) -> None:
+        result = run_case(
+            **self.fixture(
+                queues=[queue(), queue(), queue([entry(8)])],
+                staleCompensationEvent=True,
+            )
+        )
+        self.assertIn(
+            'Compensating removal event not confirmed', result.get('error', '')
+        )
         self.assertFalse(
             any(
                 w['route'] == 'status' and w['options'].get('state') == 'error'

@@ -218,9 +218,7 @@ async function inspectDispatchSnapshot({github, context, group, root}) {
 
 const RETRY_COOLDOWN_MS = 15 * 60 * 1000;
 
-async function retryRemoval(github, context, pr, consumed, now) {
-  const admittedAt = Date.parse(consumed.created_at);
-  if (!Number.isFinite(admittedAt) || admittedAt > now()) return null;
+async function latestQueueEvent(github, context, pr) {
   const response = await github.graphql(`query RetryRemoval($owner:String!, $repo:String!, $number:Int!) {
     repository(owner:$owner, name:$repo) { nameWithOwner pullRequest(number:$number) {
       number headRefOid baseRefName
@@ -239,7 +237,13 @@ async function retryRemoval(github, context, pr, consumed, now) {
       current.baseRefName !== pr.base.ref || !Array.isArray(events) || events.length > 1) {
     throw new Error('Incomplete queue retry removal evidence');
   }
-  const event = events[0];
+  return events[0];
+}
+
+async function retryRemoval(github, context, pr, consumed, now) {
+  const admittedAt = Date.parse(consumed.created_at);
+  if (!Number.isFinite(admittedAt) || admittedAt > now()) return null;
+  const event = await latestQueueEvent(github, context, pr);
   if (!event || event.__typename !== 'RemovedFromMergeQueueEvent' || event.reason !== 'failed_checks') return null;
   const removedAt = Date.parse(event.createdAt);
   if (typeof event.id !== 'string' || !event.id || !SHA.test(event.beforeCommit?.oid || '') ||
@@ -284,28 +288,43 @@ async function admissionPassed(github, context, pr, {now = () => Date.now(), res
   }
   const description = `Retry ${pr.base.ref}; CI attempts ${fingerprint}.`;
   const retry = statuses.find(item => item.context === 'queue-admission-retry' && item.description === description);
-  const compensated = item => {
+  const compensationEvent = item => {
     const prefix = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/`;
-    const suffix = `#queue-retry-compensation=${consumed.id}:${fingerprint}`;
+    const marker = `#queue-retry-compensation=${consumed.id}:${fingerprint}:`;
     const url = item?.target_url;
-    return item?.context === 'queue-admission-retry' && item.state === 'error' && item.creator?.type === 'Bot' &&
-      item.creator.login === 'github-actions[bot]' && Number.isSafeInteger(item.id) && item.id > 0 &&
-      Number.isSafeInteger(consumed.id) && consumed.id > 0 && typeof url === 'string' &&
-      url.startsWith(prefix) && url.endsWith(suffix) &&
-      /^[1-9][0-9]*$/.test(url.slice(prefix.length, -suffix.length));
+    if (item?.context !== 'queue-admission-retry' || item.state !== 'error' ||
+        item.creator?.type !== 'Bot' || item.creator.login !== 'github-actions[bot]' ||
+        !Number.isSafeInteger(item.id) || item.id <= 0 ||
+        !Number.isSafeInteger(consumed.id) || consumed.id <= 0 || typeof url !== 'string' ||
+        !url.startsWith(prefix)) return null;
+    const [run, encodedEvent, ...extra] = url.slice(prefix.length).split(marker);
+    if (!/^[1-9][0-9]*$/.test(run) || !encodedEvent || extra.length) return null;
+    try {
+      const event = decodeURIComponent(encodedEvent);
+      return encodeURIComponent(event) === encodedEvent ? event : null;
+    } catch { return null; }
+  };
+  const stillCompensated = async item => {
+    const expected = compensationEvent(item);
+    if (!expected) return false;
+    const latest = await latestQueueEvent(github, context, pr);
+    return latest?.__typename === 'RemovedFromMergeQueueEvent' && latest.id === expected;
   };
   if (retry) {
-    // Only a confirmed compensating dequeue may release a reserved retry.
-    // Bind that receipt to the consumed initial admission, not just PR/head.
-    if (compensated(retry)) return {fingerprint, removal: `compensated:${retry.id}`, compensation: retry.id};
+    // Only the unchanged, confirmed compensating removal releases a retry.
+    // A later manual queue event invalidates this receipt even on the same head.
+    if (await stillCompensated(retry)) {
+      return {fingerprint, removal: compensationEvent(retry), compensation: retry.id};
+    }
     // Only this invocation may finish its pending reservation. Lost responses
     // and failed cleanup keep the retry consumed.
     if (!reservation || retry.id !== reservation.id || retry.state !== 'pending' ||
         reservation.fingerprint !== fingerprint) return null;
     if (!afterEnqueue) {
       if (reservation.admission.compensation) {
-        if (!statuses.some(item => item.id === reservation.admission.compensation &&
-            item.description === description && compensated(item))) return null;
+        const receipt = statuses.find(item => item.id === reservation.admission.compensation &&
+          item.description === description);
+        if (!await stillCompensated(receipt)) return null;
       } else if (await retryRemoval(github, context, pr, consumed, now) !== reservation.admission.removal) return null;
     }
     return reservation.admission;
@@ -412,12 +431,16 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
         throw new Error('Compensating dequeue not confirmed');
       }
       if (reservation) {
+        const removal = await latestQueueEvent(github, context, after);
+        if (removal?.__typename !== 'RemovedFromMergeQueueEvent' || typeof removal.id !== 'string' || !removal.id || removal.id === admission.removal) {
+          throw new Error('Compensating removal event not confirmed');
+        }
         const consumed = statuses.find(item => item.context === 'queue-admission-attempt');
         if (!Number.isSafeInteger(consumed?.id) || consumed.id <= 0) throw new Error('Missing consumed admission for compensation');
         await github.rest.repos.createCommitStatus({...context.repo, sha:pr.head.sha,
           context:'queue-admission-retry', state:'error',
           description:`Retry ${branch}; CI attempts ${admission.fingerprint}.`,
-          target_url:`https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}#queue-retry-compensation=${consumed.id}:${admission.fingerprint}`});
+          target_url:`https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}#queue-retry-compensation=${consumed.id}:${admission.fingerprint}:${encodeURIComponent(removal.id)}`});
       }
       return;
     }
