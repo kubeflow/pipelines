@@ -226,7 +226,9 @@ const github = {{rest: {{
     const result = structuredClone(next('removal', f.removals || []));
     if (compensatingRemoval && !f.staleCompensationEvent) {{
       result.repository.pullRequest.timelineItems.nodes = [{{
-        __typename:'RemovedFromMergeQueueEvent',id:'COMPENSATING_REMOVAL',reason:'manually_removed',
+        __typename:'RemovedFromMergeQueueEvent',id:'COMPENSATING_REMOVAL',
+        reason:f.compensationReason || 'manually_removed',
+        actor:f.compensationActor || {{__typename:'Bot',login:'github-actions'}},
         createdAt:'2026-11-13T13:00:00Z',beforeCommit:{{oid:{json.dumps(CANDIDATE)}}}}}];
     }}
     return result;
@@ -830,6 +832,23 @@ class QueueAdmissionTest(unittest.TestCase):
         self.assertNotIn('error', result, result)
         self.assertEqual(
             [w['route'] for w in result['writes']], ['enqueue', 'dequeue']
+        )
+
+    def test_post_enqueue_candidate_refresh_preserves_same_predecessor_heads(
+        self,
+    ) -> None:
+        before = queue([entry(8)])
+        rebuilt = entry(8, headCommit={'oid': OTHER})
+        result = run_case(queues=[before, before, queue([rebuilt])])
+        self.assertNotIn('error', result, result)
+        self.assertEqual(
+            [w['route'] for w in result['writes']], ['enqueue', 'status']
+        )
+        rebuilt['pullRequest']['headRefOid'] = OTHER
+        changed = run_case(queues=[before, before, queue([rebuilt])])
+        self.assertNotIn('error', changed, changed)
+        self.assertEqual(
+            [w['route'] for w in changed['writes']], ['enqueue', 'dequeue']
         )
 
     def test_post_enqueue_append_does_not_change_predecessors(self) -> None:
@@ -1776,6 +1795,41 @@ class AutomaticRetryTest(unittest.TestCase):
         ]
         self.assertEqual(len(records), 1, result)
         self.assertIn('dequeue', [w['route'] for w in result['writes']])
+
+    def test_noncontroller_removal_cannot_release_retry(self) -> None:
+        for override in (
+            {'compensationReason': 'failed_checks'},
+            {'compensationReason': 'merge_conflict'},
+            {
+                'compensationActor': {
+                    '__typename': 'User',
+                    'login': 'maintainer',
+                }
+            },
+            {
+                'compensationActor': {
+                    '__typename': 'Bot',
+                    'login': 'github-merge-queue',
+                }
+            },
+        ):
+            with self.subTest(override=override):
+                result = run_case(
+                    **self.fixture(
+                        queues=[queue(), queue(), queue([entry(8)])], **override
+                    )
+                )
+                self.assertIn(
+                    'Compensating removal event not confirmed',
+                    result.get('error', ''),
+                )
+                self.assertFalse(
+                    any(
+                        w['route'] == 'status'
+                        and w['options'].get('state') == 'error'
+                        for w in result['writes']
+                    )
+                )
 
     def test_retry_is_reserved_before_enqueue(self) -> None:
         result = run_case(**self.fixture())

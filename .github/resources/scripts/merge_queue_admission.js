@@ -224,7 +224,7 @@ async function latestQueueEvent(github, context, pr) {
       number headRefOid baseRefName
       timelineItems(last:1, itemTypes:[ADDED_TO_MERGE_QUEUE_EVENT, REMOVED_FROM_MERGE_QUEUE_EVENT]) {
         nodes { __typename ... on RemovedFromMergeQueueEvent {
-          id reason createdAt beforeCommit { oid }
+          id reason createdAt actor { __typename login } beforeCommit { oid }
         } }
       }
     } }
@@ -457,7 +457,13 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
       return;
     }
     const predecessors = {base: afterQueue.base, entries: afterQueue.entries.slice(0, admittedIndex)};
-    if (JSON.stringify(predecessors) !== JSON.stringify(initialQueue)) {
+    // Enqueue can materialize/rebuild candidate commits for the same PR heads.
+    // Only changes to the base or ordered predecessor identities invalidate
+    // the dependency inputs after our own enqueue.
+    const predecessorIdentity = queue => [queue.base, queue.entries.map(item => [
+      item.id, item.pullRequest.number, item.pullRequest.headRefOid, item.pullRequest.baseRefName,
+    ])];
+    if (JSON.stringify(predecessorIdentity(predecessors)) !== JSON.stringify(predecessorIdentity(initialQueue))) {
       // A manual enqueue or base move raced our final pre-enqueue snapshot.
       // Remove this admission before recording consumption; do not invalidate
       // unrelated predecessors or accept their unprobed dependency changes.
@@ -468,7 +474,9 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
       }
       if (reservation) {
         const removal = await latestQueueEvent(github, context, after);
-        if (removal?.__typename !== 'RemovedFromMergeQueueEvent' || typeof removal.id !== 'string' || !removal.id || removal.id === admission.removal) {
+        if (removal?.__typename !== 'RemovedFromMergeQueueEvent' || typeof removal.id !== 'string' || !removal.id || removal.id === admission.removal ||
+            removal.reason !== 'manually_removed' || removal.actor?.__typename !== 'Bot' ||
+            !['github-actions', 'github-actions[bot]'].includes(removal.actor.login)) {
           throw new Error('Compensating removal event not confirmed');
         }
         const consumed = statuses.find(item => item.context === 'queue-admission-attempt');

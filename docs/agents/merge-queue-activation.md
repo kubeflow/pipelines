@@ -67,11 +67,14 @@ match and checks again when they change. Deferral does not consume the retry
 reserved for a PR removed after failed queue CI. If a conflicting change has
 already merged, the incoming PR may still need to update its branch.
 
-The controller also checks the live base and predecessors after enqueue. A race
+The controller also checks the live base and ordered predecessor PR heads after
+enqueue. Candidate commits may be rebuilt for those unchanged inputs without
+causing compensation. A race
 causes a compensating dequeue before admission consumption is recorded. A
 reserved retry is released only after removal is confirmed, using a bot-authored
 receipt bound to the original admission ID, CI fingerprint and confirmed
-removal event ID. The removal must remain the latest queue event before
+manual removal event ID from the GitHub Actions controller. Native queue
+failures and maintainer removals cannot release a retry. The removal must remain the latest queue event before
 reservation and again before enqueue; later manual queue actions invalidate
 the receipt. Uncertain or stale removal evidence keeps the retry consumed.
 An acknowledged enqueue that disappears before observation still records its
