@@ -280,7 +280,9 @@ then
   exit 1
 fi
 
-# TLS and kubernetes-native lanes both apply Certificate resources.
+# The TLS and kubernetes-native lanes apply Certificate resources above.
+# Wait here for cert-manager to finish issuing them, so pods that mount the
+# TLS secrets do not start before the secrets exist.
 if [ "${PIPELINES_STORE}" == "kubernetes" ] || [ "${POD_TO_POD_TLS_ENABLED}" == "true" ]; then
   kubectl wait --for=condition=Ready certificate --all -n kubeflow --timeout=180s || EXIT_CODE=$?
   if [[ $EXIT_CODE -ne 0 ]]
