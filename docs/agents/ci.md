@@ -82,8 +82,12 @@ cache is unchanged. The paused upgrade workflow and its readiness job remain pau
 The producer publishes checkout identity before builds, then immutable
 attempt-specific image archives. Each archive includes its source identity and
 file checksums in a distinct `*.provenance.json` file, prepared before upload.
-The readiness job can complete once all selected artifacts exist; no aggregate
-publisher or additional record upload is required. A failed or skipped readiness
+After all seven application images build, a same-run artifact-service job
+verifies their current-attempt provenance and hashes and publishes one
+architecture-specific bundle. Runtime images remain separate. New readiness
+resolution waits for the bundle; it cannot fall back to individual artifacts
+while publication is pending. Previously prepared individual-artifact states
+remain valid only under the existing exact-source and producer-attempt checks. A failed or skipped readiness
 job prevents its deployment jobs from starting. Direct users of the deploy or
 shared-image action retain discovery and bounded polling by default.
 Consumers require the same repository, event/ref, actual checkout SHA (the PR
@@ -115,6 +119,13 @@ one selection, hashes every archive, and validates all records with one fresh
 artifact inventory and one live producer-run read before loading either set.
 This reduces verification metadata reads from four to two per deployment job
 for a single-page inventory (and removes a duplicate downloader invocation).
+The application bundle reduces the downloader selection from seven artifact IDs
+to one (two with runtime on an AMD64 cache miss). For a single-page inventory,
+application download plus verification therefore uses four REST requests instead
+of ten: one artifact listing, one download redirect, and two fresh verification
+reads. Runtime cache misses use five instead of eleven. Blob transfer is
+separate from these REST counts. The bundle adds one producer transfer/upload
+step; it does not remove per-image provenance checks or live consumer checks.
 Cache hits select only application images; ARM keeps its application-only path.
 Direct callers may still select an individual set. No metadata snapshot is
 cached across consumer jobs or reused after hashing. Authenticated conditional
@@ -128,7 +139,8 @@ shared scenarios separately so they do not compete for the same runner slots.
 When adding consumers or changing paths, update the producer trigger union and
 architecture planner, regenerate `ci-workflow-inventory.json`, and retain the
 `Shared CI Images` completion subscription in `ci-checks.yml`. Run the
-`shared_ci_images_test.py`, `shared_ci_combined_verification_test.py`,
+`shared_ci_images_test.py`, `shared_ci_bundle_test.py`,
+`shared_ci_combined_verification_test.py`,
 `shared_ci_image_producer_test.py`, artifact caller,
 and workflow overlap contracts with the rest of CI Scripts Tests.
 
@@ -603,6 +615,16 @@ emits its request-accounting summary. Healthy queued PRs share one policy read
 per sweep; invalid members retain the fresh recheck and dequeue path. Preserve
 the read-budget, bounded-concurrency, sibling-draining, and policy-race tests
 when changing this controller.
+
+Before admission and dispatch, scheduled queue recovery cancels active CI for
+obsolete queue candidates. It scans active runs only; a queue workflow event
+limits discovery to that candidate SHA. Cleanup requires an enabled base branch,
+a trusted workflow path, the same repository, and a valid queue ref. Dispatched runs must have the GitHub Actions bot as their original actor (ID,
+login and type), checked again on the fresh run, plus a valid controller reservation for that workflow,
+created no later than the run; independent manual runs do not qualify. A missing
+or replaced candidate ref is confirmed again alongside the current run attempt
+before cancellation. Queue membership alone, API errors, and malformed evidence
+never prove obsolescence. Current candidates and unrelated PR/manual runs are left running. Run `merge_queue_cleanup_test.py` with the controller regressions.
 
 Admission does not wait for unrelated status-recovery matrix jobs. Each newly
 verified queue-ready PR success dispatches the trusted default-branch recovery

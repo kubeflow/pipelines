@@ -118,6 +118,7 @@ class ReadinessStateTest(unittest.TestCase):
         )
 
     def test_cli_passes_readiness_output_to_a_retried_consumer(self):
+        self.api.add('ci-images-amd64-attempt-1')
         output = self.directory / 'ready-output'
         api = self.api
 

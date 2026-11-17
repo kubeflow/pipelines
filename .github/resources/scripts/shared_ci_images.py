@@ -596,6 +596,39 @@ def artifact_name(image, architecture, attempt):
     return f'{image}{suffix}-attempt-{attempt}'
 
 
+def bundle_name(architecture, attempt):
+    return f'ci-images-{architecture}-attempt-{attempt}'
+
+
+def validate_record_ids(records, identity, architecture):
+    bundled = [
+        record
+        for record in records
+        if record['artifact_name']
+        == bundle_name(architecture, identity['run_attempt'])
+    ]
+    if bundled:
+        require(
+            len(bundled) == len(IMAGES)
+            and {record['image'] for record in bundled} == set(IMAGES)
+            and len({record['artifact_id'] for record in bundled}) == 1,
+            'Incomplete or mixed image bundle',
+        )
+    individual = [record for record in records if record not in bundled]
+    require(
+        len({record['artifact_id'] for record in individual})
+        == len(individual),
+        'Repeated artifact ID',
+    )
+    require(
+        not (
+            {record['artifact_id'] for record in individual}
+            & {record['artifact_id'] for record in bundled}
+        ),
+        'Repeated artifact ID',
+    )
+
+
 def filenames(image, architecture):
     require(architecture in ARCHITECTURES, 'Unsupported architecture')
     require(image in IMAGES or image == 'runtime-base-images', 'Unknown image')
@@ -720,6 +753,10 @@ def validate_record(record, identity, architecture, image, artifacts=None):
         'Image/architecture mismatch',
     )
     name = artifact_name(image, architecture, identity['run_attempt'])
+    if image in IMAGES and record['artifact_name'] == bundle_name(
+        architecture, identity['run_attempt']
+    ):
+        name = record['artifact_name']
     require(record['artifact_name'] == name, 'Record artifact name mismatch')
     require(
         record['provenance'] == provenance_name(image, architecture),
@@ -769,10 +806,7 @@ def make_manifest(identity, architecture, records, api, artifacts=None):
         )
         for image in IMAGES
     ]
-    require(
-        len({record['artifact_id'] for record in ordered}) == len(IMAGES),
-        'Repeated artifact ID',
-    )
+    validate_record_ids(ordered, identity, architecture)
     return {
         'version': 1,
         'identity': identity,
@@ -884,16 +918,15 @@ def import_ready_state(value, consumer, architecture, kind):
             validate_record(
                 record, state['identity'], architecture, record['image']
             )
-        require(
-            len({record['artifact_id'] for record in records}) == len(images),
-            'Repeated readiness artifact ID',
-        )
+        validate_record_ids(records, state['identity'], architecture)
     state['consumer'] = consumer
     state['last_kind'] = kind
     return state
 
 
-def resolve_once(api, consumer, architecture, kind, state, pin=None):
+def resolve_once(
+    api, consumer, architecture, kind, state, pin=None, require_bundle=False
+):
     run = None
     artifacts = None
     try:
@@ -967,7 +1000,11 @@ def resolve_once(api, consumer, architecture, kind, state, pin=None):
             artifact = named_artifact(
                 artifacts,
                 identity,
-                artifact_name(image, architecture, identity['run_attempt']),
+                bundle_name(architecture, identity['run_attempt'])
+                if require_bundle and image in IMAGES
+                else artifact_name(
+                    image, architecture, identity['run_attempt']
+                ),
             )
             records.append(
                 {
@@ -1009,6 +1046,7 @@ def resolve(
     poll=10,
     clock=time.monotonic,
     sleep=time.sleep,
+    require_bundle=False,
 ):
     require(timeout > 0 and poll > 0, 'Wait bounds must be positive')
     state = load_state(path, consumer, architecture)
@@ -1029,6 +1067,7 @@ def resolve(
                     kind,
                     state,
                     pin=lambda pinned: write_json(path, pinned),
+                    require_bundle=require_bundle,
                 )
                 write_json(path, state)
                 return state
@@ -1088,7 +1127,9 @@ def emit_outputs(path, state, kind):
         )
         stream.write(
             'artifact-ids='
-            + ','.join(str(record['artifact_id']) for record in records)
+            + ','.join(
+                dict.fromkeys(str(record['artifact_id']) for record in records)
+            )
             + '\n'
         )
         stream.write(
@@ -1122,10 +1163,7 @@ def verify(api, state, consumer, directory, layout, kind=None):
         for record in selected_records:
             validate_record(record, identity, architecture, record['image'])
         records.extend(selected_records)
-    require(
-        len({record['artifact_id'] for record in records}) == len(records),
-        'Repeated selected artifact ID',
-    )
+    validate_record_ids(records, identity, architecture)
     require(
         directory.is_dir() and not directory.is_symlink(),
         'Unsafe download directory',
@@ -1203,6 +1241,38 @@ def verify(api, state, consumer, directory, layout, kind=None):
         ]
 
 
+def validate_bundle(identity, architecture, directory):
+    require(
+        directory.is_dir() and not directory.is_symlink(),
+        'Unsafe bundle directory',
+    )
+    expected = {
+        name
+        for image in IMAGES
+        for name in (
+            *filenames(image, architecture),
+            provenance_name(image, architecture),
+        )
+    }
+    require(
+        {entry.name for entry in directory.iterdir()} == expected,
+        'Incomplete or unexpected bundle files',
+    )
+    for image in IMAGES:
+        path = directory / provenance_name(image, architecture)
+        require(
+            path.is_file()
+            and not path.is_symlink()
+            and path.stat().st_size <= 1024 * 1024,
+            'Unsafe bundled provenance',
+        )
+        document = json.loads(path.read_text())
+        require(
+            document == make_record(identity, architecture, image, directory),
+            'Bundle provenance or checksum mismatch',
+        )
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
@@ -1215,6 +1285,9 @@ def main():
     )
     record.add_argument('--directory', required=True, type=Path)
     record.add_argument('--output', required=True, type=Path)
+    bundle = commands.add_parser('bundle')
+    bundle.add_argument('--architecture', required=True, choices=ARCHITECTURES)
+    bundle.add_argument('--directory', required=True, type=Path)
     resolver = commands.add_parser('resolve')
     resolver.add_argument(
         '--architecture', required=True, choices=ARCHITECTURES
@@ -1264,6 +1337,8 @@ def main():
                     args.directory,
                 ),
             )
+        elif args.command == 'bundle':
+            validate_bundle(identity, args.architecture, args.directory)
         elif args.command == 'prepare':
             state = resolve(
                 api,
@@ -1271,6 +1346,7 @@ def main():
                 args.architecture,
                 'all' if args.architecture == 'amd64' else 'images',
                 args.state,
+                require_bundle=True,
             )
             with args.output.open('a') as output:
                 output.write(
@@ -1294,6 +1370,7 @@ def main():
                 args.state,
                 args.timeout_seconds,
                 args.poll_seconds,
+                require_bundle=True,
             )
             emit_outputs(args.output, state, args.kind)
         else:
