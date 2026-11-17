@@ -29,7 +29,7 @@ const DISPATCH_CONCURRENCY = 4;
 // use it for missing candidate runs while retaining native-run deduplication.
 // This workaround is specific to builtin-token admission, not a queue requirement.
 // Evidence and removal considerations: docs/agents/merge-queue-activation.md.
-async function dispatchGroup({github, context, group, core, root,
+async function dispatchGroup({github, context, group, core, root = process.env.GITHUB_WORKSPACE,
   loadInventory = loadBaseInventory, now = () => Date.now()}) {
   const ref = QUEUE_REF.exec(group.branch || '');
   if (!ref || ref[1] !== group.baseRef || !SHA.test(group.head || '')) {
@@ -106,7 +106,7 @@ async function dispatchGroup({github, context, group, core, root,
   core.info(`Queue candidate ${group.head}: missing CI dispatch reconciled.`);
 }
 
-async function dispatchCandidates({github, context, root, core,
+async function dispatchCandidates({github, context, root = process.env.GITHUB_WORKSPACE, core,
   loadInventory = loadBaseInventory, now = () => Date.now()}) {
   const failures = [];
   for (const baseRef of await enabledBranches({github, context, root})) {

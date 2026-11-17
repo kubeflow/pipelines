@@ -217,11 +217,13 @@ const loadInventory = async options => {{
   return {{inventory:f.inventory,workflowFiles:f.workflowFiles}};
 }};
 const core = {{info:()=>{{}},warning:()=>{{}},error:()=>{{}}}};
+const workspaceRoot = {json.dumps(str(root))};
+process.env.GITHUB_WORKSPACE = f.omitRoot ? workspaceRoot : workspaceRoot + '/unused';
 gate[f.method]({{github, context:{{eventName:'schedule',payload:{{}},repo:{{owner:'owner',repo:'repo'}},runId:123}},
-  group:f.group, root:{json.dumps(str(root))}, core, loadInventory,
+  group:f.group, ...(f.omitRoot ? {{}} : {{root:workspaceRoot}}), core, loadInventory,
   now:()=>Date.parse({json.dumps(NOW)})}})
-.then(result=>console.log(JSON.stringify({{result,writes,dispatches,requests,inventoryRequests,operations,activeDispatches,peakDispatches,completedDispatches}})))
-.catch(error=>console.log(JSON.stringify({{error:error.message,writes,dispatches,requests,inventoryRequests,operations,activeDispatches,peakDispatches,completedDispatches}})));
+.then(result=>console.log(JSON.stringify({{result,workspaceRoot,writes,dispatches,requests,inventoryRequests,operations,activeDispatches,peakDispatches,completedDispatches}})))
+.catch(error=>console.log(JSON.stringify({{error:error.message,workspaceRoot,writes,dispatches,requests,inventoryRequests,operations,activeDispatches,peakDispatches,completedDispatches}})));
 """
         completed = subprocess.run(
             ['node'], input=script, text=True, capture_output=True, check=True
@@ -230,6 +232,19 @@ gate[f.method]({{github, context:{{eventName:'schedule',payload:{{}},repo:{{owne
 
 
 class QueueRecoveryTest(unittest.TestCase):
+    def test_dispatch_uses_workspace_when_caller_omits_root(self):
+        for method in ['dispatchGroup', 'dispatchCandidates']:
+            for omit_root in [True, False]:
+                with self.subTest(method=method, omit_root=omit_root):
+                    result = dispatch(method=method, omitRoot=omit_root)
+                    self.assertNotIn('error', result)
+                    self.assertEqual(len(result['dispatches']), 1, result)
+                    self.assertTrue(result['inventoryRequests'])
+                    for request in result['inventoryRequests']:
+                        self.assertEqual(
+                            request.get('root'), result['workspaceRoot']
+                        )
+
     def test_default_rule_failure_does_not_block_release_dispatch(self):
         for rules in [[], None]:
             with self.subTest(rules=rules):
