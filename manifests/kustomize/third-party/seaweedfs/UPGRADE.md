@@ -34,6 +34,10 @@ The PVC, objects, tenant keys and policies are preserved. Only the installation
 namespace is reconciled; external storage and profile namespace Secrets are not
 changed. A replacement API image must contain `/bin/credential-rotation`; do not
 pin this component to an older release image lacking that binary.
+Bootstrap always pulls the configured API image so mutable branch tags cannot
+reuse a pre-migration cached binary. The generated Job inherits its effective
+pull policy, including explicit overrides for preloaded offline test images.
+A policy change replaces an incomplete Job using foreground deletion.
 
 ## Before upgrading: copied credentials and profile Secrets
 

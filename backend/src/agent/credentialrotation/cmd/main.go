@@ -53,6 +53,7 @@ func run() int {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 	var pullSecrets []corev1.LocalObjectReference
+	pullPolicy := corev1.PullAlways
 	if *mode == "bootstrap" {
 		podName := os.Getenv("POD_NAME")
 		if podName == "" {
@@ -68,6 +69,9 @@ func run() int {
 		for _, container := range pod.Spec.InitContainers {
 			if container.Name == "prepare-storage-credentials" && *image == "" {
 				*image = container.Image
+				if container.ImagePullPolicy != "" {
+					pullPolicy = container.ImagePullPolicy
+				}
 			}
 		}
 		if *image == "" {
@@ -97,7 +101,7 @@ func run() int {
 			state, prepareErr := migration.Prepare(ctx)
 			err = prepareErr
 			if err == nil {
-				err = rotation.EnsureMigrationJob(ctx, client, *namespace, *image, int64(os.Getuid()), state, pullSecrets...)
+				err = rotation.EnsureMigrationJob(ctx, client, *namespace, *image, pullPolicy, int64(os.Getuid()), state, pullSecrets...)
 			}
 		} else {
 			err = migration.Reconcile(ctx)

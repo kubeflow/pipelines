@@ -20,22 +20,26 @@ import yaml
 
 
 class ManifestTest(unittest.TestCase):
+    resources: list[dict]
+
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.resources = list(
             yaml.safe_load_all(
                 Path(os.environ['SEAWEEDFS_RENDERED']).read_text()
             )
         )
 
-    def resource(self, kind, name):
+    def resource(self, kind: str, name: str) -> dict:
         return next(
             item
             for item in self.resources
             if item['kind'] == kind and item['metadata']['name'] == name
         )
 
-    def test_no_declarative_legacy_secret_or_generated_credential_data(self):
+    def test_no_declarative_legacy_secret_or_generated_credential_data(
+        self,
+    ) -> None:
         for item in self.resources:
             if item['kind'] == 'Secret':
                 self.assertNotEqual(
@@ -47,7 +51,7 @@ class ManifestTest(unittest.TestCase):
         self.assertFalse(state.get('data'))
         self.assertFalse(state.get('stringData'))
 
-    def test_storage_requires_both_generated_keys_before_start(self):
+    def test_storage_requires_both_generated_keys_before_start(self) -> None:
         container = self.resource('Deployment', 'seaweedfs')['spec'][
             'template'
         ]['spec']['containers'][0]
@@ -65,7 +69,7 @@ class ManifestTest(unittest.TestCase):
             container['lifecycle']['postStart']['exec']['command'][-1],
         )
 
-    def test_both_listeners_require_bootstrap_authentication(self):
+    def test_both_listeners_require_bootstrap_authentication(self) -> None:
         container = self.resource('Deployment', 'seaweedfs')['spec'][
             'template'
         ]['spec']['containers'][0]
@@ -79,7 +83,7 @@ class ManifestTest(unittest.TestCase):
             self.assertEqual(key, reference['key'])
             self.assertFalse(reference.get('optional', False))
 
-    def test_go_bootstrap_replaces_permanent_controller(self):
+    def test_go_bootstrap_replaces_permanent_controller(self) -> None:
         self.assertFalse(
             any(
                 item['kind'] == 'Deployment'
@@ -100,7 +104,7 @@ class ManifestTest(unittest.TestCase):
             init['command'], ['/bin/credential-rotation', '--mode=bootstrap']
         )
         self.assertNotIn(':dummy', init['image'])
-        self.assertEqual('IfNotPresent', init.get('imagePullPolicy'))
+        self.assertEqual('Always', init.get('imagePullPolicy'))
         if os.environ.get('OPENSHIFT_RENDERED') == 'true':
             self.assertNotIn('runAsUser', init.get('securityContext', {}))
         else:
@@ -127,7 +131,7 @@ class ManifestTest(unittest.TestCase):
                 )
             )
 
-    def test_atomic_apply_fields_include_api_defaults(self):
+    def test_atomic_apply_fields_include_api_defaults(self) -> None:
         pod = self.resource('Deployment', 'seaweedfs')['spec']['template'][
             'spec'
         ]
@@ -153,7 +157,7 @@ class ManifestTest(unittest.TestCase):
             for port in rule.get('ports', []):
                 self.assertEqual('TCP', port.get('protocol'))
 
-    def test_reconciler_has_no_cluster_role_or_pod_exec(self):
+    def test_reconciler_has_no_cluster_role_or_pod_exec(self) -> None:
         role = self.resource('Role', 'seaweedfs-credential-rotation')
         for rule in role['rules']:
             self.assertNotIn('pods/exec', rule['resources'])
@@ -161,7 +165,7 @@ class ManifestTest(unittest.TestCase):
         binding = self.resource('RoleBinding', 'seaweedfs-credential-rotation')
         self.assertEqual('Role', binding['roleRef']['kind'])
 
-    def test_registration_quotes_custom_credentials(self):
+    def test_registration_quotes_custom_credentials(self) -> None:
         container = self.resource('Deployment', 'seaweedfs')['spec'][
             'template'
         ]['spec']['containers'][0]
@@ -201,7 +205,7 @@ class ManifestTest(unittest.TestCase):
             self.assertEqual(args[args.index('-access_key') + 1], 'custom@id')
             self.assertEqual(args[args.index('-secret_key') + 1], value)
 
-    def test_migration_peer_matches_runtime_job_labels(self):
+    def test_migration_peer_matches_runtime_job_labels(self) -> None:
         policy = self.resource('NetworkPolicy', 'seaweedfs')
         iam = next(
             rule
@@ -224,7 +228,7 @@ class ManifestTest(unittest.TestCase):
         self.assertEqual(len(migration['matchExpressions']), 1)
         self.assertEqual(migration['matchExpressions'][0]['operator'], 'In')
 
-    def test_storage_service_keeps_internal_endpoints(self):
+    def test_storage_service_keeps_internal_endpoints(self) -> None:
         service = self.resource('Service', 'seaweedfs')
         ports = {
             item['port']: item['targetPort']
@@ -233,7 +237,7 @@ class ManifestTest(unittest.TestCase):
         self.assertEqual(ports[8333], 8333)
         self.assertEqual(ports[8111], 8111)
 
-    def test_openshift_uses_assigned_identity(self):
+    def test_openshift_uses_assigned_identity(self) -> None:
         if os.environ.get('OPENSHIFT_RENDERED') != 'true':
             self.skipTest('OpenShift overlay only')
         pod = self.resource('Deployment', 'seaweedfs')['spec']['template'][

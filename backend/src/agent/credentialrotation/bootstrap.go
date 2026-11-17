@@ -45,7 +45,7 @@ func MigrationJobName(state *corev1.Secret) string {
 // EnsureMigrationJob starts an incomplete migration and leaves completed state
 // alone. Foreground replacement handles immutable Job image upgrades without
 // overlapping the previous migration pod. The caller retries Waiting results.
-func EnsureMigrationJob(ctx context.Context, client kubernetes.Interface, namespace, image string, uid int64, state *corev1.Secret, pullSecrets ...corev1.LocalObjectReference) error {
+func EnsureMigrationJob(ctx context.Context, client kubernetes.Interface, namespace, image string, pullPolicy corev1.PullPolicy, uid int64, state *corev1.Secret, pullSecrets ...corev1.LocalObjectReference) error {
 	if state == nil || state.Name != AdminSecret || state.UID == "" || state.Annotations[RevisionAnnotation] == "" {
 		return errors.New("prepare the persistent credential Secret before starting migration")
 	}
@@ -55,11 +55,14 @@ func EnsureMigrationJob(ctx context.Context, client kubernetes.Interface, namesp
 	if namespace == "" || image == "" || uid <= 0 {
 		return errors.New("migration requires a namespace, image and non-root bootstrap identity")
 	}
+	if pullPolicy != corev1.PullAlways && pullPolicy != corev1.PullIfNotPresent && pullPolicy != corev1.PullNever {
+		return errors.New("migration requires an explicit image pull policy")
+	}
 	jobs := client.BatchV1().Jobs(namespace)
 	name := MigrationJobName(state)
 	existing, err := jobs.Get(ctx, name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		_, err = jobs.Create(ctx, migrationJob(namespace, image, uid, state, pullSecrets...), metav1.CreateOptions{})
+		_, err = jobs.Create(ctx, migrationJob(namespace, image, pullPolicy, uid, state, pullSecrets...), metav1.CreateOptions{})
 		if apierrors.IsAlreadyExists(err) {
 			return wait("Migration Job was created concurrently; verifying its identity")
 		}
@@ -77,7 +80,7 @@ func EnsureMigrationJob(ctx context.Context, client kubernetes.Interface, namesp
 	if existing.DeletionTimestamp != nil {
 		return wait("Waiting for the previous migration Job and its pods to terminate")
 	}
-	replace := len(existing.Spec.Template.Spec.Containers) != 1 || existing.Spec.Template.Spec.Containers[0].Image != image || !slices.Equal(existing.Spec.Template.Spec.ImagePullSecrets, pullSecrets)
+	replace := len(existing.Spec.Template.Spec.Containers) != 1 || existing.Spec.Template.Spec.Containers[0].Image != image || existing.Spec.Template.Spec.Containers[0].ImagePullPolicy != pullPolicy || !slices.Equal(existing.Spec.Template.Spec.ImagePullSecrets, pullSecrets)
 	for _, condition := range existing.Status.Conditions {
 		if condition.Status == corev1.ConditionTrue && (condition.Type == batchv1.JobFailed || condition.Type == batchv1.JobComplete) {
 			// A completed Job with incomplete durable state cannot make progress.
@@ -99,7 +102,7 @@ func EnsureMigrationJob(ctx context.Context, client kubernetes.Interface, namesp
 	return wait("Replacing the previous migration Job; waiting for its pods to terminate")
 }
 
-func migrationJob(namespace, image string, uid int64, state *corev1.Secret, pullSecrets ...corev1.LocalObjectReference) *batchv1.Job {
+func migrationJob(namespace, image string, pullPolicy corev1.PullPolicy, uid int64, state *corev1.Secret, pullSecrets ...corev1.LocalObjectReference) *batchv1.Job {
 	backoff := int32(6)
 	trueValue, falseValue := true, false
 	return &batchv1.Job{
@@ -118,7 +121,7 @@ func migrationJob(namespace, image string, uid int64, state *corev1.Secret, pull
 					RestartPolicy:      corev1.RestartPolicyOnFailure,
 					SecurityContext:    &corev1.PodSecurityContext{RunAsNonRoot: &trueValue, RunAsUser: &uid, SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault}},
 					Containers: []corev1.Container{{
-						Name: "migrate", Image: image, ImagePullPolicy: corev1.PullIfNotPresent,
+						Name: "migrate", Image: image, ImagePullPolicy: pullPolicy,
 						Command:         []string{"/bin/credential-rotation", "--mode=migrate"},
 						Env:             []corev1.EnvVar{{Name: "POD_NAMESPACE", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}}},
 						Ports:           []corev1.ContainerPort{{Name: "health", ContainerPort: 8080}},

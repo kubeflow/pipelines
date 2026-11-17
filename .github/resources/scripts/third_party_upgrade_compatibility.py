@@ -15,6 +15,8 @@
 """Exercise rendered storage/profile manifests across a persistent-volume
 upgrade."""
 
+from __future__ import annotations
+
 import argparse
 import base64
 import copy
@@ -24,10 +26,17 @@ import subprocess
 import sys
 import time
 import urllib.request
+from collections.abc import Callable, Iterator
 from contextlib import closing, contextmanager
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import yaml
+
+if TYPE_CHECKING:
+    from botocore.client import BaseClient
+
+Credentials = tuple[str, str]
 
 ROOT = Path(__file__).resolve().parents[3]
 SEAWEED = ROOT / 'manifests/kustomize/third-party/seaweedfs/base'
@@ -48,7 +57,7 @@ ROLLOUT_TIMEOUT = '360s'
 PAYLOAD = b'KFP persistent upgrade compatibility\x00\xff\n' * 128
 
 
-def run(*args, data=None):
+def run(*args: str, data: str | None = None) -> str:
     """Run a command and retain its diagnostic output on failure."""
     try:
         return subprocess.run(
@@ -59,7 +68,7 @@ def run(*args, data=None):
         raise
 
 
-def kubectl(*args, data=None):
+def kubectl(*args: str, data: str | None = None) -> str:
     return run(
         'kubectl',
         '--context',
@@ -71,7 +80,7 @@ def kubectl(*args, data=None):
     )
 
 
-def rendered(path):
+def rendered(path: Path) -> list[dict]:
     objects = list(yaml.safe_load_all(run('kustomize', 'build', str(path))))
     # Base manifests also contain the unpublished migrator placeholder after
     # migration lands. Keep their storage image, but use the built test helper.
@@ -91,11 +100,11 @@ def rendered(path):
     return objects
 
 
-def apply(objects):
+def apply(objects: list[dict]) -> None:
     kubectl('apply', '-f', '-', data=yaml.safe_dump_all(objects))
 
 
-def wait_ready(name):
+def wait_ready(name: str) -> None:
     kubectl(
         'rollout',
         'status',
@@ -105,7 +114,9 @@ def wait_ready(name):
 
 
 @contextmanager
-def forward(deployment, local, remote, evidence):
+def forward(
+    deployment: str, local: int, remote: int, evidence: Path
+) -> Iterator[str]:
     with (evidence / f'port-forward-{deployment}-{local}.log').open('a') as log:
         process = subprocess.Popen(
             [
@@ -146,7 +157,7 @@ def forward(deployment, local, remote, evidence):
             process.wait(timeout=10)
 
 
-def secret_credentials(secret):
+def secret_credentials(secret: dict) -> Credentials:
     """Read Kubernetes Secret values using stringData-over-data precedence."""
     values = []
     for key in ('accesskey', 'secretkey'):
@@ -162,10 +173,10 @@ def secret_credentials(secret):
         except (KeyError, TypeError, ValueError) as error:
             raise ValueError(f'Secret has invalid or missing {key}') from error
         values.append(value)
-    return tuple(values)
+    return values[0], values[1]
 
 
-def client(endpoint, access, secret):
+def client(endpoint: str, access: str, secret: str) -> BaseClient:
     import boto3
     from botocore.config import Config
 
@@ -184,7 +195,7 @@ def client(endpoint, access, secret):
     )
 
 
-def iam_client(endpoint, access, secret):
+def iam_client(endpoint: str, access: str, secret: str) -> BaseClient:
     import boto3
     from botocore.config import Config
 
@@ -200,7 +211,9 @@ def iam_client(endpoint, access, secret):
     )
 
 
-def sync_profile(endpoint, namespace, secret=None):
+def sync_profile(
+    endpoint: str, namespace: str, secret: dict | None = None
+) -> dict:
     attachments = {
         kind: {}
         for kind in (
@@ -243,13 +256,13 @@ def sync_profile(endpoint, namespace, secret=None):
     return credentials[0]
 
 
-def verify_payload(s3, key):
+def verify_payload(s3: BaseClient, key: str) -> None:
     actual = s3.get_object(Bucket=BUCKET, Key=key)['Body'].read()
     if actual != PAYLOAD:
         raise AssertionError(f'Persistent object {key} changed during upgrade')
 
 
-def verify_state(s3):
+def verify_state(s3: BaseClient) -> None:
     verify_payload(s3, 'shared/before-upgrade')
     rules = s3.get_bucket_lifecycle_configuration(Bucket=BUCKET)['Rules']
     if (
@@ -264,7 +277,9 @@ def verify_state(s3):
         )
 
 
-def seed_old_store(storage, baseline_image, evidence):
+def seed_old_store(
+    storage: list[dict], baseline_image: str, evidence: Path
+) -> tuple[Credentials, str]:
     """Seed retained objects and lifecycle configuration on the baseline
     image."""
     credentials = [
@@ -336,7 +351,7 @@ def seed_old_store(storage, baseline_image, evidence):
     return admin_credentials, pvc_uid
 
 
-def current_admin_credentials():
+def current_admin_credentials() -> Credentials:
     return secret_credentials(
         json.loads(
             kubectl('get', 'secret', 'mlpipeline-minio-artifact', '-o', 'json')
@@ -344,7 +359,7 @@ def current_admin_credentials():
     )
 
 
-def upgrade_store(storage):
+def upgrade_store(storage: list[dict]) -> None:
     """Apply the actual candidate manifests, including credential migration."""
     apply(storage)
     wait_ready('seaweedfs')
@@ -357,7 +372,7 @@ def upgrade_store(storage):
         wait_migration_complete()
 
 
-def wait_migration_complete():
+def wait_migration_complete() -> None:
     """Wait for revocation separately from controller readiness."""
     deadline = time.monotonic() + 360
     while time.monotonic() < deadline:
@@ -390,7 +405,7 @@ def wait_migration_complete():
     raise AssertionError('Credential migration did not complete')
 
 
-def require_authentication_rejection(request):
+def require_authentication_rejection(request: Callable[[], object]) -> None:
     """Require an explicit authentication rejection."""
     try:
         with urllib.request.urlopen(request, timeout=10):
@@ -402,7 +417,7 @@ def require_authentication_rejection(request):
     raise AssertionError('Unauthenticated storage request succeeded')
 
 
-def verify_fresh_bootstrap(evidence):
+def verify_fresh_bootstrap(evidence: Path) -> None:
     """Probe listener authentication before any dynamic identity is seeded."""
     from botocore.exceptions import ClientError
 
@@ -488,7 +503,7 @@ def verify_fresh_bootstrap(evidence):
     kubectl('delete', 'namespace', 'kubeflow', '--wait=true', '--timeout=180s')
 
 
-def verify_manifest_reapply(storage):
+def verify_manifest_reapply(storage: list[dict]) -> None:
     """Check that manifest reapply preserves runtime credentials."""
     names = ('seaweedfs-admin-credentials', 'mlpipeline-minio-artifact')
 
@@ -516,7 +531,9 @@ def verify_manifest_reapply(storage):
     wait_migration_complete()
 
 
-def verify_workload_drain(storage, old, evidence):
+def verify_workload_drain(
+    storage: list[dict], old: Credentials, evidence: Path
+) -> None:
     """Verify revocation waits for a live pipeline pod."""
     fingerprint = hashlib.sha256(('\0'.join(old)).encode()).hexdigest()
     if (
@@ -624,10 +641,12 @@ def verify_workload_drain(storage, old, evidence):
     )
 
 
-def verify_old_credentials_rejected(old, current, evidence):
+def verify_old_credentials_rejected(
+    old: Credentials, current: Credentials, evidence: Path
+) -> None:
     from botocore.exceptions import ClientError
 
-    if old == current:
+    if old == current and old != ('minio', 'minio123'):
         return  # Operator-provided credentials are preserved.
     for local, port, factory, method, arguments in (
         (
@@ -656,7 +675,11 @@ def verify_old_credentials_rejected(old, current, evidence):
         )
 
 
-def exercise_profile(admin_credentials, evidence, namespace='compat-user'):
+def exercise_profile(
+    admin_credentials: Credentials,
+    evidence: Path,
+    namespace: str = 'compat-user',
+) -> dict:
     """Check retained data and issue reusable credentials through the
     webhook."""
     # The webhook is invoked directly; installing Metacontroller is unnecessary for this contract test.
@@ -694,7 +717,9 @@ def exercise_profile(admin_credentials, evidence, namespace='compat-user'):
     return secret
 
 
-def verify_after_restart(admin_credentials, secret, pvc_uid, evidence):
+def verify_after_restart(
+    admin_credentials: Credentials, secret: dict, pvc_uid: str, evidence: Path
+) -> None:
     """Require both credentials and data to survive a restart on the same
     PVC."""
     before_jobs = json.loads(
@@ -740,7 +765,9 @@ def verify_after_restart(admin_credentials, secret, pvc_uid, evidence):
         raise AssertionError('Upgrade replaced the PVC')
 
 
-def write_result(evidence, baseline_image, target, pvc_uid):
+def write_result(
+    evidence: Path, baseline_image: str, target: str, pvc_uid: str
+) -> None:
     """Record the actual image pair and verified persistence boundaries."""
     (evidence / 'result.json').write_text(
         json.dumps(
@@ -773,7 +800,7 @@ def write_result(evidence, baseline_image, target, pvc_uid):
     )
 
 
-def storage_image(storage):
+def storage_image(storage: list[dict]) -> str:
     """Select exactly one SeaweedFS container from rendered manifests."""
     images = [
         container['image']
@@ -790,7 +817,9 @@ def storage_image(storage):
     return images[0]
 
 
-def exercise(evidence, baseline, *, require_legacy=False):
+def exercise(
+    evidence: Path, baseline: Path, *, require_legacy: bool = False
+) -> None:
     """Validate a base-ref to candidate store upgrade and profile contract."""
     storage = rendered(SEAWEED)
     target = storage_image(storage)
@@ -819,7 +848,9 @@ def exercise(evidence, baseline, *, require_legacy=False):
     write_result(evidence, baseline_image, target, pvc_uid)
 
 
-def exercise_baselines(evidence, baseline, legacy_baseline):
+def exercise_baselines(
+    evidence: Path, baseline: Path, legacy_baseline: Path
+) -> None:
     """Keep current-base compatibility and historical revocation coverage
     separate."""
     exercise(evidence, baseline)
@@ -829,7 +860,7 @@ def exercise_baselines(evidence, baseline, legacy_baseline):
     exercise(legacy_evidence, legacy_baseline, require_legacy=True)
 
 
-def delete_cluster():
+def delete_cluster() -> None:
     """Attempt cleanup without replacing the original validation failure."""
     try:
         run('kind', 'delete', 'cluster', '--name', CLUSTER)
@@ -840,7 +871,7 @@ def delete_cluster():
         )
 
 
-def main():
+def main() -> None:
     global CONTROLLER_IMAGE
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--evidence', type=Path, required=True)
