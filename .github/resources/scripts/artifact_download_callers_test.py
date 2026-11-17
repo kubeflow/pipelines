@@ -40,6 +40,7 @@ CALLERS = [
     ('.github/workflows/image-builds-master.yml', 'arm64-smoke'),
     ('.github/workflows/image-builds-release.yml', 'validate-release-images'),
     ('.github/workflows/image-builds.yml', 'runtime-base-images'),
+    ('.github/workflows/image-builds.yml', 'image-bundle'),
     ('.github/workflows/release-qualification.yml', 'aggregate'),  # Images
     ('.github/workflows/release-qualification.yml', 'aggregate'),  # Source/SDK
     ('.github/workflows/release-qualification.yml', 'aggregate'),  # Third-party

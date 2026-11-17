@@ -363,16 +363,25 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 		return util.NewInternalServerError(err, "Failed to create query to archive experiment")
 	}
 
+	// ArchivedAtInSec starts the run GC retention window; runs that are
+	// already archived keep their original timestamp.
+	now := s.time.Now().Unix()
+	archiveRun := sq.Eq{
+		q("StorageState"):    model.StorageStateArchived.ToString(),
+		q("ArchivedAtInSec"): now,
+	}
+
 	// Archive runs via resource_references
 	updateRunsSQL, updateRunsArgs, err := qb.
 		Update(q("run_details")).
-		SetMap(sq.Eq{q("StorageState"): model.StorageStateArchived.ToString()}).
+		SetMap(archiveRun).
 		Where(sq.Expr(
 			fmt.Sprintf("%s IN (%s)", q("UUID"), resourceReferenceSubquery),
 			model.ExperimentResourceType, // ReferenceType
 			expId,                        // ReferenceUUID
 			model.RunResourceType,        // ResourceType
 		)).
+		Where(sq.NotEq{q("StorageState"): model.StorageStateArchived.ToString()}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create query to archive runs")
@@ -380,9 +389,7 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 
 	updateRunsWithExperimentUUIDSql, updateRunsWithExperimentUUIDArgs, err := qb.
 		Update(q("run_details")).
-		SetMap(sq.Eq{
-			q("StorageState"): model.StorageStateArchived.ToString(),
-		}).
+		SetMap(archiveRun).
 		Where(sq.Eq{q("ExperimentUUID"): expId}).
 		Where(sq.NotEq{q("StorageState"): model.StorageStateArchived.ToString()}).
 		ToSql()
@@ -391,7 +398,6 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 	}
 
 	// Disable jobs via resource_references
-	now := s.time.Now().Unix()
 	updateJobsSQL, updateJobsArgs, err := qb.
 		Update(q("jobs")).
 		SetMap(sq.Eq{

@@ -4481,7 +4481,10 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 		}
 	}
 	for _, task := range tasks {
-		msg, phase, matched := lifecycleMessageForTask(task, nodes, resolved, tasksByUUID)
+		if _, err := r.reconcileTaskFailure(task, nodes, resolved); err != nil {
+			return err
+		}
+		msg, phase, matched := lifecycleMessageForTask(task, nodes, resolved)
 		if !matched {
 			continue
 		}

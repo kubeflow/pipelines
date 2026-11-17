@@ -352,3 +352,49 @@ jobs:
             ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.provenance.json
           if-no-files-found: error
           retention-days: 1
+
+  image-bundle:
+    if: inputs.shared
+    needs: image-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: List required bundle files
+        id: bundle-files
+        env:
+          ARCHITECTURE: ${{ inputs.architecture }}
+        run: |
+          python3 - <<'PYTHON' >> "$GITHUB_OUTPUT"
+          import os
+          import sys
+          sys.path.insert(0, '.github/resources/scripts')
+          from shared_ci_images import IMAGES, filenames, provenance_name
+          architecture = os.environ['ARCHITECTURE']
+          print('required-files<<BUNDLE_FILES')
+          for image in IMAGES:
+              print(*filenames(image, architecture), provenance_name(image, architecture), sep='\n')
+          print('BUNDLE_FILES')
+          PYTHON
+      # Same-run downloads use the artifact service rather than the REST quota.
+      - uses: ./.github/actions/download-artifact-with-retry
+        with:
+          pattern: "{apiserver,persistenceagent,scheduledworkflow,launcher,driver,frontend,viewer-crd-controller}${{ inputs.architecture == 'arm64' && '-arm64' || '' }}-attempt-${{ github.run_attempt }}"
+          path: shared-image-bundle
+          merge-multiple: 'true'
+          required-files: ${{ steps.bundle-files.outputs.required-files }}
+      - name: Verify complete current-attempt image bundle
+        env:
+          ARCHITECTURE: ${{ inputs.architecture }}
+        run: python3 .github/resources/scripts/shared_ci_images.py bundle --architecture "$ARCHITECTURE" --directory shared-image-bundle
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ci-images-${{ inputs.architecture }}-attempt-${{ github.run_attempt }}
+          path: shared-image-bundle
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 1
