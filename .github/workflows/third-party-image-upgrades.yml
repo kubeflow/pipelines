@@ -15,13 +15,13 @@ jobs:
           persist-credentials: false
       - name: Reproduce archive validation without changing images
         env:
-          IMAGE: quay.io/jetstack/cert-manager-acmesolver@sha256:c8c1225bb2fe8ab37a330b77f0d8c2ee6a41210fcb54fc07ca606ab9a022b8b7
+          IMAGE: quay.io/jetstack/cert-manager-acmesolver:v1.21.3
           PYTHONPATH: release
         run: |
           mkdir evidence
           docker version > evidence/docker-version.txt
           docker info > evidence/docker-info.txt
-          docker pull --platform linux/amd64 "$IMAGE"
+          docker pull "$IMAGE"
           docker image inspect "$IMAGE" > evidence/image.json
           image_id=$(docker image inspect --format '{{.Id}}' "$IMAGE")
           docker save --output evidence/image.tar "$image_id"
