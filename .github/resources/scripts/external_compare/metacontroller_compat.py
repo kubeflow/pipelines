@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import importlib
 import json
+import re
 import subprocess
 import sys
 import time
@@ -18,7 +19,23 @@ CONFIGMAPS = (
 )
 SECRET = 'mlpipeline-minio-artifact'
 META_PATH = 'manifests/kustomize/third-party/metacontroller/base'
-ISTIO_PATH = 'manifests/kustomize/third-party/istio/install'
+ISTIO_CRDS = 'https://github.com/kubeflow/community-distribution/common/istio/istio-crds/base?ref='
+
+
+def istio_crd_target(source):
+    """Use the exact CRD prerequisite and immutable ref from release deployment."""
+    deployment = (
+        source / '.github/resources/scripts/deploy-kfp.sh'
+    ).read_text()
+    pins = re.findall(
+        r'^KUBEFLOW_MANIFESTS_SHA="([0-9a-f]{40})"$', deployment, re.MULTILINE
+    )
+    command = 'kubectl apply -k "' + ISTIO_CRDS + '${KUBEFLOW_MANIFESTS_SHA}"'
+    if len(pins) != 1 or command not in deployment:
+        raise ValueError(
+            'Source must define one immutable Istio CRD deployment prerequisite'
+        )
+    return ISTIO_CRDS + pins[0]
 
 
 def credential_fingerprint(secret):
@@ -333,7 +350,8 @@ class Exercise:
             storage, seaweed, self.evidence
         )
         self.c.exercise_profile(credentials, self.evidence)
-        istio = self.c.rendered(self.source / ISTIO_PATH)
+        crd_target = istio_crd_target(self.source)
+        istio = self.c.rendered(crd_target)
         crds = [
             obj
             for obj in istio
@@ -448,6 +466,7 @@ class Exercise:
         result = {
             'result': 'passed',
             'source_sha': sha,
+            'istio_crd_target': crd_target,
             'seaweed_version_lane': self.seaweed,
             'images': receipts,
             'pvc_uid': pvc_uid,

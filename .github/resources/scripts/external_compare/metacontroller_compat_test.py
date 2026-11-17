@@ -1,10 +1,15 @@
 """Guard the real-Metacontroller upgrade assertions."""
 
 import copy
+import tempfile
 import unittest
+from pathlib import Path
+from types import SimpleNamespace
 
 from metacontroller_compat import (
+    Exercise,
     credential_fingerprint,
+    istio_crd_target,
     require_live_images,
     require_unchanged_secret,
     select_statefulset,
@@ -66,7 +71,95 @@ def manifests():
     ]
 
 
+class StopAfterCRDs(Exception):
+    pass
+
+
 class MetacontrollerAssertionsTest(unittest.TestCase):
+    def test_uses_source_pinned_crd_prerequisite_not_install_overlay(self):
+        sha = 'a' * 40
+        expected = (
+            'https://github.com/kubeflow/community-distribution/common/istio/istio-crds/base?ref='
+            + sha
+        )
+        required = [
+            'destinationrules.networking.istio.io',
+            'authorizationpolicies.security.istio.io',
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory)
+            deploy = source / '.github/resources/scripts/deploy-kfp.sh'
+            deploy.parent.mkdir(parents=True)
+            deploy.write_text(
+                'KUBEFLOW_MANIFESTS_SHA="'
+                + sha
+                + '"\n'
+                + 'kubectl apply -k "https://github.com/kubeflow/community-distribution/common/istio/istio-crds/base?ref=${KUBEFLOW_MANIFESTS_SHA}"\n'
+            )
+            exercise = Exercise.__new__(Exercise)
+            exercise.source = source
+            exercise.pairs = {
+                'source_sha': sha,
+                'pairs': {
+                    'metacontroller': {'baseline': 'old', 'candidate': 'new'},
+                    'seaweedfs': {'baseline': 'store'},
+                },
+            }
+            exercise.seaweed = 'baseline'
+            exercise.evidence = source
+            exercise.image_receipt = lambda image: {}
+            calls = []
+
+            def rendered(target):
+                calls.append(str(target))
+                return (
+                    [
+                        {
+                            'kind': 'CustomResourceDefinition',
+                            'metadata': {'name': name},
+                        }
+                        for name in required
+                    ]
+                    if str(target) == expected
+                    else []
+                )
+
+            def applied(objects):
+                self.assertEqual(
+                    {obj['metadata']['name'] for obj in objects}, set(required)
+                )
+                raise StopAfterCRDs
+
+            exercise.c = SimpleNamespace(
+                run=lambda *args: sha,
+                CLUSTER='test',
+                SEAWEED=source / 'storage',
+                rendered=rendered,
+                seed_old_store=lambda *args: ({}, 'pvc'),
+                exercise_profile=lambda *args: None,
+                apply=applied,
+            )
+            with self.assertRaises(StopAfterCRDs):
+                exercise.exercise()
+            self.assertIn(expected, calls)
+
+    def test_crd_source_rejects_mutable_missing_or_ambiguous_pins(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory)
+            deploy = source / '.github/resources/scripts/deploy-kfp.sh'
+            deploy.parent.mkdir(parents=True)
+            command = 'kubectl apply -k "https://github.com/kubeflow/community-distribution/common/istio/istio-crds/base?ref=${KUBEFLOW_MANIFESTS_SHA}"\n'
+            pin = 'KUBEFLOW_MANIFESTS_SHA="' + 'a' * 40 + '"\n'
+            for text in [
+                command,
+                'KUBEFLOW_MANIFESTS_SHA="main"\n' + command,
+                pin + pin + command,
+                pin + command.replace('istio-crds', 'istio-install'),
+            ]:
+                deploy.write_text(text)
+                with self.subTest(text=text), self.assertRaises(ValueError):
+                    istio_crd_target(source)
+
     def test_credential_values_are_not_written_as_receipt(self):
         fingerprint = credential_fingerprint(secret())
         self.assertEqual(len(fingerprint), 64)

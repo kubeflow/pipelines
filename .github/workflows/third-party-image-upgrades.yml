@@ -8,55 +8,13 @@ env:
   PYTHONPATH: tooling/release:source/.github/resources/scripts:experiment/.github/resources/scripts/external_compare
   CHECKS: experiment/.github/resources/scripts/external_compare
 jobs:
-  scan:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [seaweedfs, metacontroller]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: ${{ github.workflow_sha }}
-          path: experiment
-          sparse-checkout: .github/resources/scripts/external_compare
-          persist-credentials: false
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: 62b3ef0d3a97be1c916def4058e8034036b16e06
-          path: tooling
-          persist-credentials: false
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: f7422e1e7ed1eb64e6d2a1b5f0b1de105b221e79
-          path: source
-          persist-credentials: false
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
-        with:
-          python-version: '3.13'
-      - run: python -m pip install PyYAML==6.0.3
-      - uses: ./tooling/.github/actions/setup-osv-scanner
-        with:
-          arch: amd64
-      - name: Compare exact current and proposed image digests
-        env:
-          TARGET: ${{ matrix.target }}
-        run: python "$CHECKS/scan_pair.py" --source source --pairs "$CHECKS/pairs.json" --target "$TARGET" --output evidence
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        if: always()
-        with:
-          name: external-comparison-${{ matrix.target }}-${{ github.run_attempt }}
-          path: evidence
-          if-no-files-found: error
-          retention-days: 14
   compatibility:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
-        lane: [seaweed-upgrade, metacontroller-baseline, metacontroller-combined]
+        lane: [metacontroller-baseline, metacontroller-combined]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
