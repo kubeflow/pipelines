@@ -38,17 +38,13 @@ if [[ ${#runtime_wheels[@]} -ne 1 || ! -f "${runtime_wheels[0]}" ]]; then
   exit 1
 fi
 
-# Docker-backed cases need a source URL accessible inside their containers.
-if [[ -z "${PULL_NUMBER}" ]]; then
-  export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}#egg=kfp&subdirectory=sdk/python"
-else
-  export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@refs/pull/${PULL_NUMBER}/merge#egg=kfp&subdirectory=sdk/python"
-fi
+# Install the exact checkout once-built wheel in every component. Docker-backed
+# cases bind-mount this file read-only at the same absolute path.
+export KFP_PACKAGE_PATH="${runtime_wheels[0]}"
 
 # Keep pytest capture enabled: xdist cannot forward worker stdout/stderr with -s.
 uv run python -m pytest sdk/python/test --ignore=sdk/python/test/runtime \
   -v -m regression --cov=kfp -n "${PYTEST_PARALLEL_WORKERS}"
 
-KFP_PACKAGE_PATH="${runtime_wheels[0]}" \
-  uv run python -m pytest sdk/python/test/runtime -v -m regression \
+uv run python -m pytest sdk/python/test/runtime -v -m regression \
     --cov=kfp --cov-append -n "${PYTEST_PARALLEL_WORKERS}"

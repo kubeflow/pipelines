@@ -200,9 +200,21 @@ class ExpectedWorkflowsTest(unittest.TestCase):
             if workflow['pull_request'] is not None
         ]
         # The default-branch publisher also handles release-branch reruns.
-        legacy = 'KFP API Integration V2 (Legacy)'
-        if legacy not in expected:
-            expected.append(legacy)
+        release_names = {
+            'Artifact storage acceptance',
+            'KFP backend visualization tests',
+            'Build tools images merge group',
+            'Legacy cache rolling upgrade',
+            'KFP API Integration v1 tests',
+            'KFP API Integration V2 (Legacy)',
+            'PostgreSQL image retained-data upgrade',
+            'Runtime Base Images Merge Group',
+            'TensorBoard runtime acceptance',
+            'Upgrade readiness tool',
+            'KFP SDK Isort Test',
+            'KFP SDK YAPF Tests',
+        }
+        expected.extend(release_names - set(expected))
         workflow = (ROOT / '.github/workflows/ci-checks.yml').read_text()
         selector = workflow.split('  workflow_run:\n', 1)[1].split(
             '    workflows:\n', 1

@@ -23,6 +23,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -117,7 +118,7 @@ func TestBackfillExperimentIDToRunTable_RowsErr(t *testing.T) {
 				streamErr: streamErr,
 			}
 		})
-		err := backfillExperimentIDToRunTable(db)
+		err := backfillExperimentIDToRunTable(db, dialect.NewDBDialect("mysql"))
 		require.ErrorIs(t, err, streamErr)
 		require.Empty(t, *execQueries, "backfill must not UPDATE when row check fails")
 	})
@@ -128,7 +129,7 @@ func TestBackfillExperimentIDToRunTable_RowsErr(t *testing.T) {
 				cols: []string{"ExperimentUUID"},
 			}
 		})
-		err := backfillExperimentIDToRunTable(db)
+		err := backfillExperimentIDToRunTable(db, dialect.NewDBDialect("mysql"))
 		require.NoError(t, err)
 		require.Empty(t, *execQueries)
 	})
@@ -140,7 +141,7 @@ func TestBackfillExperimentIDToRunTable_RowsErr(t *testing.T) {
 				rows: [][]driver.Value{{""}},
 			}
 		})
-		err := backfillExperimentIDToRunTable(db)
+		err := backfillExperimentIDToRunTable(db, dialect.NewDBDialect("mysql"))
 		require.NoError(t, err)
 		require.Len(t, *execQueries, 1)
 		require.Contains(t, (*execQueries)[0], "UPDATE")

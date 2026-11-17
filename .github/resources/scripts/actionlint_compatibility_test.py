@@ -31,12 +31,13 @@ class ActionlintCompatibilityTest(unittest.TestCase):
         self.patterns = self.config['paths'][WORKFLOW]['ignore']
 
     def test_exceptions_only_match_known_diagnostics(self):
-        self.assertEqual(len(self.patterns), 3)
+        self.assertEqual(len(self.patterns), 4)
         job_context = (
             '{check_run_id: number; container: {id: string; network: string}; '
             'services: {string => {id: string; network: string; ports: '
             '{string => string}}}; status: string}'
         )
+        cache_diagnostic = 'unexpected key "cache-mode" for "job" section. expected one of "concurrency", "container", "continue-on-error", "defaults", "env", "environment", "if", "name", "needs", "outputs", "permissions", "runs-on", "secrets", "services", "snapshot", "steps", "strategy", "timeout-minutes", "uses", "with"'
         known = (
             'unexpected key "queue" for "concurrency" section. expected one of '
             '"cancel-in-progress", "group"',
@@ -44,12 +45,15 @@ class ActionlintCompatibilityTest(unittest.TestCase):
             'permission scopes are "actions", "contents"',
             'property "workflow_ref" is not defined in object type '
             + job_context,
+            cache_diagnostic,
         )
         for diagnostic in known:
             self.assertTrue(
                 any(re.search(p, diagnostic) for p in self.patterns)
             )
         for diagnostic in (
+            cache_diagnostic.replace('cache-mode', 'cache-modes'),
+            cache_diagnostic.replace('"job"', '"workflow"'),
             known[0].replace('"queue"', '"queues"'),
             known[0].replace('"concurrency"', '"jobs"'),
             known[1].replace('copilot-requests', 'unknown-scope'),
@@ -93,6 +97,14 @@ class ActionlintCompatibilityTest(unittest.TestCase):
 
     def test_generated_fields_have_supported_values(self):
         workflow = yaml.safe_load((ROOT / WORKFLOW).read_text())
+        self.assertEqual(
+            {
+                name: job['cache-mode']
+                for name, job in workflow['jobs'].items()
+                if 'cache-mode' in job
+            },
+            {'agent': 'read'},
+        )
         queues = []
         permissions = []
         for scope in (workflow, *workflow['jobs'].values()):
