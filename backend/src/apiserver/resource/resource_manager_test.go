@@ -9034,15 +9034,18 @@ func scopedTask(t *testing.T, uuid, name, parentUUID string) *model.Task {
 
 // twoSubDAGNodes has the same group name in two sub-DAGs. Only the group in branch-b ran and got
 // stuck on an image pull. The copy in branch-a was skipped, so it has no node of its own.
-// BoundaryID mirrors how Argo actually nests these: branch-a and branch-b are top-level, so they
-// and their own attempts have no BoundaryID; group-b and its attempt sit inside branch-b's DAG
-// attempt, branch-b0, so that is their BoundaryID.
+// BoundaryID mirrors how Argo actually nests these, including the compiler-inserted root Retry
+// wrapper (root/root0) that KFP's neutralizeDAGRetries puts around every entrypoint DAG: branch-a
+// and branch-b are top-level, so their BoundaryID is root0, not empty; group-b and its attempt sit
+// inside branch-b's DAG attempt, branch-b0, so that is their BoundaryID.
 func twoSubDAGNodes() map[string]util.NodeStatus {
 	return map[string]util.NodeStatus{
-		"branch-a":  {ID: "branch-a", DisplayName: "branch-a", Type: "Retry", State: "Succeeded", Children: []string{"branch-a0"}},
-		"branch-a0": {ID: "branch-a0", DisplayName: "branch-a(0)", Type: "DAG", State: "Succeeded"},
-		"branch-b":  {ID: "branch-b", DisplayName: "branch-b", Type: "Retry", State: "Running", Children: []string{"branch-b0"}},
-		"branch-b0": {ID: "branch-b0", DisplayName: "branch-b(0)", Type: "DAG", State: "Running", Children: []string{"group-b"}},
+		"root":      {ID: "root", DisplayName: "my-pipeline", Type: "Retry", State: "Running", Children: []string{"root0"}},
+		"root0":     {ID: "root0", DisplayName: "my-pipeline(0)", Type: "DAG", State: "Running", Children: []string{"branch-a", "branch-b"}},
+		"branch-a":  {ID: "branch-a", DisplayName: "branch-a", Type: "Retry", State: "Succeeded", Children: []string{"branch-a0"}, BoundaryID: "root0"},
+		"branch-a0": {ID: "branch-a0", DisplayName: "branch-a(0)", Type: "DAG", State: "Succeeded", BoundaryID: "root0"},
+		"branch-b":  {ID: "branch-b", DisplayName: "branch-b", Type: "Retry", State: "Running", Children: []string{"branch-b0"}, BoundaryID: "root0"},
+		"branch-b0": {ID: "branch-b0", DisplayName: "branch-b(0)", Type: "DAG", State: "Running", Children: []string{"group-b"}, BoundaryID: "root0"},
 		"group-b":   {ID: "group-b", DisplayName: "condition-1", Type: "Retry", State: "Running", Children: []string{"pod-b"}, BoundaryID: "branch-b0"},
 		"pod-b":     {ID: "wf-pod-b", DisplayName: "condition-1(0)", Type: "Pod", State: "Pending", Message: imagePullMsg, BoundaryID: "branch-b0"},
 	}
@@ -9050,13 +9053,35 @@ func twoSubDAGNodes() map[string]util.NodeStatus {
 
 // siblingDependencyNodes models the Children edge Argo adds for task dependencies: b depends on
 // a, so a's last attempt (a0) lists b's Retry node as a child, even though b is not nested under
-// a. Both a and b are top-level, so both have no BoundaryID.
+// a. Both a and b are top-level, so their BoundaryID is root0, the compiler-inserted entrypoint
+// wrapper's DAG attempt, not empty.
 func siblingDependencyNodes() map[string]util.NodeStatus {
 	return map[string]util.NodeStatus{
-		"a":        {ID: "a", DisplayName: "a", Type: "Retry", State: "Succeeded", Children: []string{"a0"}},
-		"a0":       {ID: "a0", DisplayName: "a(0)", Type: "DAG", State: "Succeeded", Children: []string{"b"}},
-		"b":        {ID: "b", DisplayName: "b", Type: "Retry", State: "Pending", Children: []string{"wf-pod-b"}},
-		"wf-pod-b": {ID: "wf-pod-b", DisplayName: "b(0)", Type: "Pod", State: "Pending", Message: imagePullMsg},
+		"root":     {ID: "root", DisplayName: "my-pipeline", Type: "Retry", State: "Running", Children: []string{"root0"}},
+		"root0":    {ID: "root0", DisplayName: "my-pipeline(0)", Type: "DAG", State: "Running", Children: []string{"a", "b"}},
+		"a":        {ID: "a", DisplayName: "a", Type: "Retry", State: "Succeeded", Children: []string{"a0"}, BoundaryID: "root0"},
+		"a0":       {ID: "a0", DisplayName: "a(0)", Type: "DAG", State: "Succeeded", Children: []string{"b"}, BoundaryID: "root0"},
+		"b":        {ID: "b", DisplayName: "b", Type: "Retry", State: "Pending", Children: []string{"wf-pod-b"}, BoundaryID: "root0"},
+		"wf-pod-b": {ID: "wf-pod-b", DisplayName: "b(0)", Type: "Pod", State: "Pending", Message: imagePullMsg, BoundaryID: "root0"},
+	}
+}
+
+// rootWrapperNodes models the compiler-inserted root Retry wrapper: KFP's neutralizeDAGRetries
+// gives every DAG template, including the entrypoint, a zero-limit retry strategy, so Argo wraps
+// the entrypoint DAG (root0) in its own Retry node (root) above every top-level task. Top-level
+// tasks are therefore not hanging off nothing: their BoundaryID is root0, not empty, same as any
+// other nested task. branch/nested mirror that same wrapping one level deeper, inside branch's
+// own sub-DAG, to cover a nested task exhausting its own scope and then meeting the root wrapper.
+func rootWrapperNodes() map[string]util.NodeStatus {
+	return map[string]util.NodeStatus{
+		"root":          {ID: "root", DisplayName: "my-pipeline", Type: "Retry", State: "Running", Children: []string{"root0"}},
+		"root0":         {ID: "root0", DisplayName: "my-pipeline(0)", Type: "DAG", State: "Running", Children: []string{"top", "branch"}},
+		"top":           {ID: "top", DisplayName: "top", Type: "Retry", State: "Running", Children: []string{"wf-pod-top"}, BoundaryID: "root0"},
+		"wf-pod-top":    {ID: "wf-pod-top", DisplayName: "top(0)", Type: "Pod", State: "Pending", Message: imagePullMsg, BoundaryID: "root0"},
+		"branch":        {ID: "branch", DisplayName: "branch", Type: "Retry", State: "Running", Children: []string{"branch0"}, BoundaryID: "root0"},
+		"branch0":       {ID: "branch0", DisplayName: "branch(0)", Type: "DAG", State: "Running", Children: []string{"nested"}, BoundaryID: "root0"},
+		"nested":        {ID: "nested", DisplayName: "nested", Type: "Retry", State: "Running", Children: []string{"wf-pod-nested"}, BoundaryID: "branch0"},
+		"wf-pod-nested": {ID: "wf-pod-nested", DisplayName: "nested(0)", Type: "Pod", State: "Pending", Message: imagePullMsg, BoundaryID: "branch0"},
 	}
 }
 
@@ -9128,6 +9153,40 @@ func TestLifecycleMessageForTask_TopLevelTaskNotMisplacedByDependencyEdge(t *tes
 		"b":    scopedTask(t, "b", "b", "root"),
 	}
 	msg, _, matched := lifecycleMessageForTask(tasks["b"], nodes, resolved, tasks)
+	assert.True(t, matched)
+	assert.Equal(t, imagePullMsg, msg)
+}
+
+// TestLifecycleMessageForTask_TopLevelTaskMatchesThroughCompilerRootWrapper and its nested
+// counterpart below are the regression Jeff asked for on PR #15009's [P1] finding: a focused
+// check against a topology containing the compiler's root Retry wrapper, which fails without the
+// root-wrapper exception in nodeInScope and passes with it.
+func TestLifecycleMessageForTask_TopLevelTaskMatchesThroughCompilerRootWrapper(t *testing.T) {
+	// The real enclosing chain for a top-level task is root -> root0 -> task, not task -> nothing.
+	// Reaching "root" (a Retry node) must not be treated as one scope level too many.
+	nodes := rootWrapperNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	tasks := map[string]*model.Task{
+		"root": {UUID: "root", Name: "root"},
+		"top":  scopedTask(t, "top", "top", "root"),
+	}
+	msg, _, matched := lifecycleMessageForTask(tasks["top"], nodes, resolved, tasks)
+	assert.True(t, matched)
+	assert.Equal(t, imagePullMsg, msg)
+}
+
+func TestLifecycleMessageForTask_NestedTaskMatchesThroughCompilerRootWrapper(t *testing.T) {
+	// Same compiler-wrapper topology, one level deeper: nested's own scope is ["branch"], and the
+	// root wrapper sits above that chain, not inside it, so it must not count against the match
+	// once nested's own scope is exhausted.
+	nodes := rootWrapperNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	tasks := map[string]*model.Task{
+		"root":   {UUID: "root", Name: "root"},
+		"branch": scopedTask(t, "branch", "branch", "root"),
+		"nested": scopedTask(t, "nested", "nested", "branch"),
+	}
+	msg, _, matched := lifecycleMessageForTask(tasks["nested"], nodes, resolved, tasks)
 	assert.True(t, matched)
 	assert.Equal(t, imagePullMsg, msg)
 }

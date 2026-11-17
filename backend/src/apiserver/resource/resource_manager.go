@@ -4420,6 +4420,12 @@ func nodeParent(id string, nodes map[string]util.NodeStatus) (string, bool) {
 // scope, nearest first, and nothing more. Once scope is exhausted (including the empty, top-level
 // case), any further Retry ancestor before the root means the node is nested deeper than the task
 // actually is, so it is rejected rather than treated as a match.
+//
+// The one exception is the compiler-inserted root Retry wrapper: KFP's neutralizeDAGRetries gives
+// every DAG template, including the entrypoint, a zero-limit retry strategy, so Argo wraps the
+// entrypoint DAG in its own Retry node above every top-level task. That wrapper isn't a real task
+// and sits outside any task's own scope, so reaching it with nothing of its own above it is
+// treated the same as reaching the true root: it disqualifies nothing.
 func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bool {
 	seen := map[string]bool{id: true}
 	current := id
@@ -4448,6 +4454,9 @@ func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bo
 		seen[parentID] = true
 		current = parentID
 		if nodes[parentID].Type == "Retry" {
+			if _, hasParent := nodeParent(parentID, nodes); !hasParent {
+				return true
+			}
 			return false
 		}
 	}
