@@ -356,6 +356,7 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
   const entry = entries.find(entry => entry.pullRequest.number === number);
   let pr;
   let enqueueAttempted = false;
+  let recordAcknowledgedAdmission;
   try {
     pr = await readPR(github, context, number);
     const reason = policyReason(pr, `${context.repo.owner}/${context.repo.repo}`, branch);
@@ -415,11 +416,24 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
         mergeQueueEntry { id }
       }
     }`, {id: pr.node_id, head: pr.head.sha});
+    let admissionRecorded = false;
+    recordAcknowledgedAdmission = async () => {
+      if (admissionRecorded) return;
+      await github.rest.repos.createCommitStatus({...context.repo, sha: pr.head.sha,
+        context: 'queue-admission-attempt', state: 'pending',
+        description: `Admission ${branch}; CI attempts ${admission.fingerprint}.`});
+      admissionRecorded = true;
+    };
     const after = await readPR(github, context, number);
     if (after.merged === true) return;
     const afterQueue = await readQueueSnapshot(github, context, branch);
     const admittedIndex = afterQueue.entries.findIndex(item => item.pullRequest.number === number);
-    if (admittedIndex < 0) throw new Error('Enqueued PR missing from queue snapshot');
+    if (admittedIndex < 0) {
+      // GitHub may remove a candidate before the first snapshot. That
+      // acknowledged attempt still consumes its budget without compensation.
+      await recordAcknowledgedAdmission();
+      return;
+    }
     const predecessors = {base: afterQueue.base, entries: afterQueue.entries.slice(0, admittedIndex)};
     if (JSON.stringify(predecessors) !== JSON.stringify(initialQueue)) {
       // A manual enqueue or base move raced our final pre-enqueue snapshot.
@@ -450,16 +464,19 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
       await invalidateQueue(github, context, entries);
       await dequeue(github, after);
     } else {
-      // Each CI fingerprint gets one initial admission and at most one delayed
-      // retry after failed checks. Base-policy restamps cannot reset that budget.
-      await github.rest.repos.createCommitStatus({...context.repo, sha: pr.head.sha,
-        context: 'queue-admission-attempt', state: 'pending',
-        description: `Admission ${branch}; CI attempts ${admission.fingerprint}.`});
+      // Each CI fingerprint gets one initial admission and one delayed retry.
+      await recordAcknowledgedAdmission();
     }
   } catch (error) {
     // An enqueue may have succeeded even if its response was lost. Refresh the
     // queue and attempt removal independently of status/API failures.
     const errors = [error];
+    // An acknowledged enqueue followed by an unreadable snapshot must not
+    // silently regain its initial-admission budget either.
+    if (recordAcknowledgedAdmission) {
+      try { await recordAcknowledgedAdmission(); }
+      catch (statusError) { errors.push(statusError); }
+    }
     let removalRequired = Boolean(entry);
     if (enqueueAttempted) {
       try {

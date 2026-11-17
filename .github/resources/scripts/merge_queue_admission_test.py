@@ -1714,6 +1714,44 @@ class AutomaticRetryTest(unittest.TestCase):
             )
         )
 
+    def test_disappeared_acknowledged_admission_consumes_budget_across_sweeps(
+        self,
+    ) -> None:
+        first = run_case(queueAdmissionMissing=True)
+        self.assertNotIn('error', first, first)
+        self.assertEqual(
+            [w['route'] for w in first['writes']], ['enqueue', 'status']
+        )
+        consumed = first['writes'][-1]['options']
+        consumed.update(id=901, created_at='2026-11-13T13:00:00Z')
+        second = self.fixture()
+        second['statuses'][0][-1] = consumed
+        event = second['removals'][0]['repository']['pullRequest'][
+            'timelineItems'
+        ]['nodes'][0]
+        event['createdAt'] = '2026-11-13T13:00:00Z'
+        immediate = run_case(**second)
+        self.assertEqual(immediate['writes'], [], immediate)
+        delayed = run_case(**second, now='2026-11-13T13:16:00Z')
+        self.assertEqual(
+            [w['route'] for w in delayed['writes']],
+            ['status', 'enqueue', 'status'],
+        )
+
+    def test_acknowledged_enqueue_read_failure_records_consumption(
+        self,
+    ) -> None:
+        result = run_case(prs={'7': [pr(), pr(), None]})
+        self.assertIn('error', result)
+        records = [
+            w
+            for w in result['writes']
+            if w['route'] == 'status'
+            and w['options'].get('context') == 'queue-admission-attempt'
+        ]
+        self.assertEqual(len(records), 1, result)
+        self.assertIn('dequeue', [w['route'] for w in result['writes']])
+
     def test_retry_is_reserved_before_enqueue(self) -> None:
         result = run_case(**self.fixture())
         self.assertNotIn('error', result)
