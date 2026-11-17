@@ -14,14 +14,16 @@
 import copy
 import io
 import json
+import os
 import re
+import select
 import shutil
 import subprocess
 import sys
 import tarfile
 import tempfile
-import time
 import unittest
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from unittest import mock
 
@@ -37,14 +39,14 @@ RESOURCE_PATHS = (
 
 
 class FetchRetryTest(unittest.TestCase):
-    def process(self, waits, pid):
+    def process(self, waits: list[int | Exception], pid: int) -> mock.MagicMock:
         process = mock.MagicMock()
         process.__enter__.return_value = process
         process.pid = pid
         process.wait.side_effect = waits
         return process
 
-    def test_failed_fetch_and_timeout_retry_before_success(self):
+    def test_failed_fetch_and_timeout_retry_before_success(self) -> None:
         processes = [
             self.process([128], 101),
             self.process([subprocess.TimeoutExpired(['git'], 180), -9], 102),
@@ -75,7 +77,7 @@ class FetchRetryTest(unittest.TestCase):
 
     def test_fetch_version_resets_locks_and_partial_objects_between_attempts(
         self,
-    ):
+    ) -> None:
         archive_bytes = io.BytesIO()
         payload = b'resources: []\n'
         with tarfile.open(fileobj=archive_bytes, mode='w') as archive:
@@ -86,7 +88,12 @@ class FetchRetryTest(unittest.TestCase):
             archive.addfile(member, io.BytesIO(payload))
         resets = []
 
-        def interrupted_fetch(command, cwd, *, before_attempt):
+        def interrupted_fetch(
+            command: Sequence[str],
+            cwd: Path,
+            *,
+            before_attempt: Callable[[], None],
+        ) -> None:
             self.assertEqual(command[-1], 'refs/tags/v4.1.6')
             before_attempt()
             git_dir = cwd / '.git'
@@ -120,7 +127,7 @@ class FetchRetryTest(unittest.TestCase):
             )
         self.assertEqual(resets, [True])
 
-    def test_exhaustion_is_bounded_without_final_sleep(self):
+    def test_exhaustion_is_bounded_without_final_sleep(self) -> None:
         processes = [
             self.process([subprocess.TimeoutExpired(['git'], 180), -9], pid)
             for pid in (101, 102, 103)
@@ -141,43 +148,61 @@ class FetchRetryTest(unittest.TestCase):
                 [mock.call(timeout=180), mock.call()],
             )
 
-    def test_timeout_terminates_fetch_descendants(self):
-        with tempfile.TemporaryDirectory() as directory:
-            sentinel = Path(directory) / 'late-write'
-            ready = Path(directory) / 'child-started'
-            child = (
-                'from pathlib import Path; import sys, time; '
-                'Path(sys.argv[1]).write_text("started"); time.sleep(0.6); '
-                'Path(sys.argv[2]).write_text("orphan survived")'
-            )
-            parent = (
-                'import subprocess, sys, time; '
-                'subprocess.Popen([sys.executable, "-c", sys.argv[1], '
-                'sys.argv[2], sys.argv[3]]); time.sleep(2)'
-            )
+    def test_timeout_terminates_fetch_descendants(self) -> None:
+        # EOF proves exit even if a surviving child is stopped or delayed.
+        read_fd, write_fd = os.pipe()
+        self.addCleanup(os.close, read_fd)
+        real_popen = subprocess.Popen
+        child = 'import os, sys, time; time.sleep(0.5); os.write(int(sys.argv[1]), b"R"); time.sleep(60)'
+        parent = (
+            'import subprocess, sys, time; '
+            'subprocess.Popen([sys.executable, "-c", sys.argv[1], sys.argv[2]], '
+            'pass_fds=(int(sys.argv[2]),)); time.sleep(60)'
+        )
+
+        def started_process(
+            command: Sequence[str], **kwargs: object
+        ) -> subprocess.Popen:
+            process = real_popen(command, pass_fds=(write_fd,), **kwargs)
+            os.close(write_fd)
+
+            def cleanup() -> None:
+                try:
+                    os.killpg(process.pid, argo.signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                process.wait()
+
+            self.addCleanup(cleanup)
+            try:
+                self.assertTrue(
+                    select.select([read_fd], [], [], 10)[0],
+                    'descendant did not start within bounded handshake',
+                )
+                self.assertEqual(os.read(read_fd, 1), b'R')
+            except BaseException:
+                os.killpg(process.pid, argo.signal.SIGKILL)
+                process.wait()
+                raise
+            return process
+
+        with mock.patch.object(
+            argo.subprocess, 'Popen', side_effect=started_process
+        ):
             with self.assertRaises(subprocess.TimeoutExpired):
                 argo.fetch_with_retry(
-                    [
-                        sys.executable,
-                        '-c',
-                        parent,
-                        child,
-                        str(ready),
-                        str(sentinel),
-                    ],
-                    Path(directory),
+                    [sys.executable, '-c', parent, child, str(write_fd)],
+                    Path.cwd(),
                     attempts=1,
                     timeout=0.3,
                 )
-            self.assertTrue(
-                ready.exists(), 'the test must start a real descendant'
-            )
-            time.sleep(0.8)
-            self.assertFalse(
-                sentinel.exists(), 'timed-out fetch left a live descendant'
-            )
+        self.assertTrue(
+            select.select([read_fd], [], [], 5)[0],
+            'timed-out fetch left a live descendant holding the pipe',
+        )
+        self.assertEqual(os.read(read_fd, 1), b'')
 
-    def test_first_success_does_not_retry(self):
+    def test_first_success_does_not_retry(self) -> None:
         process = self.process([0], 101)
         with mock.patch.object(
             argo.subprocess, 'Popen', return_value=process
@@ -192,7 +217,7 @@ class FetchRetryTest(unittest.TestCase):
 
 
 class ArgoArtifactTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name) / 'repo'
@@ -226,20 +251,20 @@ class ArgoArtifactTest(unittest.TestCase):
             argo.prepare(self.output, self.root, self.producer)
         self.fetched = [call.args[0] for call in fetch.call_args_list]
 
-    def fake_fetch(self, version, destination):
+    def fake_fetch(self, version: str, destination: Path) -> str:
         for relative in RESOURCE_PATHS:
             path = destination / relative
             path.mkdir(parents=True)
             (path / 'kustomization.yaml').write_text('resources: []\n')
         return self.commits[version]
 
-    def metadata(self):
+    def metadata(self) -> dict:
         return json.loads((self.output / argo.METADATA).read_text())
 
-    def write_metadata(self, metadata):
+    def write_metadata(self, metadata: dict) -> None:
         (self.output / argo.METADATA).write_text(json.dumps(metadata))
 
-    def verify(self):
+    def verify(self) -> dict:
         return argo.verify(
             self.output,
             self.state,
@@ -248,7 +273,7 @@ class ArgoArtifactTest(unittest.TestCase):
             consumer=self.consumer,
         )
 
-    def replace_archive(self, entries):
+    def replace_archive(self, entries: list[tuple[str, bytes, bytes]]) -> None:
         with tarfile.open(self.output / argo.ARCHIVE, 'w') as archive:
             for name, kind, content in entries:
                 member = tarfile.TarInfo(name)
@@ -263,7 +288,9 @@ class ArgoArtifactTest(unittest.TestCase):
         metadata['sha256'] = argo.shared.checksum(self.output / argo.ARCHIVE)
         self.write_metadata(metadata)
 
-    def test_prepare_fetches_both_pins_once_and_records_exact_commits(self):
+    def test_prepare_fetches_both_pins_once_and_records_exact_commits(
+        self,
+    ) -> None:
         self.assertEqual(self.fetched, self.pinned)
         metadata = self.verify()
         self.assertEqual(metadata['versions'], self.commits)
@@ -272,7 +299,7 @@ class ArgoArtifactTest(unittest.TestCase):
             metadata['sha256'], argo.shared.checksum(self.output / argo.ARCHIVE)
         )
 
-    def test_producer_identity_or_attempt_mismatch_is_rejected(self):
+    def test_producer_identity_or_attempt_mismatch_is_rejected(self) -> None:
         for key, value in [
             ('source_sha', 'f' * 40),
             ('run_attempt', 2),
@@ -287,37 +314,39 @@ class ArgoArtifactTest(unittest.TestCase):
                     self.verify()
                 self.write_metadata(metadata)
 
-    def test_consumer_source_mismatch_is_rejected(self):
+    def test_consumer_source_mismatch_is_rejected(self) -> None:
         self.consumer['source_sha'] = 'f' * 40
         with self.assertRaises(argo.shared.InvalidEvidence):
             self.verify()
 
-    def test_live_producer_attempt_change_is_rejected(self):
+    def test_live_producer_attempt_change_is_rejected(self) -> None:
         self.api.current_run['run_attempt'] = 2
         with self.assertRaises(argo.shared.InvalidEvidence):
             self.verify()
 
-    def test_archive_checksum_mismatch_is_rejected(self):
+    def test_archive_checksum_mismatch_is_rejected(self) -> None:
         with (self.output / argo.ARCHIVE).open('ab') as archive:
             archive.write(b'corruption')
         with self.assertRaisesRegex(ValueError, 'checksum mismatch'):
             self.verify()
 
-    def test_missing_or_changed_version_pin_is_rejected(self):
+    def test_missing_or_changed_version_pin_is_rejected(self) -> None:
         metadata = self.metadata()
         del metadata['versions'][self.pinned[0]]
         self.write_metadata(metadata)
         with self.assertRaisesRegex(ValueError, 'version.*mismatch'):
             self.verify()
 
-    def test_unresolved_tag_metadata_is_rejected(self):
+    def test_unresolved_tag_metadata_is_rejected(self) -> None:
         metadata = self.metadata()
         metadata['versions'][self.pinned[0]] = 'refs/tags/' + self.pinned[0]
         self.write_metadata(metadata)
         with self.assertRaisesRegex(ValueError, 'mismatch'):
             self.verify()
 
-    def test_malformed_archive_is_rejected_even_with_matching_checksum(self):
+    def test_malformed_archive_is_rejected_even_with_matching_checksum(
+        self,
+    ) -> None:
         (self.output / argo.ARCHIVE).write_bytes(b'not a tar archive')
         metadata = self.metadata()
         metadata['sha256'] = argo.shared.checksum(self.output / argo.ARCHIVE)
@@ -327,7 +356,7 @@ class ArgoArtifactTest(unittest.TestCase):
 
     def test_archive_traversal_links_duplicates_and_wrong_version_are_rejected(
         self,
-    ):
+    ) -> None:
         valid = f'{self.pinned[0]}/manifests/config.yaml'
         for entries in [
             [('../escape', tarfile.REGTYPE, b'x')],
@@ -343,7 +372,7 @@ class ArgoArtifactTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     self.verify()
 
-    def test_metadata_and_archive_symlinks_are_rejected(self):
+    def test_metadata_and_archive_symlinks_are_rejected(self) -> None:
         for filename in (argo.METADATA, argo.ARCHIVE):
             with self.subTest(filename=filename):
                 path = self.output / filename
@@ -359,7 +388,7 @@ class ArgoArtifactTest(unittest.TestCase):
                     path.unlink()
                     saved.rename(path)
 
-    def assert_local_resources(self, version):
+    def assert_local_resources(self, version: str) -> None:
         count = 0
         for relative, expected in argo.pins.MANIFEST_REFS:
             path = self.root / relative
@@ -394,7 +423,7 @@ class ArgoArtifactTest(unittest.TestCase):
 
     def test_install_localizes_all_resources_and_is_retry_and_version_safe(
         self,
-    ):
+    ) -> None:
         with mock.patch.object(
             argo.subprocess,
             'run',
@@ -414,7 +443,9 @@ class ArgoArtifactTest(unittest.TestCase):
                     argo.install(self.output, version, self.root)
                     self.assert_local_resources(version)
 
-    def test_missing_selected_version_does_not_change_manifest_references(self):
+    def test_missing_selected_version_does_not_change_manifest_references(
+        self,
+    ) -> None:
         before = {
             p: (self.root / p).read_text() for p, _ in argo.pins.MANIFEST_REFS
         }

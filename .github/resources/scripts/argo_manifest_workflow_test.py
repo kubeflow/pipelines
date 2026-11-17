@@ -11,12 +11,12 @@ from shared_ci_images_test import identity
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def read_yaml(path):
+def read_yaml(path: str) -> dict:
     return yaml.load((ROOT / path).read_text(), Loader=yaml.BaseLoader)
 
 
 class ArgoManifestWorkflowTest(unittest.TestCase):
-    def test_prepare_and_publish_once_before_architecture_jobs(self):
+    def test_prepare_and_publish_once_before_architecture_jobs(self) -> None:
         workflow = read_yaml('.github/workflows/ci-images.yml')
         source = workflow['jobs']['source']
         self.assertGreaterEqual(int(source['timeout-minutes']), 20)
@@ -44,7 +44,7 @@ class ArgoManifestWorkflowTest(unittest.TestCase):
         for architecture in ('amd64', 'arm64'):
             self.assertEqual(workflow['jobs'][architecture]['needs'], 'source')
 
-    def test_consumer_download_uses_verified_producer_and_attempt(self):
+    def test_consumer_download_uses_verified_producer_and_attempt(self) -> None:
         action = read_yaml('.github/actions/deploy/action.yml')
         steps = action['runs']['steps']
         shared_step = next(
@@ -91,7 +91,7 @@ class ArgoManifestWorkflowTest(unittest.TestCase):
         self.assertLess(steps.index(download), steps.index(verify))
         self.assertLess(steps.index(verify), steps.index(deploy))
 
-    def test_shared_action_exposes_the_pinned_state(self):
+    def test_shared_action_exposes_the_pinned_state(self) -> None:
         action = read_yaml('.github/actions/shared-ci-images/action.yml')
         for name in ('repository', 'run-id', 'run-attempt'):
             self.assertEqual(
@@ -102,7 +102,9 @@ class ArgoManifestWorkflowTest(unittest.TestCase):
             action['outputs']['state']['value'], '${{ inputs.state }}'
         )
 
-    def test_emitted_attempt_is_producer_attempt_not_consumer_attempt(self):
+    def test_emitted_attempt_is_producer_attempt_not_consumer_attempt(
+        self,
+    ) -> None:
         state = {
             'identity': dict(identity(10), run_attempt=3),
             'consumer': dict(identity(20), run_attempt=9),

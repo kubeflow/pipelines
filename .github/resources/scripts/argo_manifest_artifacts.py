@@ -22,6 +22,7 @@ import subprocess
 import tarfile
 import tempfile
 import time
+from collections.abc import Callable, Collection, Sequence
 from pathlib import Path, PurePosixPath
 
 import shared_ci_images as shared
@@ -40,7 +41,7 @@ UPSTREAM_PATHS = (
 )
 
 
-def versions(root=ROOT):
+def versions(root: Path = ROOT) -> list[str]:
     return sorted(
         {
             pins._read_version(root / pins.VERSION_PATH),
@@ -50,8 +51,13 @@ def versions(root=ROOT):
 
 
 def fetch_with_retry(
-    command, cwd, attempts=3, timeout=180, delay=10, before_attempt=None
-):
+    command: Sequence[str],
+    cwd: Path,
+    attempts: int = 3,
+    timeout: float = 180,
+    delay: float = 10,
+    before_attempt: Callable[[], None] | None = None,
+) -> None:
     for attempt in range(1, attempts + 1):
         try:
             if before_attempt is not None:
@@ -86,7 +92,9 @@ def fetch_with_retry(
             time.sleep(delay)
 
 
-def archive_members(archive, allowed_versions=None):
+def archive_members(
+    archive: tarfile.TarFile, allowed_versions: Collection[str] | None = None
+) -> list[tarfile.TarInfo]:
     members = archive.getmembers()
     if (
         len(members) > 10000
@@ -117,7 +125,11 @@ def archive_members(archive, allowed_versions=None):
     return members
 
 
-def extract(archive, destination, allowed_versions=None):
+def extract(
+    archive: tarfile.TarFile,
+    destination: Path,
+    allowed_versions: Collection[str] | None = None,
+) -> None:
     # Validate the entire collection before writing, and never accept links.
     members = archive_members(archive, allowed_versions)
     for member in members:
@@ -133,12 +145,12 @@ def extract(archive, destination, allowed_versions=None):
                 shutil.copyfileobj(source, output)
 
 
-def fetch_version(version, destination):
+def fetch_version(version: str, destination: Path) -> str:
     pins._validate_version(version)
     with tempfile.TemporaryDirectory() as temp:
         checkout = Path(temp)
 
-        def reset_checkout():
+        def reset_checkout() -> None:
             # A killed fetch can leave lockfiles. This repository is private to
             # this fetch, so each retry starts from an entirely fresh Git state.
             if (checkout / '.git').exists():
@@ -170,7 +182,9 @@ def fetch_version(version, destination):
         return commit
 
 
-def prepare(output, root=ROOT, identity=None):
+def prepare(
+    output: Path, root: Path = ROOT, identity: dict | None = None
+) -> None:
     identity = identity or shared.environment_identity()
     shared.validate_identity(identity)
     output.mkdir(parents=True, exist_ok=True)
@@ -194,7 +208,13 @@ def prepare(output, root=ROOT, identity=None):
         )
 
 
-def verify(directory, state, root=ROOT, api=None, consumer=None):
+def verify(
+    directory: Path,
+    state: dict,
+    root: Path = ROOT,
+    api: shared.GitHub | None = None,
+    consumer: dict | None = None,
+) -> dict:
     consumer = consumer or shared.environment_identity()
     shared.validate_state(state, consumer, state['architecture'])
     if directory.is_symlink() or not directory.is_dir():
@@ -223,8 +243,9 @@ def verify(directory, state, root=ROOT, api=None, consumer=None):
     return metadata
 
 
-def install(directory, version, root=ROOT):
-    """Localize every Argo resource; repeat deployment attempts are idempotent."""
+def install(directory: Path, version: str, root: Path = ROOT) -> None:
+    """Localize every Argo resource; repeat deployment attempts are
+    idempotent."""
     pins._validate_version(version)
     metadata = json.loads((directory / METADATA).read_text())
     if version not in metadata['versions'] or metadata[
@@ -254,7 +275,7 @@ def install(directory, version, root=ROOT):
     for relative, expected in pins.MANIFEST_REFS:
         path = root / relative
 
-        def replacement(match):
+        def replacement(match: re.Match[str]) -> str:
             target = vendor / version / match[2]
             if not target.is_dir():
                 raise ValueError(f'Missing pinned Argo resource: {match[2]}')
@@ -277,7 +298,7 @@ def install(directory, version, root=ROOT):
         path.write_text(content)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
     producer = commands.add_parser('prepare')
