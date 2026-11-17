@@ -356,6 +356,65 @@ docker_specific_pipeline_funcs = [
 docker_specific_pipeline_funcs.extend(pipeline_func_data)
 
 
+def docker_runner(package_path: Optional[str]):
+    """Expose the locally built SDK wheel to each isolated container."""
+    from docker.types import Mount
+
+    mounts = []
+    if package_path and package_path.endswith('.whl'):
+        wheel = Path(package_path).absolute()
+        if not wheel.is_file():
+            raise FileNotFoundError(f'SDK wheel is missing: {wheel}')
+        mounts.append(
+            Mount(
+                target=str(wheel),
+                source=str(wheel),
+                type='bind',
+                read_only=True,
+            ))
+    return local.DockerRunner(mounts=mounts)
+
+
+@pytest.mark.regression
+def test_docker_runner_mounts_checkout_wheel_read_only(tmp_path):
+    wheel = tmp_path / 'kfp-0-py3-none-any.whl'
+    wheel.touch()
+    runner = docker_runner(str(wheel))
+    assert runner.container_run_args['mounts'] == [{
+        'Target': str(wheel),
+        'Source': str(wheel),
+        'Type': 'bind',
+        'ReadOnly': True,
+    }]
+
+
+@pytest.mark.regression
+def test_docker_runner_preserves_package_path_through_symlinks(tmp_path):
+    wheel = tmp_path / 'built' / 'kfp-0-py3-none-any.whl'
+    wheel.parent.mkdir()
+    wheel.touch()
+    link = tmp_path / 'sdk.whl'
+    link.symlink_to(wheel)
+    mount = docker_runner(str(link)).container_run_args['mounts'][0]
+    assert mount['Target'] == str(link)
+    assert mount['Source'] == str(link)
+
+
+@pytest.mark.regression
+def test_docker_runner_rejects_missing_wheel(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        docker_runner(str(tmp_path / 'missing.whl'))
+
+
+@pytest.mark.regression
+@pytest.mark.parametrize('package_path', [
+    None,
+    'git+https://github.com/kubeflow/pipelines@release-2.18#subdirectory=sdk/python',
+])
+def test_docker_runner_does_not_mount_remote_packages(package_path):
+    assert docker_runner(package_path).container_run_args['mounts'] == []
+
+
 @pytest.mark.regression
 class TestDockerRunner:
 
@@ -375,7 +434,7 @@ class TestDockerRunner:
 
         # Configure DockerRunner - let container run as default user
         local.init(
-            runner=local.DockerRunner(),
+            runner=docker_runner(_KFP_PACKAGE_PATH),
             raise_on_error=True,
             workspace_root=ws_root,
             pipeline_root=pipeline_root)
