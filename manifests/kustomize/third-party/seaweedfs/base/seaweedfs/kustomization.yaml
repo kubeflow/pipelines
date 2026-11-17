@@ -8,4 +8,9 @@ resources:
 - seaweedfs-networkpolicy.yaml
 - seaweedfs-service.yaml
 - seaweedfs-service-account.yaml
-- mlpipeline-minio-artifact-secret.yaml
+- admin-credentials.yaml
+
+configMapGenerator:
+- name: seaweedfs-s3-auth
+  literals:
+  - 's3-auth.json={"identities":[]}'

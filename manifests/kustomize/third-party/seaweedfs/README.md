@@ -162,3 +162,8 @@ kubectl logs -n kubeflow deployment/seaweedfs -f
 ```bash
 kubectl kustomize ./base/ | kubectl delete -f -
 ```
+
+The bundled installation automatically generates or preserves its administrator
+credential and migrates existing default credentials. See [the upgrade
+procedure](UPGRADE.md#automatic-administrator-credential-migration) for progress,
+Secret ownership, GitOps adoption and active-workload compatibility.

@@ -221,7 +221,7 @@
     {
       "path": ".github/workflows/ci-images.yml",
       "name": "Shared CI Images",
-      "header_sha256": "54536d179124d0b7ca9ca1fd79b2a5e96579608def378ddeae386a443196d5f5",
+      "header_sha256": "534314d53c3f85d1d008c8b3f695b0b07b6480062e523ea35bb3634555f69c80",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -242,6 +242,8 @@
           ".github/resources/buildkitd.toml",
           ".github/resources/curl-retry/**",
           ".github/resources/scripts/**",
+          ".github/resources/scripts/artifact-files.sh",
+          ".github/resources/scripts/ci-image-artifacts.sh",
           ".github/workflows/api-server-tests.yml",
           ".github/workflows/arm64-presubmit.yml",
           ".github/workflows/ci-images.yml",
@@ -281,6 +283,13 @@
           "third_party/**",
           "tools/k8s-native/**",
           "uv.lock",
+          "manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/**",
+          "manifests/kustomize/third-party/seaweedfs/**",
+          "manifests/kustomize/third-party/argo/**",
+          ".github/resources/scripts/third_party_upgrade_*.py",
+          ".github/workflows/third-party-image-upgrades.yml",
+          "backend/src/agent/credentialrotation/**",
+          "backend/Dockerfile",
           "!**/*.md",
           "!**/OWNERS"
         ]
@@ -1274,14 +1283,25 @@
     {
       "path": ".github/workflows/third-party-image-upgrades.yml",
       "name": "Third-party Image Upgrade Checks",
-      "header_sha256": "f895c0c2c9da3b2f7158724486364d60a381be360db674e96ac1ed19cf1a490b",
+      "header_sha256": "f24a4146dbfeb24e9e57979b8cb0890ec8c213b8700314bfce658464e44dc045",
       "pull_request": {
         "paths": [
           "manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/**",
           "manifests/kustomize/third-party/seaweedfs/**",
           "manifests/kustomize/third-party/argo/**",
           ".github/resources/scripts/third_party_upgrade_*.py",
-          ".github/workflows/third-party-image-upgrades.yml"
+          ".github/workflows/third-party-image-upgrades.yml",
+          ".github/workflows/shared-ci-images-ready.yml",
+          ".github/actions/shared-ci-images/**",
+          ".github/actions/download-artifact-with-retry/**",
+          ".github/resources/scripts/artifact-files.sh",
+          ".github/resources/scripts/ci-image-artifacts.sh",
+          "backend/src/agent/credentialrotation/**",
+          "backend/Dockerfile",
+          "go.mod",
+          "go.sum",
+          "!**/*.md",
+          "!**/OWNERS"
         ]
       },
       "merge_group": {

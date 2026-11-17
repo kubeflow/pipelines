@@ -5,7 +5,7 @@ const {applicable, loadLocalInventory} = require('./ci_expected_workflows');
 const AMD64_CONSUMERS = new Set([
   'api-server-tests.yml', 'e2e-test-frontend.yml', 'e2e-test.yml',
   'kfp-kubernetes-native-migration-tests.yaml', 'kfp-sdk-client-tests.yml',
-  'kfp-webhooks.yml',
+  'kfp-webhooks.yml', 'third-party-image-upgrades.yml',
 ]);
 
 function architectures(inventory, eventName, event, files) {
