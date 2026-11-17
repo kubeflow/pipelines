@@ -9,7 +9,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Exercise the production finalizer caller's targeted admission notification."""
+"""Test admission wakeups through the production finalizer caller."""
 
 import json
 import subprocess
