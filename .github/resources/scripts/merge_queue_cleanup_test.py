@@ -34,6 +34,7 @@ def run(**changes):
         event='workflow_dispatch',
         status='in_progress',
         conclusion=None,
+        actor={'id': 41898282, 'login': 'github-actions[bot]', 'type': 'Bot'},
         **changes,
     )
 
@@ -93,6 +94,39 @@ const github = {rest: {
 
 
 class CleanupTest(unittest.TestCase):
+    def test_manual_dispatch_after_controller_reservation_is_preserved(self):
+        manual = run()
+        manual['actor'] = {'id': 123, 'login': 'maintainer', 'type': 'User'}
+        result = cleanup(runs=[manual])
+        self.assertEqual(result['cancelled'], [])
+        self.assertFalse(any(kind == 'statuses' for kind, _ in result['calls']))
+
+    def test_dispatch_actor_is_rechecked_before_cancellation(self):
+        for actor in (
+            None,
+            {'id': 123, 'login': 'maintainer', 'type': 'User'},
+            {'id': 123, 'login': 'github-actions[bot]', 'type': 'Bot'},
+            {'id': 41898282, 'login': 'other-bot', 'type': 'Bot'},
+            {'id': 41898282, 'login': 'github-actions[bot]', 'type': 'User'},
+        ):
+            with self.subTest(actor=actor):
+                current = run()
+                current['actor'] = actor
+                self.assertEqual(cleanup(live=current)['cancelled'], [])
+                self.assertEqual(cleanup(runs=[current])['cancelled'], [])
+
+    def test_human_rerun_keeps_original_controller_ownership(self):
+        candidate = run()
+        candidate['run_attempt'] = 2
+        candidate['triggering_actor'] = {
+            'id': 123,
+            'login': 'maintainer',
+            'type': 'User',
+        }
+        self.assertEqual(
+            cleanup(runs=[candidate])['cancelled'], [candidate['id']]
+        )
+
     def test_deleted_candidate_is_cancelled(self):
         result = cleanup()
         self.assertEqual(result['cancelled'], [run()['id']])
@@ -126,7 +160,11 @@ class CleanupTest(unittest.TestCase):
             'requested',
         ):
             candidate = run()
-            candidate.update(event='merge_group', status=status)
+            candidate.update(
+                event='merge_group',
+                status=status,
+                actor={'id': 123, 'login': 'maintainer', 'type': 'User'},
+            )
             self.assertEqual(
                 cleanup(runs=[candidate])['cancelled'], [candidate['id']]
             )

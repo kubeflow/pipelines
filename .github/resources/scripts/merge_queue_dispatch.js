@@ -177,6 +177,10 @@ async function cancelObsoleteCandidates({github, context, core,
     const match = QUEUE_REF.exec(run?.head_branch || '');
     return match && branches.includes(match[1]) && workflowPaths.has(run.path) &&
       ['workflow_dispatch', 'merge_group'].includes(run.event) && active.has(run.status) &&
+      // Original dispatch identity survives a human-triggered rerun. A matching
+      // reservation alone also matches independent manual dispatches.
+      (run.event !== 'workflow_dispatch' || (run.actor?.id === 41898282 &&
+        run.actor.login === 'github-actions[bot]' && run.actor.type === 'Bot')) &&
       SHA.test(run.head_sha || '') &&
       run.head_repository?.full_name === `${context.repo.owner}/${context.repo.repo}`;
   };

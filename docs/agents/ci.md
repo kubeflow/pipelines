@@ -619,7 +619,8 @@ when changing this controller.
 Before admission and dispatch, scheduled queue recovery cancels active CI for
 obsolete queue candidates. It scans active runs only; a queue workflow event
 limits discovery to that candidate SHA. Cleanup requires an enabled base branch,
-a trusted workflow path, the same repository, and a valid queue ref. Dispatched runs also need a valid controller reservation for that workflow,
+a trusted workflow path, the same repository, and a valid queue ref. Dispatched runs must have the GitHub Actions bot as their original actor (ID,
+login and type), checked again on the fresh run, plus a valid controller reservation for that workflow,
 created no later than the run; independent manual runs do not qualify. A missing
 or replaced candidate ref is confirmed again alongside the current run attempt
 before cancellation. Queue membership alone, API errors, and malformed evidence
