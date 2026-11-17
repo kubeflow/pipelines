@@ -113,14 +113,41 @@ assert.throws(() => architectures({}, 'merge_group',
         self.assertIn('!**/*.md', producer)
         self.assertIn('!**/OWNERS', producer)
 
-    def test_bundled_provenance_precedes_upload_without_aggregate_barrier(self):
+    def test_bundled_provenance_precedes_upload_and_bundle(self):
         definition = workflow('image-builds.yml')
         self.assertFalse(
             definition[True]['workflow_call']['inputs']['shared']['default']
         )
         self.assertEqual(
-            set(definition['jobs']), {'image-build', 'runtime-base-images'}
+            set(definition['jobs']),
+            {'image-build', 'runtime-base-images', 'image-bundle'},
         )
+        bundle = definition['jobs']['image-bundle']
+        self.assertEqual(bundle['needs'], 'image-build')
+        self.assertEqual(bundle['if'], 'inputs.shared')
+        download = next(
+            step
+            for step in bundle['steps']
+            if step.get('uses')
+            == './.github/actions/download-artifact-with-retry'
+        )
+        self.assertNotIn('github-token', download['with'])
+        self.assertIn('github.run_attempt', download['with']['pattern'])
+        self.assertIn('inputs.architecture', download['with']['pattern'])
+        verify = next(
+            step
+            for step in bundle['steps']
+            if 'shared_ci_images.py bundle' in step.get('run', '')
+        )
+        upload = next(
+            step
+            for step in bundle['steps']
+            if step.get('uses', '').startswith('actions/upload-artifact@')
+        )
+        self.assertLess(
+            bundle['steps'].index(verify), bundle['steps'].index(upload)
+        )
+        self.assertNotIn('continue-on-error', verify)
         for name in ('image-build', 'runtime-base-images'):
             steps = definition['jobs'][name]['steps']
             uploads = [
