@@ -105,6 +105,7 @@ const github = {{
       return {{data: {{full_name: 'owner/repo',
         default_branch: defaults[Math.min(defaultBranchCount++, defaults.length - 1)]}}}};
     }}, createCommitStatus: async options => {{
+      requests.push({{route: 'write', state: options.state}});
       writes.push(options);
       return {{data: options}};
     }}}},
@@ -122,7 +123,11 @@ const github = {{
     }}
     return fixture.runs;
   }},
-  graphql: async query => {{
+  graphql: async (query, options) => {{
+    if (query.includes('query RecoveryStatuses')) {{
+      if (options.sha0 !== {json.dumps(HEAD)}) throw new Error('Wrong candidate SHA');
+      return {{repository: {{nameWithOwner: 'owner/repo', head0: {{__typename: 'Commit', oid: options.sha0, status: {{context: fixture.priorStatus || null}}}}}}}};
+    }}
     if (query.includes('query QueuePolicies')) {{
       const repository = {{nameWithOwner: 'owner/repo'}};
       for (const match of query.matchAll(/pr([0-9]+): pullRequest/g)) {{
@@ -141,6 +146,7 @@ const github = {{
   }},
 }};
 const loadInventory = async options => {{
+  requests.push({{route: 'inventory'}});
   inventoryRequests.push(options.pullRequest);
   if (fixture.inventoryError) throw new Error('Invalid trusted inventory');
   return {{inventory: fixture.inventory, workflowFiles: fixture.workflowFiles}};
@@ -235,11 +241,99 @@ class MergeGroupTest(unittest.TestCase):
                     )
                 )
 
+    def test_verified_success_survives_unchanged_reconciliation(self):
+        initial = reconcile()['writes'][-1]
+        prior = {
+            'state': 'SUCCESS',
+            'context': 'ci-passed',
+            'description': initial['description'],
+            'targetUrl': initial['target_url'],
+            'creator': {'__typename': 'Bot', 'login': 'github-actions'},
+        }
+        repeated = reconcile(priorStatus=prior)
+        self.assertNotIn('error', repeated)
+        self.assertEqual([], repeated['writes'])
+
+        rerun = good_run(run_attempt=2, status='in_progress', conclusion=None)
+        changed = reconcile(event=rerun, runs=[rerun], priorStatus=prior)
+        self.assertEqual('pending', changed['writes'][-1]['state'])
+        routes = [request['route'] for request in changed['requests']]
+        self.assertLess(routes.index('trigger'), routes.index('write'))
+        self.assertLess(routes.index('write'), routes.index('inventory'))
+
+        # A delayed active event for an already green run leaves it green.
+        latest = good_run()
+        stale_event = good_run(status='in_progress', conclusion=None)
+        delayed = reconcile(
+            event=stale_event, triggerSnapshots=[latest], priorStatus=prior
+        )
+        self.assertEqual([], delayed['writes'], delayed)
+
+        # A nonrequired active run on the queue ref is conservatively
+        # invalidated, then the full inventory check restores the same receipt.
+        extra = good_run(
+            id=101,
+            path='.github/workflows/extra.yml',
+            status='in_progress',
+            conclusion=None,
+        )
+        extra_result = reconcile(
+            event=extra, runs=[latest, extra], priorStatus=prior
+        )
+        self.assertEqual(
+            ['pending', 'success'], [w['state'] for w in extra_result['writes']]
+        )
+        self.assertEqual(
+            initial['target_url'], extra_result['writes'][-1]['target_url']
+        )
+        rerun = good_run(run_attempt=2)
+        completed = reconcile(event=rerun, runs=[rerun], priorStatus=prior)
+        self.assertEqual(
+            ['pending', 'success'], [w['state'] for w in completed['writes']]
+        )
+        self.assertNotEqual(
+            initial['target_url'], completed['writes'][-1]['target_url']
+        )
+
+    def test_existing_success_requires_current_attempts_and_trusted_writer(
+        self,
+    ):
+        initial = reconcile()['writes'][-1]
+        prior = {
+            'context': 'ci-passed',
+            'state': 'SUCCESS',
+            'description': initial['description'],
+            'targetUrl': initial['target_url'],
+            'creator': {'__typename': 'Bot', 'login': 'github-actions'},
+        }
+        for stale in [
+            {**prior, 'targetUrl': initial['target_url'].split('#')[0]},
+            {**prior, 'creator': {'__typename': 'User', 'login': 'other'}},
+        ]:
+            with self.subTest(stale=stale):
+                writes = reconcile(priorStatus=stale)['writes']
+                self.assertEqual(
+                    ['pending', 'success'], [w['state'] for w in writes]
+                )
+
+        result = reconcile(priorStatus=prior, refs={'heads/master': [REBUILT]})
+        self.assertEqual('success', result['writes'][-1]['state'])
+        self.assertNotEqual(
+            initial['target_url'], result['writes'][-1]['target_url']
+        )
+
+        finished = [good_run()]
+        rerun = [good_run(run_attempt=2, status='queued', conclusion=None)]
+        # Each evidence read lists both merge_group and workflow_dispatch.
+        result = reconcile(
+            priorStatus=prior, runSnapshots=[finished, [], rerun, []]
+        )
+        self.assertEqual(['pending'], [w['state'] for w in result['writes']])
+
     def test_success_is_bound_to_queue_sha_and_trusted_master_policy(self):
         result = reconcile()
         self.assertNotIn('error', result)
-        self.assertEqual(result['writes'][0]['state'], 'pending')
-        self.assertEqual(result['writes'][-1]['state'], 'success')
+        self.assertEqual([w['state'] for w in result['writes']], ['success'])
         for status in result['writes']:
             self.assertEqual(status['sha'], HEAD)
             self.assertEqual(status['context'], 'ci-passed')

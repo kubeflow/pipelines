@@ -168,6 +168,11 @@ const github = {{rest: {{
   }}
   throw new Error('Unexpected API route: ' + route);
 }}, graphql:async (query, variables) => {{
+  if (query.includes('query RecoveryStatuses')) {{
+    requests.push({{route:'candidateStatus'}});
+    return {{repository: {{nameWithOwner:'owner/repo',
+      head0:{{__typename:'Commit',oid:variables.sha0,status:null}}}}}};
+  }}
   if (query.includes('query DispatchSnapshot')) {{
     requests.push({{route:'dispatchSnapshot'}});
     if (f.repositoryError) throw new Error('Repository unavailable');
@@ -334,7 +339,7 @@ class QueueRecoveryTest(unittest.TestCase):
                         (write['sha'], write['state'])
                         for write in result['writes']
                     ],
-                    [(HEAD, 'pending'), (HEAD, 'success')],
+                    [(HEAD, 'success')],
                     result,
                 )
 

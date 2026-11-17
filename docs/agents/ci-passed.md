@@ -479,7 +479,10 @@ for the exact candidate SHA, repository and queue branch, and publishes
 `ci-passed` only onto that SHA. It validates the triggering run through the
 individual-run endpoint, rejecting an older attempt or conflicting identity even
 when workflow lists still show green. It rereads run attempts and refs before
-and after success. Queue-enforcement lookup failures revoke prior success. Missing or running lanes remain pending; failed,
+and after publishing success. A successful candidate status records the base SHA,
+queue policy snapshot, and verified workflow attempts in a fingerprint on its run
+link. When those inputs still match, recovery preserves the existing green status.
+Queue-enforcement lookup failures revoke prior success. Missing or running lanes remain pending; failed,
 cancelled or skipped lanes cannot pass. Rebuilt/deleted candidates cannot lend
 their results to a new candidate. Changes to the target branch during
 reconciliation leave success unconfirmed until a subsequent constituent event

@@ -30,7 +30,7 @@ async function readRecoveryStatuses({github, owner, repo, heads}) {
     });
     const fields = batch.map((head, index) => `head${index}: object(oid: $sha${index}) {
       __typename
-      ... on Commit { oid status { context(name: "ci-passed") { context state description targetUrl } } }
+      ... on Commit { oid status { context(name: "ci-passed") { context state description targetUrl creator { __typename login } } } }
     }`);
     const result = await github.graphql(`query RecoveryStatuses($owner: String!, $repo: String!,
       ${declarations.join(', ')}) {
@@ -62,6 +62,7 @@ async function readRecoveryStatuses({github, owner, repo, heads}) {
         throw new Error('Invalid recovery status context');
       }
       statuses.set(head, {state: status.state.toLowerCase(), description: status.description,
+        ...(status.creator === undefined ? {} : {creator: status.creator}),
         ...(status.targetUrl === undefined ? {} : {target_url: status.targetUrl})});
     }
   }
