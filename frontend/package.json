@@ -131,7 +131,7 @@
     "globals": "^17.14.0",
     "jsdom": "^30.1.3",
     "pixelmatch": "^8.0.0",
-    "playwright": "^1.65.0",
+    "playwright": "^1.65.1",
     "pngjs": "^7.0.0",
     "postcss": "^8.5.32",
     "prettier": "^3.10.1",
