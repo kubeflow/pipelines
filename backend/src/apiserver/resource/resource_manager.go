@@ -2609,7 +2609,13 @@ func (r *ResourceManager) reportWorkflowResource(
 			})
 	}
 	if len(run.Tasks) > 0 {
-		if err := r.persistTaskLifecycleMessages(run.Tasks, execSpec); err != nil {
+		// A report carrying an older retry generation than the run's live one can be a stale
+		// pre-retry snapshot read before ResetTasksForRetry ran, not proof of a new failure: the
+		// terminal-report fence above only covers a terminal report, but a non-final report can
+		// reach task failure reconciliation just the same, so this check is not limited to that
+		// case.
+		staleRetryGenerationReport := run.RetryGeneration > 0 && reportedRetryGeneration(objMeta) < run.RetryGeneration
+		if err := r.persistTaskLifecycleMessages(run.Tasks, execSpec, staleRetryGenerationReport); err != nil {
 			return nil, util.Wrapf(err, "Failed to persist pod lifecycle messages for run %s", run.UUID)
 		}
 	}
@@ -4459,11 +4465,57 @@ func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bo
 	}
 }
 
+// isStrictDescendant reports whether id is nested somewhere below ancestorID, climbing through
+// plain containment (nodeParent) rather than nodeInScope's wrapper-skipping climb: this is used to
+// tell the compiler's reserved wrapper apart from a real task of the same name, which is exactly
+// the distinction nodeInScope's own skip exists to not have to make.
+func isStrictDescendant(id, ancestorID string, nodes map[string]util.NodeStatus) bool {
+	seen := map[string]bool{id: true}
+	current := id
+	for {
+		parentID, ok := nodeParent(current, nodes)
+		if !ok || seen[parentID] {
+			return false
+		}
+		if parentID == ancestorID {
+			return true
+		}
+		seen[parentID] = true
+		current = parentID
+	}
+}
+
+// theDescendantOf returns whichever candidate is a strict descendant of every other candidate, or
+// "" if no single one has that relationship to all the rest.
+func theDescendantOf(candidates []string, nodes map[string]util.NodeStatus) string {
+	for _, candidate := range candidates {
+		isDescendantOfRest := true
+		for _, other := range candidates {
+			if other != candidate && !isStrictDescendant(candidate, other, nodes) {
+				isDescendantOfRest = false
+				break
+			}
+		}
+		if isDescendantOfRest {
+			return candidate
+		}
+	}
+	return ""
+}
+
 // findScopedTaskNode finds the Retry node that represents task by name and enclosing scope.
 // lifecycleMessageForTaskNode and executorFailureForTaskViaNode both need this same match, just
 // different evidence off the node once it's found, so they share it instead of each re-walking
 // nodes with their own copy of the loop. It reports false when the task's own name or parent chain
 // can't be resolved, or when the match is not unique, rather than guessing.
+//
+// More than one same-named, same-scope Retry node can turn up when one of them is the compiler's
+// own reserved "root" wrapper: "root" is also a name a user's own task can legitimately have (see
+// nodeInScope's doc comment), and the wrapper always sits as a structural ancestor of the
+// pipeline's real top-level tasks, so it ties with a real task of that name at the same scope. The
+// wrapper itself is never the task being matched, so among multiple candidates, whichever one is a
+// strict descendant of every other candidate is preferred; candidates that are otherwise unrelated
+// are a genuine, unresolvable ambiguity and stay unmatched.
 func findScopedTaskNode(task *model.Task, nodes map[string]util.NodeStatus, tasksByUUID map[string]*model.Task) (nodeID string, ok bool) {
 	if task.Name == "" {
 		return "", false
@@ -4472,7 +4524,7 @@ func findScopedTaskNode(task *model.Task, nodes map[string]util.NodeStatus, task
 	if !ok {
 		return "", false
 	}
-	count := 0
+	var candidates []string
 	for id, node := range nodes {
 		if node.Type != "Retry" || node.DisplayName != task.Name {
 			continue
@@ -4480,19 +4532,26 @@ func findScopedTaskNode(task *model.Task, nodes map[string]util.NodeStatus, task
 		if !nodeInScope(id, scope, nodes) {
 			continue
 		}
-		nodeID = id
-		count++
+		candidates = append(candidates, id)
 	}
-	if count != 1 {
+	switch len(candidates) {
+	case 0:
 		return "", false
+	case 1:
+		return candidates[0], true
+	default:
+		descendant := theDescendantOf(candidates, nodes)
+		if descendant == "" {
+			return "", false
+		}
+		return descendant, true
 	}
-	return nodeID, true
 }
 
 // persistTaskLifecycleMessages resolves pod lifecycle messages from the workflow and writes them
 // to the provided tasks. tasks should be the hydrated tasks already loaded for the run
 // (e.g. from run.Tasks) to avoid an additional database query.
-func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, execSpec util.ExecutionSpec) error {
+func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, execSpec util.ExecutionSpec, skipFailureReconciliation bool) error {
 	if execSpec == nil || execSpec.ExecutionStatus() == nil || len(tasks) == 0 {
 		return nil
 	}
@@ -4515,8 +4574,18 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 		// before marking the workflow persisted or deleting it, and once the workflow is gone
 		// the persistence agent stops retrying, so a caller that saw success here would have no
 		// other chance to reconcile this task. Returning the error keeps that from happening.
-		if _, err := r.reconcileTaskFailure(task, nodes, resolved, tasksByUUID); err != nil {
-			reconcileErrs = append(reconcileErrs, fmt.Errorf("reconciling task %q: %w", task.UUID, err))
+		//
+		// skipFailureReconciliation is set by the caller when this report's retry generation is
+		// behind the run's live one. After ResetTasksForRetry the new attempt is RUNNING with no
+		// pod, which is exactly what reconcileTaskFailure's no-pod guard requires, so a report
+		// read before the retry (still carrying the old attempt's now-stale node evidence) would
+		// otherwise pass that guard and fail the new attempt using the old one's message and
+		// finish time. The reset clears the pods, so no pod registration ever closes this window;
+		// only comparing retry generations does.
+		if !skipFailureReconciliation {
+			if _, err := r.reconcileTaskFailure(task, nodes, resolved, tasksByUUID); err != nil {
+				reconcileErrs = append(reconcileErrs, fmt.Errorf("reconciling task %q: %w", task.UUID, err))
+			}
 		}
 		msg, phase, matched := lifecycleMessageForTask(task, nodes, resolved, tasksByUUID)
 		if !matched {

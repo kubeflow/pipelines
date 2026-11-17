@@ -198,12 +198,18 @@ func executorFailureForTaskViaNode(task *model.Task, nodes map[string]util.NodeS
 	return executorFailure{message: msg, finishedAt: finishedAt, viaNode: true}, true
 }
 
-// nodeFinishTime returns node's own FinishTime if it has one, otherwise the finish time recorded
-// by its descendants, searched from the last child backward so the latest attempt wins over an
-// earlier one. A Retry or DAG group node is not guaranteed to have its own FinishTime populated
-// once it goes terminal, so this walks down the chain (task Retry -> task DAG -> executor Retry ->
-// executor Pod) to whichever node actually recorded one. visited guards against a malformed
-// Children cycle; real Argo node graphs are trees, but nothing here should hang on data that isn't.
+// nodeFinishTime returns node's own FinishTime if it has one, otherwise the latest finish time
+// recorded by its descendants. A Retry or DAG group node is not guaranteed to have its own
+// FinishTime populated once it goes terminal, so this walks down the chain (task Retry -> task DAG
+// -> executor Retry -> executor Pod) to whichever node actually recorded one.
+//
+// Descent only follows an edge that nodeParent agrees is containment, by checking the candidate's
+// own computed parent rather than trusting node.Children directly: Children also records plain
+// dependency ordering between siblings (a predecessor's last attempt pointing at a dependent's
+// Retry node, as nodeParent's own doc comment explains and siblingDependencyNodes exercises), so a
+// blind Children walk here could wander onto a downstream sibling's node and report its finish
+// time as this one's. visited guards against a malformed cycle; real Argo node graphs are trees,
+// but nothing here should hang on data that isn't.
 func nodeFinishTime(nodeID string, nodes map[string]util.NodeStatus, visited map[string]bool) int64 {
 	if visited[nodeID] {
 		return 0
@@ -216,12 +222,17 @@ func nodeFinishTime(nodeID string, nodes map[string]util.NodeStatus, visited map
 	if node.FinishTime > 0 {
 		return node.FinishTime
 	}
-	for i := len(node.Children) - 1; i >= 0; i-- {
-		if t := nodeFinishTime(node.Children[i], nodes, visited); t > 0 {
-			return t
+	var latest int64
+	for _, childID := range node.Children {
+		if parentID, ok := nodeParent(childID, nodes); !ok || parentID != nodeID {
+			// Not actually contained by node: a dependency edge, not a descent.
+			continue
+		}
+		if t := nodeFinishTime(childID, nodes, visited); t > latest {
+			latest = t
 		}
 	}
-	return 0
+	return latest
 }
 
 // failureStatusMetadata returns the task's stored status metadata with the failure message set.

@@ -9268,6 +9268,23 @@ func TestLifecycleMessageForTask_ChildOfUserDefinedRootPipelineMatchesItsRealSco
 	assert.Equal(t, imagePullMsg, msg)
 }
 
+// TestFindScopedTaskNode_UserTaskNamedRootIsNotMistakenForTheCompilerWrapper is CodeRabbit's
+// regression: "root" is both the compiler's own reserved wrapper name and a name a user's task can
+// legitimately have. userDefinedRootPipelineNodes has a top-level task literally named "root" (the
+// model.Task "user-root"), so its own Retry node and the compiler's wrapper Retry node both pass
+// the scope check for an empty, top-level scope. Without excluding the wrapper structurally, that
+// is two matches, which findScopedTaskNode reports as ambiguous, leaving the real task unmatched.
+func TestFindScopedTaskNode_UserTaskNamedRootIsNotMistakenForTheCompilerWrapper(t *testing.T) {
+	nodes := userDefinedRootPipelineNodes()
+	tasks := map[string]*model.Task{
+		"wf-root":   {UUID: "wf-root", Name: "wf-root"},
+		"user-root": scopedTask(t, "user-root", "root", "wf-root"),
+	}
+	nodeID, ok := findScopedTaskNode(tasks["user-root"], nodes, tasks)
+	require.True(t, ok, "the user's own top-level task named root must match its own node, not be left ambiguous against the compiler's wrapper")
+	assert.Equal(t, "user-root", nodeID)
+}
+
 // loopIterationNodes models a top-level loop task compiled via Argo's withSequence (see
 // argocompiler/dag.go's iterationItemTask): each iteration is its own sibling Retry node directly
 // under root0, Display-named "<loop-task>-iterations(<index>)". That shape syntactically matches
