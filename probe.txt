@@ -1,0 +1,1 @@
+Isolated authorization probe; never targets main or release.
