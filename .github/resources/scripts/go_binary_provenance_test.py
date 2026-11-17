@@ -16,7 +16,7 @@ BUILDS = {
 
 
 class GoBinaryProvenanceTest(unittest.TestCase):
-    def test_builds_preserve_native_package_and_vcs_identity(self):
+    def test_builds_preserve_native_package_and_vcs_identity(self) -> None:
         for dockerfile, package in BUILDS.items():
             with self.subTest(dockerfile=dockerfile):
                 builds = [

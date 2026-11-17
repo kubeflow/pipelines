@@ -17,7 +17,7 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ImageBuildProvenanceTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name).resolve()
@@ -35,14 +35,16 @@ class ImageBuildProvenanceTest(unittest.TestCase):
         self.git('commit', '--quiet', '-m', 'fixture')
         self.sha = self.git('rev-parse', 'HEAD')
 
-    def git(self, *args):
+    def git(self, *args: str) -> str:
         return subprocess.check_output(
             ['git', '-c', 'core.fsmonitor=false', *args],
             cwd=self.source,
             text=True,
         ).strip()
 
-    def test_go_context_has_exact_clean_git_without_checkout_credentials(self):
+    def test_go_context_has_exact_clean_git_without_checkout_credentials(
+        self,
+    ) -> None:
         self.git('config', 'http.extraheader', 'authorization: fixture-secret')
         result = MODULE.prepare(
             self.source, self.sha, 'backend/Dockerfile', self.root / 'prepared'
@@ -63,7 +65,7 @@ class ImageBuildProvenanceTest(unittest.TestCase):
             MODULE.provenance._git(['status', '--porcelain'], context), ''
         )
 
-    def test_dirty_source_rejected(self):
+    def test_dirty_source_rejected(self) -> None:
         (self.source / 'backend/Dockerfile').write_text('FROM changed\n')
         with self.assertRaises(ValueError):
             MODULE.prepare(
@@ -73,7 +75,7 @@ class ImageBuildProvenanceTest(unittest.TestCase):
                 self.root / 'prepared',
             )
 
-    def test_non_go_context_retains_normal_ignore_rules(self):
+    def test_non_go_context_retains_normal_ignore_rules(self) -> None:
         result = MODULE.prepare(
             self.source, self.sha, 'frontend/Dockerfile', self.root / 'prepared'
         )
@@ -83,7 +85,7 @@ class ImageBuildProvenanceTest(unittest.TestCase):
         )
         self.assertFalse((self.root / 'prepared').exists())
 
-    def test_relative_dot_prefix_cannot_skip_go_validation(self):
+    def test_relative_dot_prefix_cannot_skip_go_validation(self) -> None:
         with mock.patch.object(
             MODULE.provenance, 'prepare_context', return_value={}
         ) as prepare:
@@ -95,7 +97,7 @@ class ImageBuildProvenanceTest(unittest.TestCase):
             )
         prepare.assert_called_once()
 
-    def test_recipe_paths_rejected_before_classification(self):
+    def test_recipe_paths_rejected_before_classification(self) -> None:
         for recipe in (
             'backend/../backend/Dockerfile',
             str(self.source / 'backend/Dockerfile'),
@@ -122,7 +124,7 @@ class ImageBuildProvenanceTest(unittest.TestCase):
                                 self.root / 'evidence',
                             )
 
-    def test_go_context_rejects_subdirectory(self):
+    def test_go_context_rejects_subdirectory(self) -> None:
         with self.assertRaises(ValueError):
             MODULE.prepare(
                 self.source,
@@ -132,7 +134,7 @@ class ImageBuildProvenanceTest(unittest.TestCase):
                 'backend',
             )
 
-    def test_verifier_binds_both_architectures_to_resolved_image(self):
+    def test_verifier_binds_both_architectures_to_resolved_image(self) -> None:
         image_id = 'sha256:' + 'a' * 64
         for platform in ('linux/amd64', 'linux/arm64'):
             with (
@@ -168,7 +170,7 @@ class ImageBuildProvenanceTest(unittest.TestCase):
                     self.root / 'evidence',
                 )
 
-    def test_verification_failure_propagates(self):
+    def test_verification_failure_propagates(self) -> None:
         with (
             mock.patch.object(
                 MODULE.subprocess,
@@ -196,7 +198,7 @@ class ImageBuildProvenanceTest(unittest.TestCase):
                     self.root / 'evidence',
                 )
 
-    def test_non_go_verification_records_explicit_skip(self):
+    def test_non_go_verification_records_explicit_skip(self) -> None:
         output = self.root / 'evidence'
         with mock.patch.object(MODULE.provenance, 'collect') as collect:
             MODULE.verify(

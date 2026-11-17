@@ -20,7 +20,7 @@ BINARIES = {
 }
 
 
-def recipe_path(value):
+def recipe_path(value: str | Path) -> str:
     """Validate recipe spelling before deciding whether verification
     applies."""
     path = Path(value)
@@ -29,7 +29,13 @@ def recipe_path(value):
     return path.as_posix()
 
 
-def prepare(source, sha, dockerfile, destination, context='.'):
+def prepare(
+    source: str | Path,
+    sha: str,
+    dockerfile: str | Path,
+    destination: Path,
+    context: str = '.',
+) -> dict[str, str | Path]:
     """Give Go builds a pristine Git context; retain other build ignores."""
     source = Path(source).resolve()
     dockerfile = recipe_path(dockerfile)
@@ -46,7 +52,14 @@ def prepare(source, sha, dockerfile, destination, context='.'):
     }
 
 
-def verify(source, sha, dockerfile, image, platform, output):
+def verify(
+    source: str | Path,
+    sha: str,
+    dockerfile: str | Path,
+    image: str,
+    platform: str,
+    output: str | Path,
+) -> dict[str, object]:
     """Validate immutable Go binaries without executing candidate code."""
     output = Path(output)
     dockerfile = recipe_path(dockerfile)
@@ -73,7 +86,7 @@ def verify(source, sha, dockerfile, image, platform, output):
     )
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
     for command in ('prepare', 'verify'):

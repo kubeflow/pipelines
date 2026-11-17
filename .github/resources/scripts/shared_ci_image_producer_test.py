@@ -35,7 +35,9 @@ def workflow(name):
 
 
 class SharedImageProducerTest(unittest.TestCase):
-    def test_queue_architectures_accept_only_supported_base_branches(self):
+    def test_queue_architectures_accept_only_supported_base_branches(
+        self,
+    ) -> None:
         script = """
 const {architectures} = require('./.github/resources/scripts/shared_ci_image_plan');
 const assert = require('node:assert/strict');
@@ -49,7 +51,7 @@ assert.throws(() => architectures({}, 'merge_group',
 """
         subprocess.run(['node', '-e', script], cwd=ROOT, check=True)
 
-    def test_only_shared_producer_calls_image_builder(self):
+    def test_only_shared_producer_calls_image_builder(self) -> None:
         callers = []
         for path in WORKFLOWS.glob('*.y*ml'):
             for name, job in yaml.safe_load(path.read_text())['jobs'].items():
@@ -82,7 +84,7 @@ assert.throws(() => architectures({}, 'merge_group',
 
     def test_source_identity_precedes_plan_and_revision_cancellation_is_disabled(
         self,
-    ):
+    ) -> None:
         definition = workflow('ci-images.yml')
         concurrency = definition['concurrency']
         self.assertIn('github.sha', concurrency['group'])
@@ -102,7 +104,7 @@ assert.throws(() => architectures({}, 'merge_group',
             'ci-image-source-attempt-${{ github.run_attempt }}',
         )
 
-    def test_producer_filters_cover_every_active_consumer(self):
+    def test_producer_filters_cover_every_active_consumer(self) -> None:
         producer = workflow('ci-images.yml')[True]['pull_request']['paths']
         for name in CONSUMERS:
             if name == 'upgrade-test.yml':
@@ -113,7 +115,7 @@ assert.throws(() => architectures({}, 'merge_group',
         self.assertIn('!**/*.md', producer)
         self.assertIn('!**/OWNERS', producer)
 
-    def test_bundled_provenance_precedes_upload_and_bundle(self):
+    def test_bundled_provenance_precedes_upload_and_bundle(self) -> None:
         definition = workflow('image-builds.yml')
         self.assertFalse(
             definition[True]['workflow_call']['inputs']['shared']['default']
@@ -204,7 +206,7 @@ assert.throws(() => architectures({}, 'merge_group',
             image_steps.index(arm_record), image_steps.index(record)
         )
 
-    def test_native_builds_and_retry_use_verified_git_context(self):
+    def test_native_builds_and_retry_use_verified_git_context(self) -> None:
         steps = workflow('image-builds.yml')['jobs']['image-build']['steps']
         prepare = next(s for s in steps if s.get('id') == 'go-context')
         self.assertIn('image-build-provenance.py prepare', prepare['run'])
@@ -251,7 +253,7 @@ assert.throws(() => architectures({}, 'merge_group',
         self.assertEqual(evidence['with']['if-no-files-found'], 'error')
         self.assertLess(steps.index(verify), steps.index(evidence))
 
-    def test_live_pr_revision_changes_cannot_skip_an_architecture(self):
+    def test_live_pr_revision_changes_cannot_skip_an_architecture(self) -> None:
         script = """
 const assert = require('node:assert/strict');
 const {pullRequestArchitectures} = require('./.github/resources/scripts/shared_ci_image_plan');
@@ -291,7 +293,7 @@ assert.deepEqual(calls, ['pulls/23', 'pulls/23/files?per_page=100', 'pulls/23'])
 
     def test_architecture_plan_reuses_consumer_filters_and_preserves_pause(
         self,
-    ):
+    ) -> None:
         definitions = []
         for name in CONSUMERS:
             definitions.append(
