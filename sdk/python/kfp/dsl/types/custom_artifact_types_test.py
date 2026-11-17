@@ -908,6 +908,10 @@ class TestPydanticBasemodelRuntimeIsolation(_TestCaseWithThirdPartyPackage):
             'PYTHONPATH': os.pathsep.join(pythonpath_entries),
             '_KFP_RUNTIME': 'true',
         }
+        # setup-python's shared interpreter needs its loader path even when
+        # Python imports are isolated from the parent environment.
+        if 'LD_LIBRARY_PATH' in os.environ:
+            env['LD_LIBRARY_PATH'] = os.environ['LD_LIBRARY_PATH']
 
         return subprocess.run(
             [
@@ -926,6 +930,38 @@ class TestPydanticBasemodelRuntimeIsolation(_TestCaseWithThirdPartyPackage):
             capture_output=True,
             text=True,
         )
+
+    @parameterized.named_parameters(
+        ('loader_path_set', '/runtime/python/lib'),
+        ('loader_path_unset', None),
+    )
+    def test_isolated_environment_preserves_runtime_loader_path(
+            self, loader_path):
+        import unittest.mock
+
+        def func(value: str) -> str:
+            return value
+
+        parent_env = {
+            'PATH': '/runtime/python/bin',
+            'PYTHONPATH': '/ambient/python/packages',
+            'UNRELATED_SETTING': 'must not leak',
+        }
+        if loader_path is not None:
+            parent_env['LD_LIBRARY_PATH'] = loader_path
+        with unittest.mock.patch.dict(os.environ, parent_env, clear=True):
+            with unittest.mock.patch.object(subprocess, 'run') as run:
+                self._run_isolated(func, {}, [])
+
+        child_env = run.call_args.kwargs['env']
+        self.assertEqual(loader_path, child_env.get('LD_LIBRARY_PATH'))
+        self.assertEqual(parent_env['PATH'], child_env['PATH'])
+        self.assertEqual('true', child_env['_KFP_RUNTIME'])
+        self.assertNotIn('UNRELATED_SETTING', child_env)
+        self.assertNotIn(parent_env['PYTHONPATH'],
+                         child_env['PYTHONPATH'].split(os.pathsep))
+        self.assertNotIn(self.tmp_dir.name,
+                         child_env['PYTHONPATH'].split(os.pathsep))
 
     def test_model_on_runtime_path_executes_successfully_in_isolation(self):
         from my_pydantic_models import MyModel
