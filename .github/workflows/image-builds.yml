@@ -386,7 +386,7 @@ jobs:
       # Same-run downloads use the artifact service rather than the REST quota.
       - uses: ./.github/actions/download-artifact-with-retry
         with:
-          pattern: "{apiserver,persistenceagent,scheduledworkflow,launcher,driver,frontend,viewer-crd-controller}${{ inputs.architecture == 'arm64' && '-arm64' || '' }}-attempt-${{ github.run_attempt }}"
+          pattern: "{apiserver,persistenceagent,scheduledworkflow,launcher,driver,frontend,viewer-crd-controller,profile-controller}${{ inputs.architecture == 'arm64' && '-arm64' || '' }}-attempt-${{ github.run_attempt }}"
           path: shared-image-bundle
           merge-multiple: 'true'
           required-files: ${{ steps.bundle-files.outputs.required-files }}

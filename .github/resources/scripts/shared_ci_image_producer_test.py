@@ -174,6 +174,10 @@ assert.throws(() => architectures({}, 'merge_group',
             == './.github/actions/download-artifact-with-retry'
         )
         self.assertNotIn('github-token', download['with'])
+        from shared_ci_images import IMAGES as required_images
+
+        names = download['with']['pattern'].split('}', 1)[0].removeprefix('{')
+        self.assertEqual(set(names.split(',')), set(required_images))
         self.assertIn('github.run_attempt', download['with']['pattern'])
         self.assertIn('inputs.architecture', download['with']['pattern'])
         verify = next(
