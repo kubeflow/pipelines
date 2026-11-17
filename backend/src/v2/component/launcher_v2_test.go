@@ -29,6 +29,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
@@ -2360,6 +2361,12 @@ func newLauncherForPluginLifecycleTestWithIO(
 	})
 	require.NoError(t, err)
 
+	// A separate copy for the launcher to mutate in memory, so a test asserting
+	// what the mock API store holds only sees it through an actual RPC call,
+	// not through this pointer being shared with m.tasks.
+	launcherTask, ok := proto.Clone(task).(*apiv2.PipelineTask)
+	require.True(t, ok)
+
 	opts := &LauncherV2Options{
 		Namespace:        "default",
 		PodName:          "plugin-pod",
@@ -2368,7 +2375,7 @@ func newLauncherForPluginLifecycleTestWithIO(
 		ComponentSpec:    &pipelinespec.ComponentSpec{},
 		TaskSpec:         &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "plugin-task"}},
 		Run:              run,
-		Task:             task,
+		Task:             launcherTask,
 		PipelineSpec:     pipelineSpecStructForLauncherPluginTest(t),
 		PluginDispatcher: recorder,
 	}
@@ -2553,4 +2560,65 @@ func TestParameterValuesToInterfaces_UsesInputMap(t *testing.T) {
 	gotOutputs := parameterValuesToInterfaces(outputs)
 	require.Equal(t, map[string]interface{}{"accuracy": 0.99}, gotOutputs)
 	assert.NotEqual(t, gotInputs, gotOutputs)
+}
+
+// A launcher that is killed before it reports (OOMKilled, evicted) never reaches the task update at
+// the end of Execute. The executor pod has to be on the stored task before user code starts, or the
+// API server cannot tie the dead pod to the task.
+func TestLauncherV2_Execute_RecordsExecutorPodBeforeRunningUserCode(t *testing.T) {
+	launcher := newLauncherForPluginLifecycleTest(t, &recordingPluginDispatcher{}, nil)
+	apiClient := launcher.clientManager.KFPAPIClient()
+
+	var podsWhenUserCodeRan []*apiv2.PipelineTask_TaskPod
+	mockCmd, ok := launcher.cmdExecutor.(*MockCommandExecutor)
+	require.True(t, ok)
+	mockCmd.RunFunc = func(ctx context.Context, _ string, _ []string, _ io.Reader, _, _ io.Writer) error {
+		stored, err := apiClient.GetTask(ctx, &apiv2.GetTaskRequest{TaskId: "plugin-task", RunId: "plugin-run"})
+		require.NoError(t, err)
+		podsWhenUserCodeRan = stored.GetPods()
+		return errors.New("signal: killed")
+	}
+
+	require.Error(t, launcher.Execute(context.Background()))
+
+	require.Len(t, podsWhenUserCodeRan, 1)
+	assert.Equal(t, "plugin-pod", podsWhenUserCodeRan[0].GetName())
+	assert.Equal(t, "plugin-pod-uid", podsWhenUserCodeRan[0].GetUid())
+	assert.Equal(t, apiv2.PipelineTask_EXECUTOR, podsWhenUserCodeRan[0].GetType())
+}
+
+// If the write that records the executor pod identity fails, the attempt must fail outright
+// instead of continuing: a best-effort write here would let the one gap this PR exists to close
+// reopen silently, just with a different trigger (a failed write instead of a killed launcher).
+func TestLauncherV2_Execute_FailsAttemptWhenExecutorPodWriteFails(t *testing.T) {
+	recorder := &recordingPluginDispatcher{}
+	launcher := newLauncherForPluginLifecycleTest(t, recorder, nil)
+
+	failingAPI := &finalizationFailureAPI{
+		API:           launcher.clientManager.KFPAPIClient(),
+		updateTaskErr: errors.New("apiserver unavailable"),
+	}
+	launcher.clientManager = client_manager.NewFakeClientManager(
+		launcher.clientManager.K8sClient(),
+		failingAPI,
+	)
+
+	var userCodeRan bool
+	mockCmd, ok := launcher.cmdExecutor.(*MockCommandExecutor)
+	require.True(t, ok)
+	mockCmd.RunFunc = func(ctx context.Context, _ string, _ []string, _ io.Reader, _, _ io.Writer) error {
+		userCodeRan = true
+		return nil
+	}
+
+	err := launcher.Execute(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "record executor pod")
+	assert.False(t, userCodeRan, "user code must not run once the executor pod write has failed")
+
+	assert.Equal(t, apiv2.PipelineTask_FAILED, launcher.options.Task.GetState())
+	assert.Equal(t, 1, recorder.endCount)
+	require.Len(t, recorder.endStates, 1)
+	assert.Equal(t, apiv2.PipelineTask_FAILED, recorder.endStates[0],
+		"OnTaskEnd must observe FAILED even though finalization itself succeeded")
 }
