@@ -22,6 +22,9 @@ mounting it fail with FailedMount. These tests pin the ordering contract
 that prevents that race.
 """
 
+import os
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -91,13 +94,39 @@ class DeployKfpCertificateWaitTest(unittest.TestCase):
         TLS flag in overlay selection, and those overlays contain no
         Certificate resources.
 
-        Reject the combinations up front instead of failing later on a
-        zero-match certificate wait.
+        Run the script with a stub kubectl (exit 42) to prove each
+        combination exits at the guard, before any cluster operation,
+        while TLS alone passes validation and reaches kubectl.
         """
-        guard = self.script.index('POD_TO_POD_TLS_ENABLED cannot be combined')
-        overlay_selection = self.script.index('cache-disabled-proxy')
+        with tempfile.TemporaryDirectory() as bin_dir:
+            stub = Path(bin_dir) / 'kubectl'
+            stub.write_text('#!/bin/sh\nexit 42\n')
+            stub.chmod(0o755)
+            env = {**os.environ, 'PATH': f'{bin_dir}:{os.environ["PATH"]}'}
 
-        self.assertLess(guard, overlay_selection)
+            for option in ('--cache-disabled', '--proxy', '--multi-user'):
+                with self.subTest(option=option):
+                    result = subprocess.run(
+                        [str(SCRIPT), '--tls-enabled', option],
+                        env=env,
+                        capture_output=True,
+                        text=True,
+                    )
+                    self.assertNotEqual(result.returncode, 42, result.stderr)
+                    self.assertEqual(result.returncode, 1, result.stderr)
+                    self.assertIn(
+                        'POD_TO_POD_TLS_ENABLED cannot be combined',
+                        result.stderr,
+                    )
+
+            with self.subTest(option='tls-only'):
+                result = subprocess.run(
+                    [str(SCRIPT), '--tls-enabled'],
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(result.returncode, 42, result.stderr)
 
     def test_manifest_apply_retries_transient_webhook_rejections(self):
         """Predicting exactly when the cert-manager webhook starts serving is

@@ -111,7 +111,7 @@ if [ "${MULTI_USER}" == "true" ] && [ "${USE_PROXY}" == "true" ]; then
 fi
 
 if [ "${POD_TO_POD_TLS_ENABLED}" == "true" ] && { [ "${CACHE_DISABLED}" == "true" ] || [ "${USE_PROXY}" == "true" ] || [ "${MULTI_USER}" == "true" ]; }; then
-  echo "ERROR: POD_TO_POD_TLS_ENABLED cannot be combined with CACHE_DISABLED, USE_PROXY, or MULTI_USER (no TLS overlay exists for those deployments)."
+  echo "ERROR: POD_TO_POD_TLS_ENABLED cannot be combined with CACHE_DISABLED, USE_PROXY, or MULTI_USER (no TLS overlay exists for those deployments)." >&2
   exit 1
 fi
 
