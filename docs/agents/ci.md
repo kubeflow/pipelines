@@ -752,3 +752,12 @@ Go binary verification reports from shared CI image builds are retained in a
 separate `<image>[-arm64]-go-provenance-attempt-<attempt>` artifact. Image bundles
 contain only their registered archives, image identities, and checksum records;
 extra files still fail validation. Binary verification runs before either upload.
+
+## Merge queue policy isolation
+
+Validate approvals, holds, and PR heads only for the prefix included in the
+candidate being dispatched or published. A later ineligible entry must not
+invalidate an earlier independent candidate. When removing an ineligible PR,
+revoke its candidate and downstream candidates that contain its changes, then
+dequeue that PR. Entries sharing a candidate SHA must all pass policy checks.
+Unknown queue membership or a failed global policy snapshot still fails closed.

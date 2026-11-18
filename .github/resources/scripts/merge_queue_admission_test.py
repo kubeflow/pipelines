@@ -1033,6 +1033,156 @@ class QueueAdmissionTest(unittest.TestCase):
             ['enqueue', 'status', 'dequeue'],
         )
 
+    def test_revocation_invalidates_only_affected_suffix(self):
+        members = queue(
+            [
+                entry(6, headCommit={'oid': 'e' * 40}),
+                entry(position=2),
+                entry(8, position=3, headCommit={'oid': OTHER}),
+            ]
+        )
+        for changed in [pr(labels=[]), pr(head={'sha': OTHER}), None]:
+            with self.subTest(changed=changed):
+                result = run_case(prs={'7': [changed]}, queues=[members])
+                statuses = [
+                    w['options']['sha']
+                    for w in result['writes']
+                    if w['route'] == 'status'
+                ]
+                self.assertEqual(statuses, [CANDIDATE, OTHER], result)
+                if changed is not None:
+                    self.assertEqual(
+                        [
+                            w['options']['id']
+                            for w in result['writes']
+                            if w['route'] == 'dequeue'
+                        ],
+                        ['PR_7'],
+                    )
+
+    def test_sweep_preserves_healthy_prefix_when_later_pr_loses_approval(self):
+        result = run_case(
+            'sweep',
+            queueOnly=True,
+            listed=[],
+            queues=[
+                queue(
+                    [entry(), entry(8, position=2, headCommit={'oid': OTHER})]
+                )
+            ],
+            prs={'7': [pr()], '8': [pr(8, labels=[])]},
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(
+            [
+                w['options']['sha']
+                for w in result['writes']
+                if w['route'] == 'status'
+            ],
+            [OTHER],
+        )
+        self.assertEqual(
+            [
+                w['options']['id']
+                for w in result['writes']
+                if w['route'] == 'dequeue'
+            ],
+            ['PR_8'],
+        )
+
+    def test_post_enqueue_revocation_preserves_earlier_candidate(self):
+        earlier = entry(8, headCommit={'oid': OTHER})
+        result = run_case(
+            queues=[queue([earlier]), queue([earlier, entry(position=2)])],
+            prs={'7': [pr(), pr(), pr(labels=[])]},
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(
+            [
+                w['options']['sha']
+                for w in result['writes']
+                if w['route'] == 'status'
+            ],
+            [CANDIDATE],
+        )
+        self.assertEqual(
+            [
+                w['options']['id']
+                for w in result['writes']
+                if w['route'] == 'dequeue'
+            ],
+            ['PR_7'],
+        )
+
+    def test_post_enqueue_confirmed_absence_preserves_other_candidates(self):
+        earlier = entry(8, headCommit={'oid': OTHER})
+        result = run_case(
+            queues=[queue([earlier]), queue([earlier])],
+            prs={'7': [pr(), pr(), pr(labels=[])]},
+        )
+        self.assertNotIn('error', result)
+        self.assertFalse(
+            any(w['route'] == 'status' for w in result['writes']), result
+        )
+
+    def test_shared_candidate_checks_all_batched_members(self):
+        members = [entry(), entry(8, position=2)]
+        for method in ['inspectQueue', 'inspectDispatchSnapshot']:
+            options = (
+                {
+                    'queues': [queue(members)],
+                    'prs': {'7': [pr()], '8': [pr(8, labels=[])]},
+                }
+                if method == 'inspectQueue'
+                else {
+                    'dispatchSnapshots': [
+                        dispatch_snapshot(
+                            entries=copy.deepcopy(members),
+                            prs={7: pr(), 8: pr(8, labels=[])},
+                        )
+                    ]
+                }
+            )
+            result = run_case(method, **options)
+            self.assertIn('error', result)
+            self.assertIn('PR #8', result['error'])
+
+    def test_candidate_does_not_read_later_policy(self):
+        result = run_case(
+            'inspectQueue',
+            queues=[
+                queue(
+                    [entry(), entry(8, position=2, headCommit={'oid': OTHER})]
+                )
+            ],
+            prs={'7': [pr()], '8': [None]},
+        )
+        self.assertNotIn('error', result)
+        query = next(
+            c['query'] for c in result['calls'] if c['route'] == 'policies'
+        )
+        self.assertNotIn('pr8:', query)
+
+    def test_dispatch_candidate_ignores_ineligible_suffix(self):
+        for changed in [pr(8, labels=[]), pr(8, state='closed')]:
+            snap = dispatch_snapshot(
+                entries=[
+                    entry(),
+                    entry(8, position=2, headCommit={'oid': OTHER}),
+                ],
+                prs={7: pr(), 8: changed},
+            )
+            result = run_case(
+                'inspectDispatchSnapshot', dispatchSnapshots=[snap]
+            )
+            self.assertNotIn('error', result)
+            rejected = run_case(
+                'inspectDispatchSnapshot',
+                candidate=OTHER,
+                dispatchSnapshots=[snap],
+            )
+            self.assertIn('error', rejected)
+
     def test_existing_held_entry_is_dequeued_even_when_status_write_fails(self):
         result = run_case(
             prs={'7': [pr(labels=[])]},
@@ -1150,7 +1300,7 @@ class QueueAdmissionTest(unittest.TestCase):
         )
         self.assertIn('error', rejected)
 
-    def test_candidate_requires_exact_membership_and_every_queued_pr_eligible(
+    def test_candidate_requires_exact_membership_and_only_its_prefix_eligible(
         self,
     ):
         members = queue(
@@ -1171,7 +1321,14 @@ class QueueAdmissionTest(unittest.TestCase):
                 queues=[members],
                 prs={'7': [pr()], '8': [later]},
             )
-            self.assertIn('error', result)
+            self.assertNotIn('error', result)
+            affected = run_case(
+                'inspectQueue',
+                queues=[members],
+                candidate=OTHER,
+                prs={'7': [pr()], '8': [later]},
+            )
+            self.assertIn('error', affected)
         result = run_case('inspectQueue', queues=[members], candidate='e' * 40)
         self.assertIn('error', result)
 
@@ -1209,7 +1366,8 @@ class QueueAdmissionTest(unittest.TestCase):
             ],
             prs={'7': [pr()], '8': [pr(8, labels=[])]},
         )
-        self.assertIn('error', held_suffix)
+        self.assertNotIn('error', held_suffix)
+        self.assertEqual(original['result'], held_suffix['result'])
 
     def test_event_writers_target_one_pr_and_schedule_recovers_the_backlog(
         self,

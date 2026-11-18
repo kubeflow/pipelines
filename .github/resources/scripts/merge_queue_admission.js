@@ -126,20 +126,21 @@ function queuePR(pr, entry) {
 
 async function inspectQueue({github, context, group, root}) {
   if (!await queueEnabled({github, context, branch: group.baseRef, root})) return null;
-  const entries = await readQueue(github, context, group.baseRef);
+  const entries = candidatePrefix(await readQueue(github, context, group.baseRef), group.head);
   const policies = await readQueuePRs(github, context, entries);
   return queueFingerprint(entries, policies, context, group);
 }
 
+// A candidate contains its queue prefix. Later entries cannot affect its policy.
+// Include every entry sharing the candidate SHA when GitHub batches members.
+function candidatePrefix(entries, head) {
+  const candidateIndex = entries.findLastIndex(entry => entry.headCommit?.oid === head);
+  if (candidateIndex === -1) throw new Error('Candidate is not in the current merge queue');
+  return entries.slice(0, candidateIndex + 1);
+}
+
 function queueFingerprint(entries, policies, context, group) {
-  const candidateIndex = entries.findIndex(entry => entry.headCommit?.oid === group.head);
-  if (candidateIndex === -1) {
-    throw new Error('Candidate is not in the current merge queue');
-  }
   const members = [];
-  // GitHub exposes entries, not an authoritative group-members connection.
-  // Conservatively require every queued PR to remain eligible. A held later
-  // entry may temporarily block an earlier candidate until it is dequeued.
   for (const [index, entry] of entries.entries()) {
     const pr = policies[index];
     const reason = policyReason(pr, `${context.repo.owner}/${context.repo.repo}`, group.baseRef);
@@ -148,10 +149,8 @@ function queueFingerprint(entries, policies, context, group) {
     }
     members.push([pr.node_id, pr.number, pr.head.sha, pr.base.ref, pr.base.repo.full_name]);
   }
-  // Later eligible entries and unrelated label edits cannot change this
-  // candidate. Fingerprint its queue prefix only, while checking every entry's
-  // current approval/hold policy on each read above.
-  return JSON.stringify([entries.slice(0, candidateIndex + 1), members.slice(0, candidateIndex + 1)]);
+  // Unrelated labels do not alter the candidate's validated identity.
+  return JSON.stringify([entries, members]);
 }
 
 // Read all mutable dispatch identities together at each validation boundary.
@@ -196,7 +195,7 @@ async function inspectDispatchSnapshot({github, context, group, root}) {
       throw new Error('Incomplete queue dispatch ref identity');
     }
   }
-  const rawEntries = queueEntries(response, context, group.baseRef);
+  const rawEntries = candidatePrefix(queueEntries(response, context, group.baseRef), group.head);
   const policies = rawEntries.map(entry => queuePR(entry.pullRequest, entry));
   // Keep the fingerprint identical to inspectQueue: policy fields are validated
   // but unrelated label edits and later eligible entries do not change it.
@@ -284,7 +283,14 @@ async function admissionPassed(github, context, pr, {now = () => Date.now(), res
   return removal ? {fingerprint, removal} : null;
 }
 
-async function invalidateQueue(github, context, entries) {
+async function invalidateQueue(github, context, entries, number) {
+  // Revoke only candidates containing the affected PR. If membership is unknown,
+  // retain fail-closed invalidation rather than assuming an unaffected prefix.
+  if (number !== undefined) {
+    const index = entries.findIndex(entry => entry.pullRequest.number === number);
+    if (index === -1) return; // Fresh membership confirms the target is absent.
+    entries = entries.slice(index);
+  }
   const heads = new Set(entries.map(entry => entry.headCommit?.oid).filter(Boolean));
   for (const sha of heads) {
     await github.rest.repos.createCommitStatus({...context.repo, sha,
@@ -315,7 +321,7 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
         (expectedRef && pr.head?.ref !== expectedRef))) return;
     const reason = policyReason(pr, `${context.repo.owner}/${context.repo.repo}`, branch);
     if (entry && (reason || entry.pullRequest.headRefOid !== pr.head.sha)) {
-      await invalidateQueue(github, context, entries);
+      await invalidateQueue(github, context, entries, number);
       await dequeue(github, pr);
       await report(reason || 'PR head changed; awaiting fresh admission.');
       return;
@@ -390,7 +396,7 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
     if (snapshot(after) !== before || JSON.stringify(await admissionPassed(github, context, after, {now, reservation, afterEnqueue:true})) !== JSON.stringify(admission) ||
         !await queueEnabled({github, context, branch, root})) {
       entries = await readQueue(github, context, branch);
-      await invalidateQueue(github, context, entries);
+      await invalidateQueue(github, context, entries, number);
       await dequeue(github, after);
       await report('PR eligibility changed; awaiting fresh admission.');
     } else {
@@ -408,6 +414,7 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
     // queue and attempt removal independently of status/API failures.
     const errors = [error];
     let removalRequired = Boolean(entry);
+    let invalidationNumber = number;
     if (enqueueAttempted) {
       try {
         entries = await readQueue(github, context, branch);
@@ -415,12 +422,13 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
       } catch (refreshError) {
         errors.push(refreshError);
         removalRequired = true;
+        invalidationNumber = undefined; // The refreshed membership is unknown.
       }
     }
     // A rejected enqueue with confirmed absence must not revoke unrelated
     // candidates. An unreadable response still requires conservative cleanup.
     if (removalRequired) {
-      try { await invalidateQueue(github, context, entries); }
+      try { await invalidateQueue(github, context, entries, invalidationNumber); }
       catch (statusError) { errors.push(statusError); }
       if (pr) {
         try { await dequeue(github, pr); }
