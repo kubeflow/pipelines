@@ -106,9 +106,7 @@ class TestRunLocalSubproces(unittest.TestCase):
         self.assertEqual(output, 'foo!')
 
 
-class TestUseCurrentPythonExecutable(
-    testing_utilities.LocalRunnerEnvironmentTestCase
-):
+class TestUseCurrentPythonExecutable(unittest.TestCase):
     def test(self):
         full_command = ['python3 -c "from kfp import dsl"']
         actual = subprocess_task_handler.replace_python_executable(
@@ -116,6 +114,52 @@ class TestUseCurrentPythonExecutable(
             new_executable='/foo/bar/python3',
         )
         expected = ['/foo/bar/python3 -c "from kfp import dsl"']
+        self.assertEqual(actual, expected)
+
+
+class TestReplacePythonExecutable(unittest.TestCase):
+    def test_does_not_replace_python3_in_arguments(self):
+        script = """program_path=$(mktemp -d)
+printf "%s" "$0" > "$program_path/ephemeral_component.py"
+_KFP_RUNTIME=true python3 -m kfp.executor_main \
+    --component_module_path \
+    "$program_path/ephemeral_component.py" \
+    "$@"
+"""
+        source = 'print("python3")'
+        executor_input = '{"input": "python3", "name": "test"}'
+        artifact_uri = "gs://bucket/python3/output"
+
+        full_command = [
+            "sh",
+            "-ec",
+            script,
+            source,
+            "--executor_input",
+            executor_input,
+            "--artifact_uri",
+            artifact_uri,
+        ]
+
+        actual = subprocess_task_handler.replace_python_executable(
+            full_command=full_command,
+            new_executable="/foo/bar/python.exe",
+        )
+
+        expected_script = script.replace(
+            "python3", "/foo/bar/python.exe", 1
+        )
+        expected = [
+            "sh",
+            "-ec",
+            expected_script,
+            source,
+            "--executor_input",
+            executor_input,
+            "--artifact_uri",
+            artifact_uri,
+        ]
+
         self.assertEqual(actual, expected)
 
 
