@@ -37,7 +37,9 @@ class TestV2beta1PipelineVersionReference(unittest.TestCase):
         if include_optional :
             return V2beta1PipelineVersionReference(
                 pipeline_id = '0', 
-                pipeline_version_id = '0'
+                pipeline_version_id = '0', 
+                pipeline_name = '0', 
+                pipeline_version_name = '0'
             )
         else :
             return V2beta1PipelineVersionReference(

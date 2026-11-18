@@ -1218,6 +1218,7 @@ func toModelRun(r interface{}) (*model.Run, error) {
 	var stateHistory []*model.RuntimeStatus
 	var tasks []*model.Task
 	var pluginsInputStr, pluginsOutputStr *string
+	var nameRef *model.PipelineNameRef
 	var err error
 	switch r := r.(type) {
 	case *apiv1beta1.Run:
@@ -1328,6 +1329,7 @@ func toModelRun(r interface{}) (*model.Run, error) {
 		}
 		pipelineId = apiRunV2.GetPipelineVersionReference().GetPipelineId()
 		pipelineVersionId = apiRunV2.GetPipelineVersionReference().GetPipelineVersionId()
+		nameRef = toModelPipelineNameRef(apiRunV2.GetPipelineVersionReference())
 		experimentId = apiRunV2.GetExperimentId()
 		runId = apiRunV2.GetRunId()
 		recRunId = apiRunV2.GetRecurringRunId()
@@ -1403,6 +1405,7 @@ func toModelRun(r interface{}) (*model.Run, error) {
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           pipelineId,
 			PipelineVersionId:    pipelineVersionId,
+			NameRef:              nameRef,
 			PipelineName:         pipelineName,
 			PipelineSpecManifest: model.LargeText(pipelineSpec),
 			WorkflowSpecManifest: model.LargeText(workflowSpec),
@@ -1966,6 +1969,7 @@ func toModelJob(j interface{}) (*model.Job, error) {
 	var noCatchup, isEnabled bool
 	var trigger *model.Trigger
 	var jobPluginsInputStr *string
+	var nameRef *model.PipelineNameRef
 	resRefs := make([]*model.ResourceReference, 0)
 	switch apiJob := j.(type) {
 	case *apiv1beta1.Job:
@@ -2028,6 +2032,7 @@ func toModelJob(j interface{}) (*model.Job, error) {
 	case *apiv2beta1.RecurringRun:
 		pipelineId = apiJob.GetPipelineVersionReference().GetPipelineId()
 		pipelineVersionId = apiJob.GetPipelineVersionReference().GetPipelineVersionId()
+		nameRef = toModelPipelineNameRef(apiJob.GetPipelineVersionReference())
 
 		if apiJob.GetPipelineSpec() != nil {
 			if spec, err := pipelineSpecStructToYamlString(apiJob.GetPipelineSpec()); err == nil {
@@ -2135,6 +2140,7 @@ func toModelJob(j interface{}) (*model.Job, error) {
 			PipelineId:           pipelineId,
 			PipelineName:         pipelineName,
 			PipelineVersionId:    pipelineVersionId,
+			NameRef:              nameRef,
 			PipelineSpecManifest: model.LargeText(pipelineSpec),
 			WorkflowSpecManifest: model.LargeText(workflowSpec),
 			Parameters:           model.LargeText(specParams),
@@ -2949,4 +2955,16 @@ func jsonToPluginsOutput(jsonStr *string) (map[string]*apiv2beta1.PluginOutput, 
 		result[k] = po
 	}
 	return result, nil
+}
+
+// toModelPipelineNameRef returns the name-based part of a pipeline version
+// reference, or nil when the reference names nothing.
+func toModelPipelineNameRef(ref *apiv2beta1.PipelineVersionReference) *model.PipelineNameRef {
+	if ref.GetPipelineName() == "" && ref.GetPipelineVersionName() == "" {
+		return nil
+	}
+	return &model.PipelineNameRef{
+		PipelineName:        ref.GetPipelineName(),
+		PipelineVersionName: ref.GetPipelineVersionName(),
+	}
 }
