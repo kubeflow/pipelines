@@ -34,15 +34,19 @@ class V2beta1PipelineVersionReference(object):
     """
     openapi_types = {
         'pipeline_id': 'str',
-        'pipeline_version_id': 'str'
+        'pipeline_version_id': 'str',
+        'pipeline_name': 'str',
+        'pipeline_version_name': 'str'
     }
 
     attribute_map = {
         'pipeline_id': 'pipeline_id',
-        'pipeline_version_id': 'pipeline_version_id'
+        'pipeline_version_id': 'pipeline_version_id',
+        'pipeline_name': 'pipeline_name',
+        'pipeline_version_name': 'pipeline_version_name'
     }
 
-    def __init__(self, pipeline_id=None, pipeline_version_id=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, pipeline_id=None, pipeline_version_id=None, pipeline_name=None, pipeline_version_name=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1PipelineVersionReference - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -50,18 +54,24 @@ class V2beta1PipelineVersionReference(object):
 
         self._pipeline_id = None
         self._pipeline_version_id = None
+        self._pipeline_name = None
+        self._pipeline_version_name = None
         self.discriminator = None
 
         if pipeline_id is not None:
             self.pipeline_id = pipeline_id
         if pipeline_version_id is not None:
             self.pipeline_version_id = pipeline_version_id
+        if pipeline_name is not None:
+            self.pipeline_name = pipeline_name
+        if pipeline_version_name is not None:
+            self.pipeline_version_name = pipeline_version_name
 
     @property
     def pipeline_id(self):
         """Gets the pipeline_id of this V2beta1PipelineVersionReference.  # noqa: E501
 
-        Input. Required. Unique ID of the parent pipeline.  # noqa: E501
+        Input. Unique ID of the parent pipeline. Required unless pipeline_name is set.  # noqa: E501
 
         :return: The pipeline_id of this V2beta1PipelineVersionReference.  # noqa: E501
         :rtype: str
@@ -72,7 +82,7 @@ class V2beta1PipelineVersionReference(object):
     def pipeline_id(self, pipeline_id):
         """Sets the pipeline_id of this V2beta1PipelineVersionReference.
 
-        Input. Required. Unique ID of the parent pipeline.  # noqa: E501
+        Input. Unique ID of the parent pipeline. Required unless pipeline_name is set.  # noqa: E501
 
         :param pipeline_id: The pipeline_id of this V2beta1PipelineVersionReference.  # noqa: E501
         :type pipeline_id: str
@@ -102,6 +112,52 @@ class V2beta1PipelineVersionReference(object):
         """
 
         self._pipeline_version_id = pipeline_version_id
+
+    @property
+    def pipeline_name(self):
+        """Gets the pipeline_name of this V2beta1PipelineVersionReference.  # noqa: E501
+
+        Input. Optional. Name of the parent pipeline in the run's namespace, used instead of pipeline_id. Not returned in responses.  # noqa: E501
+
+        :return: The pipeline_name of this V2beta1PipelineVersionReference.  # noqa: E501
+        :rtype: str
+        """
+        return self._pipeline_name
+
+    @pipeline_name.setter
+    def pipeline_name(self, pipeline_name):
+        """Sets the pipeline_name of this V2beta1PipelineVersionReference.
+
+        Input. Optional. Name of the parent pipeline in the run's namespace, used instead of pipeline_id. Not returned in responses.  # noqa: E501
+
+        :param pipeline_name: The pipeline_name of this V2beta1PipelineVersionReference.  # noqa: E501
+        :type pipeline_name: str
+        """
+
+        self._pipeline_name = pipeline_name
+
+    @property
+    def pipeline_version_name(self):
+        """Gets the pipeline_version_name of this V2beta1PipelineVersionReference.  # noqa: E501
+
+        Input. Optional. Name of a version of the pipeline named by pipeline_name, used instead of pipeline_version_id. Not returned in responses.  # noqa: E501
+
+        :return: The pipeline_version_name of this V2beta1PipelineVersionReference.  # noqa: E501
+        :rtype: str
+        """
+        return self._pipeline_version_name
+
+    @pipeline_version_name.setter
+    def pipeline_version_name(self, pipeline_version_name):
+        """Sets the pipeline_version_name of this V2beta1PipelineVersionReference.
+
+        Input. Optional. Name of a version of the pipeline named by pipeline_name, used instead of pipeline_version_id. Not returned in responses.  # noqa: E501
+
+        :param pipeline_version_name: The pipeline_version_name of this V2beta1PipelineVersionReference.  # noqa: E501
+        :type pipeline_version_name: str
+        """
+
+        self._pipeline_version_name = pipeline_version_name
 
     def to_dict(self):
         """Returns the model properties as a dict"""
