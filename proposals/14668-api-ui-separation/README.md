@@ -7,6 +7,8 @@
   on its own compatibility and isolation evidence.
 - **Source baseline:** [commit `8a79799a2`](https://github.com/kubeflow/pipelines/commit/8a79799a2f54a678b7535eb4697dfc6812a4bb66).
   Boundary implementation rechecked on November 11 against [commit `b5e247523`](https://github.com/kubeflow/pipelines/commit/b5e247523201027c2c0b05c3260f53bd0c89008b); intervening changes do not deliver these migrations.
+  The November 18 review checked the task and transfer contracts, frontend proxy behavior and
+  viewer migration gaps against [`main` at `7780f12ac`](https://github.com/kubeflow/pipelines/commit/7780f12acfbde9f16169c7fcbfdfb6c3ef5432ea).
 
 ## Contents
 
@@ -188,6 +190,12 @@ permissions. Check current permissions on every operation, including page contin
 downloads and viewer session opens; opaque handles do not confer authorization by themselves.
 Backend resource resolution remains behind engine-neutral interfaces.
 
+For caller-specific capabilities, content, logs, diagnostics, events and viewers, including
+resolve, session-open and error responses, send `Cache-Control: private, no-store`. Apply it at the serving handler and
+preserve it through UI adapters and ingress. The [artifact proxy](../../frontend/server/handlers/artifacts.ts)
+rebuilds response headers from an allowlist, and the [existing log handler](../../backend/src/apiserver/server/run_log_server.go)
+already marks log responses private. Verify the effective header at the browser-facing route.
+
 #### Caller permissions
 
 The shipped
@@ -298,7 +306,7 @@ envelopes on compatibility routes.
 | Missing authentication | `UNAUTHENTICATED` / 401 | `AUTHENTICATION_REQUIRED` |
 | Authenticated caller denied | `PERMISSION_DENIED` / 403 | `ACCESS_DENIED` |
 | Authorized resource lookup absent | `NOT_FOUND` / 404 | `RESOURCE_NOT_FOUND` |
-| Expired cursor/reference, required configuration unavailable | `FAILED_PRECONDITION` / 400 | `CURSOR_EXPIRED`, `CONTENT_REFERENCE_EXPIRED`, `CONFIGURATION_REQUIRED`. KEP-14032 reserves `SNAPSHOT_EXPIRED` and `CHANGE_CURSOR_EXPIRED` for its unary pagination APIs. |
+| Expired cursor/reference, required configuration unavailable | `FAILED_PRECONDITION` / 400 | `CURSOR_EXPIRED`, `CONTENT_REFERENCE_EXPIRED`, `CONFIGURATION_REQUIRED`. KEP-14032 defines `SNAPSHOT_EXPIRED`, `CHANGE_CURSOR_EXPIRED` and per-run `SNAPSHOT_NOT_READY`. |
 | Optimistic update/retry conflict | `ABORTED` / 409 | `REVISION_CONFLICT` |
 | Quota exceeded | `RESOURCE_EXHAUSTED` / 429 | `READ_LIMIT_EXCEEDED` |
 | Unsupported operation | `UNIMPLEMENTED` / 501 | `CAPABILITY_UNSUPPORTED` |
@@ -470,8 +478,12 @@ The byte and absolute time limits both apply. Reaching 20 GiB of raw bytes in 30
 requires about 11.4 MiB/s sustained. The archive gets the same 30 minutes for 10 GiB of source
 bytes (about 5.7 MiB/s before object opens, encoding and downstream backpressure). Its byte
 limit measures input before compression. A slower transfer can reach its deadline first.
-Treat it as incomplete after headers. Raw clients can resume with a supported range and an
-unchanged object validator. Incomplete archives must be requested again.
+Treat it as incomplete after headers. For raw reads, authorize before evaluating conditional
+or range headers, including responses with status 304, 206 or 416. To resume, request a range
+with `If-Range` using a strong ETag for the same byte representation. Append only a matching
+206 response whose `Content-Range` starts at the expected offset. When the representation
+changes, discard the partial copy before consuming a fresh 200 response. If the provider
+cannot supply a strong validator, restart at byte zero. Request incomplete archives again.
 
 Previews and listings use the short-read pool even while two raw downloads are active. Apply
 principal and namespace limits across replicas and the instance limit locally. When a pool is
@@ -768,8 +780,16 @@ paths/origins/cookies, and validates current caller and source grants. Use a rev
 exchange or narrowly scoped HttpOnly viewer cookies; never send broad UI/API cookies, service
 DNS or unrestricted query-string bearer tokens to the viewer.
 
-Source revocation closes access even when TensorBoard cached data. Recheck grants within the
-bounded lease below and close affected sessions/WebSockets on revocation or expiry. Viewer
+Bind each runtime and session to one immutable viewer revision containing its profile and exact
+authorized source set. A change to the configured sources or profile retires that revision,
+rejects new opens on it and closes its HTTP/WebSocket sessions within the revocation bound.
+Publish the replacement only after a clean runtime can serve it without the old cache. A
+partial experiment view may use a separately initialized runtime for the exact approved
+subset. If that isolation is unavailable, report the unavailable inputs and decline to open.
+
+On each open and lease renewal, check the revision and the caller's current viewer and source
+permissions. An individual caller losing access closes that caller's sessions within the same
+bound. Revoking a backing source for the runtime retires the affected revision. Viewer
 lifetime is separate from session lifetime. Signing keys, the separate initialization Job and
 its image/RBAC references move to the backend viewer deployment; coordinate the adoption policy
 with [#14391](https://github.com/kubeflow/pipelines/issues/14391). The UI never fetches those
@@ -793,7 +813,7 @@ activation.
 | Event window | Last hour by default; maximum requested lookback 24 hours. Report actual retained coverage rather than promising that retention. |
 | Viewer lifetime | Eight hours by default; maximum 24 hours. Renewal requires current authorization. |
 | Viewer session | 15 minutes by default; maximum one hour, bounded by viewer expiry. |
-| Viewer revocation | Recheck source grants at most every 30 seconds; close affected sessions/WebSockets within 60 seconds of revocation, including failure to renew a lease. |
+| Viewer revocation | Check the viewer revision, caller permissions and source grants at least every 30 seconds. Close affected sessions and WebSockets within 60 seconds of a change or revocation, including when renewal fails. |
 
 Retain cancellation, long-line/slow-reader, quota, mixed-history and revocation tests alongside
 these settings. Any limit-induced truncation or unsupported selector must be visible to clients.
@@ -816,7 +836,10 @@ infrastructure separation or requires the other.
 Add `GET /server_info` for backend build/API versions, multi-user mode, pipeline-store kind and
 supported feature versions. Add `GET /capabilities?namespace=...` for caller-authorized
 operations, limits, viewer profiles and unavailable-feature reasons. Capabilities guide
-presentation; every operation still authorizes independently. Preserve health probes separately.
+presentation. Each operation authorizes independently. If `task_snapshots.v1` is installed,
+advertise its namespace support and limits here. The first authorized summary read reports
+per-run readiness under [KEP-14032](https://github.com/kubeflow/pipelines/pull/15774).
+Preserve health probes separately.
 Optional cluster/project display metadata is backend-configured and omitted when unsupported,
 replacing UI GKE metadata calls. UI asset version, base path and navigation preferences remain
 static configuration; artifact-volume `getHostPod` discovery belongs to the content service.
@@ -1066,6 +1089,10 @@ a baseline to preserve.
   response. Read a log larger than 10 MiB with and without a tail, then with a full backlog
   and follow enabled. Race previews and two downloads across replicas and verify that each
   pool admits up to its own limit. Exercise slow raw/archive reads at their absolute deadlines.
+- Through the UI adapter and a shared caching proxy, request the same protected URL as two
+  principals and after a grant is revoked. Verify no cached response, 304, size or bytes
+  reach the denied caller. Interrupt a raw read, replace the object, then resume and verify
+  the client discards the partial copy. Test a provider with no strong validator.
 - Test real S3-compatible stores and supported provider fixtures; keep live
   interoperability evidence separate from mocked cloud coverage. Include GCS,
   approved HTTP redirects, archives, supported isolated volumes, and central
@@ -1080,6 +1107,10 @@ a baseline to preserve.
   use, artifact/experiment viewers without runs, namespace recreation, and
   signing-key rollout/key-loss recovery. Preserve authorized customization through
   approved profiles and explicitly document unsupported legacy options.
+- Open a viewer on two sources, remove one and change profiles while HTTP and WebSocket
+  sessions are active. Check the old session expires within 60 seconds and a successful
+  replacement serves only the allowed sources from a clean runtime. Revoke just one caller
+  and verify other authorized sessions on an unchanged revision still work.
 
 ### End-to-end and scale tests
 
