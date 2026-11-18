@@ -475,6 +475,10 @@ class PythonPackagingTest(unittest.TestCase):
                 api.mkdir(parents=True)
                 generator = api / 'build_kfp_server_api_python_package.sh'
                 shutil.copy(ROOT / 'backend/api' / generator.name, generator)
+                shutil.copy(
+                    ROOT / 'backend/api/download_openapi_generator.sh',
+                    api / 'download_openapi_generator.sh',
+                )
                 (api / 'hack').mkdir()
                 shutil.copy(
                     ROOT / 'backend/api/hack/generate_python_compat.py',
@@ -501,7 +505,12 @@ class PythonPackagingTest(unittest.TestCase):
                 fake_bin = root / 'bin'
                 fake_bin.mkdir()
                 curl = fake_bin / 'curl'
-                curl.write_text('#!/bin/sh\nexit 0\n')
+                curl.write_text(
+                    f'#!{sys.executable}\n'
+                    'from pathlib import Path\n'
+                    'import sys\n'
+                    "Path(sys.argv[sys.argv.index('--output') + 1]).write_bytes(b'fake jar')\n"
+                )
                 curl.chmod(0o755)
                 java = fake_bin / 'java'
                 java.write_text(
@@ -538,6 +547,7 @@ class PythonPackagingTest(unittest.TestCase):
                         **os.environ,
                         'PATH': f'{fake_bin}{os.pathsep}{os.environ["PATH"]}',
                         'API_VERSION': api_version,
+                        'TMPDIR': str(root),
                     },
                     capture_output=True,
                     text=True,

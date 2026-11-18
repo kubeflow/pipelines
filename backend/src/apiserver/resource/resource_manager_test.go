@@ -6462,6 +6462,9 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 			UID:       types.UID(job.UUID),
 		},
 	})
+	// Reports represent an existing live CR, including direct spec edits.
+	_, updateErr := manager.getScheduledWorkflowClient(swf.Namespace).Update(context.Background(), swf.ScheduledWorkflow)
+	require.NoError(t, updateErr)
 	err := manager.ReportScheduledWorkflowResource(swf)
 	assert.Nil(t, err)
 
@@ -6521,6 +6524,9 @@ func TestReportScheduledWorkflowResource_Success_withParamsV1(t *testing.T) {
 			},
 		},
 	})
+	// Reports represent an existing live CR, including direct spec edits.
+	_, updateErr := manager.getScheduledWorkflowClient(swf.Namespace).Update(context.Background(), swf.ScheduledWorkflow)
+	require.NoError(t, updateErr)
 	err := manager.ReportScheduledWorkflowResource(swf)
 	assert.Nil(t, err)
 
@@ -6581,6 +6587,9 @@ func TestReportScheduledWorkflowResource_Success_withRuntimeParamsV2(t *testing.
 			},
 		},
 	})
+	// Reports represent an existing live CR, including direct spec edits.
+	_, updateErr := manager.getScheduledWorkflowClient(swf.Namespace).Update(context.Background(), swf.ScheduledWorkflow)
+	require.NoError(t, updateErr)
 	err := manager.ReportScheduledWorkflowResource(swf)
 	assert.Nil(t, err)
 
