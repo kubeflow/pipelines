@@ -79,8 +79,9 @@ describe('MD2Tabs', () => {
       const { left, width } = labelBounds[selectedTab];
       const indicatorLeft = parseFloat(indicator.style.left);
       const indicatorWidth = parseFloat(indicator.style.width);
-      expect(indicatorWidth).toBe(width + 5);
-      expect(indicatorLeft + indicatorWidth / 2).toBe(left - 220 + width / 2);
+      // CSS serialization rounds subpixel values; retain sub-millipixel accuracy.
+      expect(indicatorWidth).toBeCloseTo(width + 5, 3);
+      expect(indicatorLeft + indicatorWidth / 2).toBeCloseTo(left - 220 + width / 2, 3);
     });
   });
 

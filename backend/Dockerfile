@@ -95,7 +95,8 @@ ENV LOG_LEVEL=info
 WORKDIR /bin
 
 # Adding CA certificate so API server can download pipeline through URL and wget is used for liveness/readiness probe command
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates wget \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates wget zlib1g \
+    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' zlib1g)" ge '1:1.3.dfsg+really1.3.1-1+deb13u1' \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/src/apiserver/config/ /config

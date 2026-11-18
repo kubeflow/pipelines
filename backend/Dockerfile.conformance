@@ -46,6 +46,9 @@ RUN tar -czvf /test.tar.gz /test
 
 FROM alpine:3.21
 
+# Refresh the runtime library even when the base tag still contains an older package.
+RUN apk add --no-cache 'zlib>=1.4-r0'
+
 COPY --from=builder /test.tar.gz /
 RUN tar -xzvf /test.tar.gz
 WORKDIR /test/integration
