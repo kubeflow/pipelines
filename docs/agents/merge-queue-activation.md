@@ -184,8 +184,13 @@ producers and consumers.
 Recovery is scheduled every five minutes to revisit admission, discover newly
 created or rebuilt candidates, dispatch missing lanes, and reconcile candidate
 statuses even when events are missed. GitHub can delay scheduled workflows; this
-is not a five-minute latency guarantee. Before each dispatch, the controller
-writes a per-candidate/workflow commit-status receipt. It waits at least 120
+is not a five-minute latency guarantee. The controller processes up to four
+workflows per candidate at a time. It validates the candidate, base, and queue
+policy once before writing the batch’s per-workflow reservation statuses, waits
+for all writes to settle, then validates again before dispatching the reserved
+workflows. A replacement detected at that boundary stops the batch and all
+later batches for that candidate. Each subsequent batch reads a fresh snapshot.
+The controller waits at least 120
 seconds for run registration before retrying a missing run, with a maximum of
 three dispatch attempts. These receipts are not passing CI evidence. Registered
 failed or cancelled runs are never automatically retried; use an intentional

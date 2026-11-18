@@ -107,6 +107,8 @@ const f = {json.dumps(fixture)};
 const gate = require({json.dumps(str(MODULE))});
 const writes = [], dispatches = [], requests = [], inventoryRequests = [], operations = [];
 const counts = new Map();
+const summaries = [];
+let candidateReplaced = false;
 let activeDispatches = 0, peakDispatches = 0, completedDispatches = 0;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 function graphqlPR(pr) {{
@@ -156,6 +158,12 @@ const github = {{rest: {{
   }}, listCommitStatusesForRef:'statuses', createCommitStatus:async options => {{
     writes.push(options); operations.push({{route:'status',options}});
     if (f.statusWriteError || options.context === f.statusWriteErrorContext) throw new Error('Status write failed');
+    if (f.replaceOnReservation === options.context) {{
+      // Complete this reservation after the others have resolved, reproducing
+      // a ref replacement before the batch can issue its dispatch requests.
+      await new Promise(resolve => setImmediate(resolve));
+      candidateReplaced = true;
+    }}
     if (f.statusWriteDelayMs) await delay(f.statusWriteDelayMs);
     return {{data:{{...options,created_at:{json.dumps(NOW)}}}}};
   }}}},
@@ -205,7 +213,7 @@ const github = {{rest: {{
       return oid === null ? null : {{target:{{__typename:'Commit',oid}}}};
     }}
     repository.defaultBranchRef = {{name:next('defaultBranch', f.defaultBranches || [f.defaultBranch || f.branch])}};
-    repository.candidateRef = refValue(variables.candidate.slice(5));
+    repository.candidateRef = candidateReplaced ? {{target:{{__typename:'Commit',oid:{json.dumps(OTHER)}}}}} : refValue(variables.candidate.slice(5));
     repository.baseRef = refValue(variables.base.slice(5));
     for (const item of repository.mergeQueue.entries.nodes) {{
       const number = item.pullRequest.number;
@@ -240,14 +248,16 @@ const loadInventory = async options => {{
   if (f.inventoryError) throw new Error('Inventory unavailable');
   return {{inventory:f.inventory,workflowFiles:f.workflowFiles}};
 }};
-const core = {{info:()=>{{}},warning:()=>{{}},error:()=>{{}}}};
+const core = {{info:message=>{{
+  if (message.startsWith('{{')) summaries.push(JSON.parse(message));
+}},warning:()=>{{}},error:()=>{{}}}};
 const workspaceRoot = {json.dumps(str(root))};
 process.env.GITHUB_WORKSPACE = f.omitRoot ? workspaceRoot : workspaceRoot + '/unused';
 gate[f.method]({{github, context:{{eventName:f.eventName || 'schedule',payload:f.payload || {{}},repo:{{owner:'owner',repo:'repo'}},runId:123}},
   workflowPaths:new Set(f.workflowFiles.map(file=>file.path)), group:f.group, ...(f.omitRoot ? {{}} : {{root:workspaceRoot}}), core, loadInventory,
   now:()=>Date.parse({json.dumps(NOW)})}})
-.then(result=>console.log(JSON.stringify({{result,workspaceRoot,writes,dispatches,requests,inventoryRequests,operations,activeDispatches,peakDispatches,completedDispatches}})))
-.catch(error=>console.log(JSON.stringify({{error:error.message,workspaceRoot,writes,dispatches,requests,inventoryRequests,operations,activeDispatches,peakDispatches,completedDispatches}})));
+.then(result=>console.log(JSON.stringify({{result,workspaceRoot,summaries,writes,dispatches,requests,inventoryRequests,operations,activeDispatches,peakDispatches,completedDispatches}})))
+.catch(error=>console.log(JSON.stringify({{error:error.message,workspaceRoot,summaries,writes,dispatches,requests,inventoryRequests,operations,activeDispatches,peakDispatches,completedDispatches}})));
 """
         completed = subprocess.run(
             ['node'], input=script, text=True, capture_output=True, check=True
@@ -674,14 +684,46 @@ class QueueDispatchTest(unittest.TestCase):
         self.assertNotIn('error', result)
         self.assertEqual(len(result['dispatches']), 32)
         routes = [request['route'] for request in result['requests']]
-        # Initial validation plus both checks around each dispatch reservation.
+        # Initial validation plus two fresh snapshots for each four-lane batch.
         # Each fresh boundary is one GraphQL snapshot plus active-rules REST;
         # native/dispatched workflow and status discovery add three reads.
-        self.assertEqual(len(result['requests']), 133)
-        self.assertEqual(routes.count('dispatchSnapshot'), 65)
+        self.assertEqual(len(result['requests']), 37)
+        self.assertEqual(routes.count('dispatchSnapshot'), 17)
         self.assertEqual(routes.count('queue'), 0)
         self.assertEqual(routes.count('policies'), 0)
         self.assertEqual(routes.count('pr'), 0)
+        self.assert_candidate_counts(result, 17, 32, 32)
+
+    def assert_candidate_counts(
+        self, result, validations, reservations, dispatches
+    ):
+        summaries = [
+            row
+            for row in result['summaries']
+            if row.get('event') == 'queue_candidate_dispatch'
+        ]
+        self.assertEqual(len(summaries), 1, summaries)
+        summary = summaries[0]
+        self.assertEqual(summary['candidate'], HEAD)
+        self.assertEqual(summary['validations'], validations)
+        self.assertEqual(summary['reservations'], reservations)
+        self.assertEqual(summary['dispatches'], dispatches)
+
+    def test_replaced_candidate_during_batch_reservation_gets_zero_dispatches(
+        self,
+    ):
+        result = dispatch(
+            lanes=[
+                lane(path=f'.github/workflows/lane-{i}.yml') for i in range(8)
+            ],
+            replaceOnReservation='ci-queue-dispatch/lane-3.yml',
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(len(result['writes']), 4)
+        self.assertEqual(
+            [call['workflow_id'] for call in result['dispatches']], []
+        )
+        self.assert_candidate_counts(result, 3, 4, 0)
 
     def test_missing_workflows_use_bounded_parallel_dispatch(self):
         result = dispatch(
@@ -708,6 +750,7 @@ class QueueDispatchTest(unittest.TestCase):
         self.assertIn('Status write failed', result['error'])
         self.assertEqual(len(result['writes']), 4)
         self.assertEqual(len(result['dispatches']), 3)
+        self.assert_candidate_counts(result, 3, 4, 3)
         self.assertEqual(result['completedDispatches'], 3)
         self.assertEqual(result['activeDispatches'], 0)
         self.assertFalse(
@@ -715,6 +758,18 @@ class QueueDispatchTest(unittest.TestCase):
                 'lane-4' in call['workflow_id'] for call in result['dispatches']
             )
         )
+
+    def test_invalid_receipt_preserves_valid_sibling_dispatch(self):
+        result = dispatch(
+            lanes=[lane(), lane(path='.github/workflows/other.yml')],
+            statuses=[reservation(state='error')],
+        )
+        self.assertIn('Invalid queue dispatch reservation', result['error'])
+        self.assertEqual(
+            [call['workflow_id'] for call in result['dispatches']],
+            ['other.yml'],
+        )
+        self.assert_candidate_counts(result, 3, 1, 1)
 
     def test_hold_after_parallel_reservations_stops_later_batches(self):
         result = dispatch(
@@ -869,6 +924,7 @@ class QueueDispatchTest(unittest.TestCase):
         result = dispatch(dispatchError=True)
         self.assertIn('error', result)
         self.assertEqual(len(result['dispatches']), 1, result)
+        self.assert_candidate_counts(result, 3, 1, 1)
         self.assertTrue(
             any(
                 write['context'] == 'ci-queue-dispatch/frontend.yml'

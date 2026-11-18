@@ -163,7 +163,7 @@ function queueFingerprint(entries, policies, context, group) {
 }
 
 // Read all mutable dispatch identities together at each validation boundary.
-// No snapshot is reused between reservations or workflow dispatches.
+// Each dispatch batch reads a fresh snapshot before and after its reservations.
 async function inspectDispatchSnapshot({github, context, group, root}) {
   const configured = loadPolicy(root).enabled_branches;
   if (!QUEUE_BRANCHES.includes(group.baseRef) ||
