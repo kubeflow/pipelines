@@ -162,31 +162,33 @@ def replace_python_executable(
 
     for i, el in enumerate(full_command):
         is_shell_command = (
-            '"$program_path/ephemeral_component.py"' in el
-            and '"$@"' in el
+            '"$program_path/ephemeral_component.py"' in el and '"$@"' in el
         )
-        next_is_python_command = (
-            i + 1 < len(full_command)
-            and full_command[i + 1].startswith("python3 ")
-        )
+        next_is_python_command = i + 1 < len(full_command) and full_command[
+            i + 1
+        ].startswith('python3 ')
 
-        if user_code_index is None and is_shell_command and not next_is_python_command:
+        if (
+            user_code_index is None
+            and is_shell_command
+            and not next_is_python_command
+        ):
             user_code_index = i + 1
 
         is_command_string = (
-            el.startswith("python3 ")
-            or el.startswith(("bash -c ", "bash -ec ", "sh -c ", "sh -ec "))
-            or (i > 0 and full_command[i - 1] in ("-c", "-ec"))
+            el.startswith('python3 ')
+            or el.startswith(('bash -c ', 'bash -ec ', 'sh -c ', 'sh -ec '))
+            or (i > 0 and full_command[i - 1] in ('-c', '-ec'))
         )
 
         if i != user_code_index and is_command_string:
-            if el.startswith("python3 "):
+            if el.startswith('python3 '):
                 new_full_command.append(
-                    f"{new_executable}{el[len('python3'):]}"
+                    f'{new_executable}{el[len("python3") :]}'
                 )
             else:
                 new_full_command.append(
-                    el.replace("python3 -m ", f"{new_executable} -m ", 1)
+                    el.replace('python3 -m ', f'{new_executable} -m ')
                 )
         else:
             new_full_command.append(el)
