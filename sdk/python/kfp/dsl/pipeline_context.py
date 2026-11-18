@@ -15,7 +15,7 @@
 
 import functools
 import os
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 from kfp.dsl import (
     component_factory,
@@ -189,13 +189,15 @@ class Pipeline:
         # Technically this could be delayed to the compilation stage, but string
         # serialization of PipelineChannels make unsanitized names problematic.
         task_name = utils.maybe_rename_for_k8s(task.component_spec.name)
-        # If there is an existing task with this name then generate a new name.
+        # Tasks and groups share one namespace because the compiler keys both
+        # by name, so the new name must not match an existing task or group.
+        used_names = list(self.tasks.keys()) + self.get_group_names()
         task_name = utils.make_name_unique_by_adding_index(
-            task_name, list(self.tasks.keys()), '-'
+            task_name, used_names, '-'
         )
         if task_name == '':
             task_name = utils.make_name_unique_by_adding_index(
-                'task', list(self.tasks.keys()), '-'
+                'task', used_names, '-'
             )
 
         self.tasks[task_name] = task
@@ -236,6 +238,17 @@ class Pipeline:
         """
         for group in self.groups:
             group.remove_task_recursive(task)
+
+    def get_group_names(self) -> List[str]:
+        """Gets the names of all groups in the pipeline, excluding the root
+        group."""
+        names = []
+        groups = list(self.groups[0].groups)
+        while groups:
+            group = groups.pop()
+            names.append(group.name)
+            groups.extend(group.groups)
+        return names
 
     def get_next_group_id(self) -> str:
         """Gets the next id for a new group."""
