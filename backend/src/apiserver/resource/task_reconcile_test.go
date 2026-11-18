@@ -430,6 +430,45 @@ func TestReportWorkflowResource_ReconcilesTaskWithNoRegisteredPod(t *testing.T) 
 	assert.Equal(t, "main: OOMKilled (exit code 137)", meta.GetMessage())
 }
 
+// An aged-out retry claim whose workflow was never applied leaves the reset tasks RUNNING with no
+// pod. The old terminal report is accepted as current evidence, so those tasks must still move to
+// FAILED instead of being skipped as stale.
+func TestReportWorkflowResource_ReconcilesTaskAfterAbandonedRetryClaim(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	failed := reconcileTestWorkflow(run.K8SName, run.UUID, nil)
+	failed.Status.Phase = v1alpha1.WorkflowFailed
+	syncWorkflowReportWithFakeCluster(t, store, failed)
+	_, err := manager.ReportWorkflowResource(context.Background(), failed)
+	require.NoError(t, err)
+
+	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
+	require.NoError(t, claimErr)
+	require.Equal(t, int64(1), claimGeneration)
+	_, err = store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, run.UUID)
+	require.NoError(t, err)
+
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1", RunUUID: run.UUID, Name: "oom", DisplayName: "oom",
+		Type: model.TaskType(apiv2.PipelineTask_RUNTIME), State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-oom-abandoned", Pods: model.JSONSlice{}, TypeAttrs: model.JSONData{},
+		StateHistory: model.JSONSlice{}, InputParameters: model.JSONSlice{}, OutputParameters: model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	report := reconcileTestWorkflow(run.K8SName, run.UUID, unregisteredOomWorkflowNodes())
+	report.Status.Phase = v1alpha1.WorkflowFailed
+	syncWorkflowReportWithFakeCluster(t, store, report)
+	_, err = manager.ReportWorkflowResource(context.Background(), report)
+	require.NoError(t, err)
+
+	got, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), got.State,
+		"a task reset by an abandoned retry claim must still be reconciled from the accepted report")
+}
+
 // TestReconcileTaskFailure_NodeRecoveryDoesNotOverwriteARegisteredAttempt locks in the new
 // RequireNoExecutorPod guard: the evidence is read from a stale "no pod yet" snapshot, but by the
 // time the guarded write runs, the launcher's delayed registration (or a retry) has recorded a
