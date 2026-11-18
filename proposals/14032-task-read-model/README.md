@@ -11,13 +11,15 @@
   [`8a79799a2`](https://github.com/kubeflow/pipelines/commit/8a79799a2f54a678b7535eb4697dfc6812a4bb66),
   with the boundary implementation rechecked on November 11 against
   [`b5e247523`](https://github.com/kubeflow/pipelines/commit/b5e247523201027c2c0b05c3260f53bd0c89008b).
-  These are historical source references, not claims that the proposed APIs exist.
+  The November 18 review verified task read authorization, child loading and the current
+  proto bindings on [`main` at `7780f12ac`](https://github.com/kubeflow/pipelines/commit/7780f12acfbde9f16169c7fcbfdfb6c3ef5432ea).
 
 ## Contents
 
 - [Summary](#summary)
 - [Motivation](#motivation)
 - [Proposal](#proposal)
+  - [Risks and mitigations](#risks-and-mitigations)
 - [Design Details](#design-details)
   - [Existing APIs and compatibility](#existing-apis-and-compatibility)
   - [Summary and change APIs](#proposed-summary-and-change-apis)
@@ -83,6 +85,14 @@ as canonical mutations, bootstrap existing runs without blocking their writers,
 then adopt the APIs in shared frontend queries after qualification. Keep accepted
 attempt identity and standalone correctness fixes independently deliverable.
 
+### Risks and mitigations
+
+A busy run can serialize writers on its revision lock. Measure write latency and lock waits
+during capture and bootstrap before enabling the capability. A missed writer or a restored
+database can create a gap in history. Retire that capture epoch and rebuild the baseline
+before serving new pages. A stale browser response can expose data after a scope change.
+Partition caches by authorization scope and discard pending responses when that scope ends.
+
 ## Design Details
 
 ### Existing APIs and compatibility
@@ -122,11 +132,16 @@ A task summary contains task/run IDs, name/display name, parent/scope/iteration,
 task type/state, timestamps, a bounded diagnostic summary, current executor
 references, I/O-presence markers, `task_revision`, and execution-attempt identity.
 It excludes parameter values, artifact metadata, pipeline specifications, and
-full state history. `GetTask` continues serving selected-task details and gains
-an output-only `task_revision`. Detail reads return a transactionally consistent
-current record, explicitly not historical snapshot I/O; clients must not silently
-splice newer detail fields into an older graph snapshot. This proposal does not
-claim that a full `GetTask` response is a bounded summary.
+full state history. At revision R, `run_summary` supplies the run ID, execution
+state, accepted attempt ID when known, and task-finalization state. Changes to
+these fields produce a run-summary record even when no task changes.
+
+`GetTask` gains an output-only `task_revision` covering its full current
+response. Today the [task store hydrates artifact relationships](https://github.com/kubeflow/pipelines/blob/c1ff1d2658d497b189509e67c32658bc2c3cfa89/backend/src/apiserver/storage/task_store.go#L926-L954)
+and the [handler separately loads child tasks](https://github.com/kubeflow/pipelines/blob/c1ff1d2658d497b189509e67c32658bc2c3cfa89/backend/src/apiserver/server/run_server.go#L676-L696).
+Read the task, hydrated I/O, child list and revision in one short consistent
+transaction for the revisioned response. A selected detail can be newer than the
+graph. Label it as current and refresh the graph through its change API.
 
 #### Snapshot pagination
 
@@ -139,18 +154,25 @@ Proposed initial limits are 500 rows and 1 MiB per response, with 15-minute curs
 validity; benchmarks must validate defaults before approval. Individual summary
 fields are bounded, and diagnostic truncation is explicit, so a single row cannot
 cause a zero-progress page loop. Row/byte limits apply to both summary and change
-pages. All cursors/page tokens are opaque, integrity-protected, and bound to the
-run, caller scope, projection version, ordering, revision bounds, expiry, and
-last key. Authorization is rechecked on every request; possession of a token
-grants nothing.
+pages. Bind opaque, integrity-protected tokens to the run, authenticated caller
+and namespace scope, capture epoch, projection version, ordering, revision
+bounds, expiry and last key. Every request, including continuations, uses the
+existing `GetTask`/`ListTasks` run access check. In multi-user mode this requires
+`pipelines.kubeflow.org` `runs.get` for the resolved run and namespace. Preserve
+the existing single-user behavior. Check access before disclosing readiness,
+token expiry or data. Send `Cache-Control: private, no-store` on caller-specific
+HTTP pages and errors, including through compatibility adapters. Keep the
+client's working view inside its authorized scope.
 
 #### Change pagination and replay
 
 The first change request captures a fixed upper watermark U and returns changes
 after R through U. Later pages remain at U. Changes contain complete replacement
 summaries or deletion tombstones, plus run-summary/attempt-transition records.
-Clients apply records by `(revision, ordinal)`, ignore already-applied records,
-and advance their durable cursor only after the final page. An unchanged run
+Clients stage pages in `(revision, ordinal)` order and ignore replayed records.
+Publish the completed view and its durable cursor together after the final page.
+A page break can split one transaction's records. Keep the last complete view
+visible while collecting its replacement. An unchanged run
 returns an empty page and fresh cursor. A lost response can be replayed without
 losing or duplicating visible state. Work scales with changed data, subject to
 pagination; arbitrarily large changes do not fit into one response.
@@ -162,10 +184,11 @@ summary-version table plus change journal. Every task mutation increments its
 task record revision. Mutations that affect a summary update its projection and
 journal in the same database transaction as the canonical state. These include
 task creation, pod publication, relevant relationship changes, deletion and retry
-reset.
-Full I/O-only changes also publish the new `task_revision` through the versioned
-summary projection and change journal, even when every other summary field is
-unchanged, so incremental clients invalidate stale selected-task details.
+reset. A change to hydrated I/O advances the affected task revision even if the
+other summary fields stay equal. Inserting, removing, reparenting or renaming a
+child can change a parent's returned `child_tasks`. Advance each affected
+parent's revision and emit its replacement summary in the same transaction.
+The client can then invalidate a selected parent's details.
 
 Allocate a monotonically increasing per-run revision under the run row lock,
 using one documented run-before-task lock order. Existing bulk updates remain
@@ -185,8 +208,8 @@ this design.
 History has finite age and byte/row quotas. Compaction can invalidate old cursors
 explicitly; it must never silently skip changes. Return `FAILED_PRECONDITION`
 with `google.rpc.ErrorInfo.reason=SNAPSHOT_EXPIRED` or `CHANGE_CURSOR_EXPIRED`,
-requiring a fresh snapshot while the UI retains its last successful view. Invalid
-tokens return `INVALID_ARGUMENT`; quota exhaustion returns `RESOURCE_EXHAUSTED`.
+requiring a fresh snapshot for the still-authorized caller. Invalid tokens return
+`INVALID_ARGUMENT`; quota exhaustion returns `RESOURCE_EXHAUSTED`.
 The final HTTP error mapping must preserve these machine-readable reasons.
 
 Cursor expiry and retained-history bounds are distinct: a token is usable only
@@ -248,18 +271,29 @@ restart if compaction overtakes it. Publish a completed baseline watermark and
 serve only revisions at or after it; prove that baseline gap-free before
 advertising snapshot capability.
 
-Mixed-version API replicas that bypass capture invalidate these guarantees; keep
-the feature disabled until all-writer rollout completes. Define legacy-runtime
-attempt handling with #15516/#14322 instead of assuming an omitted epoch is safe.
+Capture has a persistent epoch identifying one uninterrupted history. It is
+independent of the accepted execution attempt. Disabling public snapshot reads
+can preserve the epoch if every writer continues capturing. Before admitting a
+writer that can bypass capture, mark affected baselines unavailable and retire
+that epoch. If continuity is uncertain after rollback or restore, start a fresh
+epoch, verify all writers and rebuild the affected baselines before serving.
+After recovery old tokens return the corresponding snapshot/change expiry reason
+even if numeric revisions overlap. Define legacy-runtime attempt handling with
+#15516/#14322 instead of assuming an omitted execution epoch is safe.
 New history in [#14981](https://github.com/kubeflow/pipelines/issues/14981) is not a
 blanket prerequisite for this contract or basic backend log access.
 
 Use an independent, operator-controlled capability, provisionally
-`task_snapshots.v1`. Publication describes actual availability, contract version,
-limits, and per-run bootstrap readiness; do not advertise that a run is readable
-before its baseline is complete. Unsupported or not-yet-bootstrapped runs retain
-current bounded polling without fabricated revision guarantees. Specify the
-readiness response and supported mixed-version window before implementation.
+`task_snapshots.v1`. The optional [namespace capability registry](https://github.com/kubeflow/pipelines/issues/15519)
+advertises support, version and limits for the caller and namespace. The first
+authorized summary read determines readiness for that run. An incomplete baseline
+returns `FAILED_PRECONDITION` with `ErrorInfo.reason=SNAPSHOT_NOT_READY` and a
+bounded retry delay. #14032 owns this response and can ship independently of the
+registry. Preserve version negotiation for older servers without the registry.
+Fall back to bounded polling on the existing task API only for a known disabled
+or unsupported feature, or explicit per-run unavailability. An ordinary run
+lookup failure follows the existing error path. Authorization failures clear the
+affected view. Review the mixed-version window before implementation.
 Disabling the optional capability may restore current task reads; it must not
 restore infrastructure credentials removed by API/UI separation.
 
@@ -282,13 +316,14 @@ this proposal does not require a 2.17 backport or promise unrestricted rollback.
 | Accepted attempts and executor identity | [#15516](https://github.com/kubeflow/pipelines/issues/15516) | Shared correctness contract; no dependency on summary storage. |
 | Lifecycle/finalization | [#14322](https://github.com/kubeflow/pipelines/issues/14322), [#14989](https://github.com/kubeflow/pipelines/issues/14989), [#15008](https://github.com/kubeflow/pipelines/pull/15008) | Coordinate the relevant snapshot invariant; do not block all lifecycle fixes on the read model. |
 
-Client caches must distinguish snapshot revision, task revision, and attempt
-identity. Preserve the last successful view during expiration/recovery, surface
-actionable unavailable/error states, and cancel obsolete work. Define how a
-selected detail record with a newer revision is displayed without silently
-changing the graph's snapshot. Shared-query changes must preserve user-controlled
-state, clear stale errors after recovery, and avoid duplicated side effects on
-remount/refetch.
+Scope client caches to principal, namespace, run and capture epoch. Distinguish
+snapshot revision, task revision and attempt. A same-scope cursor expiry or
+transient refresh failure may keep the last authorized view visible with a
+freshness indicator. Authentication or authorization failure, an identity or
+namespace switch, or confirmed run deletion clears affected graph, detail and
+cursor caches. Cancel outstanding requests and discard late responses from the
+old scope. Preserve user selection during same-scope refresh, clear stale
+errors after recovery and avoid duplicate effects on remount.
 
 ## Adjacent Read Models with Separate Decisions
 
@@ -352,8 +387,8 @@ not been measured.
 - Encode/decode tokens; reject tampering, mismatched run/caller scope, unknown
   projection versions, invalid selectors, and unsupported version combinations.
   Preserve machine-readable expiration reasons through gRPC/HTTP/client adapters.
-- Replay duplicate/lost pages and unchanged responses; advance durable cursors
-  only after the complete fixed-watermark result.
+- Split a revision across pages, drop and replay the last response, then restart
+  the client. Verify both the visible view and its durable cursor advance together.
 - Verify frontend query sharing, cancellation, refetch recovery, preserved user
   state, keyboard/focus behavior, and meaningful unavailable states.
 
@@ -362,15 +397,22 @@ not been measured.
 - Race snapshot/change pages with writes, full I/O updates, deletion, compaction,
   and retry. Cover summary expiry, change expiry, authorization revocation,
   retention pressure, run deletion, and executor publication during a component.
+- Add, remove or move a child and change hydrated artifact I/O during a detail
+  read. Check every affected parent or task receives a changed revision and each
+  returned detail matches its revision without mixing old and new fields.
 - Test manual/automatic retries independently, failed retry claims, stale-epoch
   writes, pod-name reuse with different UIDs, and explicit unavailable historical
   identity. Cover the chosen terminal sealing/reconciliation ordering.
 - Race bootstrap with creation/deletion/reset, interrupt and resume batches,
   overtake capture retention, and prove the published baseline is gap-free.
-  Show mixed-version writers cannot advertise false consistency.
+  Disable reads with capture active, then introduce an uncaptured write during a
+  rollback. Verify a rebuilt baseline includes it and rejects the old cursor
+  even when revision numbers overlap.
 - Exercise two tenants, authorized read-only and write-capable principals under
   the deployed RBAC, and unauthorized callers. Cursor possession and forged
-  identity/namespace fields must not grant access.
+  identity/namespace fields must not grant access. Revoke access or switch
+  namespace between pages and during a detail fetch. Verify the old view clears
+  and a delayed success cannot repopulate the cache.
 - Run populated MySQL/PostgreSQL upgrades with concurrent reads/writes, competing
   replicas, bounded lock contention, interruption and rollback. Capture actual
   generated DDL and latency during migration; inspect query plans and verify
@@ -429,7 +471,7 @@ applicable `OWNERS` files govern approval when implementation PRs are opened.
 | Accepted attempt identity and legacy writers | Consume #15516; coordinate retry reset, legacy epoch handling, and legal terminal/finalization writes. | [backend/OWNERS](../../backend/OWNERS). |
 | Storage, write amplification and capture | Version table/journal with per-run revision allocation; validate contention, lock order and every mutation path. | [backend/OWNERS](../../backend/OWNERS). |
 | Cursor, page and retention bounds | Provisional 500 rows, 1 MiB and 15 minutes; approve lifetime versus compaction/quota guarantees and retry behavior from tests. | [backend/OWNERS](../../backend/OWNERS), [frontend/OWNERS](../../frontend/OWNERS). |
-| Bootstrap and activation | Conditional bounded backfill plus capture; prove baseline completeness, online DDL and all-writer rollout, and define per-run readiness. | [backend/OWNERS](../../backend/OWNERS), [frontend/OWNERS](../../frontend/OWNERS), [manifests/OWNERS](../../manifests/OWNERS) for activation controls. |
+| Bootstrap and activation | Qualify conditional backfill, capture-epoch invalidation and the per-run `SNAPSHOT_NOT_READY` response with old/new clients and writers. | [backend/OWNERS](../../backend/OWNERS), [frontend/OWNERS](../../frontend/OWNERS), [manifests/OWNERS](../../manifests/OWNERS) for activation controls. |
 | Authorization and scope | Recheck existing domain read authorization on every page; approve cursor scope, revocation behavior and deployed RBAC coverage. | [backend/OWNERS](../../backend/OWNERS), [manifests/OWNERS](../../manifests/OWNERS). |
 | Compatibility and rollback | Set the supported mixed-version window and activation conditions; disable optional reads without restoring retired UI infrastructure access. | [OWNERS](../../OWNERS), [backend/OWNERS](../../backend/OWNERS), [manifests/OWNERS](../../manifests/OWNERS), with SDK/frontend compatibility review above. |
 | Separate relationship/discovery designs | #15522/#14041/#14301 retain their own schemas and acceptance; adoption of this proposal does not approve those APIs. | [backend/OWNERS](../../backend/OWNERS), [frontend/OWNERS](../../frontend/OWNERS), through each separate issue/design review. |
