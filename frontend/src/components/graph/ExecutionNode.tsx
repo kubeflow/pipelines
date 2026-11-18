@@ -55,11 +55,7 @@ function ExecutionNode({ id, data, selected }: ExecutionNodeProps) {
 
   return (
     <>
-      {/* With a lifecycle tooltip, a native title would show on top of it. */}
-      <div
-        title={data.lifecycleMessage && !data.debugPauseBarrier ? undefined : data.label}
-        className='container'
-      >
+      <div className='container'>
         <button
           aria-label={
             showWarning ? getLifecycleWarningLabel(data.label, data.lifecycleCategory) : undefined
@@ -75,7 +71,7 @@ function ExecutionNode({ id, data, selected }: ExecutionNodeProps) {
               {executionIcon}
             </div>
             <div className='px-3 py-4 w-44 h-full flex justify-center items-center'>
-              <span className='w-44 text-sm truncate' id={id}>
+              <span className='w-44 text-sm truncate' id={id} title={data.label}>
                 {data.label}
               </span>
             </div>
@@ -182,7 +178,7 @@ export function getLifecycleStatusIcon(
         <div data-testid='lifecycle-tooltip'>
           <strong>{getLifecycleCategoryLabel(category)}</strong>
           <div style={LIFECYCLE_MESSAGE_STYLE}>{message}</div>
-          <small>Select the node to see the full message.</small>
+          <small>Select the node, then Details, to see the full message.</small>
         </div>
       }
     >

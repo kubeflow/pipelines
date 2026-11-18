@@ -15,8 +15,9 @@ A task with a pod problem gets a status icon on its node in the run graph:
   shown as it came from the pod.
 
 Hover over the icon to see the category and the message. Long messages are shortened in
-the tooltip, so select the node to read the full message in the details panel. The amber or blue icon
-disappears when the problem clears or the task finishes successfully.
+the tooltip. To read the full message, select the node and then select **Details** in the
+notice that appears in the side panel. The amber or blue icon disappears when the problem clears
+or the task finishes successfully.
 
 ## What each category means
 
