@@ -28,6 +28,7 @@ from .editorial import editorial_scaffold, validate_notes
 from .generated import restore_generated_sections
 from .github_api import (
     REPO,
+    has_successful_ci_passed,
     is_pending_merge_queue_check,
     upstream_default_branch,
     wait_for_pr_merge,
@@ -617,7 +618,7 @@ def validate_release_pr(context: ReleaseContext) -> str:
                 '--repo',
                 REPO,
                 '--json',
-                'state,baseRefName,headRefName,headRefOid,mergeCommit,statusCheckRollup',
+                'state,url,baseRefName,headRefName,headRefOid,mergeCommit,statusCheckRollup',
             ],
             cwd=context.root,
         )
@@ -640,11 +641,10 @@ def validate_release_pr(context: ReleaseContext) -> str:
             'Version PR has no valid merged commit or tested head.'
         )
     checks = pr.get('statusCheckRollup') or []
-    passed = False
     for check in checks:
         # Tide reports merge-queue eligibility, not a CI result. Its pending
         # status can remain on the tested head after the PR has been merged.
-        if is_pending_merge_queue_check(check):
+        if is_pending_merge_queue_check(check, merged_pr_url=pr.get('url')):
             continue
         status = check.get('status') or check.get('state')
         result = check.get('conclusion') if status == 'COMPLETED' else status
@@ -652,10 +652,9 @@ def validate_release_pr(context: ReleaseContext) -> str:
             raise RuntimeError(
                 f'Latest version PR CI is not green: {check.get("name") or check.get("context")}'
             )
-        passed = passed or result == 'SUCCESS'
-    if not passed:
+    if not has_successful_ci_passed(checks):
         raise RuntimeError(
-            'Version PR requires successful CI on its latest head.'
+            'Version PR requires successful ci-passed status on its latest head.'
         )
     for key, value in (('version_pr_head_sha', head), ('release_sha', sha)):
         previous = context.state.answers.get(key)

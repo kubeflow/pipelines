@@ -248,42 +248,44 @@ python3.11 -m venv /tmp/kfpr-tools
 /tmp/kfpr-tools/bin/pip install /path/to/current-default-branch-checkout/release
 ```
 
-For 2.18.0, the version PR
-[#15217](https://github.com/kubeflow/pipelines/pull/15217) merged as
-`97561db87ad2b82c7dc6b8a29284c1f0ca0fd7e7`. Do not regenerate that PR or create
-a tag merely to initialize kfpr. In a clean dedicated release
-checkout, configure `upstream`, fetch the release branch and tags, then create a
-new checkpoint outside the checkout (replace the fork URL with your actual fork):
+The backend and SDK tags for 2.18.0 are already published. Its historical
+version PR [#15217](https://github.com/kubeflow/pipelines/pull/15217) has no
+`ci-passed` status. No further release action is needed for 2.18.0.
+
+For an unpublished patch release, use a clean dedicated release checkout.
+Configure `upstream`, fetch the release branch and tags, and create a checkpoint
+outside the checkout. The example below uses the final 2.18.1 candidate.
+Replace the fork URL with your fork.
 
 ```json
 {
   "answers": {
-    "release_type": "minor",
-    "version": "2.18.0",
+    "release_type": "patch",
+    "version": "2.18.1",
     "fork_remote": "https://github.com/USER/pipelines.git",
     "release_source_branch": "release-2.18",
     "include_backend": true,
     "include_sdk": true,
-    "previous_release": "2.17.3",
-    "previous_sdk_release": "sdk-2.17.3",
-    "version_pr_url": "https://github.com/kubeflow/pipelines/pull/15217"
+    "previous_release": "2.18.0",
+    "previous_sdk_release": "sdk-2.18.0",
+    "version_pr_url": "https://github.com/kubeflow/pipelines/pull/15746"
   },
   "completed_steps": ["prepare-release-branch", "update-version-tags"]
 }
 ```
 
-Save it as `/tmp/kfp-2.18.0.json`, then run from that release checkout:
+Save it as `/tmp/kfp-2.18.1.json`, then run from that release checkout:
 
 ```bash
-/tmp/kfpr-tools/bin/kfpr run preflight --state-file /tmp/kfp-2.18.0.json --done
-/tmp/kfpr-tools/bin/kfpr run merge-version-pr --state-file /tmp/kfp-2.18.0.json --done
-/tmp/kfpr-tools/bin/kfpr run qualify-release --state-file /tmp/kfp-2.18.0.json --done
+/tmp/kfpr-tools/bin/kfpr run preflight --state-file /tmp/kfp-2.18.1.json --done
+/tmp/kfpr-tools/bin/kfpr run merge-version-pr --state-file /tmp/kfp-2.18.1.json --done
+/tmp/kfpr-tools/bin/kfpr run qualify-release --state-file /tmp/kfp-2.18.1.json --done
 ```
 
 A recorded `version_pr_url` resumes CI/merge verification directly: it does not
-push or recreate a version branch, create another PR, or create a tag. A canonical
-pending Tide merge-queue status does not block CI verification; actual CI still
-has to pass. The merge
+push or recreate a version branch, create another PR, or create a tag. The release gate requires a successful `ci-passed` status. After merge, it
+ignores a pending `merge-queue-admission` status pointing to that exact PR.
+A canonical pending Tide status also represents merge eligibility. The merge
 checkpoint records the actual tested head and merge commit; do not fill those
 SHAs in by hand. Qualification is read-only. Complete the final live acceptance
 and residual-finding review before proceeding to the publication steps below.

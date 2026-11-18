@@ -40,12 +40,17 @@ class ReleaseGatesTest(unittest.TestCase):
     def pr(self, **changes):
         pr = dict(
             state='MERGED',
+            url='https://github.com/kubeflow/pipelines/pull/1',
             baseRefName='release-2.17',
             headRefName='2.17.3-update-version-tags',
             headRefOid=HEAD,
             mergeCommit={'oid': SHA},
             statusCheckRollup=[
-                {'name': 'ci', 'status': 'COMPLETED', 'conclusion': 'SUCCESS'}
+                {
+                    '__typename': 'StatusContext',
+                    'context': 'ci-passed',
+                    'state': 'SUCCESS',
+                }
             ],
         )
         pr.update(changes)
@@ -58,6 +63,47 @@ class ReleaseGatesTest(unittest.TestCase):
             self.context.state.answers['version_pr_head_sha'], HEAD
         )
         self.runner.run.assert_not_called()
+
+    def test_merged_pending_admission_requires_successful_ci_passed(self):
+        admission = {
+            '__typename': 'StatusContext',
+            'context': 'merge-queue-admission',
+            'targetUrl': self.context.state.answers['version_pr_url'],
+            'state': 'PENDING',
+        }
+        green = {
+            '__typename': 'StatusContext',
+            'context': 'ci-passed',
+            'state': 'SUCCESS',
+        }
+        self.context.state.answers['version_pr_url'] = (
+            'https://github.com/kubeflow/pipelines/pull/01'
+        )
+        self.pr(statusCheckRollup=[admission, green])
+        self.assertEqual(steps.validate_release_pr(self.context), SHA)
+        for checks in (
+            [
+                admission,
+                {
+                    'name': 'unit',
+                    'status': 'COMPLETED',
+                    'conclusion': 'SUCCESS',
+                },
+            ],
+            [admission, {**green, 'state': 'PENDING'}],
+            [admission, {**green, 'state': 'FAILURE'}],
+            [
+                {
+                    **admission,
+                    'targetUrl': 'https://github.com/kubeflow/pipelines/pull/2',
+                },
+                green,
+            ],
+            [{**admission, 'state': 'ERROR'}, green],
+        ):
+            with self.subTest(checks=checks), self.assertRaises(RuntimeError):
+                self.pr(statusCheckRollup=checks)
+                steps.validate_release_pr(self.context)
 
     def test_explicit_followup_pr_binds_its_merged_commit(self):
         self.context.state.answers = {
@@ -256,12 +302,7 @@ class ReleaseGatesTest(unittest.TestCase):
             }
         )
 
-        def capture(command, **kwargs):
-            if command[-1] == '.statusCheckRollup':
-                return json.dumps(pr['statusCheckRollup'])
-            return json.dumps(pr)
-
-        self.runner.capture.side_effect = capture
+        self.runner.capture.return_value = json.dumps(pr)
         with (
             mock.patch.object(steps, 'wait_for_pr_merge'),
             mock.patch.object(
