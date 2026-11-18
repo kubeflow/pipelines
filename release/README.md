@@ -281,9 +281,9 @@ Save it as `/tmp/kfp-2.18.0.json`, then run from that release checkout:
 ```
 
 A recorded `version_pr_url` resumes CI/merge verification directly: it does not
-push or recreate a version branch, create another PR, or create a tag. A canonical
-pending Tide merge-queue status does not block CI verification; actual CI still
-has to pass. The merge
+push or recreate a version branch, create another PR, or create a tag. The release gate requires a successful `ci-passed` status. After merge, it
+ignores a pending `merge-queue-admission` status pointing to that exact PR.
+A canonical pending Tide status also represents merge eligibility. The merge
 checkpoint records the actual tested head and merge commit; do not fill those
 SHAs in by hand. Qualification is read-only. Complete the final live acceptance
 and residual-finding review before proceeding to the publication steps below.
