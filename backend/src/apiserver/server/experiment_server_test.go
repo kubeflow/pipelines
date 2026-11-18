@@ -36,6 +36,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/testing/protocmp"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 func createExperimentServer(resourceManager *resource.ResourceManager) *ExperimentServer {
@@ -615,4 +616,51 @@ func TestGetExperiment_JsonOmitEmpty(t *testing.T) {
 	assert.Contains(t, jsonString, "display_name")
 	assert.Contains(t, jsonString, "experiment_id") // created by server
 	assert.NotContains(t, jsonString, "namespace")  // if we don't specify this it should be omitted
+}
+
+func TestCanAccessExperimentAndGet(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	server := createExperimentServer(resourceManager)
+
+	// In single-user mode, authorization is skipped and returns (nil, nil)
+	viper.Set(common.MultiUserMode, "false")
+	exp, err := server.canAccessExperimentAndGet(context.Background(), "some-id", &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	assert.Nil(t, err)
+	assert.Nil(t, exp)
+
+	// In multi-user mode
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	// Create an experiment
+	created, err := server.CreateExperiment(ctx, &apiV2.CreateExperimentRequest{
+		Experiment: &apiV2.Experiment{
+			DisplayName: "multi-user-exp",
+			Namespace:   "ns1",
+		},
+	})
+	assert.Nil(t, err)
+
+	// Authorized get returns the loaded model.Experiment without secondary query
+	resourceAttrs := &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet}
+	loadedExp, err := server.canAccessExperimentAndGet(ctx, created.ExperimentId, resourceAttrs)
+	assert.Nil(t, err)
+	assert.NotNil(t, loadedExp)
+	assert.Equal(t, created.ExperimentId, loadedExp.UUID)
+	assert.Equal(t, "multi-user-exp", loadedExp.Name)
+	assert.Equal(t, "ns1", loadedExp.Namespace)
+	assert.Equal(t, "ns1", resourceAttrs.Namespace)
+
+	// Empty experiment ID (e.g. create/list namespace check) returns (nil, nil)
+	emptyAttrs := &authorizationv1.ResourceAttributes{Namespace: "ns1", Verb: common.RbacResourceVerbGet}
+	nilExp, err := server.canAccessExperimentAndGet(ctx, "", emptyAttrs)
+	assert.Nil(t, err)
+	assert.Nil(t, nilExp)
+
+	// Non-existent experiment returns an error
+	_, err = server.canAccessExperimentAndGet(ctx, "non-existent-id", resourceAttrs)
+	assert.NotNil(t, err)
 }
