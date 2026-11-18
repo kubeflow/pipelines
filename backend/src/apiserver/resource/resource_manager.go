@@ -2484,6 +2484,7 @@ func (r *ResourceManager) reportWorkflowResource(
 	// This fence runs before the persisted-final-state deletion below so a
 	// stale snapshot can neither overwrite the row nor delete the live
 	// workflow that a retry has since resubmitted under the same name.
+	acceptedAbandonedClaim := false
 	if updateError == nil && run.RetryGeneration > 0 && execStatus.IsInFinalState() {
 		if reportedGeneration := reportedRetryGeneration(objMeta); reportedGeneration < run.RetryGeneration {
 			claimAge := r.time.Now().Unix() - run.RetryClaimedAtInSec
@@ -2518,6 +2519,7 @@ func (r *ResourceManager) reportWorkflowResource(
 			// last real state instead of staying PENDING forever.
 			glog.Warningf("Accepting terminal report with stale retry generation %d for run %s: claim (generation %d) is older than %v and provably not applied",
 				reportedGeneration, runId, run.RetryGeneration, retryClaimGracePeriod())
+			acceptedAbandonedClaim = true
 		}
 	}
 
@@ -2620,8 +2622,14 @@ func (r *ResourceManager) reportWorkflowResource(
 		// terminal-report fence above only covers a terminal report, but a non-final report can
 		// reach task failure reconciliation just the same, so this check is not limited to that
 		// case.
-		staleRetryGenerationReport := run.RetryGeneration > 0 && reportedRetryGeneration(objMeta) < run.RetryGeneration
-		if err := r.persistTaskLifecycleMessages(run.Tasks, execSpec, staleRetryGenerationReport, reportedRetryGeneration(objMeta)); err != nil {
+		reportedGeneration := reportedRetryGeneration(objMeta)
+		// An abandoned claim never applied its retry, so this report is current evidence for the
+		// tasks the retry reset. Use the live generation so they are not skipped or fenced out.
+		if acceptedAbandonedClaim {
+			reportedGeneration = run.RetryGeneration
+		}
+		staleRetryGenerationReport := run.RetryGeneration > 0 && reportedGeneration < run.RetryGeneration
+		if err := r.persistTaskLifecycleMessages(run.Tasks, execSpec, staleRetryGenerationReport, reportedGeneration); err != nil {
 			return nil, util.Wrapf(err, "Failed to persist pod lifecycle messages for run %s", run.UUID)
 		}
 	}
