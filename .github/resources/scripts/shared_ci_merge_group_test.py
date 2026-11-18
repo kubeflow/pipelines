@@ -34,7 +34,7 @@ def queue_identity(run_id=10, branch='master', event='merge_group'):
 class SharedQueueImagesTest(unittest.TestCase):
     def test_queue_images_resolve_and_verify_both_architectures(self):
         for branch, architecture, producer_event, consumer_event in product(
-            ['master', 'main'],
+            ['master', 'main', 'release-2.18'],
             ['amd64', 'arm64'],
             ['merge_group', 'workflow_dispatch'],
             ['merge_group', 'workflow_dispatch'],
@@ -190,8 +190,14 @@ class SharedQueueImagesTest(unittest.TestCase):
         with self.assertRaises(shared.InvalidEvidence):
             shared.same_source(other, source)
 
-    def test_queue_identity_rejects_cross_branch_and_release_refs(self):
-        for branch in ['master', 'main']:
+    def test_queue_identity_accepts_supported_and_rejects_cross_branch_refs(
+        self,
+    ):
+        for branch in ['master', 'main', 'release-2.18']:
+            self.assertEqual(
+                shared.validate_identity(queue_identity(branch=branch)),
+                queue_identity(branch=branch),
+            )
             for base in ['master', 'main', 'release-2.18']:
                 if branch == base:
                     continue
@@ -201,9 +207,21 @@ class SharedQueueImagesTest(unittest.TestCase):
                     with self.assertRaises(shared.InvalidEvidence):
                         shared.validate_identity(source)
         with self.assertRaises(shared.InvalidEvidence):
-            shared.validate_identity(queue_identity(branch='release-2.18'))
+            shared.validate_identity(queue_identity(branch='release-2.19'))
         with self.assertRaises(shared.InvalidEvidence):
             shared.same_source(queue_identity(), queue_identity(branch='main'))
+
+    def test_release_queue_branch_is_matched_literally(self):
+        for event in ['merge_group', 'workflow_dispatch']:
+            with self.subTest(event=event):
+                source = queue_identity(branch='release-2.18', event=event)
+                self.assertEqual(shared.validate_identity(source), source)
+                source['ref'] = source['ref'].replace(
+                    'release-2.18', 'release-2x18'
+                )
+                source['merge_group']['head_ref'] = source['ref']
+                with self.assertRaises(shared.InvalidEvidence):
+                    shared.validate_identity(source)
 
     def test_event_and_checkout_must_match_queue_identity(self):
         source = queue_identity()
@@ -256,12 +274,12 @@ class SharedQueueImagesTest(unittest.TestCase):
                 """
 const {architectures} = require('./.github/resources/scripts/shared_ci_image_plan');
 const assert = require('node:assert/strict');
-for (const branch of ['master', 'main']) {
+for (const branch of ['master', 'main', 'release-2.18']) {
   assert.deepEqual(architectures({workflows: []}, 'merge_group',
     {merge_group: {base_ref: `refs/heads/${branch}`}}, []), {amd64: true, arm64: true});
 }
 assert.throws(() => architectures({workflows: []}, 'merge_group',
-  {merge_group: {base_ref: 'refs/heads/release-2.18'}}, []));
+  {merge_group: {base_ref: 'refs/heads/release-2.19'}}, []));
 """,
             ],
             cwd=ROOT,

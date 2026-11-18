@@ -42,6 +42,7 @@ FROM node:${NODE_VERSION}-${BASE_IMAGE}
 
 RUN if command -v apk >/dev/null; then apk add --no-cache 'zlib>=1.4-r0'; \
     else apt-get update && apt-get install -y --no-install-recommends zlib1g \
+        && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' zlib1g)" ge '1:1.3.dfsg+really1.3.1-1+deb13u1' \
         && rm -rf /var/lib/apt/lists/*; fi
 
 COPY --from=build ./src/frontend/package.json /tmp/frontend-package.json

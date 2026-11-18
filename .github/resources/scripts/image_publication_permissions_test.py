@@ -32,7 +32,7 @@ def workflow(name):
 
 
 class ImagePublicationPermissionsTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.jobs = workflow('build-and-push.yml')['jobs']
 
     def build_job(self, push):
@@ -44,7 +44,9 @@ class ImagePublicationPermissionsTest(unittest.TestCase):
         self.assertEqual(len(jobs), 1)
         return jobs[0]
 
-    def test_dry_run_cannot_write_packages_attestations_or_request_oidc(self):
+    def test_dry_run_cannot_write_packages_attestations_or_request_oidc(
+        self,
+    ) -> None:
         job = self.build_job(False)
         self.assertEqual(
             job['permissions'],
@@ -68,9 +70,11 @@ class ImagePublicationPermissionsTest(unittest.TestCase):
                 or step['name'] == 'Export digest'
             ):
                 with self.subTest(step=step['name']):
+                    if step['name'] == 'Retain binary provenance':
+                        continue
                     self.assertFalse(evaluate(step['if'], context))
 
-    def test_publication_retains_digest_record_and_provenance(self):
+    def test_publication_retains_digest_record_and_provenance(self) -> None:
         job = self.build_job(True)
         self.assertEqual(
             job['permissions'],
@@ -107,7 +111,9 @@ class ImagePublicationPermissionsTest(unittest.TestCase):
             'digests-${{ inputs.app_to_build }}-${{ inputs.arch_tag }}-${{ github.run_attempt }}',
         )
 
-    def test_reusable_callers_explicitly_allow_only_the_callee_contract(self):
+    def test_reusable_callers_explicitly_allow_only_the_callee_contract(
+        self,
+    ) -> None:
         for name in ('image-builds-master.yml', 'image-builds-release.yml'):
             for job in workflow(name)['jobs'].values():
                 if 'uses' not in job:
@@ -127,7 +133,9 @@ class ImagePublicationPermissionsTest(unittest.TestCase):
                                 required[permission] = level
                     self.assertEqual(job['permissions'], required)
 
-    def test_manifest_publication_has_no_oidc_or_attestation_grant(self):
+    def test_manifest_publication_has_no_oidc_or_attestation_grant(
+        self,
+    ) -> None:
         job = workflow('create-manifest.yml')['jobs']['create-manifest']
         self.assertEqual(
             job['permissions'],
@@ -136,6 +144,27 @@ class ImagePublicationPermissionsTest(unittest.TestCase):
                 'packages': 'write',
             },
         )
+
+    def test_verified_archive_precedes_digest_handoff(self) -> None:
+        steps = self.build_job(True)['steps']
+        names = [step['name'] for step in steps]
+        self.assertLess(
+            names.index('Prepare image source context'),
+            names.index('Build and push Image'),
+        )
+        self.assertLess(
+            names.index('Verify built binary provenance'),
+            names.index('Export digest'),
+        )
+        verify = steps[names.index('Verify built binary provenance')]
+        self.assertNotIn('continue-on-error', verify)
+        self.assertIn('image-build-provenance.py" verify', verify['run'])
+        self.assertIn('image="$IMAGE_NAME@$DIGEST"', verify['run'])
+        self.assertIn(
+            'docker pull --platform "$PLATFORM" "$image"', verify['run']
+        )
+        self.assertIn('--platform "$PLATFORM"', verify['run'])
+        self.assertIn('--sha "$SOURCE_SHA"', verify['run'])
 
     def run_build(self, push, digest):
         job = self.build_job(push)
@@ -151,6 +180,12 @@ class ImagePublicationPermissionsTest(unittest.TestCase):
             },
             'env': {'IMAGE_REGISTRY': 'ghcr.io', 'IMAGE_ORG': 'kubeflow'},
             'steps': {
+                'source_context': {
+                    'outputs': {
+                        'dockerfile': 'docker files/Dockerfile',
+                        'context': 'build context',
+                    }
+                },
                 'meta': {'outputs': {'labels': 'example.name=literal value'}},
                 'frontend_node': {'outputs': {'version': '24.4.0'}},
                 'get_commit': {'outputs': {'sha': 'b' * 40}},
@@ -188,6 +223,7 @@ done
                     'BUILD_ARGUMENTS': str(arguments),
                     'BUILD_DIGEST': digest,
                     'GITHUB_OUTPUT': str(output),
+                    'RUNNER_TEMP': str(temporary),
                 }
             )
             result = subprocess.run(
@@ -205,17 +241,25 @@ done
 
     def test_actual_build_command_preserves_dry_run_and_publication_outputs(
         self,
-    ):
+    ) -> None:
         for push in (False, True):
             with self.subTest(push=push):
                 result, arguments, output = self.run_build(push, DIGEST)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn('--provenance=mode=min', arguments)
-                self.assertIn(
-                    'type=image,name=ghcr.io/kubeflow/kfp-api-server,'
-                    f'push-by-digest=true,name-canonical=true,push={str(push).lower()}',
-                    arguments,
-                )
+                if push:
+                    self.assertIn(
+                        'type=image,name=ghcr.io/kubeflow/kfp-api-server,'
+                        'push-by-digest=true,name-canonical=true,push=true',
+                        arguments,
+                    )
+                else:
+                    self.assertTrue(
+                        any(
+                            a.startswith('type=docker,dest=') for a in arguments
+                        )
+                    )
+                self.assertEqual(arguments.count('--output'), 1)
                 self.assertEqual(
                     arguments[arguments.index('--platform') + 1], 'linux/arm64'
                 )
@@ -228,7 +272,7 @@ done
                 self.assertIn('NODE_VERSION=24.4.0', arguments)
                 self.assertEqual(output, f'digest={DIGEST}\n')
 
-    def test_only_publication_requires_a_registry_digest(self):
+    def test_only_publication_requires_a_registry_digest(self) -> None:
         for push in (False, True):
             with self.subTest(push=push):
                 result, _, output = self.run_build(push, '')

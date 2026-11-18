@@ -32,11 +32,13 @@ const artifactOrigin = origin(process.env.ACTIONS_RESULTS_URL);
 
 function category(url) {
   if (url.origin === apiOrigin) {
+    if (/^\/repos\/[^/]+\/[^/]+\/?$/.test(url.pathname)) return 'repository_metadata';
     const path = url.pathname.replace(/^\/repos\/[^/]+\/[^/]+/, '');
     if (path === '/graphql') return 'graphql';
     if (/^\/actions\/(runs(?:\/[^/]+)?\/artifacts|artifacts)(?:\/|$)/.test(path)) return 'artifacts';
     if (/^\/actions\/runs\/[^/]+(?:\/attempts\/[^/]+)?\/jobs(?:\/|$)/.test(path)) return 'run_jobs';
     if (/^\/actions\/(runs|workflows\/[^/]+\/runs)(?:\/|$)/.test(path)) return 'workflow_runs';
+    if (/^\/actions\/workflows\/[^/]+\/dispatches$/.test(path)) return 'workflow_dispatches';
     if (/^\/actions\/workflows(?:\/|$)/.test(path)) return 'workflow_definitions';
     if (/^\/commits\/[^/]+\/check-runs$/.test(path)) return 'check_runs';
     if (/^\/(statuses\/[^/]+|commits\/[^/]+\/status(?:es)?)$/.test(path)) return 'commit_statuses';
@@ -45,6 +47,7 @@ function category(url) {
     if (/^\/issues\/[^/]+\/labels(?:\/|$)/.test(path)) return 'issue_labels';
     if (/^\/issues\/[^/]+\/timeline$/.test(path)) return 'issue_timeline';
     if (/^\/contents(?:\/|$)/.test(path)) return 'contents';
+    if (/^\/rules\/branches\/.+/.test(path)) return 'branch_rules';
     if (/^\/(branches|git\/refs?)(?:\/|$)/.test(path)) return 'branches';
     return 'github_api_other';
   }

@@ -31,7 +31,6 @@ class RuntimeSecurityDependenciesTest(unittest.TestCase):
             .split('FROM debian:stable-slim')[1]
         )
         self.assertIn('ca-certificates wget zlib1g', api)
-        self.assertIn('1:1.3.dfsg+really1.3.1-1+deb13u1', api)
         frontend = (
             (ROOT / 'frontend/Dockerfile')
             .read_text()
@@ -41,6 +40,12 @@ class RuntimeSecurityDependenciesTest(unittest.TestCase):
         self.assertIn(
             'apt-get install -y --no-install-recommends zlib1g', frontend
         )
+
+        for runtime in (api, frontend):
+            self.assertIn(
+                """dpkg --compare-versions "$(dpkg-query -W -f='${Version}' zlib1g)" ge '1:1.3.dfsg+really1.3.1-1+deb13u1'""",
+                runtime,
+            )
 
     def test_cert_manager_install_paths_use_qualified_release(self):
         makefile = (ROOT / 'backend/Makefile').read_text()

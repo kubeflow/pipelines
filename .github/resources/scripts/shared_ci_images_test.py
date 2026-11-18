@@ -134,6 +134,36 @@ class FakeAPI:
 
 
 class SharedImageTests(unittest.TestCase):
+    def test_queue_identity_accepts_exact_supported_release(self):
+        for branch in ['master', 'main', 'release-2.18', 'release-2.19']:
+            for event in ['merge_group', 'workflow_dispatch']:
+                with self.subTest(branch=branch, event=event):
+                    value = identity()
+                    ref = (
+                        f'refs/heads/gh-readonly-queue/{branch}/pr-7-candidate'
+                    )
+                    value.update(
+                        event=event,
+                        ref=ref,
+                        pr=None,
+                        merge_group={
+                            'head_sha': value['source_sha'],
+                            'head_ref': ref,
+                            'base_sha': 'd' * 40,
+                            'base_ref': f'refs/heads/{branch}',
+                        },
+                    )
+                    if branch == 'release-2.19':
+                        with self.assertRaises(shared.InvalidEvidence):
+                            shared.validate_identity(value)
+                    else:
+                        self.assertEqual(shared.validate_identity(value), value)
+                        value['merge_group']['head_ref'] = ref.replace(
+                            branch, 'release-2.19'
+                        )
+                        with self.assertRaises(shared.InvalidEvidence):
+                            shared.validate_identity(value)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -181,6 +211,21 @@ class SharedImageTests(unittest.TestCase):
             state['sets']['images'][0]['files']['apiserver.tar'],
             shared.checksum(self.directory / 'apiserver.tar'),
         )
+
+    def test_bundle_accepts_exact_images_and_rejects_extra_evidence(self):
+        self.api.images('amd64', self.directory)
+        shared.validate_bundle(self.producer, 'amd64', self.directory)
+        for name in ('unrelated.txt', 'apiserver.go-provenance'):
+            with self.subTest(name=name):
+                extra = self.directory / name
+                extra.write_text('unexpected')
+                with self.assertRaisesRegex(
+                    shared.InvalidEvidence, 'unexpected bundle'
+                ):
+                    shared.validate_bundle(
+                        self.producer, 'amd64', self.directory
+                    )
+                extra.unlink()
 
     def test_bundled_provenance_tampering_fails_closed(self):
         for field, value in [

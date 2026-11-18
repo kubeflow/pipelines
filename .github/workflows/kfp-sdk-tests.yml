@@ -9,7 +9,7 @@ on:
         type: string
         default: ''
       queue_base_ref:
-        description: Queue target branch, master or main (internal queue dispatch)
+        description: Queue target branch, master, main, or release-2.18 (internal queue dispatch)
         required: false
         type: string
         default: ''
@@ -20,7 +20,7 @@ on:
         default: ''
   merge_group:
     types: [checks_requested]
-    branches: [master, main]
+    branches: [master, main, release-2.18]
   push:
     branches: [master, main]
   pull_request:
@@ -92,3 +92,14 @@ jobs:
       run: |
         # Source-tree Google Cloud components are outside this migration's scope.
         python -m pytest -q test_data/component_migration_test.py
+
+    - name: Upload SDK timing reports
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+      with:
+        name: sdk-regression-timings-python-${{ matrix.python-version }}
+        path: |
+          sdk-regression*.xml
+          sdk-regression*.log
+        retention-days: 14
+        if-no-files-found: ignore

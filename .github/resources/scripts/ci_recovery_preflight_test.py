@@ -8,6 +8,7 @@
 
 import json
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -45,7 +46,7 @@ const github={rest:{pulls:{list:listPulls,get:async()=>{counts.merged++;return {
  merged:true,merge_commit_sha:sha,merged_at:'2026-01-15T00:00:00Z',
  base:{ref:prs[0].base.ref,repo:{full_name:'o/r'}}}};}},
  repos:{listPullRequestsAssociatedWithCommit:associated},
- git:{getRef:async()=>{counts.base++;if(options.error==='base')throw Error('base unavailable');return {data:{ref:'refs/heads/'+(options.error==='ref-identity'?'other':prs[0].base.ref),object:{sha,type:'commit'}}};}},
+ git:{getRef:async()=>{counts.base++;if(options.error==='base')throw Error('base unavailable');return {data:{ref:'refs/heads/'+(options.error==='ref-identity'?'other':prs[0].base.ref),object:{sha:options.liveBase || sha,type:'commit'}}};}},
  actions:{listWorkflowRunsForRepo:async({head_sha})=>{counts.runs++;if(options.error==='runs')throw Error('runs unavailable');
   const runs=runsFor(head_sha);return {data:{total_count:options.error==='truncated'?1000:runs.length,workflow_runs:runs}};}}},
  paginate:async(route)=>{if(route===listPulls){counts.pulls++;return prs;}
@@ -59,7 +60,7 @@ const github={rest:{pulls:{list:listPulls,get:async()=>{counts.merged++;return {
   return {repository};
  }
  if(options.error==='inventory')throw Error('inventory unavailable');
- return {repository:{nameWithOwner:'o/r',object:{__typename:'Tree',entries:[{name:'required.yml',type:'blob',mode:33188,
+ return {repository:{nameWithOwner:'o/r',object:{__typename:'Tree',entries:[{name:options.replacedLane && variables.expression !== `${options.liveBase}:.github/workflows` ? 'retired.yml' : 'required.yml',type:'blob',mode:33188,
   object:{__typename:'Blob',text:content,byteSize:Buffer.byteLength(content),isBinary:false,isTruncated:false}},
   ...(options.secondLane ? [{name:'another.yml',type:'blob',mode:33188,object:{__typename:'Blob',
     text:content,byteSize:Buffer.byteLength(content),isBinary:false,isTruncated:false}}]:[]),
@@ -71,19 +72,28 @@ recoveryCandidates({github,context:{repo:{owner:'o',repo:'r'},runId:99},root:pro
  .then(candidates=>console.log(JSON.stringify({candidates,counts})))
  .catch(error=>console.log(JSON.stringify({error:error.message,counts})));
 """
-    result = subprocess.run(
-        [
-            'node',
-            '-e',
-            script,
-            str(MODULE),
-            json.dumps(options or {}),
-            str(ROOT),
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
+    # Discovery fixtures exercise strict freshness independently of rollout.
+    # Explicit queueEnabled cases above still exercise the queue-mode bypass.
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        (root / '.github').mkdir()
+        (root / '.github/resources').symlink_to(ROOT / '.github/resources')
+        (root / '.github/merge-queue-policy.json').write_text(
+            json.dumps({'version': 1, 'enabled_branches': []})
+        )
+        result = subprocess.run(
+            [
+                'node',
+                '-e',
+                script,
+                str(MODULE),
+                json.dumps(options or {}),
+                str(root),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
     return json.loads(result.stdout)
 
 
@@ -178,6 +188,23 @@ class RecoveryPreflightTest(unittest.TestCase):
             ),
             1,
         )
+
+    def test_queued_release_preflight_uses_live_workflow_policy(self):
+        options = {
+            'branch': 'release-2.18',
+            'kind': 'stale',
+            'replacedLane': True,
+            'liveBase': 'c' * 40,
+        }
+        # The frozen base still requires retired.yml, which has no current run.
+        # Enabled release queues must assess the live required.yml instead.
+        queued = exercise({**options, 'queueEnabled': True})
+        self.assertEqual(len(queued['candidates']), 1, queued)
+        self.assertEqual(queued['counts']['base'], 1)
+        self.assertEqual(queued['counts']['arrival'], 0)
+        unqueued = exercise(options)
+        self.assertEqual(unqueued['candidates'], [], unqueued)
+        self.assertEqual(unqueued['counts']['base'], 0)
 
     def test_queue_admission_owns_base_freshness(self):
         result = exercise({'kind': 'stale', 'queueEnabled': True})
