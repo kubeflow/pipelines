@@ -241,10 +241,12 @@ const github = {{rest: {{
     writes.push({{route:'dequeue',options,query}}); enqueued = false; compensatingRemoval = true; return {{}};
   }}
   if (query.includes('query AdmissionReviewPolicy')) {{
+    if (query.includes('branchProtectionRule')) throw new Error('Resource not accessible by integration');
+    if (!query.includes('refUpdateRule')) throw new Error('Missing viewer-readable branch policy');
     calls.push({{route:'review-policy',options,query}});
     if (f.reviewPolicies) return next('review-policy',f.reviewPolicies);
     return {{repository:{{nameWithOwner:'owner/repo',ref:{{name:f.branch,
-      branchProtectionRule:f.classicPolicy === null ? null : {{requiresConversationResolution:f.classicPolicy !== false}}}}}}}};
+      refUpdateRule:f.classicPolicy === null ? null : {{requiresConversationResolution:f.classicPolicy !== false}}}}}}}};
   }}
   if (query.includes('query AdmissionConversations')) {{
     calls.push({{route:'conversations',options,query}});
@@ -2519,7 +2521,7 @@ class AdmissionDiagnosticsTest(unittest.TestCase):
                     'nameWithOwner': 'owner/repo',
                     'ref': {
                         'name': 'master',
-                        'branchProtectionRule': {},
+                        'refUpdateRule': {},
                     },
                 }
             },
@@ -2528,7 +2530,7 @@ class AdmissionDiagnosticsTest(unittest.TestCase):
                     'nameWithOwner': 'owner/repo',
                     'ref': {
                         'name': 'different-branch',
-                        'branchProtectionRule': None,
+                        'refUpdateRule': None,
                     },
                 }
             },

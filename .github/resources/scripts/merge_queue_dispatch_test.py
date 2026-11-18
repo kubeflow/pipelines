@@ -193,7 +193,7 @@ const github = {{rest: {{
   }}
   if (query.includes('query AdmissionReviewPolicy')) {{
     return {{repository:{{nameWithOwner:'owner/repo',ref:{{
-      name:variables.branch.slice('refs/heads/'.length),branchProtectionRule:null
+      name:variables.branch.slice('refs/heads/'.length),refUpdateRule:null
     }}}}}};
   }}
   if (query.includes('enqueuePullRequest')) {{
