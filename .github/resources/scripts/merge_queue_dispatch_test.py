@@ -191,7 +191,7 @@ const github = {{rest: {{
     return {{repository: {{nameWithOwner:'owner/repo',
       head0:{{__typename:'Commit',oid:variables.sha0,status:null}}}}}};
   }}
-  if (query.includes('query AdmissionReviewPolicy') && query.includes('refUpdateRule')) {{
+  if (query.includes('query AdmissionReviewPolicy')) {{
     return {{repository:{{nameWithOwner:'owner/repo',ref:{{
       name:variables.branch.slice('refs/heads/'.length),refUpdateRule:null
     }}}}}};

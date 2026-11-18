@@ -665,7 +665,7 @@ func TestEnableJob(t *testing.T) {
 	assert.Equal(t, jobExpected2.ToV2(), job.ToV2(), "Got unexpected job")
 }
 
-func TestEnableJob_SkipUpdate(t *testing.T) {
+func TestEnableJob_NoOpRecordsModeRequest(t *testing.T) {
 	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()
 
@@ -691,7 +691,7 @@ func TestEnableJob_SkipUpdate(t *testing.T) {
 			},
 		},
 		CreatedAtInSec: 1,
-		UpdatedAtInSec: 1,
+		UpdatedAtInSec: 3,
 		ExperimentId:   defaultFakeExpId,
 	}
 

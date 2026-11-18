@@ -40,7 +40,6 @@ async function unresolvedConversations(github, context, pr) {
     ...context.repo, branch: pr.base.ref, per_page: 100,
   });
   if (!Array.isArray(rules)) throw new Error('Incomplete admission rules');
-  // refUpdateRule exposes the rules visible to the installation token.
   const policy = await github.graphql(`query AdmissionReviewPolicy($owner:String!, $repo:String!, $branch:String!) {
     repository(owner:$owner, name:$repo) { nameWithOwner ref(qualifiedName:$branch) {
       name refUpdateRule { requiresConversationResolution }

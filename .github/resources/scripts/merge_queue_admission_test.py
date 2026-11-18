@@ -240,10 +240,9 @@ const github = {{rest: {{
   if (query.includes('dequeuePullRequest')) {{
     writes.push({{route:'dequeue',options,query}}); enqueued = false; compensatingRemoval = true; return {{}};
   }}
-  if (query.includes('branchProtectionRule')) {{
-    throw new Error('Resource not accessible by integration');
-  }}
-  if (query.includes('query AdmissionReviewPolicy') && query.includes('refUpdateRule')) {{
+  if (query.includes('query AdmissionReviewPolicy')) {{
+    if (query.includes('branchProtectionRule')) throw new Error('Resource not accessible by integration');
+    if (!query.includes('refUpdateRule')) throw new Error('Missing viewer-readable branch policy');
     calls.push({{route:'review-policy',options,query}});
     if (f.reviewPolicies) return next('review-policy',f.reviewPolicies);
     return {{repository:{{nameWithOwner:'owner/repo',ref:{{name:f.branch,
@@ -1905,7 +1904,7 @@ class AutomaticRetryTest(unittest.TestCase):
             **changes,
         }
 
-    def test_classic_only_release_review_blocker_preserves_retry(self):
+    def test_classic_only_release_review_blocker_preserves_retry(self) -> None:
         fixture = self.fixture(
             branch='release-2.18',
             rules=[[{'type': 'merge_queue'}]],
@@ -2402,15 +2401,27 @@ class AdmissionDiagnosticsTest(unittest.TestCase):
             'Waiting for 2 unresolved review conversations.',
         )
 
-    def test_resolved_conversations_transition_to_queued(self):
-        result = run_case(conversations=[conversations([{'isResolved': True}])])
-        self.assertNotIn('error', result)
-        self.assertEqual(result['writes'][0]['route'], 'enqueue')
-        self.assertEqual(result['diagnostics'][-1]['state'], 'success')
-        self.assertEqual(
-            result['diagnostics'][-1]['description'],
-            'Queued; awaiting merge-group checks.',
-        )
+    def test_resolved_conversations_transition_to_queued(self) -> None:
+        for branch in ('main', 'release-2.18'):
+            with self.subTest(branch=branch):
+                result = run_case(
+                    branch=branch,
+                    conversations=[conversations([{'isResolved': True}])],
+                )
+                self.assertNotIn('error', result)
+                policy_reads = [
+                    call['options']['branch']
+                    for call in result['calls']
+                    if call['route'] == 'review-policy'
+                ]
+                self.assertTrue(policy_reads)
+                self.assertEqual(set(policy_reads), {f'refs/heads/{branch}'})
+                self.assertEqual(result['writes'][0]['route'], 'enqueue')
+                self.assertEqual(result['diagnostics'][-1]['state'], 'success')
+                self.assertEqual(
+                    result['diagnostics'][-1]['description'],
+                    'Queued; awaiting merge-group checks.',
+                )
 
     def test_healthy_queue_fast_path_updates_previously_blocked_status(self):
         result = run_case('sweep', queues=[queue([entry()])], listed=[pr()])
@@ -2494,14 +2505,6 @@ class AdmissionDiagnosticsTest(unittest.TestCase):
         self.assertFalse(
             any(call['route'] == 'conversations' for call in result['calls'])
         )
-
-    def test_eligible_pr_enqueues_with_non_admin_token(self):
-        for branch in ('main', 'release-2.18'):
-            with self.subTest(branch=branch):
-                result = run_case(branch=branch, classicPolicy=True)
-                self.assertNotIn('error', result)
-                self.assertEqual(result['writes'][0]['route'], 'enqueue')
-                self.assertEqual(result['diagnostics'][-1]['state'], 'success')
 
     def test_classic_branch_protection_also_requires_resolution(self):
         result = run_case(
