@@ -159,9 +159,10 @@ pagination; arbitrarily large changes do not fit into one response.
 
 One feasible implementation is a bounded, transactionally maintained
 summary-version table plus change journal. Every task mutation increments its
-task record revision. Every mutation affecting a summary—including creation,
-pod publication, relevant relationship changes, deletion, and retry reset—updates
-its projection/journal in the same database transaction as canonical state.
+task record revision. Mutations that affect a summary update its projection and
+journal in the same database transaction as the canonical state. These include
+task creation, pod publication, relevant relationship changes, deletion and retry
+reset.
 Full I/O-only changes also publish the new `task_revision` through the versioned
 summary projection and change journal, even when every other summary field is
 unchanged, so incremental clients invalidate stale selected-task details.
@@ -273,13 +274,13 @@ this proposal does not require a 2.17 backport or promise unrestricted rollback.
 
 ## Frontend Considerations
 
-| Work / owner | Delivery boundary |
-| --- | --- |
-| Snapshot APIs, capture, bootstrap, retention — [#14032](https://github.com/kubeflow/pipelines/issues/14032) | Activation consumes reviewed identity/finalization and all-writer capture. Its terminal guard remains independently deliverable. |
-| Shared frontend queries — [#14040](https://github.com/kubeflow/pipelines/issues/14040) | Can close against current APIs before snapshots exist. Sharing and cancellation are useful independently. |
-| Snapshot adoption — [#14028](https://github.com/kubeflow/pipelines/issues/14028) | The snapshot slice consumes #14032 and shared queries. Other performance/hardening slices remain independently shippable. |
-| Accepted attempts and executor identity — [#15516](https://github.com/kubeflow/pipelines/issues/15516) | Shared correctness contract; no dependency on summary storage. |
-| Lifecycle/finalization — [#14322](https://github.com/kubeflow/pipelines/issues/14322), [#14989](https://github.com/kubeflow/pipelines/issues/14989), [#15008](https://github.com/kubeflow/pipelines/pull/15008) | Coordinate the relevant snapshot invariant; do not block all lifecycle fixes on the read model. |
+| Work | Tracking | Delivery boundary |
+| --- | --- | --- |
+| Snapshot APIs, capture, bootstrap, retention | [#14032](https://github.com/kubeflow/pipelines/issues/14032) | Activation consumes reviewed identity/finalization and all-writer capture. Its terminal guard remains independently deliverable. |
+| Shared frontend queries | [#14040](https://github.com/kubeflow/pipelines/issues/14040) | Can close against current APIs before snapshots exist. Sharing and cancellation are useful independently. |
+| Snapshot adoption | [#14028](https://github.com/kubeflow/pipelines/issues/14028) | The snapshot slice consumes #14032 and shared queries. Other performance/hardening slices remain independently shippable. |
+| Accepted attempts and executor identity | [#15516](https://github.com/kubeflow/pipelines/issues/15516) | Shared correctness contract; no dependency on summary storage. |
+| Lifecycle/finalization | [#14322](https://github.com/kubeflow/pipelines/issues/14322), [#14989](https://github.com/kubeflow/pipelines/issues/14989), [#15008](https://github.com/kubeflow/pipelines/pull/15008) | Coordinate the relevant snapshot invariant; do not block all lifecycle fixes on the read model. |
 
 Client caches must distinguish snapshot revision, task revision, and attempt
 identity. Preserve the last successful view during expiration/recovery, surface
