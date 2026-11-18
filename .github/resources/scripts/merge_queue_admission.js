@@ -15,6 +15,7 @@ const {workflowAttempts, publishedAttempts} = require('./ci_workflow_attempts');
 const {recoverPRGate} = require('./merge_queue_pr_gate_recovery');
 const {invalidRunMetadata} = require('./ci_expected_workflows');
 const {QUEUE_BRANCHES, loadPolicy, enabledBranches, queueEnabled, requireQueueRule} = require('./merge_queue_policy');
+const {publishAdmissionStatus, unresolvedConversations, enqueueBlocker} = require('./merge_queue_admission_status');
 const SHA = /^[0-9a-f]{40}$/;
 const QUEUE = `query($owner:String!, $repo:String!, $branch:String!) {
   repository(owner:$owner, name:$repo) { nameWithOwner mergeQueue(branch:$branch) {
@@ -304,6 +305,9 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
   const entry = entries.find(entry => entry.pullRequest.number === number);
   let pr;
   let enqueueAttempted = false;
+  let enqueueConfirmed = false;
+  const report = (description, state = 'pending') => pr?.base?.ref === branch &&
+    publishAdmissionStatus({github, context, pr, core, description, state});
   try {
     pr = await readPR(github, context, number);
     if (expectedHead && (pr.head?.sha !== expectedHead ||
@@ -313,9 +317,17 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
     if (entry && (reason || entry.pullRequest.headRefOid !== pr.head.sha)) {
       await invalidateQueue(github, context, entries);
       await dequeue(github, pr);
+      await report(reason || 'PR head changed; awaiting fresh admission.');
       return;
     }
-    if (entry || reason) return;
+    if (entry) {
+      await report('Queued; awaiting merge-group checks.', 'success');
+      return;
+    }
+    if (reason) {
+      await report(reason);
+      return;
+    }
     const recoverFailure = onFailure || (async ({pr: failedPR}) => {
       const beforeRecovery = snapshot(failedPR);
       await recoverPRGate({github, context, pr: failedPR, now,
@@ -333,7 +345,15 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
         }});
     });
     const admission = await admissionPassed(github, context, pr, {now, onFailure: recoverFailure});
-    if (!admission) return;
+    if (!admission) {
+      await report('Waiting for current-head CI or eligible queue retry.');
+      return;
+    }
+    const unresolved = await unresolvedConversations(github, context, pr);
+    if (unresolved) {
+      await report(`Waiting for ${unresolved} unresolved review conversation${unresolved === 1 ? '' : 's'}.`);
+      return;
+    }
     const before = snapshot(pr);
     pr = await readPR(github, context, number);
     if (snapshot(pr) !== before || JSON.stringify(await admissionPassed(github, context, pr, {now})) !== JSON.stringify(admission)) return;
@@ -353,12 +373,18 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
     // checks, including DCO, and atomically rejects a changed PR head.
     // GITHUB_TOKEN admission does not reliably trigger merge_group Actions runs;
     // merge_queue_dispatch supplies missing CI via the workflow_dispatch exception.
+    await report('Awaiting queue admission.');
     enqueueAttempted = true;
     const enqueued = await github.graphql(`mutation($id:ID!, $head:GitObjectID!) {
       enqueuePullRequest(input:{pullRequestId:$id,expectedHeadOid:$head,jump:false}) {
-        mergeQueueEntry { headCommit { oid } }
+        mergeQueueEntry { id headCommit { oid } }
       }
     }`, {id: pr.node_id, head: pr.head.sha});
+    if (typeof enqueued?.enqueuePullRequest?.mergeQueueEntry?.id !== 'string' ||
+        !enqueued.enqueuePullRequest.mergeQueueEntry.id) {
+      throw new Error('Incomplete enqueue response');
+    }
+    enqueueConfirmed = true;
     const after = await readPR(github, context, number);
     if (after.merged === true) return;
     if (snapshot(after) !== before || JSON.stringify(await admissionPassed(github, context, after, {now, reservation, afterEnqueue:true})) !== JSON.stringify(admission) ||
@@ -366,12 +392,14 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
       entries = await readQueue(github, context, branch);
       await invalidateQueue(github, context, entries);
       await dequeue(github, after);
+      await report('PR eligibility changed; awaiting fresh admission.');
     } else {
       // Each CI fingerprint gets one initial admission and at most one delayed
       // retry after failed checks. Base-policy restamps cannot reset that budget.
       await github.rest.repos.createCommitStatus({...context.repo, sha: pr.head.sha,
         context: 'queue-admission-attempt', state: 'pending',
         description: `Admission ${branch}; CI attempts ${admission.fingerprint}.`});
+      await report('Queued; awaiting merge-group checks.', 'success');
       const head = enqueued?.enqueuePullRequest?.mergeQueueEntry?.headCommit?.oid;
       if (SHA.test(head || '')) return {number, baseRef:branch, head};
     }
@@ -399,6 +427,14 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
         catch (dequeueError) { errors.push(dequeueError); }
       }
     }
+    const blocker = enqueueAttempted && !enqueueConfirmed && !removalRequired && errors.length === 1
+      ? enqueueBlocker(error) : null;
+    if (blocker) {
+      await report(blocker);
+      core?.info?.(`PR #${number}: ${blocker}`);
+      return;
+    }
+    await report('Admission could not be verified; see the queue controller logs.');
     throw new Error(errors.map(failure => failure.message).join('; '));
   }
 }
@@ -505,7 +541,12 @@ async function sweep({github, context, root, core, queueOnly = false, now, onFai
       for (const number of numbers) {
         // Healthy queued members cannot be newly admitted. Invalid members retain
         // the existing fresh read and fail-closed invalidation/dequeue path.
-        if (healthy.has(number)) continue;
+        if (healthy.has(number)) {
+          const pr = policies[entries.findIndex(entry => entry.pullRequest.number === number)];
+          await publishAdmissionStatus({github, context, pr, core, state: 'success',
+            description: 'Queued; awaiting merge-group checks.'});
+          continue;
+        }
         try {
           await reconcilePR({github, context, number, branch, root, core, now, onFailure});
         } catch (error) {

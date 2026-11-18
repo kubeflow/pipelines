@@ -178,9 +178,14 @@ const github = {{rest: {{
   }}
   throw new Error('Unexpected API route: ' + route);
 }}, graphql:async (query, variables) => {{
+  if (query.includes('query AdmissionReviewPolicy')) {{
+    return {{repository:{{nameWithOwner:'owner/repo',ref:{{
+      name:variables.branch.slice('refs/heads/'.length),branchProtectionRule:null
+    }}}}}};
+  }}
   if (query.includes('enqueuePullRequest')) {{
     requests.push({{route:'enqueue',options:variables}});
-    return {{enqueuePullRequest:{{mergeQueueEntry:{{headCommit:f.enqueuedCandidate ? {{oid:f.enqueuedCandidate}} : null}}}}}};
+    return {{enqueuePullRequest:{{mergeQueueEntry:{{id:'ENTRY_7',headCommit:f.enqueuedCandidate ? {{oid:f.enqueuedCandidate}} : null}}}}}};
   }}
   if (query.includes('query DispatchSnapshot')) {{
     requests.push({{route:'dispatchSnapshot'}});
