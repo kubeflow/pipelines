@@ -455,7 +455,11 @@ parent. For a two-commit PR, the first PR commit must have one parent. The
 second must be the tested merge of that first PR commit (first parent) and
 the exact landed base (second parent). Other commit shapes fail closed.
 These checks establish the immutable base for the required workflow inventory
-even when the release branch has advanced since the PR merged. Other green or failed aggregate statuses are left untouched. Successful preparation,
+even when the release branch has advanced since the PR merged. Recovery uses
+this inventory throughout validation regardless of the current merge queue rule.
+The workflow attempts must agree at preparation, immediately before publication,
+and during the post-publication check. A change during publication revokes the
+success written by that recovery. Other green or failed aggregate statuses are left untouched. Successful preparation,
 required-workflow validation and the fresh external-check reader are all required. Identity
 changes, unavailable evidence and pending or failed checks cannot authorize a
 success. Recovery does not change PR labels. No release tag or package is published by this workflow.

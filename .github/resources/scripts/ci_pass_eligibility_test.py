@@ -134,7 +134,7 @@ jobs:
 }, rest: {
   pulls: {listFiles: methods.files, list: methods.pulls,
     listCommits: async () => ({data: [
-      {sha: (options.wrongChange ? 'f' : '9').repeat(40), parents: options.mergeChange ? [] : [{sha: '8'.repeat(40)}]},
+      {sha: (options.wrongChange ? 'f' : '9').repeat(40), parents: options.mergeChange ? [{sha: '8'.repeat(40)}, {sha: '7'.repeat(40)}] : [{sha: '8'.repeat(40)}]},
       {sha: HEAD},
     ]}),
     get: async request => {
@@ -270,7 +270,7 @@ jobs:
     requestCounts.runs++;
     if (options.missing) return [];
     const conclusion = published && options.drift === 'rerun' ? 'cancelled' : (options.conclusions?.[cycle] || options.conclusion || 'success');
-    return [{path: `.github/workflows/${workflowName}`, id: 42, run_attempt: published && options.drift === 'successful-rerun' ? 2 : 1, event: 'pull_request', head_sha: HEAD, head_branch: 'feature',
+    return [{path: `.github/workflows/${workflowName}`, id: 42, run_attempt: ((published && options.drift === 'successful-rerun') || (outputs.ready && options.beforeFinalRerun)) ? 2 : 1, event: 'pull_request', head_sha: HEAD, head_branch: 'feature',
       head_repository: {full_name: 'contributor/pipelines'},
       status: options.runStatus || 'completed', conclusion: options.runStatus && options.runStatus !== 'completed' ? null : conclusion,
       created_at: options.fresh ? '2026-09-07T12:01:00Z' : '2026-09-07T11:00:00Z',
@@ -328,7 +328,10 @@ github.paginate.iterator = async function* () {
         (root / '.github').mkdir()
         (root / '.github/resources').symlink_to(ROOT / '.github/resources')
         (root / '.github/merge-queue-policy.json').write_text(
-            json.dumps({'version': 1, 'enabled_branches': []})
+            json.dumps({
+                'version': 1,
+                'enabled_branches': (options or {}).get('enabledBranches', []),
+            })
         )
         result = subprocess.run(
             [
@@ -408,6 +411,42 @@ class MergedReleaseRecoveryTest(unittest.TestCase):
                 result = self.recover(baseSync=True, **case)
                 self.assertFalse(
                     [c for c in result['calls'] if c[0] == 'status'], result
+                )
+
+    def test_recovery_uses_landed_policy_across_queue_rule_changes(self):
+        for rules in [[{'type': 'merge_queue'}], []]:
+            with self.subTest(rules=rules):
+                result = self.recover(
+                    baseSync=True,
+                    enabledBranches=['release-2.18'],
+                    queueRules=rules,
+                    baseTip='f' * 40,
+                )
+                self.assertEqual(result['status'], 'success', result)
+                inventories = [
+                    c[1]['expression']
+                    for c in result['calls']
+                    if c[0] == 'base-workflows'
+                ]
+                self.assertEqual(
+                    inventories, ['b' * 40 + ':.github/workflows'] * 3
+                )
+                self.assertFalse(
+                    [c for c in result['calls'] if c[0] == 'queue-rules']
+                )
+                self.assertEqual(result['requestCounts']['base'], 0)
+
+    def test_recovery_rejects_changed_successful_workflow_attempts(self):
+        for changes, expected in [
+            ({'beforeFinalRerun': True}, []),
+            ({'drift': 'successful-rerun'}, ['success', 'pending']),
+        ]:
+            with self.subTest(changes=changes):
+                result = self.recover(baseSync=True, **changes)
+                self.assertEqual(result['status'], 'pending', result)
+                self.assertEqual(
+                    [c[1] for c in result['calls'] if c[0] == 'status'],
+                    expected,
                 )
 
     def test_real_failures_and_incomplete_evidence_never_publish_green(self):
