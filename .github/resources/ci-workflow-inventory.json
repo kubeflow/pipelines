@@ -1280,7 +1280,7 @@
     {
       "path": ".github/workflows/tensorboard-acceptance.yml",
       "name": "TensorBoard runtime acceptance",
-      "header_sha256": "6955ec60afe2b2d31d84eca9c87b10d7e2e5c92b704bfc7477bd3550bc7c58b6",
+      "header_sha256": "467a47bf9e4f00a28f8aa6dfcbe17e406b895d726e407334e094b8cbd8b97957",
       "pull_request": {
         "paths": [
           "backend/Dockerfile.tensorboard",
@@ -1308,7 +1308,8 @@
         ],
         "branches": [
           "master",
-          "main"
+          "main",
+          "release-2.18"
         ]
       }
     },
