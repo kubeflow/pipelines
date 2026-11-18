@@ -708,7 +708,8 @@ func TestEnableJob_DatabaseError(t *testing.T) {
 
 	// Enabling the job.
 	err := jobStore.ChangeJobMode("1", true)
-	assert.Contains(t, err.Error(), "Error when enabling job 1 to true: sql: database is closed")
+	assert.Contains(t, err.Error(), "Error when enabling job 1 to true")
+	assert.Contains(t, err.Error(), "database is closed")
 }
 
 func TestUpdateJob_Success(t *testing.T) {
