@@ -7,12 +7,16 @@ standalone filesystem implementation reads local event files, S3 through boto3,
 and GCS through gcsfs. `S3_ENDPOINT`, AWS credentials, and Google application
 default credentials retain their normal storage-client meanings. The viewer
 controller supplies the log directory, scoped URL prefix, and bind address.
+The maintained image accepts legacy S3 endpoint hosts such as `minio:9000`.
+It uses HTTPS by default or HTTP with `S3_USE_HTTPS=0`. An explicit endpoint
+URL keeps its scheme.
 
 The image's `tensorboard` command defaults to `--load_fast=false` so the server
 uses those Python filesystem clients for event ingestion too. TensorBoard's
 experimental Rust loader can otherwise select a separate GCS client with
-different credential and endpoint handling. The wrapper forwards all arguments
-to the original `tensorboard-cli` command; an explicit later `--load_fast` option
+different credential and endpoint handling. For combined viewers the wrapper
+passes the UI's named directories to `tensorboard-cli` using `--logdir_spec`.
+Single-directory viewers keep `--logdir`. An explicit later `--load_fast` option
 can override the default. Custom viewer images retain their own commands and
 loader settings.
 

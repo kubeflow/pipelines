@@ -8,6 +8,7 @@
 import copy
 import json
 import os
+import subprocess
 import unittest
 from unittest import mock
 
@@ -15,7 +16,7 @@ os.environ.setdefault('RUNNER_TEMP', '/tmp')
 import deployed
 
 
-def pod(image, *, deleting=False, ready=True):
+def pod(image: str, *, deleting: bool = False, ready: bool = True) -> dict:
     return {
         'metadata': {
             'uid': image,
@@ -33,9 +34,11 @@ def pod(image, *, deleting=False, ready=True):
 
 
 class ViewerLifecycleTest(unittest.TestCase):
-    def create_with_pods(self, snapshots):
+    def create_with_pods(
+        self, snapshots: list[list[dict]]
+    ) -> tuple[str, str, str, str]:
 
-        def kube(*args):
+        def kube(*args: str) -> str:
             if 'viewers' in args:
                 return json.dumps(
                     {
@@ -97,7 +100,7 @@ class ViewerLifecycleTest(unittest.TestCase):
         snapshots = [[pod('default', deleting=True)], []]
         observations = []
 
-        def kube(*args):
+        def kube(*args: str) -> str:
             if 'pods' in args:
                 observations.append(copy.deepcopy(snapshots[0]))
                 return json.dumps({'items': snapshots.pop(0)})
@@ -111,6 +114,17 @@ class ViewerLifecycleTest(unittest.TestCase):
             deployed.delete('gs://logs', 'viewer')
         self.assertEqual(len(observations), 2)
         self.assertEqual(observations[-1], [])
+
+    def test_poll_recovers_from_transient_kubectl_failures(self):
+        check = mock.Mock(
+            side_effect=[
+                RuntimeError('kubectl get pods failed'),
+                subprocess.TimeoutExpired('kubectl', 30),
+                'ready',
+            ]
+        )
+        with mock.patch.object(deployed.time, 'sleep'):
+            self.assertEqual(deployed.poll('viewer pod', check), 'ready')
 
 
 if __name__ == '__main__':

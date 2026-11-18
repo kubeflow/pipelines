@@ -76,6 +76,8 @@ def poll(description: str, check: Callable[[], T], timeout: int = 180) -> T:
             ValueError,
             KeyError,
             AssertionError,
+            RuntimeError,
+            subprocess.TimeoutExpired,
         ) as error:
             last = str(error)
         time.sleep(2)
