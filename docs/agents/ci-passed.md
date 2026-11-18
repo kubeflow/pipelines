@@ -104,18 +104,34 @@ preserved. Invalid or unreadable run identity fails closed. A completed
 triggering run falls through to full reconciliation: its delayed event may have
 replaced another run's invalidation or a PR retarget event in the writer queue.
 
-Successful completion events first inspect current workflow attempts. While another
-constituent is active, a trusted intermediate result skips workflow-policy,
-changed-file, retarget-history and full check scans. Finalization still revalidates
-the PR/head/base snapshot and reads the current aggregate status before publication.
-It preserves failures observed by those status reads, including a failure
-published after preparation and visible to finalization; unreadable status fails
-closed. Status reads and writes are not atomic with the independently locked
-stale-green revoker: a failure written after a success read but before the pending
-write can still become pending. This existing race cannot publish green; the next
-completion or recovery reconciliation reassesses the current evidence. This path can only revoke green or retain a
-non-success status. Newly appearing external failures are assessed on the next
-full reconciliation rather than scanned during each intermediate completion.
+Successful completion events first inspect current workflow attempts. If another
+constituent is active, the PR is open and unheld, its labels are known without a
+`ci-passed` label, and a subsequent aggregate-status read is already pending,
+preparation returns without writes or identity outputs. The always-run finalizer
+therefore also does nothing. In the single-page fixture/common case, this
+read-only path costs four API reads instead of six (PR discovery, PR detail, active runs and status); it cannot overwrite a
+concurrent failure or publish green. The status read follows the live run scan,
+so a failure or success observed during that scan takes the normal path.
+
+Other active-completion states retain the intermediate result and finalizer:
+finalization revalidates the PR/head/base snapshot and reads the aggregate status
+before publication. An active completion with clean labels but a non-pending
+status costs seven reads instead of six because of the optional status probe;
+label reconciliation still costs six. Paginated responses add reads to these
+fixture counts. The active-run result is reused only within
+this preparation invocation. A false or failed probe enters full validation,
+without probing again or caching positive evidence across events. A failed status
+read fails closed after emitting identity outputs for the failure finalizer.
+
+The fallback preserves failures observed by its status reads, including a failure
+published after preparation and visible to finalization. Status reads and writes
+are not atomic with the independently locked stale-green revoker: a failure
+written after a success read but before the pending write can still become
+pending. This existing fallback race cannot publish green; the next completion
+or recovery reassesses the evidence. Same-head green publishers share the gate's
+writer lock; the separate stale-green revoker only writes failure. Newly appearing
+external failures are assessed on the next full reconciliation rather than scanned
+during each intermediate completion.
 Failed/cancelled completion events probe the validated latest workflow attempts.
 A current failure (including timeout, action-required, stale or startup-failure)
 produces a failure-only prepared result, skipping policy and check scans. A delayed
