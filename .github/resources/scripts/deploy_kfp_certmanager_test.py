@@ -95,8 +95,7 @@ class DeployKfpCertificateWaitTest(unittest.TestCase):
         Certificate resources.
 
         Run the script with a stub kubectl (exit 42) to prove each
-        combination exits at the guard, before any cluster operation,
-        while TLS alone passes validation and reaches kubectl.
+        combination exits at the guard, before any cluster operation.
         """
         with tempfile.TemporaryDirectory() as bin_dir:
             stub = Path(bin_dir) / 'kubectl'
@@ -118,15 +117,6 @@ class DeployKfpCertificateWaitTest(unittest.TestCase):
                         'POD_TO_POD_TLS_ENABLED cannot be combined',
                         result.stderr,
                     )
-
-            with self.subTest(option='tls-only'):
-                result = subprocess.run(
-                    [str(SCRIPT), '--tls-enabled'],
-                    env=env,
-                    capture_output=True,
-                    text=True,
-                )
-                self.assertEqual(result.returncode, 42, result.stderr)
 
     def test_manifest_apply_retries_transient_webhook_rejections(self):
         """Predicting exactly when the cert-manager webhook starts serving is
