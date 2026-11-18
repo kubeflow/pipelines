@@ -56,6 +56,35 @@ assert.throws(() => architectures({}, 'merge_group',
 """
         subprocess.run(['node', '-e', script], cwd=ROOT, check=True)
 
+    def test_tensorboard_filters_match_producer_for_docs_and_runtime(
+        self,
+    ) -> None:
+        triggers = {
+            name: workflow(name)[True]['pull_request']
+            for name in ('ci-images.yml', 'tensorboard-acceptance.yml')
+        }
+        script = """
+const {applicable} = require('./.github/resources/scripts/ci_expected_workflows');
+const assert = require('node:assert/strict');
+const triggers = JSON.parse(process.argv[1]);
+for (const file of ['backend/src/tensorboard/README.md',
+                    'backend/src/tensorboard/OWNERS', 'test/tensorboard/README.md']) {
+  for (const [name, trigger] of Object.entries(triggers)) {
+    assert.equal(applicable(trigger, 'main', [file]), false, name + ':' + file);
+  }
+}
+for (const files of [['backend/src/tensorboard/tensorboard.sh'],
+                     ['test/tensorboard/deployed.py'],
+                     ['backend/src/tensorboard/README.md', 'test/tensorboard/deployed.py']]) {
+  for (const [name, trigger] of Object.entries(triggers)) {
+    assert.equal(applicable(trigger, 'main', files), true, name + ':' + files);
+  }
+}
+"""
+        subprocess.run(
+            ['node', '-e', script, json.dumps(triggers)], cwd=ROOT, check=True
+        )
+
     def test_only_shared_producer_calls_image_builder(self) -> None:
         callers = []
         for path in WORKFLOWS.glob('*.y*ml'):

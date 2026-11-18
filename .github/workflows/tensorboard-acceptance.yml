@@ -19,6 +19,8 @@ name: TensorBoard runtime acceptance
     - .github/workflows/shared-ci-images-ready.yml
     - .github/actions/shared-ci-images/**
     - .github/resources/scripts/shared_ci_images.py
+    - '!**/*.md'
+    - '!**/OWNERS'
   merge_group:
     types:
     - checks_requested

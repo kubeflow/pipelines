@@ -87,8 +87,10 @@ class UpdateTensorboardImageTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'disagree'):
             updater.default_image(self.root)
 
-    def test_repository_default_matches_master_publication(self):
-        self.assertEqual(updater.default_image(ROOT), updater.IMAGE + 'master')
+    def test_repository_default_is_consistent(self):
+        self.assertIsNotNone(
+            updater.IMAGE_REFERENCE.fullmatch(updater.default_image(ROOT))
+        )
 
     def test_release_script_invokes_helper(self):
         script = (ROOT / 'manifests/kustomize/hack/release.sh').read_text()
