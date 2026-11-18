@@ -75,7 +75,7 @@ if (options.mergedRecovery) {
   context.ref = options.dispatchRef || 'refs/heads/master';
   context.payload.repository = {full_name: 'kubeflow/pipelines', default_branch: 'master'};
   pr.merged = true; pr.state = 'closed'; pr.merge_commit_sha = 'c'.repeat(40);
-  pr.commits = options.multiCommit ? 2 : 1;
+  pr.commits = options.multiCommit || options.baseSync ? 2 : 1;
   pr.base.ref = options.recoveryBase || 'release-2.18';
   pr.base.sha = 'e'.repeat(40); // Live API base may have advanced after merge.
   if (options.foreignBase) pr.base.repo.full_name = 'attacker/pipelines';
@@ -133,6 +133,10 @@ jobs:
         isBinary: false, isTruncated: false}}))}}};
 }, rest: {
   pulls: {listFiles: methods.files, list: methods.pulls,
+    listCommits: async () => ({data: [
+      {sha: (options.wrongChange ? 'f' : '9').repeat(40), parents: options.mergeChange ? [] : [{sha: '8'.repeat(40)}]},
+      {sha: HEAD},
+    ]}),
     get: async request => {
       pullReads += 1;
       requestCounts.pr++;
@@ -208,7 +212,9 @@ jobs:
     return {data: {sha: request.ref,
       commit: options.missingTree ? {} : {tree: {sha: (options.treeMismatch && request.ref === HEAD ? 'f' : 'e').repeat(40)}},
       tree: {sha: 'e'.repeat(40)}, // Wrong top-level shape must not satisfy proof.
-      parents: options.badParents ? [] : [{sha: ((options.parentDrift && commitReads >= 5) || (options.parentMismatch && request.ref === HEAD) ? 'd' : 'b').repeat(40)}]}};
+      parents: options.baseSync && request.ref === HEAD ?
+        [{sha: '9'.repeat(40)}, {sha: (options.parentMismatch ? 'd' : 'b').repeat(40)}] :
+        options.badParents ? [] : [{sha: ((options.parentDrift && commitReads >= 5) || (options.parentMismatch && request.ref === HEAD) ? 'd' : 'b').repeat(40)}]}};
   }, getCombinedStatusForRef: {}, listCommitStatusesForRef: methods.statuses,
     listPullRequestsAssociatedWithCommit: methods.associated,
     createCommitStatus: async request => {
@@ -373,6 +379,36 @@ class MergedReleaseRecoveryTest(unittest.TestCase):
             [c for c in result['calls'] if c[0] == 'status'],
             [['status', 'success', 'a' * 40]],
         )
+
+    def test_base_sync_recovers_exact_tested_head(self):
+        result = self.recover(baseSync=True)
+        self.assertEqual(result['status'], 'success', result)
+        self.assertEqual(
+            [c for c in result['calls'] if c[0] == 'status'],
+            [['status', 'success', 'a' * 40]],
+        )
+        inventories = [
+            c[1]['expression']
+            for c in result['calls']
+            if c[0] == 'base-workflows'
+        ]
+        self.assertTrue(inventories)
+        self.assertEqual(set(inventories), {'b' * 40 + ':.github/workflows'})
+
+    def test_base_sync_rejects_unbound_commits_or_incomplete_evidence(self):
+        for case in [
+            dict(wrongChange=True),
+            dict(mergeChange=True),
+            dict(parentMismatch=True),
+            dict(treeMismatch=True),
+            dict(checksPassed=False),
+            dict(missing=True),
+        ]:
+            with self.subTest(case=case):
+                result = self.recover(baseSync=True, **case)
+                self.assertFalse(
+                    [c for c in result['calls'] if c[0] == 'status'], result
+                )
 
     def test_real_failures_and_incomplete_evidence_never_publish_green(self):
         cases = [

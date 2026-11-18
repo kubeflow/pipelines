@@ -618,7 +618,7 @@ async function mergedRecoveryBinding(github, context, number, head) {
   }
   const pr = await readPR(github, context, Number(number));
   if (pr.number !== Number(number) || pr.merged !== true || pr.state !== 'closed' ||
-      pr.head.sha !== head || pr.commits !== 1 || !pr.head.repo?.full_name ||
+      pr.head.sha !== head || ![1, 2].includes(pr.commits) || !pr.head.repo?.full_name ||
       pr.base.repo?.full_name !== repository || !/^release-\d+\.\d+$/.test(pr.base.ref) ||
       !/^[0-9a-f]{40}$/.test(pr.merge_commit_sha || '') || blocked(pr)) {
     throw new Error('Recovery identity is not an eligible merged release PR.');
@@ -629,17 +629,31 @@ async function mergedRecoveryBinding(github, context, number, head) {
   const {data: tested} = await github.rest.repos.getCommit({...context.repo, ref: head});
   if (commit.sha !== pr.merge_commit_sha || tested.sha !== head ||
       !Array.isArray(commit.parents) || commit.parents.length !== 1 ||
-      !Array.isArray(tested.parents) || tested.parents.length !== 1 ||
+      !Array.isArray(tested.parents) || tested.parents.length !== pr.commits ||
       !/^[0-9a-f]{40}$/.test(commit.parents[0].sha || '') ||
-      commit.parents[0].sha !== tested.parents[0].sha ||
       !/^[0-9a-f]{40}$/.test(commit.commit?.tree?.sha || '') ||
       commit.commit.tree.sha !== tested.commit?.tree?.sha) {
-    throw new Error('Recovery requires a single-commit PR with matching tested/merged parents and trees.');
+    throw new Error('Recovery requires matching tested and merged trees and a single landed parent.');
   }
-  // Multi-commit rebase merges make the last commit's parent part of the PR.
-  // Restrict recovery to one tested commit with an unchanged parent and tree;
-  // this proves the immutable base without trusting GitHub's mutable base.sha.
-  const bound = {...pr, base: {...pr.base, sha: commit.parents[0].sha}};
+  const base = commit.parents[0].sha;
+  if (tested.parents[pr.commits - 1].sha !== base) {
+    throw new Error('Tested head is not based on the exact landed parent.');
+  }
+  if (pr.commits === 2) {
+    // Only a single PR change followed by merging the landed base into the PR.
+    // Enumerate both commits so a rebase or an unrelated merge cannot supply the base.
+    const {data: commits} = await github.rest.pulls.listCommits({
+      ...context.repo, pull_number: pr.number, per_page: 3,
+    });
+    const change = commits[0];
+    if (commits.length !== 2 || commits[1].sha !== head ||
+        !/^[0-9a-f]{40}$/.test(change.sha || '') || change.sha === base ||
+        change.sha !== tested.parents[0].sha || change.parents?.length !== 1 ||
+        !/^[0-9a-f]{40}$/.test(change.parents[0].sha || '')) {
+      throw new Error('Recovery requires a single PR change followed by a merge of the landed base.');
+    }
+  }
+  const bound = {...pr, base: {...pr.base, sha: base}};
   const identity = JSON.stringify([bound.number, head, pr.head.repo.full_name,
     pr.base.repo.full_name, pr.base.ref, pr.merge_commit_sha, bound.base.sha, commit.commit.tree.sha]);
   return {pr: bound, identity};
