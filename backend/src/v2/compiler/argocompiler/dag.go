@@ -45,7 +45,13 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 	}
 	sort.Strings(keys)
 
-	taskToExitTemplate := map[string]string{}
+	// An upstream task may be named by more than one exit task, and a single
+	// exit task may name more than one upstream task. Both are many-to-one, so
+	// the templates are collected per upstream rather than overwritten.
+	taskToExitTemplates := map[string][]string{}
+	// Exit tasks naming several upstream tasks cannot be hooked onto each of
+	// them, or the hook runs once per upstream. They are gated instead.
+	var gatedExitTasks []gatedExitTask
 
 	// First process exit tasks since those need to be set as lifecycle hooks on the exit handler sub DAG.
 	for _, taskName := range keys {
@@ -75,8 +81,19 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 
 		deps := kfpTask.GetDependentTasks()
 
-		for _, dep := range deps {
-			taskToExitTemplate[dep] = name
+		if len(deps) > 1 {
+			// Argo evaluates an exit hook once per task it is attached to, so
+			// attaching this template to every upstream task would run the exit
+			// task once per upstream. Gate it on all of them instead.
+			gatedExitTasks = append(gatedExitTasks, gatedExitTask{
+				taskName: taskName,
+				template: name,
+				deps:     deps,
+			})
+		} else {
+			for _, dep := range deps {
+				taskToExitTemplates[dep] = append(taskToExitTemplates[dep], name)
+			}
 		}
 
 		exitDag := &wfapi.Template{
@@ -114,7 +131,10 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 			continue
 		}
 
-		exitTemplate := taskToExitTemplate[taskName]
+		exitTemplate, err := c.exitHookTemplate(name, taskName, taskToExitTemplates[taskName])
+		if err != nil {
+			return err
+		}
 
 		tasks, err := c.task(
 			taskName, kfpTask, taskInputs{parentDagID: inputParameter(paramParentDagTaskID), exitTemplate: exitTemplate},
@@ -129,6 +149,14 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 	// exit task.
 	if len(dag.DAG.Tasks) == 0 {
 		return fmt.Errorf("DAG %s must contain one or more non-exit tasks", name)
+	}
+
+	for _, gated := range gatedExitTasks {
+		gateTasks, err := c.upstreamGateTasks(gated)
+		if err != nil {
+			return err
+		}
+		dag.DAG.Tasks = append(dag.DAG.Tasks, gateTasks...)
 	}
 
 	_, err = c.addTemplate(dag, name)
@@ -649,6 +677,127 @@ func depends(deps []string) string {
 		builder.WriteString(".Succeeded")
 	}
 	return builder.String()
+}
+
+// gatedExitTask is an exit task that names more than one upstream task.
+type gatedExitTask struct {
+	// taskName is the KFP task name of the exit task.
+	taskName string
+	// template is its generated exit-hook template.
+	template string
+	// deps are the upstream task names it waits on.
+	deps []string
+}
+
+// exitHookTemplate returns the single template to attach to upstreamTask as its
+// Argo exit hook.
+//
+// Argo's LifecycleHooks is keyed by lifecycle event, so a task can carry only
+// one "exit" hook. When several exit tasks name the same upstream task, their
+// templates are wrapped in one aggregating DAG so that every exit task still
+// runs; previously the later template simply replaced the earlier one in the
+// mapping and the replaced template became unreachable.
+func (c *workflowCompiler) exitHookTemplate(dagName string, upstreamTask string, templates []string) (string, error) {
+	switch len(templates) {
+	case 0:
+		return "", nil
+	case 1:
+		return templates[0], nil
+	}
+
+	wrapperName := fmt.Sprintf("exit-hook-%s-%s-group", dagName, upstreamTask)
+	wrapper := &wfapi.Template{
+		Name: wrapperName,
+		Inputs: wfapi.Inputs{
+			Parameters: []wfapi.Parameter{
+				{Name: paramParentDagTaskID},
+			},
+		},
+		DAG: &wfapi.DAGTemplate{},
+	}
+	for _, template := range templates {
+		wrapper.DAG.Tasks = append(wrapper.DAG.Tasks, wfapi.DAGTask{
+			Name:     template,
+			Template: template,
+			Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{
+				{Name: paramParentDagTaskID, Value: wfapi.AnyStringPtr(inputParameter(paramParentDagTaskID))},
+			}},
+		})
+	}
+	if _, err := c.addTemplate(wrapper, wrapperName); err != nil {
+		return "", fmt.Errorf("DAG: %w", err)
+	}
+	return wrapperName, nil
+}
+
+// upstreamGateTasks returns the Argo tasks that run a multi-upstream exit task
+// exactly once, after every upstream task has reached a final state.
+//
+// Two tasks are needed:
+//
+//   - The gate carries the exit hook and depends on all upstream tasks in any
+//     final state, so the exit task runs once rather than once per upstream.
+//   - The status task depends on the same upstream tasks succeeding. Because the
+//     gate depends on the upstream tasks, they are no longer DAG leaves, and a
+//     succeeding gate would otherwise report the DAG as successful even when an
+//     upstream task failed. The status task is omitted when an upstream task
+//     does not succeed, which keeps that failure visible in the DAG phase.
+//
+// Both use a zero-duration suspend template, so neither creates a pod.
+func (c *workflowCompiler) upstreamGateTasks(gated gatedExitTask) ([]wfapi.DAGTask, error) {
+	noop, err := c.exitHookNoOpTemplate()
+	if err != nil {
+		return nil, err
+	}
+	gate := wfapi.DAGTask{
+		Name:     gated.taskName + "-upstream-gate",
+		Template: noop,
+		Depends:  dependsAnyFinalState(gated.deps),
+	}
+	addExitTask(&gate, gated.template, inputParameter(paramParentDagTaskID))
+	status := wfapi.DAGTask{
+		Name:     gated.taskName + "-upstream-status",
+		Template: noop,
+		Depends:  depends(gated.deps),
+	}
+	return []wfapi.DAGTask{gate, status}, nil
+}
+
+// exitHookNoOpTemplate adds, once per workflow, a template that completes
+// immediately without scheduling a pod.
+func (c *workflowCompiler) exitHookNoOpTemplate() (string, error) {
+	name := c.templateName(tmplExitHookNoOp)
+	if _, ok := c.templates[name]; ok {
+		return name, nil
+	}
+	noop := &wfapi.Template{
+		Name:    tmplExitHookNoOp,
+		Suspend: &wfapi.SuspendTemplate{Duration: "0s"},
+	}
+	if _, err := c.addTemplate(noop, tmplExitHookNoOp); err != nil {
+		return "", fmt.Errorf("DAG: %w", err)
+	}
+	return name, nil
+}
+
+// dependsAnyFinalState builds an Argo depends expression that is met once every
+// dep has reached a final state, whatever that state is. This is what
+// .ignore_upstream_failure() and dsl.ExitHandler ask for: the exit task runs
+// after its upstream tasks finish, including when they fail.
+func dependsAnyFinalState(deps []string) string {
+	if len(deps) == 0 {
+		return ""
+	}
+	finalStates := []string{"Succeeded", "Failed", "Errored", "Skipped", "Omitted"}
+	clauses := make([]string, 0, len(deps))
+	for _, dep := range deps {
+		states := make([]string, 0, len(finalStates))
+		for _, state := range finalStates {
+			states = append(states, dep+"."+state)
+		}
+		clauses = append(clauses, "("+strings.Join(states, " || ")+")")
+	}
+	return strings.Join(clauses, " && ")
 }
 
 func (c *workflowCompiler) syncTemplate(name string) {
