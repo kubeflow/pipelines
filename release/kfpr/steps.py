@@ -618,7 +618,7 @@ def validate_release_pr(context: ReleaseContext) -> str:
                 '--repo',
                 REPO,
                 '--json',
-                'state,baseRefName,headRefName,headRefOid,mergeCommit,statusCheckRollup',
+                'state,url,baseRefName,headRefName,headRefOid,mergeCommit,statusCheckRollup',
             ],
             cwd=context.root,
         )
@@ -644,7 +644,7 @@ def validate_release_pr(context: ReleaseContext) -> str:
     for check in checks:
         # Tide reports merge-queue eligibility, not a CI result. Its pending
         # status can remain on the tested head after the PR has been merged.
-        if is_pending_merge_queue_check(check, merged_pr_url=url):
+        if is_pending_merge_queue_check(check, merged_pr_url=pr.get('url')):
             continue
         status = check.get('status') or check.get('state')
         result = check.get('conclusion') if status == 'COMPLETED' else status

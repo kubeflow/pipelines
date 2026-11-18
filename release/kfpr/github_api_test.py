@@ -104,7 +104,7 @@ class GithubPollingTest(unittest.TestCase):
                 'view',
                 'https://github.com/kubeflow/pipelines/pull/1',
                 '--json',
-                'state,statusCheckRollup',
+                'state,url,statusCheckRollup',
             ],
         )
 
@@ -250,7 +250,7 @@ class GithubPollingTest(unittest.TestCase):
 
         def snapshot(state, *checks):
             return json.dumps(
-                {'state': state, 'statusCheckRollup': list(checks)}
+                {'state': state, 'url': url, 'statusCheckRollup': list(checks)}
             )
 
         runner.capture.side_effect = [
@@ -270,14 +270,34 @@ class GithubPollingTest(unittest.TestCase):
             snapshot('MERGED', admission, green),
         ]
         with mock.patch('time.sleep') as sleep:
-            core.watch_pr_ci(runner, url)
+            core.watch_pr_ci(runner, url.replace('/15746', '/015746'))
         self.assertEqual(sleep.call_count, 4)
 
-        runner.capture.side_effect = [
-            snapshot('MERGED', admission, {**green, 'state': 'FAILURE'})
-        ]
-        with self.assertRaisesRegex(RuntimeError, 'ci-passed failed'):
-            core.watch_pr_ci(runner, url)
+        successful_run = {
+            '__typename': 'CheckRun',
+            'name': 'ci-passed',
+            'status': 'COMPLETED',
+            'conclusion': 'SUCCESS',
+            'startedAt': '2026-11-18T00:00:00Z',
+        }
+        for state in ('FAILURE', 'ERROR'):
+            with self.subTest(state=state):
+                runner.capture.side_effect = [
+                    snapshot(
+                        'MERGED',
+                        admission,
+                        {**green, 'state': state},
+                        successful_run,
+                    )
+                ]
+                with (
+                    mock.patch(
+                        'time.sleep',
+                        side_effect=AssertionError('unexpected wait'),
+                    ),
+                    self.assertRaisesRegex(RuntimeError, 'ci-passed failed'),
+                ):
+                    core.watch_pr_ci(runner, url)
 
     def test_watch_latest_workflow_run_dry_run_returns_immediately(self):
         runner = core.CommandRunner(dry_run=True)

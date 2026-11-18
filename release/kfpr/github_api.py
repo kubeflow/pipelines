@@ -119,7 +119,7 @@ def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
                     'view',
                     pr_url,
                     '--json',
-                    'state,statusCheckRollup',
+                    'state,url,statusCheckRollup',
                 ]
             )
         )
@@ -127,7 +127,10 @@ def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
             check
             for check in pr['statusCheckRollup']
             if not is_pending_merge_queue_check(
-                check, merged_pr_url=pr_url if pr['state'] == 'MERGED' else None
+                check,
+                merged_pr_url=pr.get('url')
+                if pr['state'] == 'MERGED'
+                else None,
             )
         ]
         if not checks:
@@ -143,9 +146,11 @@ def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
                 or 'unknown'
             )
             timestamp = check.get('startedAt') or check.get('completedAt') or ''
-            previous = latest_checks.get(name)
+            # A CheckRun and StatusContext can share a display name.
+            key = (check.get('__typename'), name)
+            previous = latest_checks.get(key)
             if previous is None or timestamp >= previous[0]:
-                latest_checks[name] = (timestamp, check)
+                latest_checks[key] = (timestamp, check)
         completed = 0
         for check in [item[1] for item in latest_checks.values()]:
             name = (

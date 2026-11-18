@@ -40,6 +40,7 @@ class ReleaseGatesTest(unittest.TestCase):
     def pr(self, **changes):
         pr = dict(
             state='MERGED',
+            url='https://github.com/kubeflow/pipelines/pull/1',
             baseRefName='release-2.17',
             headRefName='2.17.3-update-version-tags',
             headRefOid=HEAD,
@@ -75,6 +76,9 @@ class ReleaseGatesTest(unittest.TestCase):
             'context': 'ci-passed',
             'state': 'SUCCESS',
         }
+        self.context.state.answers['version_pr_url'] = (
+            'https://github.com/kubeflow/pipelines/pull/01'
+        )
         self.pr(statusCheckRollup=[admission, green])
         self.assertEqual(steps.validate_release_pr(self.context), SHA)
         for checks in (
