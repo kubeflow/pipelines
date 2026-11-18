@@ -22,7 +22,7 @@ from unittest import mock
 from absl.testing import parameterized
 
 from kfp import dsl, local
-from kfp.dsl import Artifact, Dataset, Output
+from kfp.dsl import Artifact, Dataset, Output, component_factory
 from kfp.local import subprocess_task_handler, testing_utilities
 
 # LocalRunnerEnvironmentTestCase isolates installs from the pytest worker,
@@ -161,6 +161,22 @@ _KFP_RUNTIME=true python3 -m kfp.executor_main \
         ]
 
         self.assertEqual(actual, expected)
+
+    def test_replaces_all_python_executables_in_installation_command(self):
+        command = component_factory._get_packages_to_install_command(
+            packages_to_install=['cloudpickle'],
+            use_venv=True,
+        )
+        actual = subprocess_task_handler.replace_python_executable(
+            full_command=command,
+            new_executable='/foo/bar/python',
+        )
+
+        self.assertEqual(
+            actual[2],
+            command[2].replace('python3 -m ', '/foo/bar/python -m '),
+        )
+        self.assertNotIn('python3 -m ', actual[2])
 
 
 class TestUseVenv(testing_utilities.LocalRunnerEnvironmentTestCase):
