@@ -217,11 +217,12 @@ jobs:
         if: ${{ matrix.image != 'frontend' }}
         id: go-context
         env:
+          IMAGE_CONTEXT: ${{ matrix.context }}
           DOCKERFILE: ${{ matrix.dockerfile }}
         run: |
           context_json=$(python3 .github/resources/scripts/image-build-provenance.py prepare \
             --source . --sha "$GITHUB_SHA" --dockerfile "$DOCKERFILE" \
-            --destination "$RUNNER_TEMP/go-build-context")
+            --context "$IMAGE_CONTEXT" --destination "$RUNNER_TEMP/go-build-context")
           printf '%s' "$context_json" | jq -r '"context=\(.context)", "dockerfile=\(.dockerfile)"' >> "$GITHUB_OUTPUT"
 
       - name: Set up Go provenance reader

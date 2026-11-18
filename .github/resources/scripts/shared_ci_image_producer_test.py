@@ -259,6 +259,10 @@ assert.throws(() => architectures({}, 'merge_group',
         prepare = next(s for s in steps if s.get('id') == 'go-context')
         self.assertIn('image-build-provenance.py prepare', prepare['run'])
         self.assertIn('--sha "$GITHUB_SHA"', prepare['run'])
+        self.assertEqual(
+            prepare['env']['IMAGE_CONTEXT'], '${{ matrix.context }}'
+        )
+        self.assertIn('--context "$IMAGE_CONTEXT"', prepare['run'])
         for name in ('save-image', 'rebuild'):
             build = next(s for s in steps if s.get('id') == name)
             self.assertEqual(
