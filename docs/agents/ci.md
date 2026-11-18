@@ -332,6 +332,29 @@ Keep fixture grants scoped to that account and namespace and authorization enabl
 - Presubmit image builds import GitHub Actions v2 BuildKit caches scoped by image and native architecture. Only the shared `ci-images.yml` AMD64 producer on default-branch pushes enables `cache-write`; PRs and other callers import only. Do not enable exports in every caller: duplicate multi-stage caches exhausted the repository cache quota and evicted useful dependency caches. ARM presubmit remains read-only until a default-branch cache producer is deliberately provided. Cache requests specify 60s import and 120s export timeout parameters, with `mode=max` and nonfatal export errors; existing build/job deadlines bound overall execution. Frontend shell builds receive masked runtime cache credentials through the pinned GitHub Script action. Never pass these credentials into the Docker build.
 - Both image-build recovery paths remain uncached. Frontend dependency manifests, lockfiles, and `.npmrc` precede the full source copy so source-only edits reuse dependency layers; preserve all three install trees when changing that order.
 
+## Pinned Argo deployment manifests
+
+The Shared CI Images source job prepares the exact versions in
+`third_party/argo/VERSION` and `COMPATIBILITY_VERSION` once per producer attempt.
+Each upstream Git fetch gets three attempts, a 180-second per-attempt timeout,
+and a 10-second delay between failures. The producer records the resolved commit
+for each version and packages only controller, RBAC, and minimal CRD resources.
+
+`argo-manifests-attempt-N` is a separate artifact from the strict Docker image
+bundles. The deploy action downloads it from the verified shared-image producer's
+repository, run, and attempt, checks its source identity and archive checksum, and
+rechecks the producer attempt before accepting it. Deployment rewrites all five
+upstream Argo resource references to local files and selects matching controller
+and executor image tags. Repeated deployment attempts and the compatibility
+version use the same artifact; test jobs do not fetch upstream Argo manifests.
+
+CI deployment fails if the verified artifact is unavailable; it never silently
+falls back to GitHub. Rerun the complete shared producer if its fetch attempts
+are exhausted, then rerun consumers. Local/manual deployment without
+`KFP_ARGO_MANIFESTS_DIRECTORY` retains the existing remote-manifest behavior.
+When changing Argo pins or resource layouts, run the artifact/workflow tests and
+render namespace, cluster-scoped, and cluster-install overlays for both versions.
+
 ## Common CI failures
 
 - Read the Docs release-readiness builds limit `sphinx_immaterial` font fetching to four workers with `SPHINX_IMMATERIAL_FONT_FETCH_MAX_WORKERS`, rather than its default 128. This reduces connection pressure on Google Fonts after observed TLS EOF and remote-disconnect failures. Both SDK documentation steps inherit the limit; fonts are still bundled, TLS verification stays enabled, and Sphinx errors still fail the job.
