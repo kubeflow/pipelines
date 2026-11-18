@@ -22,7 +22,7 @@ from unittest import mock
 from absl.testing import parameterized
 
 from kfp import dsl, local
-from kfp.dsl import Artifact, Dataset, Output, component_factory
+from kfp.dsl import Artifact, component_factory, Dataset, Output
 from kfp.local import subprocess_task_handler, testing_utilities
 
 # LocalRunnerEnvironmentTestCase isolates installs from the pytest worker,
@@ -146,9 +146,7 @@ _KFP_RUNTIME=true python3 -m kfp.executor_main \
             new_executable="/foo/bar/python.exe",
         )
 
-        expected_script = script.replace(
-            "python3", "/foo/bar/python.exe", 1
-        )
+        expected_script = script.replace('python3', '/foo/bar/python.exe', 1)
         expected = [
             "sh",
             "-ec",
