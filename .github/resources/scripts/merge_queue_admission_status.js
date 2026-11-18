@@ -40,18 +40,19 @@ async function unresolvedConversations(github, context, pr) {
     ...context.repo, branch: pr.base.ref, per_page: 100,
   });
   if (!Array.isArray(rules)) throw new Error('Incomplete admission rules');
+  // refUpdateRule exposes the rules visible to the installation token.
   const policy = await github.graphql(`query AdmissionReviewPolicy($owner:String!, $repo:String!, $branch:String!) {
     repository(owner:$owner, name:$repo) { nameWithOwner ref(qualifiedName:$branch) {
-      name branchProtectionRule { requiresConversationResolution }
+      name refUpdateRule { requiresConversationResolution }
     } }
   }`, {...context.repo, branch: `refs/heads/${pr.base.ref}`});
   const ref = policy?.repository?.ref;
   if (policy?.repository?.nameWithOwner !== `${context.repo.owner}/${context.repo.repo}` ||
-      ref?.name !== pr.base.ref || (ref.branchProtectionRule !== null &&
-      typeof ref.branchProtectionRule?.requiresConversationResolution !== 'boolean')) {
+      ref?.name !== pr.base.ref || (ref.refUpdateRule !== null &&
+      typeof ref.refUpdateRule?.requiresConversationResolution !== 'boolean')) {
     throw new Error('Incomplete admission conversation policy');
   }
-  const required = ref.branchProtectionRule?.requiresConversationResolution ||
+  const required = ref.refUpdateRule?.requiresConversationResolution ||
     rules.some(rule => rule.type === 'pull_request' && rule.parameters?.required_review_thread_resolution === true);
   if (!required) return 0;
   let cursor = null, total = null, count = 0, unresolved = 0;
