@@ -53,6 +53,19 @@ class TestTimeout:
             }
         }
 
+    @pytest.mark.parametrize('seconds', [True, False])
+    def test_bool_timeout(self, seconds):
+
+        with pytest.raises(
+            TypeError,
+            match=rf'Argument for "seconds" must be an int, not bool. Got: {seconds}.',
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                task = comp()
+                kubernetes.set_timeout(task, seconds=seconds)
+
     def test_bad_value_timeout(self):
 
         with pytest.raises(
