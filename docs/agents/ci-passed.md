@@ -443,18 +443,23 @@ After verifying the PR number and exact tested head, dispatch **CI Check** from
 the default branch with `merged_pr` and `head_sha`. For example:
 
 ```sh
-gh workflow run ci-checks.yml --ref master -f merged_pr=12345 -f head_sha=<40-character-head-SHA>
+gh workflow run ci-checks.yml --ref main -f merged_pr=12345 -f head_sha=<40-character-head-SHA>
 ```
 
 This explicit recovery accepts only merged `release-X.Y` PRs in this repository
 whose aggregate is pending, or whose leftover success/failure is proven to come
 from an interrupted recovery run. It binds the head, merge commit, repository and branch,
-and accepts only single-commit PRs whose tested head and merged commit have
-identical trees and identical sole parents. This proves the immutable pre-PR
-base without trusting a subsequently advancing PR base field. Multi-commit PRs,
-merge commits with multiple parents, and changed parents or trees fail closed;
-a first parent alone is not proof because a multi-commit rebase can put it inside
-the PR. The required workflow inventory comes from this verified parent. Other green or failed aggregate statuses are left untouched. Successful preparation,
+and requires identical tested and landed trees. The landed commit must have a
+single parent. For a single-commit PR, the tested head must have that same sole
+parent. For a two-commit PR, the first PR commit must have one parent. The
+second must be the tested merge of that first PR commit (first parent) and
+the exact landed base (second parent). Other commit shapes fail closed.
+These checks establish the immutable base for the required workflow inventory
+even when the release branch has advanced since the PR merged. Recovery uses
+this inventory throughout validation regardless of the current merge queue rule.
+The workflow attempts must agree at preparation, immediately before publication,
+and during the post-publication check. A change during publication revokes the
+success written by that recovery. Other green or failed aggregate statuses are left untouched. Successful preparation,
 required-workflow validation and the fresh external-check reader are all required. Identity
 changes, unavailable evidence and pending or failed checks cannot authorize a
 success. Recovery does not change PR labels. No release tag or package is published by this workflow.
