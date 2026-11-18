@@ -212,6 +212,21 @@ class SharedImageTests(unittest.TestCase):
             shared.checksum(self.directory / 'apiserver.tar'),
         )
 
+    def test_bundle_accepts_exact_images_and_rejects_extra_evidence(self):
+        self.api.images('amd64', self.directory)
+        shared.validate_bundle(self.producer, 'amd64', self.directory)
+        for name in ('unrelated.txt', 'apiserver.go-provenance'):
+            with self.subTest(name=name):
+                extra = self.directory / name
+                extra.write_text('unexpected')
+                with self.assertRaisesRegex(
+                    shared.InvalidEvidence, 'unexpected bundle'
+                ):
+                    shared.validate_bundle(
+                        self.producer, 'amd64', self.directory
+                    )
+                extra.unlink()
+
     def test_bundled_provenance_tampering_fails_closed(self):
         for field, value in [
             ('version', 1),

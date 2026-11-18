@@ -93,6 +93,7 @@ runs:
 
     # Validate both sets against one fresh producer snapshot before any image load.
     - name: Download and verify shared images
+      id: shared-images
       uses: ./.github/actions/shared-ci-images
       with:
         ready-state: ${{ inputs.image_ready_state }}
@@ -100,6 +101,34 @@ runs:
         architecture: amd64
         layout: nested
         path: "${{ inputs.image_path }}"
+
+    - name: Download pinned Argo manifests
+      uses: ./.github/actions/download-artifact-with-retry
+      with:
+        name: argo-manifests-attempt-${{ steps.shared-images.outputs.run-attempt }}
+        repository: ${{ steps.shared-images.outputs.repository }}
+        run-id: ${{ steps.shared-images.outputs.run-id }}
+        github-token: ${{ github.token }}
+        path: ${{ inputs.image_path }}/argo-manifests
+        required-files: |
+          argo-manifests.tar
+          argo-manifests.json
+
+    - name: Verify pinned Argo manifests
+      id: argo-manifests
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        ARGO_MANIFESTS_DIRECTORY: ${{ inputs.image_path }}/argo-manifests
+        PRODUCER_STATE: ${{ steps.shared-images.outputs.state }}
+      run: |
+        python3 .github/resources/scripts/argo_manifest_artifacts.py verify \
+          --directory "$ARGO_MANIFESTS_DIRECTORY" --state "$PRODUCER_STATE"
+        python3 - <<'PYTHON' >> "$GITHUB_OUTPUT"
+        import os
+        from pathlib import Path
+        print(f"directory={Path(os.environ['ARGO_MANIFESTS_DIRECTORY']).resolve()}")
+        PYTHON
 
     - name: Load Runtime Base Images Into Kind
       shell: bash
@@ -223,6 +252,8 @@ runs:
       id: deploy-kfp
       if: ${{ steps.configure.outcome == 'success' }}
       uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60
+      env:
+        KFP_ARGO_MANIFESTS_DIRECTORY: ${{ steps.argo-manifests.outputs.directory }}
       with:
         max_attempts: 2
         timeout_minutes: 15

@@ -332,6 +332,29 @@ Keep fixture grants scoped to that account and namespace and authorization enabl
 - Presubmit image builds import GitHub Actions v2 BuildKit caches scoped by image and native architecture. Only the shared `ci-images.yml` AMD64 producer on default-branch pushes enables `cache-write`; PRs and other callers import only. Do not enable exports in every caller: duplicate multi-stage caches exhausted the repository cache quota and evicted useful dependency caches. ARM presubmit remains read-only until a default-branch cache producer is deliberately provided. Cache requests specify 60s import and 120s export timeout parameters, with `mode=max` and nonfatal export errors; existing build/job deadlines bound overall execution. Frontend shell builds receive masked runtime cache credentials through the pinned GitHub Script action. Never pass these credentials into the Docker build.
 - Both image-build recovery paths remain uncached. Frontend dependency manifests, lockfiles, and `.npmrc` precede the full source copy so source-only edits reuse dependency layers; preserve all three install trees when changing that order.
 
+## Pinned Argo deployment manifests
+
+The Shared CI Images source job prepares the exact versions in
+`third_party/argo/VERSION` and `COMPATIBILITY_VERSION` once per producer attempt.
+Each upstream Git fetch gets three attempts, a 180-second per-attempt timeout,
+and a 10-second delay between failures. The producer records the resolved commit
+for each version and packages only controller, RBAC, and minimal CRD resources.
+
+`argo-manifests-attempt-N` is a separate artifact from the strict Docker image
+bundles. The deploy action downloads it from the verified shared-image producer's
+repository, run, and attempt, checks its source identity and archive checksum, and
+rechecks the producer attempt before accepting it. Deployment rewrites all five
+upstream Argo resource references to local files and selects matching controller
+and executor image tags. Repeated deployment attempts and the compatibility
+version use the same artifact; test jobs do not fetch upstream Argo manifests.
+
+CI deployment fails if the verified artifact is unavailable; it never silently
+falls back to GitHub. Rerun the complete shared producer if its fetch attempts
+are exhausted, then rerun consumers. Local/manual deployment without
+`KFP_ARGO_MANIFESTS_DIRECTORY` retains the existing remote-manifest behavior.
+When changing Argo pins or resource layouts, run the artifact/workflow tests and
+render namespace, cluster-scoped, and cluster-install overlays for both versions.
+
 ## Common CI failures
 
 - For a green PR that is not queued, inspect its optional `merge-queue-admission`
@@ -633,14 +656,14 @@ never prove obsolescence. Current candidates and unrelated PR/manual runs are le
 
 Admission does not wait for unrelated status-recovery matrix jobs. Each newly
 verified queue-ready PR success dispatches the trusted default-branch recovery
-workflow with its PR number and exact head, inside request accounting. Every
-surviving serialized controller also lists likely ready PRs, so replacement of
-a pending job cannot lose its admission request. Approval and `ci-passed` labels
-are only discovery filters; fresh policy and CI evidence still authorize entry.
-The five-minute recovery sweep performs this ready-PR catch-up too, while the
-15-minute full sweep also discovers failed aggregates eligible for PR Gate
-recovery. Both schedules are subject to GitHub scheduling delays. Wakeup failures
-warn without revoking valid CI, and a later controller catches up. The
+workflow with its PR number and exact head, inside request accounting. PR events
+and wakeups reconcile the identified PR. Queue workflow completions inspect
+the reported candidate, using its ref and SHA. Fresh policy and CI evidence
+still authorize entry. The five-minute recovery sweep catches up ready PRs,
+missed events and candidates without a workflow completion. The 15-minute full
+sweep also discovers failed aggregates eligible for PR Gate recovery. Both
+schedules are subject to GitHub scheduling delays. Wakeup failures warn without
+revoking valid CI, and scheduled recovery can retry. The
 15-minute cooldown is a minimum, not a retry-time guarantee. After the retry
 budget is exhausted, fix or rerun PR CI; a new verified workflow fingerprint
 automatically permits admission again without adding queue labels manually.
@@ -699,3 +722,33 @@ The bounded Istio qualification overlay requires both injector selectors
 `global.variant`. Matching source and rendered injector values alone cannot
 establish coverage: the selected injected image must also match the static
 prerequisite image inventory. Other selectors fail qualification.
+
+Ordinary image publication and shared CI native builds reuse the qualification
+sanitized Git context and binary reader through `image-build-provenance.py`.
+Known KFP Go runtime Dockerfiles build package paths with `-buildvcs=true
+-mod=readonly`; verification requires the exact clean source pseudo-version,
+commit/time and ELF/platform identity. Initial and fallback CI builds use the
+same context, and verification precedes reusable archive publication. Raw binary
+provenance accompanies the archives. Non-Go images retain their normal context
+and ignore rules. Publication uses tooling from the workflow revision, pulls
+the exact pushed registry digest, and verifies its binaries before
+exporting a digest to the manifest/tag publisher. A failed verification can leave
+an untagged registry digest, but cannot promote release/master tags. Older source
+revisions without package-path builds fail closed and require the source fix;
+no legacy metadata exception is added. Run `image_build_provenance_test.py`,
+`go_binary_provenance_test.py`, `image_publication_permissions_test.py`, and
+`shared_ci_image_producer_test.py` alongside qualification provenance tests.
+
+The publication binary reader uses the managed Go setup composite from the
+workflow tooling checkout, selecting the source checkout’s `go.mod` compiler.
+ARM smoke inventory loading distinguishes the retained binary-provenance reports
+from image identity records; reports never substitute for missing image records.
+Recipe paths are validated before image classification: absolute paths and parent
+traversal are rejected. Changes to the provenance wrapper, Git-context helper,
+or Go build-info reader explicitly select both shared-image architectures even
+when no consumer workflow's path filter matches.
+
+Go binary verification reports from shared CI image builds are retained in a
+separate `<image>[-arm64]-go-provenance-attempt-<attempt>` artifact. Image bundles
+contain only their registered archives, image identities, and checksum records;
+extra files still fail validation. Binary verification runs before either upload.

@@ -33,6 +33,12 @@ type NodeStatus struct {
 	Children   []string
 	// Message is the human-readable status message from the execution engine (e.g. "Back-off pulling image…"). May be empty.
 	Message string
+	// BoundaryID is the ID of the node whose template this node executes inside, as recorded by the
+	// execution engine itself (Argo's NodeStatus.BoundaryID). Unlike Children, which can also carry
+	// dependency-ordering edges between sibling tasks, BoundaryID always reflects the workflow's real
+	// template nesting, so it is the field to use for containment checks. Empty for a node with no
+	// enclosing template, such as the workflow's own root.
+	BoundaryID string
 }
 
 // Abstract interface to encapsulate the resources of the execution runtime specifically

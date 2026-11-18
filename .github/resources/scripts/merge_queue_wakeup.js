@@ -25,8 +25,8 @@ async function wakeAdmission({github, context, core, pr}) {
       workflow_id: 'merge-queue-recovery.yml', ref: data.default_branch,
       inputs: {pr_number: String(pr.number), head_sha: pr.head.sha}});
   } catch (error) {
-    // Notification failure is not failed CI. The next surviving writer discovers
-    // ready PRs, so a lost notification never requires another status transition.
+    // Notification failure is not failed CI. Scheduled recovery discovers ready
+    // PRs even when the immediate notification is lost.
     core.warning(`Queue admission wakeup failed; scheduled recovery will retry: ${error.message}`);
   }
 }

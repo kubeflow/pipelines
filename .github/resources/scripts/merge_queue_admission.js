@@ -299,7 +299,7 @@ async function dequeue(github, pr) {
   }`, {id: pr.node_id});
 }
 
-async function reconcilePR({github, context, number, branch, root, core, now = () => Date.now(), onFailure}) {
+async function reconcilePR({github, context, number, branch, root, core, now = () => Date.now(), onFailure, expectedHead, expectedRepo, expectedRef}) {
   if (!await queueEnabled({github, context, branch, root})) return;
   let entries = await readQueue(github, context, branch);
   const entry = entries.find(entry => entry.pullRequest.number === number);
@@ -310,6 +310,9 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
     publishAdmissionStatus({github, context, pr, core, description, state});
   try {
     pr = await readPR(github, context, number);
+    if (expectedHead && (pr.head?.sha !== expectedHead ||
+        (expectedRepo && pr.head?.repo?.full_name !== expectedRepo) ||
+        (expectedRef && pr.head?.ref !== expectedRef))) return;
     const reason = policyReason(pr, `${context.repo.owner}/${context.repo.repo}`, branch);
     if (entry && (reason || entry.pullRequest.headRefOid !== pr.head.sha)) {
       await invalidateQueue(github, context, entries);
@@ -374,7 +377,7 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
     enqueueAttempted = true;
     const enqueued = await github.graphql(`mutation($id:ID!, $head:GitObjectID!) {
       enqueuePullRequest(input:{pullRequestId:$id,expectedHeadOid:$head,jump:false}) {
-        mergeQueueEntry { id }
+        mergeQueueEntry { id headCommit { oid } }
       }
     }`, {id: pr.node_id, head: pr.head.sha});
     if (typeof enqueued?.enqueuePullRequest?.mergeQueueEntry?.id !== 'string' ||
@@ -397,6 +400,8 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
         context: 'queue-admission-attempt', state: 'pending',
         description: `Admission ${branch}; CI attempts ${admission.fingerprint}.`});
       await report('Queued; awaiting merge-group checks.', 'success');
+      const head = enqueued?.enqueuePullRequest?.mergeQueueEntry?.headCommit?.oid;
+      if (SHA.test(head || '')) return {number, baseRef:branch, head};
     }
   } catch (error) {
     // An enqueue may have succeeded even if its response was lost. Refresh the
@@ -435,7 +440,6 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
 }
 
 async function eventTargets(github, context) {
-  if (context.eventName === 'schedule') return null;
   if (context.eventName === 'workflow_dispatch') {
     const branch = context.payload.repository?.default_branch;
     const number = Number(context.payload.inputs?.pr_number);
@@ -445,12 +449,17 @@ async function eventTargets(github, context) {
       throw new Error('Invalid trusted queue admission wakeup');
     }
     const pr = await readPR(github, context, number);
-    return pr.head?.sha === head ? [number] : [];
+    return pr.head?.sha === head ? [{number, branch:pr.base?.ref, expectedHead:head}] : [];
   }
   if (context.eventName === 'pull_request_target') {
     const number = context.payload.pull_request?.number;
     if (!Number.isSafeInteger(number) || number <= 0) throw new Error('Invalid PR event number');
-    return [number];
+    const pr = await readPR(github, context, number);
+    // On a retarget, revoke stale membership in the old queue before trying
+    // the new base. GitHub can deliver the event after a later base change.
+    const branches = new Set([context.payload.changes?.base?.ref?.from,
+      context.payload.pull_request.base?.ref, pr.base?.ref]);
+    return [...branches].filter(branch => QUEUE_BRANCHES.includes(branch)).map(branch => ({number, branch}));
   }
   if (context.eventName !== 'workflow_run') throw new Error('Unsupported queue admission event');
   const run = context.payload.workflow_run;
@@ -461,19 +470,45 @@ async function eventTargets(github, context) {
       !run.head_repository.full_name.startsWith(`${run.head_repository.owner.login}/`)) {
     throw new Error('Invalid workflow head identity for queue admission');
   }
-  const prs = await github.paginate(github.rest.pulls.list, {
-    ...context.repo, state: 'open',
-    head: `${run.head_repository.owner.login}:${run.head_branch}`, per_page: 100,
-  });
-  if (!Array.isArray(prs)) throw new Error('Invalid workflow PR discovery response');
-  return prs.filter(pr => pr.head?.sha === run.head_sha &&
-    pr.head.repo?.full_name === run.head_repository.full_name).map(pr => pr.number);
+  const headMatches = pr => pr.head?.sha === run.head_sha && pr.head?.ref === run.head_branch &&
+    pr.head?.repo?.full_name === run.head_repository.full_name;
+  const links = run.pull_requests || [];
+  if (!Array.isArray(links)) throw new Error('Invalid workflow PR links');
+  let pr;
+  if (links.length) {
+    if (links.length !== 1) return [];
+    const number = links[0]?.number;
+    if (!Number.isSafeInteger(number) || number <= 0) throw new Error('Invalid workflow PR number');
+    pr = await readPR(github, context, number);
+    if (!headMatches(pr)) return [];
+  } else {
+    // GitHub can omit links for forks. A head shared by multiple PRs is
+    // ambiguous, so let scheduled recovery examine those PRs independently.
+    const prs = await github.paginate(github.rest.pulls.list, {
+      ...context.repo, state: 'open',
+      head: `${run.head_repository.owner.login}:${run.head_branch}`, per_page: 100,
+    });
+    if (!Array.isArray(prs)) throw new Error('Invalid workflow PR discovery response');
+    const matches = prs.filter(headMatches);
+    if (matches.length !== 1) return [];
+    [pr] = matches;
+  }
+  if (!Number.isSafeInteger(pr.number) || pr.number <= 0) throw new Error('Invalid workflow PR number');
+  return [{number:pr.number, branch:pr.base?.ref, expectedHead:run.head_sha,
+    expectedRepo:run.head_repository.full_name, expectedRef:run.head_branch}];
 }
 
 async function sweep({github, context, root, core, queueOnly = false, now, onFailure}) {
+  if (context.eventName !== 'schedule') {
+    if (!loadPolicy(root).enabled_branches.length) return [];
+    const candidates = [];
+    for (const target of await eventTargets(github, context)) {
+      const admitted = await reconcilePR({github, context, ...target, root, core, now, onFailure});
+      if (admitted) candidates.push(admitted);
+    }
+    return candidates;
+  }
   const branches = await enabledBranches({github, context, root});
-  if (!branches.length) return;
-  const targets = queueOnly ? [] : await eventTargets(github, context);
   const failures = [];
   for (const branch of branches) {
     // A broken queue must not prevent other enabled branches from progressing.
@@ -484,13 +519,11 @@ async function sweep({github, context, root, core, queueOnly = false, now, onFai
         ...context.repo, base: branch, state: 'open', per_page: 100,
       });
       if (!Array.isArray(listed)) throw new Error('Invalid ready PR discovery response');
-      // Concurrency coalesces pending wakeups. Every surviving writer catches up
-      // eligible green PRs, including the five-minute queue recovery. The label
+      // Scheduled recovery catches PRs whose event was missed or replaced. The label
       // is only a cheap filter; reconcilePR rechecks authoritative fresh evidence.
       const ready = listed.filter(pr => pr.labels?.some(label => label.name === 'ci-passed') &&
         !policyReason({...pr, merged: false}, `${context.repo.owner}/${context.repo.repo}`, branch));
-      const affected = targets ?? listed.map(pr => pr.number);
-      const numbers = new Set([...affected, ...ready.map(pr => pr.number),
+      const numbers = new Set([...(queueOnly ? ready : listed).map(pr => pr.number),
         ...entries.map(entry => entry.pullRequest.number)]);
       if (numbers.size > 256 || [...numbers].some(number => !Number.isSafeInteger(number) || number <= 0)) {
         throw new Error('Queue admission sweep exceeds bounds or has invalid PR identities');
