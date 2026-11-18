@@ -216,6 +216,21 @@ describe('ExecutionNode', () => {
     expect(screen.getByTitle('titled-step')).toBeInTheDocument();
   });
 
+  it('keeps the task name as a title on the label when there is a lifecycle message', () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'long-named-step',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'Unschedulable: 0/1 nodes are available',
+          lifecycleCategory: 'scheduling',
+        }}
+      />,
+    );
+    expect(screen.getByTitle('long-named-step')).toHaveTextContent('long-named-step');
+  });
+
   it('renders hidden, non-connectable edge anchors', () => {
     const { container } = renderWithProvider(
       <ExecutionNode id='exec-1' data={{ label: 'anchored-step', state: undefined }} />,
