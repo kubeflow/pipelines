@@ -111,6 +111,26 @@ it('shows a warning icon for a running sub-DAG with a lifecycle message', () => 
   expect(screen.queryByTestId('RefreshIcon')).not.toBeInTheDocument();
 });
 
+it('shows an unclassified lifecycle message on a sub-DAG as a blue status', () => {
+  render(
+    <ReactFlowProvider>
+      <SubDagGroupNode
+        id='group'
+        selected={false}
+        data={{
+          label: 'Training',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'ContainerCreating',
+          lifecycleCategory: 'unknown',
+          expand: vi.fn(),
+        }}
+      />
+    </ReactFlowProvider>,
+  );
+  expect(screen.getByTestId('InfoOutlinedIcon')).toBeInTheDocument();
+  expect(screen.queryByTestId('WarningAmberIcon')).not.toBeInTheDocument();
+});
+
 it('announces the warning in the sub-DAG node name', () => {
   render(
     <ReactFlowProvider>
