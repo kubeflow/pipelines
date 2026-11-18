@@ -315,8 +315,9 @@ func (d *countingTerminalReportDispatcher) PluginsRegistered() bool {
 
 type serviceAccountMutatingDispatcher struct {
 	apiserverPlugins.NoOpDispatcher
-	output    *apiv2.PluginOutput
-	endedRuns []*apiserverPlugins.PersistedRun
+	output       *apiv2.PluginOutput
+	endedRuns    []*apiserverPlugins.PersistedRun
+	rejectedRuns []*apiserverPlugins.PendingRun
 }
 
 func (serviceAccountMutatingDispatcher) PluginsRegistered() bool {
@@ -331,6 +332,11 @@ func (d *serviceAccountMutatingDispatcher) OnBeforeRunCreation(_ context.Context
 func (d *serviceAccountMutatingDispatcher) OnRunEnd(_ context.Context, run *apiserverPlugins.PersistedRun) bool {
 	d.endedRuns = append(d.endedRuns, run)
 	return true
+}
+
+func (d *serviceAccountMutatingDispatcher) OnRunCreationRejected(_ context.Context, run *apiserverPlugins.PendingRun) error {
+	d.rejectedRuns = append(d.rejectedRuns, run)
+	return nil
 }
 
 type patchCountingSwfClient struct {
@@ -8724,18 +8730,19 @@ func TestCreateRun_ServiceAccountSAR_PluginMutationUnauthorized_CleansUpPlugins(
 	require.NotEmpty(t, run.UUID)
 	_, err = manager.GetRun(run.UUID)
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound), "a rejected run should not be persisted")
-	require.Len(t, dispatcher.endedRuns, 1, "plugin resources must be cleaned up after post-hook authorization fails")
-	assert.Equal(t, run.UUID, dispatcher.endedRuns[0].RunID)
-	assert.True(t, proto.Equal(dispatcher.output, dispatcher.endedRuns[0].PluginsOutput[apiservermlflow.PluginName]), "cleanup must receive the output identifying the plugin resources")
+	assert.Empty(t, dispatcher.endedRuns, "cleanup of a rejected creation must not go through OnRunEnd, which persists plugin output")
+	require.Len(t, dispatcher.rejectedRuns, 1, "plugin resources must be cleaned up after post-hook authorization fails")
+	assertRejectedRunOutput(t, run.UUID, dispatcher.output, dispatcher.rejectedRuns[0])
 }
 
 // runtimeEnvFailingDispatcher records plugin output for a created parent and
 // then fails, like a dispatcher whose runtime env injection failed.
 type runtimeEnvFailingDispatcher struct {
 	apiserverPlugins.NoOpDispatcher
-	output    *apiv2.PluginOutput
-	err       error
-	endedRuns []*apiserverPlugins.PersistedRun
+	output       *apiv2.PluginOutput
+	err          error
+	endedRuns    []*apiserverPlugins.PersistedRun
+	rejectedRuns []*apiserverPlugins.PendingRun
 }
 
 func (runtimeEnvFailingDispatcher) PluginsRegistered() bool {
@@ -8756,6 +8763,11 @@ func (d *runtimeEnvFailingDispatcher) OnRunEnd(_ context.Context, run *apiserver
 	return true
 }
 
+func (d *runtimeEnvFailingDispatcher) OnRunCreationRejected(_ context.Context, run *apiserverPlugins.PendingRun) error {
+	d.rejectedRuns = append(d.rejectedRuns, run)
+	return nil
+}
+
 func TestCreateRun_PluginRuntimeEnvInjectionFailure_CleansUpPlugins(t *testing.T) {
 	store, manager, experiment := initWithExperiment(t)
 	defer store.Close()
@@ -8769,8 +8781,6 @@ func TestCreateRun_PluginRuntimeEnvInjectionFailure_CleansUpPlugins(t *testing.T
 		DisplayName:  "run1",
 		PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`}},
 		ExperimentId: experiment.UUID,
-		// CreateRun keeps a caller-supplied state until the run is persisted.
-		RunDetails: model.RunDetails{State: model.RuntimeStateSucceeded},
 	}
 	_, err := manager.CreateRun(context.Background(), run)
 	require.Error(t, err)
@@ -8779,10 +8789,17 @@ func TestCreateRun_PluginRuntimeEnvInjectionFailure_CleansUpPlugins(t *testing.T
 	require.NotEmpty(t, run.UUID)
 	_, err = manager.GetRun(run.UUID)
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound), "a rejected run should not be persisted")
-	require.Len(t, dispatcher.endedRuns, 1, "plugin resources created before the failure must be cleaned up")
-	assert.Equal(t, run.UUID, dispatcher.endedRuns[0].RunID)
-	assert.Equal(t, string(model.RuntimeStateFailed), dispatcher.endedRuns[0].State, "a rejected run must be finalized as failed")
-	assert.True(t, proto.Equal(dispatcher.output, dispatcher.endedRuns[0].PluginsOutput[apiservermlflow.PluginName]), "cleanup must receive the output identifying the plugin resources")
+	assert.Empty(t, dispatcher.endedRuns, "cleanup of a rejected creation must not go through OnRunEnd, which persists plugin output")
+	require.Len(t, dispatcher.rejectedRuns, 1, "plugin resources created before the failure must be cleaned up")
+	assertRejectedRunOutput(t, run.UUID, dispatcher.output, dispatcher.rejectedRuns[0])
+}
+
+func assertRejectedRunOutput(t *testing.T, runID string, want *apiv2.PluginOutput, rejected *apiserverPlugins.PendingRun) {
+	t.Helper()
+	assert.Equal(t, runID, rejected.RunID)
+	outputs, err := apiserverPlugins.DeserializePluginsOutput((*model.LargeText)(rejected.PluginsOutput))
+	require.NoError(t, err)
+	assert.True(t, proto.Equal(want, outputs[apiservermlflow.PluginName]), "cleanup must receive the output identifying the plugin resources")
 }
 
 func TestCreateRun_PluginInputValidationFailure_SkipsPluginCleanup(t *testing.T) {
@@ -8803,6 +8820,7 @@ func TestCreateRun_PluginInputValidationFailure_SkipsPluginCleanup(t *testing.T)
 	assert.Contains(t, err.Error(), "invalid MLflow plugin input")
 	assert.Zero(t, store.ExecClientFake.GetWorkflowCount())
 	assert.Empty(t, dispatcher.endedRuns, "nothing was created, so there is nothing to clean up")
+	assert.Empty(t, dispatcher.rejectedRuns, "nothing was created, so there is nothing to clean up")
 }
 
 func TestCreateJob_ServiceAccountSAR_TemplateSA_Unauthorized_NoScheduledWorkflowCreated(t *testing.T) {

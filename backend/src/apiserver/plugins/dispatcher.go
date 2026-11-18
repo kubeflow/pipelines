@@ -47,6 +47,11 @@ type RunPluginDispatcher interface {
 	// not persist the losing request's plugin output.
 	OnRunCreationDiscarded(ctx context.Context, run *PendingRun, existing util.ExecutionSpec) error
 
+	// OnRunCreationRejected cleans up resources created by a request whose run
+	// creation failed before a Workflow existed. It must not persist the
+	// request's plugin output.
+	OnRunCreationRejected(ctx context.Context, run *PendingRun) error
+
 	// OnRunEnd is called when a run reaches a terminal state. Returns
 	// true if all plugin syncs succeeded.
 	OnRunEnd(ctx context.Context, run *PersistedRun) bool
@@ -68,6 +73,9 @@ func (NoOpDispatcher) OnBeforeRunCreation(context.Context, *PendingRun, util.Exe
 	return nil
 }
 func (NoOpDispatcher) OnRunCreationDiscarded(context.Context, *PendingRun, util.ExecutionSpec) error {
+	return nil
+}
+func (NoOpDispatcher) OnRunCreationRejected(context.Context, *PendingRun) error {
 	return nil
 }
 func (NoOpDispatcher) OnRunEnd(context.Context, *PersistedRun) bool { return true }

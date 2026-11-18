@@ -879,16 +879,22 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		PluginsInput:      (*string)(run.PluginsInputString),
 	}
 	runPersisted := false
+	workflowCreated := false
 
 	// Registered before OnBeforeRunCreation so plugin resources created before a
 	// failure in that call are cleaned up too.
 	defer func() {
-		if !runPersisted && run.PluginsOutputString != nil {
-			if pr, prErr := apiserverPlugins.ModelToPersistedRun(run, k8sNamespace); prErr == nil {
-				// run.State is still the caller-supplied value here; the run was rejected.
-				pr.State = string(model.RuntimeStateFailed)
-				r.pluginDispatcher.OnRunEnd(ctx, pr)
+		if runPersisted || run.PluginsOutputString == nil {
+			return
+		}
+		if !workflowCreated {
+			if err := r.pluginDispatcher.OnRunCreationRejected(ctx, pendingRun); err != nil {
+				glog.Warningf("Failed to clean up rejected creation for run %q: %v", run.UUID, err)
 			}
+			return
+		}
+		if pr, prErr := apiserverPlugins.ModelToPersistedRun(run, k8sNamespace); prErr == nil {
+			r.pluginDispatcher.OnRunEnd(ctx, pr)
 		}
 	}()
 
@@ -934,6 +940,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		}
 		return existing, nil
 	}
+	workflowCreated = true
 	// Update the run with the new scheduled workflow
 	run.Namespace = k8sNamespace
 	run.K8SName = newExecSpec.ExecutionName()
