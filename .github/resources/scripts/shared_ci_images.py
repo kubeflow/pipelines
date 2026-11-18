@@ -25,6 +25,11 @@ IMAGES = (
     'driver',
     'launcher',
 )
+IMAGE_SETS = {
+    'images': IMAGES,
+    'runtime': ('runtime-base-images',),
+    'tensorboard': ('tensorboard',),
+}
 ARCHITECTURES = ('amd64', 'arm64')
 
 
@@ -631,7 +636,10 @@ def validate_record_ids(records, identity, architecture):
 
 def filenames(image, architecture):
     require(architecture in ARCHITECTURES, 'Unsupported architecture')
-    require(image in IMAGES or image == 'runtime-base-images', 'Unknown image')
+    require(
+        image in (*IMAGES, 'tensorboard', 'runtime-base-images'),
+        'Unknown image',
+    )
     if image == 'runtime-base-images':
         require(architecture == 'amd64', 'Runtime artifact is AMD64 only')
         return ('runtime-base-images.tar', 'modelcar.tar')
@@ -898,11 +906,9 @@ def import_ready_state(value, consumer, architecture, kind):
         all(selected in state['sets'] for selected in selected_kinds(kind)),
         'Readiness is missing the selected set',
     )
-    require(
-        set(state['sets']) <= {'runtime', 'images'}, 'Unknown readiness set'
-    )
+    require(set(state['sets']) <= set(IMAGE_SETS), 'Unknown readiness set')
     for selected, records in state['sets'].items():
-        images = IMAGES if selected == 'images' else ('runtime-base-images',)
+        images = IMAGE_SETS[selected]
         require(isinstance(records, list), 'Malformed readiness records')
         require(
             len(records) == len(images)
@@ -991,9 +997,7 @@ def resolve_once(
         images = (
             (*IMAGES, 'runtime-base-images')
             if kind == 'all'
-            else IMAGES
-            if kind == 'images'
-            else ('runtime-base-images',)
+            else IMAGE_SETS[kind]
         )
         records = []
         for image in images:
@@ -1106,7 +1110,7 @@ def resolve(
 
 
 def selected_kinds(kind):
-    require(kind in ('runtime', 'images', 'all'), 'Unknown image selection')
+    require(kind in (*IMAGE_SETS, 'all'), 'Unknown image selection')
     return ('runtime', 'images') if kind == 'all' else (kind,)
 
 
@@ -1152,7 +1156,7 @@ def verify(api, state, consumer, directory, layout, kind=None):
         require(
             isinstance(selected_records, list), 'Malformed selected records'
         )
-        expected = IMAGES if selected == 'images' else ('runtime-base-images',)
+        expected = IMAGE_SETS[selected]
         require(
             len(selected_records) == len(expected)
             and all(isinstance(record, dict) for record in selected_records)
@@ -1219,6 +1223,11 @@ def verify(api, state, consumer, directory, layout, kind=None):
         validate_record(
             runtime, identity, architecture, 'runtime-base-images', indexed
         )
+    if 'tensorboard' in kinds:
+        viewer = next(
+            record for record in records if record['image'] == 'tensorboard'
+        )
+        validate_record(viewer, identity, architecture, 'tensorboard', indexed)
     validate_run(api.run(identity['run_id']), identity)
     if layout == 'nested' and kind in ('images', 'all'):
         for record in records:
@@ -1236,8 +1245,7 @@ def verify(api, state, consumer, directory, layout, kind=None):
         state['sets'][selected] = [
             record
             for record in records
-            if (record['image'] == 'runtime-base-images')
-            == (selected == 'runtime')
+            if record['image'] in IMAGE_SETS[selected]
         ]
 
 
@@ -1281,7 +1289,9 @@ def main():
     record = commands.add_parser('record')
     record.add_argument('--architecture', required=True, choices=ARCHITECTURES)
     record.add_argument(
-        '--image', required=True, choices=(*IMAGES, 'runtime-base-images')
+        '--image',
+        required=True,
+        choices=(*IMAGES, 'tensorboard', 'runtime-base-images'),
     )
     record.add_argument('--directory', required=True, type=Path)
     record.add_argument('--output', required=True, type=Path)
@@ -1292,9 +1302,7 @@ def main():
     resolver.add_argument(
         '--architecture', required=True, choices=ARCHITECTURES
     )
-    resolver.add_argument(
-        '--kind', required=True, choices=('runtime', 'images', 'all')
-    )
+    resolver.add_argument('--kind', required=True, choices=(*IMAGE_SETS, 'all'))
     resolver.add_argument('--state', required=True, type=Path)
     resolver.add_argument('--output', required=True, type=Path)
     resolver.add_argument('--timeout-seconds', type=int, default=2400)
@@ -1303,22 +1311,21 @@ def main():
     readiness.add_argument(
         '--architecture', required=True, choices=ARCHITECTURES
     )
+    readiness.add_argument('--include-tensorboard', action='store_true')
     readiness.add_argument('--state', required=True, type=Path)
     readiness.add_argument('--output', required=True, type=Path)
     imported = commands.add_parser('import-ready')
     imported.add_argument(
         '--architecture', required=True, choices=ARCHITECTURES
     )
-    imported.add_argument(
-        '--kind', required=True, choices=('runtime', 'images', 'all')
-    )
+    imported.add_argument('--kind', required=True, choices=(*IMAGE_SETS, 'all'))
     imported.add_argument('--state', required=True, type=Path)
     imported.add_argument('--output', required=True, type=Path)
     verifier = commands.add_parser('verify')
     verifier.add_argument('--state', required=True, type=Path)
     verifier.add_argument('--directory', required=True, type=Path)
     verifier.add_argument('--layout', required=True, choices=('nested', 'flat'))
-    verifier.add_argument('--kind', choices=('runtime', 'images', 'all'))
+    verifier.add_argument('--kind', choices=(*IMAGE_SETS, 'all'))
     args = parser.parse_args()
     accounting = RequestAccounting()
     try:
@@ -1348,6 +1355,10 @@ def main():
                 args.state,
                 require_bundle=True,
             )
+            if args.include_tensorboard:
+                state = resolve(
+                    api, identity, args.architecture, 'tensorboard', args.state
+                )
             with args.output.open('a') as output:
                 output.write(
                     'state=' + json.dumps(state, separators=(',', ':')) + '\n'

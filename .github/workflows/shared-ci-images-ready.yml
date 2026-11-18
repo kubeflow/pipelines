@@ -7,6 +7,10 @@ on:
         description: Native image architecture
         type: string
         default: amd64
+      include_tensorboard:
+        description: Also resolve the optional viewer image before cluster setup
+        type: boolean
+        default: false
     outputs:
       state:
         description: Exact source and producer attempt with immutable artifact IDs
@@ -33,7 +37,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           IMAGE_ARCHITECTURE: ${{ inputs.architecture }}
+          INCLUDE_TENSORBOARD: ${{ inputs.include_tensorboard }}
         run: |
-          python3 .github/resources/scripts/shared_ci_images.py prepare \
+          extra=()
+          if [[ "$INCLUDE_TENSORBOARD" == true ]]; then extra+=(--include-tensorboard); fi
+          python3 .github/resources/scripts/shared_ci_images.py prepare "${extra[@]}" \
             --architecture "$IMAGE_ARCHITECTURE" \
             --state "$RUNNER_TEMP/kfp-shared-images.json" --output "$GITHUB_OUTPUT"

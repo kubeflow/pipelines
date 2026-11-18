@@ -5,7 +5,7 @@ inputs:
     description: Native image architecture
     default: amd64
   kind:
-    description: Branch images, runtime dependencies, or both (images, runtime, all)
+    description: Branch images, runtime dependencies, both, or optional viewer (images, runtime, all, tensorboard)
     default: images
   path:
     description: Local destination for verified archives
