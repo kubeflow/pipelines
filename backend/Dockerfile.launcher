@@ -35,10 +35,6 @@ COPY . .
 
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -buildvcs=true -mod=readonly -tags netgo -ldflags '-extldflags "-static"' -o /bin/launcher-v2 ./backend/src/v2/cmd/launcher-v2
 
-# Publication requires actual binary VCS metadata before image export.
-ARG KFP_SOURCE_SHA=""
-RUN if [ -n "$KFP_SOURCE_SHA" ]; then sh .github/resources/scripts/verify-published-go-binary.sh /bin/launcher-v2 "$KFP_SOURCE_SHA"; fi
-
 FROM alpine:3.21
 
 RUN adduser -S -u 65532 appuser

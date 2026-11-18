@@ -110,7 +110,14 @@ if [ "${MULTI_USER}" == "true" ] && [ "${USE_PROXY}" == "true" ]; then
   exit 1
 fi
 
-if [ -n "${AWF_VERSION}"  ]; then
+if [ -n "${KFP_ARGO_MANIFESTS_DIRECTORY:-}" ]; then
+  selected_argo_version="${AWF_VERSION:-$(cat third_party/argo/VERSION)}"
+  python3 "${C_DIR}/argo_manifest_artifacts.py" install \
+    --directory "$KFP_ARGO_MANIFESTS_DIRECTORY" --version "$selected_argo_version"
+elif [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+  echo "ERROR: CI deployment requires the verified pinned Argo manifest artifact. Use the deploy action."
+  exit 1
+elif [ -n "${AWF_VERSION}"  ]; then
   echo "NOTE: Argo version ${AWF_VERSION} specified, updating Argo Workflow manifests..."
   echo "${AWF_VERSION}" > third_party/argo/VERSION
   make -C ./third_party/argo update_manifests

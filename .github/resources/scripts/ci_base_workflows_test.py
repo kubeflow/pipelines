@@ -68,7 +68,13 @@ def exercise(
     workflows=None, response=None, missing=None, skipped=None, base=None
 ):
     if response is None:
-        response = tree(workflows or {'frontend.yml': workflow()})
+        # Valid release inventories always include their required pre-commit lane.
+        response = tree(
+            {
+                'pre-commit.yml': workflow(),
+                **(workflows or {'frontend.yml': workflow()}),
+            }
+        )
     fixture = {
         'response': response,
         'missing': missing or [],
@@ -135,6 +141,7 @@ class BaseWorkflowsTest(unittest.TestCase):
             [
                 '.github/workflows/frontend.yml',
                 '.github/workflows/integration-tests-v1.yml',
+                '.github/workflows/pre-commit.yml',
             ],
         )
         result = exercise(
@@ -275,7 +282,13 @@ class BaseWorkflowsTest(unittest.TestCase):
             skipped=['upgrade-test.yml'],
         )
         self.assertTrue(result['passed'], result)
-        self.assertEqual(result['expected'], ['.github/workflows/frontend.yml'])
+        self.assertEqual(
+            result['expected'],
+            [
+                '.github/workflows/frontend.yml',
+                '.github/workflows/pre-commit.yml',
+            ],
+        )
         self.assertEqual(
             result['disabled'],
             [

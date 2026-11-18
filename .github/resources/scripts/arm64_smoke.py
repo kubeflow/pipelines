@@ -59,9 +59,18 @@ def image_refs(directory, source_sha, mode):
     provenance_files = {
         f'{image}-arm64.provenance.json' for image in CI_IMAGES.values()
     }
+    binary_evidence_directories = {
+        f'{image}-arm64.go-provenance' for image in CI_IMAGES.values()
+    }
     for path in sorted(Path(directory).rglob('*.json')):
         # The shared downloader already verified these archive receipts.
-        if mode == 'local' and path.name in provenance_files:
+        if mode == 'local' and (
+            path.name in provenance_files
+            or (
+                path.name == 'go-provenance.json'
+                and path.parent.name in binary_evidence_directories
+            )
+        ):
             continue
         record = json.loads(path.read_text())
         image = record['image']

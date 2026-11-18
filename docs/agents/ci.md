@@ -64,6 +64,13 @@ header deltas reflect the shared installation pool, not usage attributable to
 one step. These summaries add no API calls and do not change polling, retries,
 Dependabot scheduling, or rebase policy.
 
+Use the per-candidate `queue_candidate_dispatch` summary to correlate the SHA
+with validation attempts, reservation writes attempted and workflow dispatches
+attempted during one reconciliation. A validation can include both a GraphQL
+snapshot and a branch-rule REST read. The request summaries give the endpoint
+counts and response codes for those operations, including separate
+`branch_rules`, `repository_metadata` and `workflow_dispatches` categories.
+
 Run `github_request_accounting_test.py`, `node_http_accounting_test.py`, and
 `shared_ci_request_accounting_test.py` with the CI script tests.
 
@@ -332,7 +339,35 @@ Keep fixture grants scoped to that account and namespace and authorization enabl
 - Presubmit image builds import GitHub Actions v2 BuildKit caches scoped by image and native architecture. Only the shared `ci-images.yml` AMD64 producer on default-branch pushes enables `cache-write`; PRs and other callers import only. Do not enable exports in every caller: duplicate multi-stage caches exhausted the repository cache quota and evicted useful dependency caches. ARM presubmit remains read-only until a default-branch cache producer is deliberately provided. Cache requests specify 60s import and 120s export timeout parameters, with `mode=max` and nonfatal export errors; existing build/job deadlines bound overall execution. Frontend shell builds receive masked runtime cache credentials through the pinned GitHub Script action. Never pass these credentials into the Docker build.
 - Both image-build recovery paths remain uncached. Frontend dependency manifests, lockfiles, and `.npmrc` precede the full source copy so source-only edits reuse dependency layers; preserve all three install trees when changing that order.
 
+## Pinned Argo deployment manifests
+
+The Shared CI Images source job prepares the exact versions in
+`third_party/argo/VERSION` and `COMPATIBILITY_VERSION` once per producer attempt.
+Each upstream Git fetch gets three attempts, a 180-second per-attempt timeout,
+and a 10-second delay between failures. The producer records the resolved commit
+for each version and packages only controller, RBAC, and minimal CRD resources.
+
+`argo-manifests-attempt-N` is a separate artifact from the strict Docker image
+bundles. The deploy action downloads it from the verified shared-image producer's
+repository, run, and attempt, checks its source identity and archive checksum, and
+rechecks the producer attempt before accepting it. Deployment rewrites all five
+upstream Argo resource references to local files and selects matching controller
+and executor image tags. Repeated deployment attempts and the compatibility
+version use the same artifact; test jobs do not fetch upstream Argo manifests.
+
+CI deployment fails if the verified artifact is unavailable; it never silently
+falls back to GitHub. Rerun the complete shared producer if its fetch attempts
+are exhausted, then rerun consumers. Local/manual deployment without
+`KFP_ARGO_MANIFESTS_DIRECTORY` retains the existing remote-manifest behavior.
+When changing Argo pins or resource layouts, run the artifact/workflow tests and
+render namespace, cluster-scoped, and cluster-install overlays for both versions.
+
 ## Common CI failures
+
+- For a green PR that is not queued, inspect its optional `merge-queue-admission`
+  status and unresolved review conversations. A cancelled shared `queue_admission`
+  job is not a per-PR eligibility result. See [queue admission diagnostics](merge-queue-activation.md#why-a-pr-is-waiting).
+  Keep this diagnostic out of required checks and CI evidence to avoid an enqueue cycle.
 
 - Read the Docs release-readiness builds limit `sphinx_immaterial` font fetching to four workers with `SPHINX_IMMATERIAL_FONT_FETCH_MAX_WORKERS`, rather than its default 128. This reduces connection pressure on Google Fonts after observed TLS EOF and remote-disconnect failures. Both SDK documentation steps inherit the limit; fonts are still bundled, TLS verification stays enabled, and Sphinx errors still fail the job.
 
@@ -607,8 +642,9 @@ image tags as part of the Git branch rename.
 
 Queue dispatch reads candidate/base refs, the current default branch, queue
 membership, and approval policy together through a fresh GraphQL snapshot, then
-checks the active queue rule. Each workflow repeats this validation before its
-reservation and before dispatch; mutable policy and refs are never cached.
+checks the active queue rule. Each batch shares one validation before its
+reservation writes and a fresh validation after all the writes settle.
+Subsequent batches recheck the live refs and policy.
 At most four workflow operations run concurrently within the serialized queue
 writer, and every started operation settles before the controller returns or
 emits its request-accounting summary. Healthy queued PRs share one policy read
@@ -628,14 +664,14 @@ never prove obsolescence. Current candidates and unrelated PR/manual runs are le
 
 Admission does not wait for unrelated status-recovery matrix jobs. Each newly
 verified queue-ready PR success dispatches the trusted default-branch recovery
-workflow with its PR number and exact head, inside request accounting. Every
-surviving serialized controller also lists likely ready PRs, so replacement of
-a pending job cannot lose its admission request. Approval and `ci-passed` labels
-are only discovery filters; fresh policy and CI evidence still authorize entry.
-The five-minute recovery sweep performs this ready-PR catch-up too, while the
-15-minute full sweep also discovers failed aggregates eligible for PR Gate
-recovery. Both schedules are subject to GitHub scheduling delays. Wakeup failures
-warn without revoking valid CI, and a later controller catches up. The
+workflow with its PR number and exact head, inside request accounting. PR events
+and wakeups reconcile the identified PR. Queue workflow completions inspect
+the reported candidate, using its ref and SHA. Fresh policy and CI evidence
+still authorize entry. The five-minute recovery sweep catches up ready PRs,
+missed events and candidates without a workflow completion. The 15-minute full
+sweep also discovers failed aggregates eligible for PR Gate recovery. Both
+schedules are subject to GitHub scheduling delays. Wakeup failures warn without
+revoking valid CI, and scheduled recovery can retry. The
 15-minute cooldown is a minimum, not a retry-time guarantee. After the retry
 budget is exhausted, fix or rerun PR CI; a new verified workflow fingerprint
 automatically permits admission again without adding queue labels manually.
@@ -695,25 +731,41 @@ The bounded Istio qualification overlay requires both injector selectors
 establish coverage: the selected injected image must also match the static
 prerequisite image inventory. Other selectors fail qualification.
 
-### Go image publication provenance
+Ordinary image publication and shared CI native builds reuse the qualification
+sanitized Git context and binary reader through `image-build-provenance.py`.
+Known KFP Go runtime Dockerfiles build package paths with `-buildvcs=true
+-mod=readonly`; verification requires the exact clean source pseudo-version,
+commit/time and ELF/platform identity. Initial and fallback CI builds use the
+same context, and verification precedes reusable archive publication. Raw binary
+provenance accompanies the archives. Non-Go images retain their normal context
+and ignore rules. Publication uses tooling from the workflow revision, pulls
+the exact pushed registry digest, and verifies its binaries before
+exporting a digest to the manifest/tag publisher. A failed verification can leave
+an untagged registry digest, but cannot promote release/master tags. Older source
+revisions without package-path builds fail closed and require the source fix;
+no legacy metadata exception is added. Run `image_build_provenance_test.py`,
+`go_binary_provenance_test.py`, `image_publication_permissions_test.py`, and
+`shared_ci_image_producer_test.py` alongside qualification provenance tests.
 
-The shared `build-and-push.yml` workflow prepares the six KFP Go image contexts
-with `kfpr.go_build_provenance.prepare_context`, also used by candidate scans.
-It fetches the exact checked-out commit into a fresh repository and uses an
-external Dockerfile-specific ignore file to retain its sanitized Git metadata.
-The caller's Git configuration, credentials, hooks and untracked files are not
-copied. Normal root `.dockerignore` exclusions remain in place for other builds.
+The publication binary reader uses the managed Go setup composite from the
+workflow tooling checkout, selecting the source checkout’s `go.mod` compiler.
+ARM smoke inventory loading distinguishes the retained binary-provenance reports
+from image identity records; reports never substitute for missing image records.
+Recipe paths are validated before image classification: absolute paths and parent
+traversal are rejected. Changes to the provenance wrapper, Git-context helper,
+or Go build-info reader explicitly select both shared-image architectures even
+when no consumer workflow's path filter matches.
 
-Publication passes `KFP_SOURCE_SHA` to the Go builder. Before BuildKit exports
-an image, the builder checks the actual executable with `go version -m` and
-requires the expected Git revision, commit timestamp and `vcs.modified=false`.
-Missing or mismatched metadata fails the build before a registry push. Ordinary
-local and shared-test builds without this argument retain their existing context
-behavior; qualification scans independently verify extracted candidate binaries.
+Go binary verification reports from shared CI image builds are retained in a
+separate `<image>[-arm64]-go-provenance-attempt-<attempt>` artifact. Image bundles
+contain only their registered archives, image identities, and checksum records;
+extra files still fail validation. Binary verification runs before either upload.
 
-This workflow and the selected source must both include publication provenance
-support. For older release sources, dispatch the workflow from that release
-branch; do not mix the new master workflow with an older source tree. The shared
-workflow rejects that unsupported combination before building rather than
-silently dropping verification. Backport the complete publication support before
-using the newer workflow for those sources.
+## Merge queue policy isolation
+
+Validate approvals, holds, and PR heads only for the prefix included in the
+candidate being dispatched or published. A later ineligible entry must not
+invalidate an earlier independent candidate. When removing an ineligible PR,
+revoke its candidate and downstream candidates that contain its changes, then
+dequeue that PR. Entries sharing a candidate SHA must all pass policy checks.
+Unknown queue membership or a failed global policy snapshot still fails closed.
