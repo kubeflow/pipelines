@@ -140,6 +140,20 @@ requests reuse unchanged metadata pages without charging GitHub's primary API
 quota; pagination and rate-limit retry headers are preserved. Archive verification
 uses fresh unconditional metadata after hashing. These controls keep the handoff
 short while retaining source/attempt checks under the full consumer fanout.
+The E2E readiness job also downloads and verifies the application bundle once,
+then uploads a copy into the E2E workflow run. All E2E workers receive that
+upload's immutable artifact ID and download it through the same-run artifact
+service. Runtime cache misses still fetch the runtime artifact from the
+producer. Every worker hashes its archives and checks the original producer's
+artifact inventory and attempt immediately before using the files. A worker
+retry uses the ID from its successful readiness job, including when that job
+ran on an earlier attempt of the same E2E run.
+
+For a single-page inventory without retries, this adds four REST requests to
+readiness (list, download redirect, inventory and producer check). It saves
+two per worker with a runtime cache hit, or one per worker with a cache miss
+because that worker still lists the producer's artifacts for runtime. Measure
+the readiness transfer and worker startup separately from REST quota savings.
 Benchmark elapsed image-ready time before runner-work savings: run baseline and
 shared scenarios separately so they do not compete for the same runner slots.
 

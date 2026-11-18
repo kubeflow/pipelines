@@ -5,6 +5,9 @@ inputs:
   image_ready_state:
     description: Validated state from this workflow's shared image readiness job
     default: ''
+  image_artifact_id:
+    description: Same-run verified application image bundle from readiness
+    default: ''
   cluster_name:
     description: "Kind cluster name"
     default: 'kfp'
@@ -97,6 +100,7 @@ runs:
       uses: ./.github/actions/shared-ci-images
       with:
         ready-state: ${{ inputs.image_ready_state }}
+        image-artifact-id: ${{ inputs.image_artifact_id }}
         kind: ${{ steps.runtime-image-cache-files.outputs.ready == 'true' && 'images' || 'all' }}
         architecture: amd64
         layout: nested

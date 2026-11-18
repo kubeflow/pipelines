@@ -27,14 +27,16 @@ from pathlib import Path
 import shared_ci_images
 import yaml
 from arm64_smoke import IMAGES
-from artifact_workflow_test_support import render
+from artifact_workflow_test_support import evaluate, render
 
 ROOT = Path(__file__).resolve().parents[3]
 WRAPPER = './.github/actions/download-artifact-with-retry'
 WRAPPERS = {WRAPPER, './tooling/.github/actions/download-artifact-with-retry'}
 CALLERS = [
     ('.github/actions/deploy/action.yml', 'composite'),
-    ('.github/actions/shared-ci-images/action.yml', 'composite'),
+    ('.github/actions/shared-ci-images/action.yml', 'composite'),  # Producer
+    ('.github/actions/shared-ci-images/action.yml', 'composite'),  # Relay
+    ('.github/actions/shared-ci-images/action.yml', 'composite'),  # Runtime
     ('.github/workflows/build-tools-images.yml', 'compare-generated'),
     ('.github/workflows/build-tools-images.yml', 'publish-tools'),
     ('.github/workflows/create-manifest.yml', 'create-manifest'),
@@ -319,7 +321,13 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
         )
         steps = action['runs']['steps']
         resolver = next(step for step in steps if step.get('id') == 'resolve')
-        download = next(step for step in steps if step.get('uses') == WRAPPER)
+        download = next(
+            step
+            for step in steps
+            if step.get('uses') == WRAPPER
+            and step['with'].get('artifact-ids')
+            == '${{ steps.resolve.outputs.artifact-ids }}'
+        )
         verify = next(
             step
             for step in steps
@@ -340,6 +348,7 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
         self.assertNotIn('pattern', download['with'])
         for step in (resolver, download, verify):
             self.assertNotIn('continue-on-error', step)
+        for step in (resolver, verify):
             self.assertNotIn('if', step)
         self.assertEqual(
             resolver['env']['PRODUCER_STATE'], verify['env']['PRODUCER_STATE']
@@ -361,6 +370,66 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
             )
             self.assertIn('run-id=1234', lines)
             self.assertIn('repository=upstream/pipelines', lines)
+
+    def test_worker_download_routes_for_same_run_relay_and_runtime_cache(self):
+        action = yaml.safe_load(
+            (ROOT / '.github/actions/shared-ci-images/action.yml').read_text()
+        )
+        downloads = [
+            step
+            for step in action['runs']['steps']
+            if step.get('uses') == WRAPPER
+        ]
+        outputs = {
+            'artifact-ids': 'selected producer IDs',
+            'required-files': 'selected producer manifest',
+            'runtime-artifact-ids': 'runtime producer ID',
+            'runtime-required-files': 'runtime manifest',
+            'images-required-files': 'application manifest',
+        }
+        producer = (
+            'selected producer IDs',
+            'selected producer manifest',
+            'token',
+        )
+        relay = ('local ID', 'application manifest', '')
+        runtime = ('runtime producer ID', 'runtime manifest', 'token')
+        for image_id, kind, expected in (
+            ('', 'images', [producer]),
+            ('', 'all', [producer]),
+            ('', 'runtime', [producer]),
+            ('local ID', 'runtime', [producer]),
+            ('local ID', 'images', [relay]),
+            ('local ID', 'all', [relay, runtime]),
+        ):
+            with self.subTest(relay=image_id, kind=kind):
+                context = {
+                    'inputs': {'image-artifact-id': image_id, 'kind': kind},
+                    'steps': {'resolve': {'outputs': outputs}},
+                    'github': {'token': 'token'},
+                }
+                actual = []
+                for step in downloads:
+                    if not evaluate(step.get('if', 'true'), context):
+                        continue
+                    inputs = step['with']
+                    actual.append(
+                        tuple(
+                            render(inputs.get(key, ''), context)
+                            for key in (
+                                'artifact-ids',
+                                'required-files',
+                                'github-token',
+                            )
+                        )
+                    )
+                    self.assertNotIn('continue-on-error', step)
+                    self.assertEqual(inputs['merge-multiple'], 'true')
+                    if actual[-1] == relay:
+                        self.assertNotIn('name', inputs)
+                        self.assertNotIn('repository', inputs)
+                        self.assertNotIn('run-id', inputs)
+                self.assertCountEqual(actual, expected)
 
     def test_arm_presubmit_requires_each_produced_archive_and_record(self):
         producer = workflow('image-builds.yml')['jobs']['image-build']

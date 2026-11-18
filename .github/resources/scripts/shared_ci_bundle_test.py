@@ -75,6 +75,36 @@ class BundleTests(unittest.TestCase):
                 self.api, state, self.consumer, self.directory, 'flat'
             )
 
+    def test_relay_rejects_replaced_archive_with_matching_substitute_provenance(
+        self,
+    ):
+        self.api.add('ci-images-amd64-attempt-1')
+        ready = self.resolve()
+        with self.assertRaisesRegex(shared.InvalidEvidence, 'Missing pinned'):
+            shared.verify(
+                self.api,
+                ready,
+                self.consumer,
+                self.directory,
+                'flat',
+                require_pinned_images=True,
+            )
+        shared.verify(self.api, ready, self.consumer, self.directory, 'flat')
+        worker = shared.import_ready_state(
+            json.dumps(ready), self.consumer, 'amd64', 'images'
+        )
+        archive = self.directory / 'frontend.tar'
+        archive.write_bytes(b'different relay contents')
+        path = self.directory / 'frontend.provenance.json'
+        provenance = json.loads(path.read_text())
+        provenance['files'][archive.name] = shared.checksum(archive)
+        shared.write_json(path, provenance)
+        with self.assertRaises(shared.InvalidEvidence):
+            shared.verify(
+                self.api, worker, self.consumer, self.directory, 'nested'
+            )
+        self.assertFalse((self.directory / 'frontend').exists())
+
     def test_bundle_rejects_mixed_artifact_ids(self):
         self.api.add('ci-images-amd64-attempt-1')
         state = copy.deepcopy(self.resolve())
