@@ -1647,3 +1647,24 @@ func TestArtifactServer_CreateArtifactsBulk_RejectsMixedNamespaces(t *testing.T)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "must use a single namespace")
 }
+
+func TestArtifactServer_AuthorizeArtifactTaskAccess_BulkSuccessAndErrors(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	s, _, t1, t2, art1, art2 := seedArtifactTasks(t)
+
+	// Bulk authorization with multiple tasks, runs, and artifacts succeeds
+	err := s.authorizeArtifactTaskAccess(ctxWithUser(), []string{t1.UUID, t2.UUID}, []string{serverRunID1, serverRunID2}, []string{art1.UUID, art2.UUID})
+	assert.NoError(t, err)
+
+	// Non-existent task ID returns error
+	err = s.authorizeArtifactTaskAccess(ctxWithUser(), []string{"non-existent-task-id"}, nil, nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Failed to get task for authorization")
+
+	// Non-existent artifact ID returns error
+	err = s.authorizeArtifactTaskAccess(ctxWithUser(), nil, nil, []string{"non-existent-art-id"})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Failed to get artifact for authorization")
+}

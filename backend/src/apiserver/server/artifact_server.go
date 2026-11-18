@@ -729,8 +729,8 @@ func (s *ArtifactServer) canAccessArtifacts(ctx context.Context, artifactID stri
 }
 
 // authorizeArtifactTaskAccess authorizes access to artifact-task relationships
-// TODO(HumairAK): Make this more efficient by doing bulk calls to the database,
-// and aggregating namespaces down to unique namespace calls
+// by performing bulk database lookups for tasks and artifacts and aggregating
+// checks across unique runs and namespaces.
 func (s *ArtifactServer) authorizeArtifactTaskAccess(ctx context.Context, taskIDs, runIDs, artifactIDs []string) error {
 	authorizedRunIDs := make(map[string]struct{})
 	authorizedNamespaces := make(map[string]struct{})
@@ -777,25 +777,43 @@ func (s *ArtifactServer) authorizeArtifactTaskAccess(ctx context.Context, taskID
 		}
 	}
 
-	// Check authorization for task IDs (get namespace from task)
-	for _, taskID := range taskIDs {
-		task, err := s.resourceManager.GetTask(taskID)
+	// Check authorization for task IDs in bulk (get namespace from task)
+	if len(taskIDs) > 0 {
+		tasksByID, err := s.resourceManager.GetTasksByIDs(taskIDs)
 		if err != nil {
 			return util.Wrap(err, "Failed to get task for authorization")
 		}
-		if err = authorizeRunID(task.RunUUID); err != nil {
-			return err
+		for _, taskID := range taskIDs {
+			if taskID == "" {
+				continue
+			}
+			task, ok := tasksByID[taskID]
+			if !ok {
+				return util.Wrap(util.NewResourceNotFoundError("task", taskID), "Failed to get task for authorization")
+			}
+			if err = authorizeRunID(task.RunUUID); err != nil {
+				return err
+			}
 		}
 	}
 
-	// Check authorization for artifact IDs (get namespace from artifact)
-	for _, artifactID := range artifactIDs {
-		artifact, err := s.resourceManager.GetArtifact(artifactID)
+	// Check authorization for artifact IDs in bulk (get namespace from artifact)
+	if len(artifactIDs) > 0 {
+		artifactsByID, err := s.resourceManager.GetArtifactsByIDs(artifactIDs)
 		if err != nil {
 			return util.Wrap(err, "Failed to get artifact for authorization")
 		}
-		if err = authorizeNamespace(artifact.Namespace); err != nil {
-			return err
+		for _, artifactID := range artifactIDs {
+			if artifactID == "" {
+				continue
+			}
+			artifact, ok := artifactsByID[artifactID]
+			if !ok {
+				return util.Wrap(util.NewResourceNotFoundError("artifact", artifactID), "Failed to get artifact for authorization")
+			}
+			if err = authorizeNamespace(artifact.Namespace); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

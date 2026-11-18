@@ -98,6 +98,43 @@ func TestGetArtifact_NotFound(t *testing.T) {
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
 
+func TestGetArtifactsByIDs_Success(t *testing.T) {
+	db, store := initializeArtifactStore()
+	defer db.Close()
+
+	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil)
+	art1, err := store.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:       strPTR("s3://bucket/path/art1"),
+		Name:      "art1",
+	})
+	assert.NoError(t, err)
+
+	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID2, nil)
+	art2, err := store.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:       strPTR("s3://bucket/path/art2"),
+		Name:      "art2",
+	})
+	assert.NoError(t, err)
+
+	// Fetch batch by IDs including duplicates, empty strings, and non-existent IDs
+	batch, err := store.GetArtifactsByIDs([]string{art1.UUID, art2.UUID, art1.UUID, "", "non-existent-id"})
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(batch))
+	assert.Equal(t, art1.UUID, batch[art1.UUID].UUID)
+	assert.Equal(t, "art1", batch[art1.UUID].Name)
+	assert.Equal(t, art2.UUID, batch[art2.UUID].UUID)
+	assert.Equal(t, "art2", batch[art2.UUID].Name)
+
+	// Empty input returns empty map
+	emptyBatch, err := store.GetArtifactsByIDs(nil)
+	assert.NoError(t, err)
+	assert.Empty(t, emptyBatch)
+}
+
 func TestGetArtifactsByURI_ExactNamespaceAndURIMatch(t *testing.T) {
 	db, store := initializeArtifactStore()
 	defer db.Close()

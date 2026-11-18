@@ -81,6 +81,9 @@ type ArtifactStoreInterface interface {
 	// GetArtifact fetches an artifact with a given id.
 	GetArtifact(id string) (*model.Artifact, error)
 
+	// GetArtifactsByIDs fetches a batch of artifacts keyed by artifact UUID.
+	GetArtifactsByIDs(artifactIDs []string) (map[string]*model.Artifact, error)
+
 	// GetArtifactsByURI fetches artifacts with exact Namespace + URI equality.
 	// This is a dedicated lookup path that avoids paginated ListArtifacts + COUNT.
 	GetArtifactsByURI(namespace, uri string) ([]*model.Artifact, error)
@@ -712,6 +715,56 @@ func (s *ArtifactStore) GetArtifact(id string) (*model.Artifact, error) {
 	}
 
 	return artifacts[0], nil
+}
+
+// GetArtifactsByIDs fetches a batch of artifacts keyed by artifact UUID.
+func (s *ArtifactStore) GetArtifactsByIDs(artifactIDs []string) (map[string]*model.Artifact, error) {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	artifactsByID := make(map[string]*model.Artifact)
+	if len(artifactIDs) == 0 {
+		return artifactsByID, nil
+	}
+
+	dedupedIDs := make([]string, 0, len(artifactIDs))
+	seenIDs := make(map[string]struct{}, len(artifactIDs))
+	for _, id := range artifactIDs {
+		if id == "" {
+			continue
+		}
+		if _, seen := seenIDs[id]; seen {
+			continue
+		}
+		seenIDs[id] = struct{}{}
+		dedupedIDs = append(dedupedIDs, id)
+	}
+	if len(dedupedIDs) == 0 {
+		return artifactsByID, nil
+	}
+
+	sqlStr, args, err := qb.
+		Select(dialect.QuoteAll(q, artifactColumns)...).
+		From(q(artifactTableName)).
+		Where(sq.Eq{q("UUID"): dedupedIDs}).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to get artifacts by IDs: %v", err.Error())
+	}
+
+	r, err := s.db.Query(sqlStr, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get artifacts by IDs: %v", err.Error())
+	}
+	defer r.Close()
+
+	artifacts, err := s.scanRows(r)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to scan artifacts by IDs: %v", err.Error())
+	}
+	for _, a := range artifacts {
+		artifactsByID[a.UUID] = a
+	}
+	return artifactsByID, nil
 }
 
 // GetArtifactsByURI returns artifacts matching Namespace and URI exactly.
