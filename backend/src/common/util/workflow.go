@@ -1122,6 +1122,7 @@ func (w *Workflow) NodeStatuses() map[string]NodeStatus {
 			FinishTime:  node.FinishedAt.Unix(),
 			Children:    node.Children,
 			Message:     node.Message,
+			BoundaryID:  node.BoundaryID,
 		}
 	}
 	return rev

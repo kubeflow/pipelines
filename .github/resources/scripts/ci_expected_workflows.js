@@ -14,6 +14,7 @@
 
 'use strict';
 
+const {missingReleasePreCommit} = require('./merge_queue_policy');
 const {workflowAttempts} = require('./ci_workflow_attempts');
 
 // Only these trusted publisher jobs use this runner-local cache. Never restore it
@@ -261,6 +262,9 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
     }
   }
   const expected = applicableWorkflows.filter(workflow => !disabled.some(item => item.path === workflow.path));
+  if (missingReleasePreCommit(pullRequest.base.ref, expected.map(workflow => workflow.path))) {
+    failures.push('release-2.18 requires an applicable pre-commit PR workflow');
+  }
   const pending = [];
   const missing = [];
   let documentation = null;

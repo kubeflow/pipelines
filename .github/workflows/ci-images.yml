@@ -50,6 +50,8 @@ on:
       - 'kubernetes_platform/**'
       - 'manifests/kustomize/**'
       - 'proxy/**'
+      - 'release/kfpr/go_build_provenance.py'
+      - 'release/kfpr/read_go_buildinfo.go'
       - 'pyproject.toml'
       - 'samples/**'
       - 'sdk/**'
@@ -106,7 +108,7 @@ jobs:
 
   source:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     permissions:
       contents: read
       pull-requests: read
@@ -124,6 +126,17 @@ jobs:
         with:
           name: ci-image-source-attempt-${{ github.run_attempt }}
           path: source.json
+          if-no-files-found: error
+          retention-days: 1
+      - name: Prepare pinned Argo manifests
+        run: python3 .github/resources/scripts/argo_manifest_artifacts.py prepare --output argo-manifests
+      - name: Publish pinned Argo manifests
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: argo-manifests-attempt-${{ github.run_attempt }}
+          path: |
+            argo-manifests/argo-manifests.tar
+            argo-manifests/argo-manifests.json
           if-no-files-found: error
           retention-days: 1
       - name: Select required architectures

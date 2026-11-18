@@ -204,6 +204,11 @@ class InventoryTests(unittest.TestCase):
             (self.directory / f'{ci_name}-arm64.provenance.json').write_text(
                 json.dumps({'version': 2, 'image': ci_name})
             )
+            binary_evidence = self.directory / f'{ci_name}-arm64.go-provenance'
+            binary_evidence.mkdir()
+            (binary_evidence / 'go-provenance.json').write_text(
+                json.dumps({'schema': 1, 'binaries': []})
+            )
         self.assertEqual(
             set(smoke.image_refs(self.directory, SHA, 'local')), smoke.IMAGES
         )

@@ -184,6 +184,31 @@ class MergeGroupTest(unittest.TestCase):
             result,
         )
 
+    def test_release_candidate_requires_pre_commit(self):
+        base = 'release-2.18'
+        branch = f'gh-readonly-queue/{base}/pr-7-abcdef'
+        triggers = {
+            'pull_request': {'branches': [base]},
+            'merge_group': {'branches': [base]},
+        }
+        other = good_run(head_branch=branch)
+        pre_commit = '.github/workflows/pre-commit.yml'
+        required = lane(path=pre_commit, **triggers)
+        passing = good_run(id=101, path=pre_commit, head_branch=branch)
+        for extra_lanes, extra_runs, state in [
+            ([], [], 'failure'),
+            ([required], [], 'pending'),
+            ([required], [{**passing, 'conclusion': 'failure'}], 'failure'),
+            ([required], [passing], 'success'),
+        ]:
+            with self.subTest(extra_lanes=extra_lanes, state=state):
+                result = reconcile(
+                    event=other,
+                    lanes=[lane(**triggers), *extra_lanes],
+                    runs=[other, *extra_runs],
+                )
+                self.assertEqual(result['writes'][-1]['state'], state, result)
+
     def test_release_image_companions_require_exact_queue_coverage(self):
         for producer in ['build-tools-images', 'runtime-base-images']:
             with self.subTest(producer=producer):
@@ -203,22 +228,27 @@ class MergeGroupTest(unittest.TestCase):
                     pull_request=None,
                     merge_group={'branches': ['release-2.18']},
                 )
-                result = reconcile(
-                    event=run, runs=[run], lanes=[original, queue_lane]
-                )
+                pre_commit = '.github/workflows/pre-commit.yml'
+                pre_commit_lane = {**queue_lane, 'path': pre_commit}
+                pre_commit_run = {**run, 'id': 101, 'path': pre_commit}
+
+                def check(lanes):
+                    return reconcile(
+                        event=run,
+                        runs=[run, pre_commit_run],
+                        lanes=[*lanes, pre_commit_lane],
+                    )
+
+                result = check([original, queue_lane])
                 self.assertNotIn('error', result)
                 self.assertTrue(result['writes'], result)
                 self.assertEqual(
                     result['writes'][-1]['state'], 'success', result
                 )
+                self.assert_not_successful(check([original]))
                 self.assert_not_successful(
-                    reconcile(event=run, runs=[run], lanes=[original])
-                )
-                self.assert_not_successful(
-                    reconcile(
-                        event=run,
-                        runs=[run],
-                        lanes=[
+                    check(
+                        [
                             original,
                             {
                                 **queue_lane,
@@ -228,10 +258,8 @@ class MergeGroupTest(unittest.TestCase):
                     )
                 )
                 self.assert_not_successful(
-                    reconcile(
-                        event=run,
-                        runs=[run],
-                        lanes=[
+                    check(
+                        [
                             {
                                 **original,
                                 'path': '.github/workflows/unmapped.yml',
@@ -560,8 +588,10 @@ class MergeGroupTest(unittest.TestCase):
                 policy.write_text(
                     json.dumps({'version': 1, 'enabled_branches': [branch]})
                 )
+                path = '.github/workflows/pre-commit.yml'
                 run = good_run(
-                    head_branch=f'gh-readonly-queue/{branch}/pr-7-abcdef'
+                    path=path,
+                    head_branch=f'gh-readonly-queue/{branch}/pr-7-abcdef',
                 )
                 member = entry(branch=branch, headCommit={'oid': HEAD})
                 eligible = pr(branch=branch)
@@ -572,6 +602,7 @@ class MergeGroupTest(unittest.TestCase):
                     runs=[run],
                     lanes=[
                         lane(
+                            path=path,
                             pull_request={'branches': [branch]},
                             merge_group={'branches': [branch]},
                         )

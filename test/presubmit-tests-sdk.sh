@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
+set -eo pipefail
 
 SETUP_ENV="${SETUP_ENV:-true}"
 PYTEST_PARALLEL_WORKERS="${PYTEST_PARALLEL_WORKERS:-2}"
@@ -44,7 +44,11 @@ export KFP_PACKAGE_PATH="${runtime_wheels[0]}"
 
 # Keep pytest capture enabled: xdist cannot forward worker stdout/stderr with -s.
 uv run python -m pytest sdk/python/test --ignore=sdk/python/test/runtime \
-  -v -m regression --cov=kfp -n "${PYTEST_PARALLEL_WORKERS}"
+  -v -m regression --cov=kfp -n "${PYTEST_PARALLEL_WORKERS}" \
+  --durations=30 --durations-min=0.1 --junitxml=sdk-regression.xml \
+  2>&1 | tee sdk-regression.log
 
 uv run python -m pytest sdk/python/test/runtime -v -m regression \
-    --cov=kfp --cov-append -n "${PYTEST_PARALLEL_WORKERS}"
+    --cov=kfp --cov-append -n "${PYTEST_PARALLEL_WORKERS}" \
+    --durations=30 --durations-min=0.1 --junitxml=sdk-regression-runtime.xml \
+    2>&1 | tee sdk-regression-runtime.log

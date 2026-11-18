@@ -15,7 +15,7 @@
 const path = require('node:path');
 const {enabledBranches, queueEnabled} = require('./merge_queue_policy');
 const {readQueue, inspectDispatchSnapshot, sweep} = require('./merge_queue_admission');
-const {expectedWorkflows, queueRuns, matchingRuns, reconcile, candidate} = require('./ci_merge_group');
+const {expectedWorkflows, queueRuns, matchingRuns, reconcile, candidate, readRef} = require('./ci_merge_group');
 const {loadBaseInventory, loadLocalInventory, invalidRunMetadata} = require('./ci_expected_workflows');
 const QUEUE_REF = /^gh-readonly-queue\/(master|main|release-2\.18)\/pr-[1-9][0-9]*-[A-Za-z0-9-]+$/;
 const SHA = /^[0-9a-f]{40}$/;
@@ -106,6 +106,14 @@ async function dispatchGroup({github, context, group, core, root = process.env.G
   core.info(`Queue candidate ${group.head}: missing CI dispatch reconciled.`);
 }
 
+function candidateBranch(refs, baseRef, head, prefix) {
+  if (!Array.isArray(refs) || refs.length >= 1000) throw new Error('Incomplete queue ref discovery');
+  const matches = refs.filter(ref => ref.object?.type === 'commit' && ref.object.sha === head &&
+    ref.ref?.startsWith(`refs/${prefix}`) && QUEUE_REF.exec(ref.ref.slice(11))?.[1] === baseRef);
+  if (matches.length > 1) throw new Error('Ambiguous queue candidate ref');
+  return matches[0]?.ref.slice(11);
+}
+
 async function dispatchCandidates({github, context, root = process.env.GITHUB_WORKSPACE, core,
   loadInventory = loadBaseInventory, now = () => Date.now()}) {
   const failures = [];
@@ -116,21 +124,18 @@ async function dispatchCandidates({github, context, root = process.env.GITHUB_WO
       const entries = await readQueue(github, context, baseRef);
       const heads = new Set(entries.map(entry => entry.headCommit?.oid).filter(Boolean));
       if (!heads.size) continue; // GitHub may not have built an enqueued entry yet.
+      const prefix = `heads/gh-readonly-queue/${baseRef}/`;
       const refs = await github.paginate(github.rest.git.listMatchingRefs, {
-        ...context.repo, ref: `heads/gh-readonly-queue/${baseRef}/`, per_page: 100,
+        ...context.repo, ref: prefix, per_page: 100,
       });
-      if (!Array.isArray(refs) || refs.length >= 1000) throw new Error('Incomplete queue ref discovery');
       for (const head of heads) {
-        const candidates = refs.filter(ref => ref.object?.type === 'commit' &&
-          ref.object.sha === head && ref.ref?.startsWith('refs/heads/') &&
-          QUEUE_REF.exec(ref.ref.slice(11))?.[1] === baseRef);
-        if (!candidates.length) continue; // Ref creation/deletion can race discovery.
-        if (candidates.length !== 1) throw new Error('Ambiguous queue candidate ref');
-        const group = {head, branch: candidates[0].ref.slice(11), baseRef};
+        const branch = candidateBranch(refs, baseRef, head, prefix);
+        if (!branch) continue; // Ref creation/deletion can race discovery.
+        const group = {head, branch, baseRef};
         try {
           await dispatchGroup({github, context, group, root, core, loadInventory, now});
           // Recovery does not depend on workflow_run delivery. This trusted
-          // scheduled/event-driven controller can independently publish evidence.
+          // scheduled controller can independently publish evidence.
           await reconcile({github, context, group, root, core, loadInventory});
         } catch (error) {
           failures.push(`${head}: ${error.message}`);
@@ -141,6 +146,14 @@ async function dispatchCandidates({github, context, root = process.env.GITHUB_WO
     }
   }
   if (failures.length) throw new Error(failures.join('; '));
+}
+
+async function candidateHead(github, context, branch) {
+  try { return await readRef(github, context, branch); }
+  catch (error) {
+    if (error.status === 404) return null;
+    throw error;
+  }
 }
 
 // Only a missing/replaced immutable queue ref proves that its CI is obsolete.
@@ -175,7 +188,8 @@ async function cancelObsoleteCandidates({github, context, core,
   }
   const eligible = run => {
     const match = QUEUE_REF.exec(run?.head_branch || '');
-    return match && branches.includes(match[1]) && workflowPaths.has(run.path) &&
+    return match && (!trigger || (run.head_branch === trigger.branch && run.head_sha === trigger.head)) &&
+      branches.includes(match[1]) && workflowPaths.has(run.path) &&
       ['workflow_dispatch', 'merge_group'].includes(run.event) && active.has(run.status) &&
       // Original dispatch identity survives a human-triggered rerun. A matching
       // reservation alone also matches independent manual dispatches.
@@ -183,18 +197,6 @@ async function cancelObsoleteCandidates({github, context, core,
         run.actor.login === 'github-actions[bot]' && run.actor.type === 'Bot')) &&
       SHA.test(run.head_sha || '') &&
       run.head_repository?.full_name === `${context.repo.owner}/${context.repo.repo}`;
-  };
-  const refHead = async branch => {
-    let data;
-    try {
-      ({data} = await github.rest.git.getRef({...context.repo, ref: `heads/${branch}`}));
-    } catch (error) {
-      if (error.status === 404) return null;
-      throw error;
-    }
-    if (data.ref !== `refs/heads/${branch}` || data.object?.type !== 'commit' ||
-        !SHA.test(data.object.sha || '')) throw new Error('Invalid candidate cleanup ref');
-    return data.object.sha;
   };
   const heads = new Map();
   const reservations = new Map();
@@ -206,7 +208,7 @@ async function cancelObsoleteCandidates({github, context, core,
     try {
       const invalid = invalidRunMetadata(run);
       if (invalid) throw new Error(`Invalid cleanup workflow attempt ${invalid}`);
-      if (!heads.has(run.head_branch)) heads.set(run.head_branch, await refHead(run.head_branch));
+      if (!heads.has(run.head_branch)) heads.set(run.head_branch, await candidateHead(github, context, run.head_branch));
       if (heads.get(run.head_branch) === run.head_sha) continue;
       if (run.event === 'workflow_dispatch') {
         // A manual workflow may intentionally inspect a queue ref. Only cancel
@@ -233,7 +235,7 @@ async function cancelObsoleteCandidates({github, context, core,
           current.path !== run.path || current.event !== run.event) continue;
       const currentInvalid = invalidRunMetadata(current);
       if (currentInvalid) throw new Error(`Invalid current cleanup workflow attempt ${currentInvalid}`);
-      if (await refHead(run.head_branch) === run.head_sha) continue;
+      if (await candidateHead(github, context, run.head_branch) === run.head_sha) continue;
       await github.rest.actions.cancelWorkflowRun({...context.repo, run_id: run.id});
       core.info(`Cancelled obsolete queue workflow run ${run.id}.`);
     } catch (error) {
@@ -244,6 +246,36 @@ async function cancelObsoleteCandidates({github, context, core,
 }
 
 async function reconcileQueue(options) {
+  const {github, context} = options;
+  if (context.eventName !== 'schedule') {
+    if (context.eventName === 'workflow_run' && context.payload.action !== 'completed') return;
+    if (context.eventName === 'pull_request_target' || context.eventName === 'workflow_dispatch' ||
+        (context.eventName === 'workflow_run' && context.payload.workflow_run?.event === 'pull_request')) {
+      const admitted = await sweep(options);
+      for (const {number, baseRef, head} of admitted) {
+        // Builtin-token enqueue can suppress merge_group events. If the enqueue
+        // already returned a candidate, start only this PR's exact ref now.
+        const prefix = `heads/gh-readonly-queue/${baseRef}/pr-${number}-`;
+        const refs = await github.paginate(github.rest.git.listMatchingRefs, {
+          ...context.repo, ref: prefix, per_page: 100,
+        });
+        const branch = candidateBranch(refs, baseRef, head, prefix);
+        if (branch) await dispatchGroup({...options, group: {baseRef, head, branch}});
+      }
+      return;
+    }
+    const group = candidate(context);
+    if (!group || context.payload.workflow_run.repository?.full_name !== `${context.repo.owner}/${context.repo.repo}`) return;
+    const branches = await enabledBranches(options);
+    if (!branches.includes(group.baseRef)) return;
+    // A late completion for a deleted/rebuilt ref may only clean up that
+    // obsolete candidate. The independent workflow_run publisher owns status.
+    const head = await candidateHead(github, context, group.branch);
+    if (head === group.head) await dispatchGroup({...options, group});
+    else await cancelObsoleteCandidates({...options, branches});
+    return;
+  }
+
   const errors = [];
   try { await cancelObsoleteCandidates(options); } catch (error) { errors.push(error.message); }
   try { await sweep(options); } catch (error) { errors.push(error.message); }
