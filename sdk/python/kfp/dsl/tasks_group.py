@@ -86,11 +86,15 @@ class TasksGroup:
         if not pipeline_context.Pipeline.get_default_pipeline():
             raise ValueError('Default pipeline not defined.')
 
-        group_id = (
-            pipeline_context.Pipeline.get_default_pipeline().get_next_group_id()
-        )
-        self.name = f'{self.group_type.value}-{group_id}'
-        self.name = self.name.replace('_', '-')
+        pipeline = pipeline_context.Pipeline.get_default_pipeline()
+        # Tasks and groups share one namespace, so skip any id whose group
+        # name is already used by a task.
+        while True:
+            group_id = pipeline.get_next_group_id()
+            self.name = f'{self.group_type.value}-{group_id}'
+            self.name = self.name.replace('_', '-')
+            if self.name not in pipeline.tasks:
+                break
 
     def remove_task_recursive(self, task: pipeline_task.PipelineTask):
         """Removes a task from the group recursively."""
@@ -406,8 +410,14 @@ def maybe_make_and_insert_conditional_branches_group(
     def swap_group_ids(parent: TasksGroup, cond: TasksGroup):
         parent_name, parent_id = parent.name.rsplit('-', 1)
         cond_name, cond_id = cond.name.split('-')
-        cond.name = f'{cond_name}-{parent_id}'
-        parent.name = f'{parent_name}-{cond_id}'
+        new_cond_name = f'{cond_name}-{parent_id}'
+        new_parent_name = f'{parent_name}-{cond_id}'
+        # The swap only keeps numbering readable. Skip it if either new name
+        # is already used by a task.
+        if new_cond_name in pipeline.tasks or new_parent_name in pipeline.tasks:
+            return
+        cond.name = new_cond_name
+        parent.name = new_parent_name
 
     # replace last pushed group (If or Elif) with condition group
     last_pushed_group = pipeline.groups[-1].groups.pop()

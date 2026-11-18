@@ -19,8 +19,10 @@ import re
 import subprocess
 import tempfile
 import textwrap
+import types
 import unittest
 from typing import Any, Dict, List, Literal, NamedTuple, Optional
+from unittest import mock
 
 import yaml
 from absl.testing import parameterized
@@ -42,6 +44,7 @@ from kfp.dsl import (
     OutputPath,
     PipelineTaskFinalStatus,
     graph_component,
+    pipeline_context,
     pipeline_task,
     placeholders,
     tasks_group,
@@ -2469,27 +2472,46 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
 
             my_pipeline.pipeline_spec
 
-    def test_task_after_exit_handler_group_raises_on_ambiguous_name(self):
+    def test_task_after_exit_handler_group_with_task_of_same_name(self):
 
         @dsl.component
         def exit_handler_1():
             pass
 
+        @dsl.pipeline(name='pipeline-after-exit-handler-group-with-same-name')
+        def my_pipeline():
+            exit_handler_1()
+            exit_task = print_op(message='Exit task.')
+
+            with dsl.ExitHandler(exit_task) as exit_group:
+                print_op(message='Inside exit handler.')
+
+            print_op(message='After exit handler.').after(exit_group)
+
+        root_tasks = my_pipeline.pipeline_spec.root.dag.tasks
+        self.assertEqual(
+            root_tasks['exit-handler-1'].component_ref.name,
+            'comp-exit-handler-1',
+        )
+        self.assertEqual(
+            root_tasks['exit-handler-2'].component_ref.name,
+            'comp-exit-handler-2',
+        )
+        self.assertEqual(
+            list(root_tasks['print-op-3'].dependent_tasks), ['exit-handler-2']
+        )
+
+    def test_dependency_name_matching_task_and_group_raises(self):
+        pipeline = types.SimpleNamespace(tasks={'exit-handler-1': object()})
+
         with self.assertRaisesRegex(
             ValueError, r'Ambiguous dependency name "exit-handler-1"\.'
         ):
-
-            @dsl.pipeline(
-                name='pipeline-after-exit-handler-group-with-ambiguous-name'
+            compiler_utils._resolve_dependency_name_to_group_or_task(
+                dependency_name='exit-handler-1',
+                pipeline=pipeline,
+                group_name_to_group={'exit-handler-1': object()},
             )
-            def my_pipeline():
-                exit_handler_1()
-                exit_task = print_op(message='Exit task.')
-
-                with dsl.ExitHandler(exit_task) as exit_group:
-                    print_op(message='Inside exit handler.')
-
-                print_op(message='After exit handler.').after(exit_group)
 
     def test_nested_unsupported(self):
 
@@ -2508,6 +2530,290 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
                     second_exit_task = print_op(message='Second exit task.')
                     with dsl.ExitHandler(second_exit_task):
                         print_op(message='Inside second exit handler.')
+
+
+@dsl.component
+def condition() -> int:
+    return 1
+
+
+@dsl.component
+def work(msg: str):
+    print(msg)
+
+
+class TestTaskAndGroupNameCollisions(unittest.TestCase):
+    """Tasks whose component names match generated group names, such as
+    condition-2 or for-loop-2, must not replace or merge with the group."""
+
+    def assert_names_unique(self, pipeline_spec):
+        names = list(pipeline_spec.root.dag.tasks)
+        for component in pipeline_spec.components.values():
+            names.extend(component.dag.tasks)
+        duplicates = [
+            name
+            for name, count in collections.Counter(names).items()
+            if count > 1
+        ]
+        self.assertEqual(duplicates, [])
+
+    def assert_dag_inputs_declared(self, pipeline_spec):
+        components = [pipeline_spec.root] + list(
+            pipeline_spec.components.values()
+        )
+        for component in components:
+            declared = set(component.input_definitions.parameters)
+            for task_name, task in component.dag.tasks.items():
+                for spec in task.inputs.parameters.values():
+                    if spec.component_input_parameter:
+                        self.assertIn(
+                            spec.component_input_parameter, declared, task_name
+                        )
+
+    def test_task_named_like_later_if_group(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            c = condition()
+            with dsl.If(c.output == 1):
+                work(msg='branch-one')
+            with dsl.If(c.output == 2):
+                work(msg='branch-two')
+            condition()
+
+        spec = my_pipeline.pipeline_spec
+        root_tasks = spec.root.dag.tasks
+        self.assertEqual(
+            sorted(root_tasks),
+            ['condition', 'condition-1', 'condition-2', 'condition-3'],
+        )
+        self.assertIn(
+            '== 1', root_tasks['condition-1'].trigger_policy.condition
+        )
+        self.assertIn(
+            '== 2', root_tasks['condition-2'].trigger_policy.condition
+        )
+        branch_two = spec.components[
+            root_tasks['condition-2'].component_ref.name
+        ]
+        self.assertEqual(
+            branch_two.dag.tasks['work-2']
+            .inputs.parameters['msg']
+            .runtime_value.constant.string_value,
+            'branch-two',
+        )
+        self.assertTrue(
+            spec.components[
+                root_tasks['condition-3'].component_ref.name
+            ].executor_label
+        )
+        self.assert_names_unique(spec)
+
+    def test_dag_entry_is_never_overwritten(self):
+        # Simulate a collision that the DSL naming layer failed to prevent.
+        with mock.patch.object(
+            pipeline_context.Pipeline, 'get_group_names', return_value=[]
+        ):
+            with self.assertRaisesRegex(
+                ValueError, r'Duplicate task or group name "condition-2"'
+            ):
+
+                @dsl.pipeline
+                def my_pipeline():
+                    c = condition()
+                    with dsl.If(c.output == 1):
+                        work(msg='branch-one')
+                    with dsl.If(c.output == 2):
+                        work(msg='branch-two')
+                    condition()
+
+    def test_task_named_like_parallel_for_group(self):
+
+        @dsl.component
+        def for_loop_2():
+            pass
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor(['a', 'b']) as item:
+                work(msg=item)
+            for_loop_2()
+
+        spec = my_pipeline.pipeline_spec
+        root_tasks = spec.root.dag.tasks
+        self.assertEqual(sorted(root_tasks), ['for-loop-2', 'for-loop-2-2'])
+        loop = root_tasks['for-loop-2']
+        self.assertEqual(loop.parameter_iterator.items.raw, '["a", "b"]')
+        self.assertIn(
+            'work', spec.components[loop.component_ref.name].dag.tasks
+        )
+        self.assertTrue(
+            spec.components[
+                root_tasks['for-loop-2-2'].component_ref.name
+            ].executor_label
+        )
+
+    def test_task_named_like_exit_handler_group(self):
+
+        @dsl.component
+        def exit_handler_1():
+            pass
+
+        @dsl.pipeline
+        def my_pipeline():
+            cleanup = work(msg='cleanup')
+            with dsl.ExitHandler(cleanup):
+                work(msg='body')
+            exit_handler_1()
+
+        spec = my_pipeline.pipeline_spec
+        root_tasks = spec.root.dag.tasks
+        self.assertEqual(
+            sorted(root_tasks), ['exit-handler-1', 'exit-handler-1-2', 'work']
+        )
+        body = spec.components[root_tasks['exit-handler-1'].component_ref.name]
+        self.assertIn('work-2', body.dag.tasks)
+        self.assertTrue(
+            spec.components[
+                root_tasks['exit-handler-1-2'].component_ref.name
+            ].executor_label
+        )
+
+    def test_if_group_named_like_task_it_depends_on(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            c = condition()
+            with dsl.If(c.output == 1):
+                work(msg='x')
+            c2 = condition()
+            with dsl.If(c2.output == 1):
+                work(msg='y')
+
+        spec = my_pipeline.pipeline_spec
+        root_tasks = spec.root.dag.tasks
+        self.assertEqual(
+            sorted(root_tasks),
+            ['condition', 'condition-1', 'condition-2', 'condition-3'],
+        )
+        self.assertEqual(
+            list(root_tasks['condition-3'].dependent_tasks), ['condition-2']
+        )
+        self.assertIn(
+            'pipelinechannel--condition-2-Output',
+            root_tasks['condition-3'].trigger_policy.condition,
+        )
+        self.assert_names_unique(spec)
+
+    def test_nested_group_named_like_task_in_other_dag(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            condition()
+            c2 = condition()
+            with dsl.If(c2.output == 1):
+                with dsl.If(c2.output == 1):
+                    work(msg='inner')
+
+        spec = my_pipeline.pipeline_spec
+        root_tasks = spec.root.dag.tasks
+        self.assertEqual(
+            sorted(root_tasks), ['condition', 'condition-1', 'condition-2']
+        )
+        outer = spec.components[root_tasks['condition-1'].component_ref.name]
+        self.assertEqual(len(outer.dag.tasks), 1)
+        [inner_task] = outer.dag.tasks.values()
+        self.assertIn(
+            'work', spec.components[inner_task.component_ref.name].dag.tasks
+        )
+
+    def test_nested_group_does_not_take_inputs_of_task_with_same_name(self):
+
+        @dsl.component
+        def condition(x: int) -> int:
+            return x
+
+        @dsl.pipeline
+        def my_pipeline(flag: int = 1, other: int = 5):
+            condition(x=other)
+            c2 = condition(x=other)
+            with dsl.If(flag == 1):
+                with dsl.If(flag == 1):
+                    work(msg='inner')
+            work(msg=f'{c2.output}')
+
+        spec = my_pipeline.pipeline_spec
+        self.assert_names_unique(spec)
+        self.assert_dag_inputs_declared(spec)
+
+    def test_elif_else_swap_with_task_of_same_name(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            c = condition()
+            with dsl.If(c.output == 1):
+                work(msg='if')
+            condition()
+            with dsl.Elif(c.output == 2):
+                work(msg='elif')
+            with dsl.Else():
+                work(msg='else')
+
+        spec = my_pipeline.pipeline_spec
+        self.assert_names_unique(spec)
+        root_tasks = spec.root.dag.tasks
+        branches = spec.components[
+            root_tasks['condition-branches-2'].component_ref.name
+        ]
+        self.assertEqual(
+            sorted(branches.dag.tasks),
+            ['condition-1', 'condition-3', 'condition-4'],
+        )
+        self.assertTrue(
+            spec.components[
+                root_tasks['condition-2'].component_ref.name
+            ].executor_label
+        )
+
+    def test_tasks_after_elif_else_avoid_group_names(self):
+
+        @dsl.component
+        def condition_branches_1():
+            pass
+
+        @dsl.pipeline
+        def my_pipeline():
+            c = condition()
+            with dsl.If(c.output == 1):
+                work(msg='if')
+            with dsl.Elif(c.output == 2):
+                work(msg='elif')
+            with dsl.Else():
+                work(msg='else')
+            condition()
+            condition()
+            condition_branches_1()
+
+        spec = my_pipeline.pipeline_spec
+        self.assert_names_unique(spec)
+        root_tasks = spec.root.dag.tasks
+        self.assertEqual(
+            sorted(root_tasks),
+            [
+                'condition',
+                'condition-5',
+                'condition-6',
+                'condition-branches-1',
+                'condition-branches-1-2',
+            ],
+        )
+        branches = spec.components[
+            root_tasks['condition-branches-1'].component_ref.name
+        ]
+        self.assertEqual(
+            sorted(branches.dag.tasks),
+            ['condition-2', 'condition-3', 'condition-4'],
+        )
 
 
 class TestBooleanInputCompiledCorrectly(unittest.TestCase):
