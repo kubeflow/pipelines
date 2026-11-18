@@ -464,6 +464,12 @@ class QueueRecoveryTest(unittest.TestCase):
                 result = dispatch(
                     method='dispatchCandidates',
                     branch='release-2.18',
+                    lanes=[
+                        lane(
+                            '.github/workflows/pre-commit.yml',
+                            branch='release-2.18',
+                        )
+                    ],
                     defaultBranch='main',
                     enabled=['~DEFAULT_BRANCH', 'release-2.18'],
                     branchRules={
@@ -716,13 +722,18 @@ class QueueDispatchTest(unittest.TestCase):
     def test_missing_lane_dispatches_exact_candidate_for_either_branch(self):
         for branch in ['master', 'main', 'release-2.18']:
             with self.subTest(branch=branch):
-                result = dispatch(branch=branch)
+                result = dispatch(
+                    branch=branch,
+                    lanes=[
+                        lane('.github/workflows/pre-commit.yml', branch=branch)
+                    ],
+                )
                 self.assertNotIn('error', result)
                 self.assertEqual(len(result['dispatches']), 1, result)
                 call = result['dispatches'][0]
                 self.assertEqual(call['owner'], 'owner')
                 self.assertEqual(call['repo'], 'repo')
-                self.assertEqual(call['workflow_id'], 'frontend.yml')
+                self.assertEqual(call['workflow_id'], 'pre-commit.yml')
                 self.assertEqual(
                     call['ref'], f'gh-readonly-queue/{branch}/pr-7-abcdef'
                 )
@@ -738,7 +749,7 @@ class QueueDispatchTest(unittest.TestCase):
                 reservations = [
                     write
                     for write in result['writes']
-                    if write['context'] == 'ci-queue-dispatch/frontend.yml'
+                    if write['context'] == 'ci-queue-dispatch/pre-commit.yml'
                 ]
                 self.assertEqual(len(reservations), 1, result)
                 self.assertEqual(
