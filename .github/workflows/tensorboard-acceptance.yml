@@ -160,7 +160,9 @@ jobs:
     - name: Verify deployed storage, reload, authorization and lifecycle
       env:
         NODE_PATH: /tmp/browser/node_modules
-      run: python3 test/tensorboard/deployed.py
+      run: |
+        python3 -m unittest discover -s test/tensorboard -p "*_test.py"
+        python3 test/tensorboard/deployed.py
     - name: Preserve deployed diagnostics
       if: always()
       run: |
