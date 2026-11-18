@@ -20,9 +20,11 @@ import ListAltIcon from '@mui/icons-material/ListAlt';
 import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import { ReactElement } from 'react';
+import React, { ReactElement } from 'react';
 import { PipelineTaskTaskState } from 'src/apisv2/run';
+import { CardTooltip } from 'src/atoms/CardTooltip';
 import StopCircle from 'src/icons/StopCircle';
 import { classes } from 'typestyle';
 import { ExecutionFlowElementData } from './Constants';
@@ -44,8 +46,8 @@ function ExecutionNode({ id, data, selected }: ExecutionNodeProps) {
   // while parked) - render it instead of the state icon.
   let icon = data.debugPauseBarrier
     ? getDebugPauseIcon()
-    : showWarning
-      ? getWarningIcon()
+    : data.lifecycleMessage
+      ? getLifecycleStatusIcon(data.lifecycleMessage, data.lifecycleCategory, data.state)
       : getIcon(data.state);
   let executionIcon = getExecutionIcon(data.state);
 
@@ -53,9 +55,15 @@ function ExecutionNode({ id, data, selected }: ExecutionNodeProps) {
 
   return (
     <>
-      <div title={data.label} className='container'>
+      {/* With a lifecycle tooltip, a native title would show on top of it. */}
+      <div
+        title={data.lifecycleMessage && !data.debugPauseBarrier ? undefined : data.label}
+        className='container'
+      >
         <button
-          aria-label={showWarning ? getLifecycleWarningLabel(data.label) : undefined}
+          aria-label={
+            showWarning ? getLifecycleWarningLabel(data.label, data.lifecycleCategory) : undefined
+          }
           className={classes(
             'focus:ring flex items-stretch border-0 transform h-12 hover:scale-105 transition relative overflow:hidden bg-white shadow-lg rounded-lg',
             fullWidth,
@@ -126,16 +134,75 @@ export function getIcon(state: PipelineTaskTaskState | undefined) {
 
 // The amber icon is hidden from screen readers, so the warning goes into the name of the
 // focusable node instead.
-export function getLifecycleWarningLabel(label: string) {
-  return `${label}, pod lifecycle warning`;
+export function getLifecycleWarningLabel(label: string, category?: string) {
+  return `${label}, pod lifecycle ${isUnclassifiedLifecycle(category) ? 'status' : 'warning'}`;
 }
 
-export function getWarningIcon() {
-  return getStateIconWrapper(
-    <WarningAmberIcon className='text-mui-yellow-800' />,
-    'bg-mui-yellow-100',
+// An unclassified message is a raw status, not a known problem, so it is shown in blue.
+export function isUnclassifiedLifecycle(category?: string) {
+  return category === 'unknown';
+}
+
+const LIFECYCLE_CATEGORY_LABELS: Record<string, string> = {
+  'image-pull': 'Image pull problem',
+  scheduling: 'Scheduling problem',
+  runtime: 'Runtime problem',
+  admission: 'Admission problem',
+  unknown: 'Pod status',
+};
+
+export function getLifecycleCategoryLabel(category?: string) {
+  return (category && LIFECYCLE_CATEGORY_LABELS[category]) || 'Pod lifecycle warning';
+}
+
+// Status icon for a task with a lifecycle message. Hovering it shows the category and the
+// message, clamped so a long message cannot fill the screen.
+export function getLifecycleStatusIcon(
+  message: string,
+  category?: string,
+  state?: PipelineTaskTaskState,
+) {
+  const failed = state === PipelineTaskTaskState.FAILED;
+  const unclassified = !failed && isUnclassifiedLifecycle(category);
+  const icon = failed ? (
+    <ErrorIcon className='text-mui-red-600' />
+  ) : unclassified ? (
+    <InfoOutlinedIcon className='text-mui-blue-600' />
+  ) : (
+    <WarningAmberIcon className='text-mui-yellow-800' />
+  );
+  const background = failed
+    ? 'bg-mui-red-50'
+    : unclassified
+      ? 'bg-mui-blue-50'
+      : 'bg-mui-yellow-100';
+  return (
+    <CardTooltip
+      helpText={
+        <div data-testid='lifecycle-tooltip'>
+          <strong>{getLifecycleCategoryLabel(category)}</strong>
+          <div style={LIFECYCLE_MESSAGE_STYLE}>{message}</div>
+          <small>Select the node to see the full message.</small>
+        </div>
+      }
+    >
+      <div
+        className={classes('px-2 h-full flex flex-col justify-center rounded-r-lg ', background)}
+      >
+        {icon}
+      </div>
+    </CardTooltip>
   );
 }
+
+const LIFECYCLE_MESSAGE_STYLE: React.CSSProperties = {
+  display: '-webkit-box',
+  WebkitLineClamp: 6,
+  WebkitBoxOrient: 'vertical',
+  overflow: 'hidden',
+  overflowWrap: 'anywhere',
+  whiteSpace: 'pre-wrap',
+};
 
 function getStateIconWrapper(element: ReactElement, backgroundClasses: string) {
   return (
