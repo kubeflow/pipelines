@@ -8769,6 +8769,8 @@ func TestCreateRun_PluginRuntimeEnvInjectionFailure_CleansUpPlugins(t *testing.T
 		DisplayName:  "run1",
 		PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`}},
 		ExperimentId: experiment.UUID,
+		// CreateRun keeps a caller-supplied state until the run is persisted.
+		RunDetails: model.RunDetails{State: model.RuntimeStateSucceeded},
 	}
 	_, err := manager.CreateRun(context.Background(), run)
 	require.Error(t, err)
@@ -8779,6 +8781,7 @@ func TestCreateRun_PluginRuntimeEnvInjectionFailure_CleansUpPlugins(t *testing.T
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound), "a rejected run should not be persisted")
 	require.Len(t, dispatcher.endedRuns, 1, "plugin resources created before the failure must be cleaned up")
 	assert.Equal(t, run.UUID, dispatcher.endedRuns[0].RunID)
+	assert.Equal(t, string(model.RuntimeStateFailed), dispatcher.endedRuns[0].State, "a rejected run must be finalized as failed")
 	assert.True(t, proto.Equal(dispatcher.output, dispatcher.endedRuns[0].PluginsOutput[apiservermlflow.PluginName]), "cleanup must receive the output identifying the plugin resources")
 }
 

@@ -885,6 +885,8 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	defer func() {
 		if !runPersisted && run.PluginsOutputString != nil {
 			if pr, prErr := apiserverPlugins.ModelToPersistedRun(run, k8sNamespace); prErr == nil {
+				// run.State is still the caller-supplied value here; the run was rejected.
+				pr.State = string(model.RuntimeStateFailed)
 				r.pluginDispatcher.OnRunEnd(ctx, pr)
 			}
 		}
