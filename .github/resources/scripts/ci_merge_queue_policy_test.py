@@ -213,7 +213,7 @@ const github = {rest: {repos: {get: async parameters => {
         checks = rules['required_status_checks']['required_status_checks']
         self.assertEqual(
             {c['context']: c['integration_id'] for c in checks},
-            {'DCO': 1861, 'pre-commit': 15368, 'ci-passed': 15368},
+            {'DCO': 1861, 'ci-passed': 15368},
         )
         patch = json.loads(
             (root / 'merge-queue-release-2.18-required-checks.json').read_text()
@@ -221,7 +221,7 @@ const github = {rest: {repos: {get: async parameters => {
         self.assertFalse(patch['strict'])
         self.assertEqual(
             {c['context']: c['app_id'] for c in patch['checks']},
-            {'DCO': 1861, 'pre-commit': 15368, 'ci-passed': 15368},
+            {'DCO': 1861, 'ci-passed': 15368},
         )
         policy = json.loads(
             (root / 'merge-queue-release-2.18-policy.json').read_text()

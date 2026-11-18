@@ -16,6 +16,11 @@ const path = require('node:path');
 const QUEUE_BRANCHES = ['master', 'main', 'release-2.18'];
 const DEFAULT_ROOT = path.resolve(__dirname, '../../..');
 
+// The release queue relies on ci-passed to enforce pre-commit for both events.
+function missingReleasePreCommit(baseRef, expectedPaths) {
+  return baseRef === 'release-2.18' && !expectedPaths.includes('.github/workflows/pre-commit.yml');
+}
+
 function loadPolicy(root = DEFAULT_ROOT) {
   // This file comes from the trusted publisher checkout, never a PR checkout.
   const policy = JSON.parse(fs.readFileSync(path.join(root, '.github/merge-queue-policy.json'), 'utf8'));
@@ -64,4 +69,4 @@ async function requireQueueRule({github, context, branch}) {
   }
 }
 
-module.exports = {QUEUE_BRANCHES, loadPolicy, enabledBranches, queueEnabled, requireQueueRule};
+module.exports = {missingReleasePreCommit, QUEUE_BRANCHES, loadPolicy, enabledBranches, queueEnabled, requireQueueRule};

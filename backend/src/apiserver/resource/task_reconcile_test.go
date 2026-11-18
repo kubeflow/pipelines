@@ -16,12 +16,14 @@ package resource
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -249,6 +251,63 @@ func TestReportWorkflowResource_ReconcilesRunningTaskWhenPodDied(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "main: OOMKilled (exit code 137)", meta.GetMessage())
 	require.NotNil(t, got.LifecycleMessage, "lifecycle diagnostics stay attached to the failed attempt")
+}
+
+// failingUpdateIfAttemptTaskStore wraps a real TaskStoreInterface and injects an error from
+// UpdateTaskIfAttempt for one task, to reproduce an API-server-side write failure while
+// reconciling that task's failure ([P2] on identify-root-wrapper-by-structure: a reconciliation
+// error must not be discarded, since ReportWorkflow can delete the workflow right after this
+// call once PersistedFinalState() is set, and the persistence agent then stops retrying).
+type failingUpdateIfAttemptTaskStore struct {
+	storage.TaskStoreInterface
+	failForTaskUUID string
+	err             error
+}
+
+func (f *failingUpdateIfAttemptTaskStore) UpdateTaskIfAttempt(guard storage.TaskAttemptGuard, task *model.Task) (*model.Task, bool, error) {
+	if task.UUID == f.failForTaskUUID {
+		return nil, false, f.err
+	}
+	return f.TaskStoreInterface.UpdateTaskIfAttempt(guard, task)
+}
+
+// TestReportWorkflowResource_ReconciliationErrorIsNotSwallowed locks in Jeff's [P2] finding: a
+// reconciliation write failure (e.g. the API server having an outage) must propagate out of
+// ReportWorkflowResource instead of being logged and discarded, so the caller cannot mark the
+// workflow persisted or delete it while this task's FAILED transition is still outstanding. Left
+// RUNNING and reachable, the task gets another chance on the next reconciliation pass; deleted
+// along with the workflow, it never would.
+func TestReportWorkflowResource_ReconciliationErrorIsNotSwallowed(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{executorPod("oom-pod")})
+	require.NoError(t, err)
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1", RunUUID: run.UUID, Name: "oom", DisplayName: "oom",
+		Type: model.TaskType(apiv2.PipelineTask_RUNTIME), State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-oom", Pods: pods, TypeAttrs: model.JSONData{},
+		StateHistory: model.JSONSlice{}, InputParameters: model.JSONSlice{}, OutputParameters: model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	injectedErr := errors.New("injected API server outage")
+	manager.taskStore = &failingUpdateIfAttemptTaskStore{
+		TaskStoreInterface: manager.taskStore,
+		failForTaskUUID:    task.UUID,
+		err:                injectedErr,
+	}
+
+	workflow := reconcileTestWorkflow(run.K8SName, run.UUID, oomedWorkflowNodes())
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	require.Error(t, err, "a reconciliation failure must not be swallowed as success")
+	assert.ErrorContains(t, err, injectedErr.Error())
+
+	got, getErr := manager.GetTask(task.UUID)
+	require.NoError(t, getErr)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), got.State,
+		"task must stay RUNNING so the next reconciliation pass can still retry it")
 }
 
 func TestReportWorkflowResource_ReconcileDoesNotOverwriteSucceededTask(t *testing.T) {

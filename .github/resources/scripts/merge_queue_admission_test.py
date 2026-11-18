@@ -216,7 +216,7 @@ const github = {{rest: {{
     writes.push({{route:'enqueue',options,query}});
     if (f.enqueueError) throw new Error('Enqueue rejected');
     enqueued = Number(options.id.split('_')[1]);
-    return {{enqueuePullRequest:{{mergeQueueEntry:{{id:'ENTRY_7',enqueuedAt:f.enqueuedAt || '2026-11-13T13:00:00Z'}}}}}};
+    return {{enqueuePullRequest:{{mergeQueueEntry:{{id:'ENTRY_7',headCommit:f.enqueuedHead ? {{oid:f.enqueuedHead}} : null,enqueuedAt:f.enqueuedAt || '2026-11-13T13:00:00Z'}}}}}};
   }}
   if (query.includes('dequeuePullRequest')) {{
     writes.push({{route:'dequeue',options,query}}); enqueued = false; compensatingRemoval = true; return {{}};
@@ -437,8 +437,7 @@ class QueueAdmissionTest(unittest.TestCase):
                     'sweep',
                     branch=branch,
                     enabled=['~DEFAULT_BRANCH'],
-                    eventName='workflow_run',
-                    payload={'workflow_run': {'event': 'workflow_dispatch'}},
+                    queueOnly=True,
                     queues=[queue(members)],
                     prs={str(n): [pr(n, branch=branch)] for n in range(7, 14)},
                 )
@@ -453,8 +452,7 @@ class QueueAdmissionTest(unittest.TestCase):
     def test_sweep_rechecks_invalid_member_before_dequeue(self):
         result = run_case(
             'sweep',
-            eventName='workflow_run',
-            payload={'workflow_run': {'event': 'workflow_dispatch'}},
+            queueOnly=True,
             queues=[queue([entry()])],
             prs={'7': [pr(labels=[]), pr()]},
         )
@@ -465,8 +463,7 @@ class QueueAdmissionTest(unittest.TestCase):
     def test_sweep_incomplete_batched_policy_revokes_candidates(self):
         result = run_case(
             'sweep',
-            eventName='workflow_run',
-            payload={'workflow_run': {'event': 'workflow_dispatch'}},
+            queueOnly=True,
             queues=[queue([entry()])],
             policyResponse={'repository': {}},
         )
@@ -1292,21 +1289,20 @@ class QueueAdmissionTest(unittest.TestCase):
         )
         self.assertIn('error', held_suffix)
 
-    def test_surviving_writer_admits_ready_pr_without_unrelated_recovery(
+    def test_event_writers_target_one_pr_and_schedule_recovers_the_backlog(
         self,
-    ) -> None:
+    ):
         ready = pr(
-            labels=[
-                {'name': name} for name in ['lgtm', 'approved', 'ci-passed']
-            ]
+            labels=[{'name': n} for n in ['lgtm', 'approved', 'ci-passed']]
         )
-        listed = [ready, pr(99, labels=[])]
-        for options in [
+        options = dict(
+            listed=[ready], prs={'7': [ready], '8': [pr(8, labels=[])]}
+        )
+        for event in [
             {
                 'eventName': 'pull_request_target',
                 'payload': {'pull_request': {'number': 8}},
             },
-            {'queueOnly': True},
             {
                 'eventName': 'workflow_dispatch',
                 'ref': 'refs/heads/master',
@@ -1316,33 +1312,74 @@ class QueueAdmissionTest(unittest.TestCase):
                 },
             },
         ]:
-            with self.subTest(options=options):
+            with self.subTest(event=event):
+                result = run_case('sweep', **event, **options)
+                self.assertNotIn('error', result, result)
+                self.assertEqual(result['writes'], [], result)
+                self.assertFalse(
+                    any(
+                        c['route'] in ('pulls', 'policies')
+                        for c in result['calls']
+                    )
+                )
+        recovered = run_case('sweep', queueOnly=True, **options)
+        self.assertNotIn('error', recovered, recovered)
+        self.assertEqual(
+            [
+                w['options']['id']
+                for w in recovered['writes']
+                if w['route'] == 'enqueue'
+            ],
+            ['PR_7'],
+        )
+
+    def test_targeted_admission_returns_only_confirmed_new_candidate(self):
+        for head in [None, CANDIDATE]:
+            with self.subTest(head=head):
                 result = run_case(
                     'sweep',
-                    listed=listed,
-                    prs={'7': [ready], '8': [pr(8, labels=[])]},
-                    **options,
+                    eventName='pull_request_target',
+                    payload={'pull_request': {'number': 7}},
+                    enqueuedHead=head,
                 )
                 self.assertNotIn('error', result, result)
                 self.assertEqual(
-                    len(
-                        [w for w in result['writes'] if w['route'] == 'enqueue']
-                    ),
-                    1,
-                    result,
+                    result['result'],
+                    [{'number': 7, 'baseRef': 'master', 'head': head}]
+                    if head
+                    else [],
                 )
-                self.assertEqual(
-                    len([c for c in result['calls'] if c['route'] == 'pulls']),
-                    1,
+                self.assertTrue(
+                    any(
+                        'headCommit' in w.get('query', '')
+                        for w in result['writes']
+                    )
                 )
-                self.assertNotIn(
-                    99,
-                    [
-                        c['options']['pull_number']
-                        for c in result['calls']
-                        if c['route'] == 'pr'
-                    ],
-                )
+
+    def test_retarget_reconciles_old_queue_before_new_base(self):
+        result = run_case(
+            'sweep',
+            eventName='pull_request_target',
+            enabled=['main', 'release-2.18'],
+            branch='release-2.18',
+            payload={
+                'pull_request': {'number': 7},
+                'changes': {'base': {'ref': {'from': 'main'}}},
+            },
+            queues=[queue([entry(branch='main')]), queue()],
+        )
+        self.assertNotIn('error', result, result)
+        self.assertEqual(
+            [w['route'] for w in result['writes']],
+            ['status', 'dequeue', 'enqueue', 'status'],
+        )
+        branches = [
+            c['options']['branch']
+            for c in result['calls']
+            if c['route'] == 'queue'
+        ]
+        self.assertEqual(branches[0], 'main')
+        self.assertEqual(set(branches[1:]), {'release-2.18'})
 
     def test_ready_label_cannot_override_hold_or_stale_evidence(self) -> None:
         ready = pr(
@@ -1394,11 +1431,12 @@ class QueueAdmissionTest(unittest.TestCase):
         )
         self.assertEqual(result['writes'], [])
 
-    def test_pr_event_reconciles_only_affected_pr_and_all_queue_members(self):
+    def test_pr_event_leaves_unrelated_prs_and_branch_queues_to_schedule(self):
         result = run_case(
             'sweep',
             eventName='pull_request_target',
             payload={'pull_request': {'number': 8}},
+            enabled=['master', 'release-2.18'],
             queues=[queue([entry()])],
             listed=[{'number': 99}],
             prs={'7': [pr(labels=[])], '8': [pr(8, labels=[])]},
@@ -1406,7 +1444,7 @@ class QueueAdmissionTest(unittest.TestCase):
         self.assertNotIn('error', result)
         self.assertEqual(
             len([call for call in result['calls'] if call['route'] == 'pulls']),
-            1,
+            0,
         )
         self.assertEqual(
             {
@@ -1414,13 +1452,19 @@ class QueueAdmissionTest(unittest.TestCase):
                 for call in result['calls']
                 if call['route'] == 'pr'
             },
-            {7, 8},
+            {8},
         )
-        self.assertTrue(
-            any(write['route'] == 'dequeue' for write in result['writes'])
+        self.assertEqual(result['writes'], [])
+        self.assertEqual(
+            [
+                c['options']['branch']
+                for c in result['calls']
+                if c['route'] == 'queue'
+            ],
+            ['master'],
         )
 
-    def test_workflow_event_uses_exact_head_discovery_plus_queue_members(self):
+    def test_workflow_event_uses_only_exact_head_and_repository(self):
         run = {
             'event': 'pull_request',
             'head_sha': HEAD,
@@ -1433,7 +1477,9 @@ class QueueAdmissionTest(unittest.TestCase):
         listed = [
             {
                 'number': 8,
+                'base': {'ref': 'master'},
                 'head': {
+                    'ref': 'feature',
                     'sha': HEAD,
                     'repo': {'full_name': 'contributor/repo'},
                 },
@@ -1447,7 +1493,11 @@ class QueueAdmissionTest(unittest.TestCase):
             },
             {
                 'number': 10,
-                'head': {'sha': HEAD, 'repo': {'full_name': 'other/repo'}},
+                'head': {
+                    'ref': 'feature',
+                    'sha': HEAD,
+                    'repo': {'full_name': 'other/repo'},
+                },
             },
         ]
         result = run_case(
@@ -1456,7 +1506,7 @@ class QueueAdmissionTest(unittest.TestCase):
             payload={'workflow_run': run},
             queues=[queue([entry()])],
             listed=listed,
-            prs={'7': [pr(labels=[])], '8': [pr(8, labels=[])]},
+            prs={'8': [pr(8, head=listed[0]['head'])]},
         )
         self.assertNotIn('error', result)
         self.assertEqual(
@@ -1473,13 +1523,6 @@ class QueueAdmissionTest(unittest.TestCase):
                     'head': 'contributor:feature',
                     'per_page': 100,
                 },
-                {
-                    'owner': 'owner',
-                    'repo': 'repo',
-                    'state': 'open',
-                    'base': 'master',
-                    'per_page': 100,
-                },
             ],
         )
         self.assertEqual(
@@ -1488,8 +1531,47 @@ class QueueAdmissionTest(unittest.TestCase):
                 for call in result['calls']
                 if call['route'] == 'pr'
             },
-            {7, 8},
+            {8},
         )
+
+        self.assertEqual(
+            [
+                w['options']['id']
+                for w in result['writes']
+                if w['route'] == 'enqueue'
+            ],
+            ['PR_8'],
+        )
+        linked = dict(run, pull_requests=[{'number': 8}])
+        for live in [
+            listed[0]['head'],
+            dict(listed[0]['head'], ref='other'),
+            dict(listed[0]['head'], sha=OTHER),
+            dict(listed[0]['head'], repo={'full_name': 'other/repo'}),
+        ]:
+            with self.subTest(live=live):
+                result = run_case(
+                    'sweep',
+                    eventName='workflow_run',
+                    payload={'workflow_run': linked},
+                    prs={'8': [pr(8, head=live)]},
+                )
+                self.assertNotIn('error', result, result)
+                self.assertFalse(
+                    any(c['route'] == 'pulls' for c in result['calls'])
+                )
+                self.assertEqual(
+                    any(w['route'] == 'enqueue' for w in result['writes']),
+                    live == listed[0]['head'],
+                )
+        ambiguous = run_case(
+            'sweep',
+            eventName='workflow_run',
+            payload={'workflow_run': run},
+            listed=[listed[0], dict(listed[0], number=11)],
+        )
+        self.assertEqual(ambiguous['result'], [])
+        self.assertEqual(ambiguous['writes'], [])
 
     def test_schedule_sweeps_all_open_prs_and_unsupported_events_fail_closed(
         self,

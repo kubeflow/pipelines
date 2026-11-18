@@ -18,7 +18,13 @@ import unittest
 from pathlib import Path
 
 from ci_merge_group_test import good_run
-from merge_queue_admission_test import entry, pr, queue
+from merge_queue_admission_test import (
+    admitted_run,
+    attempts_url,
+    entry,
+    pr,
+    queue,
+)
 
 ROOT = Path(__file__).resolve().parents[3]
 MODULE = ROOT / '.github/resources/scripts/merge_queue_dispatch.js'
@@ -97,8 +103,8 @@ def dispatch(branch='master', **options):
             json.dumps({'version': 1, 'enabled_branches': fixture['enabled']})
         )
         script = f"""
-const gate = require({json.dumps(str(MODULE))});
 const f = {json.dumps(fixture)};
+const gate = require({json.dumps(str(MODULE))});
 const writes = [], dispatches = [], requests = [], inventoryRequests = [], operations = [];
 const counts = new Map();
 let activeDispatches = 0, peakDispatches = 0, completedDispatches = 0;
@@ -126,12 +132,15 @@ const github = {{rest: {{
     if (sha === null) throw Object.assign(new Error('Ref disappeared'), {{status:404}});
     return {{data:{{ref:'refs/' + options.ref, object:{{type:'commit',sha}}}}}};
   }}}},
-  pulls: {{get: async options => {{
+  pulls: {{list:'pulls',get: async options => {{
     requests.push({{route:'pr', options}});
     if (reserved() && f.prAfterReservation) return {{data:f.prAfterReservation}};
     return {{data:f.prs ? f.prs[options.pull_number] : next('pr',f.queuePRs)}};
   }}}},
-  actions: {{listWorkflowRunsForRepo:'runs', createWorkflowDispatch:async options => {{
+  actions: {{listWorkflowRunsForRepo:'runs',
+    getWorkflowRun: async options => ({{data:f.runs.find(r => r.id === options.run_id)}}),
+    cancelWorkflowRun: async options => {{ operations.push({{route:'cancel',options}}); }},
+    createWorkflowDispatch:async options => {{
     dispatches.push(options); operations.push({{route:'dispatch',options}});
     activeDispatches++; peakDispatches = Math.max(peakDispatches, activeDispatches);
     try {{
@@ -157,6 +166,7 @@ const github = {{rest: {{
     if (rules === null) throw new Error('Rule lookup unavailable');
     return rules;
   }}
+  if (route === 'pulls') return f.listed || [];
   if (route === 'matchingRefs') return f.matchingRefs;
   if (route === 'runs') {{
     if (f.runsError) throw new Error('Runs unavailable');
@@ -168,6 +178,10 @@ const github = {{rest: {{
   }}
   throw new Error('Unexpected API route: ' + route);
 }}, graphql:async (query, variables) => {{
+  if (query.includes('enqueuePullRequest')) {{
+    requests.push({{route:'enqueue',options:variables}});
+    return {{enqueuePullRequest:{{mergeQueueEntry:{{headCommit:f.enqueuedCandidate ? {{oid:f.enqueuedCandidate}} : null}}}}}};
+  }}
   if (query.includes('query DispatchSnapshot')) {{
     requests.push({{route:'dispatchSnapshot'}});
     if (f.repositoryError) throw new Error('Repository unavailable');
@@ -219,8 +233,8 @@ const loadInventory = async options => {{
 const core = {{info:()=>{{}},warning:()=>{{}},error:()=>{{}}}};
 const workspaceRoot = {json.dumps(str(root))};
 process.env.GITHUB_WORKSPACE = f.omitRoot ? workspaceRoot : workspaceRoot + '/unused';
-gate[f.method]({{github, context:{{eventName:'schedule',payload:{{}},repo:{{owner:'owner',repo:'repo'}},runId:123}},
-  group:f.group, ...(f.omitRoot ? {{}} : {{root:workspaceRoot}}), core, loadInventory,
+gate[f.method]({{github, context:{{eventName:f.eventName || 'schedule',payload:f.payload || {{}},repo:{{owner:'owner',repo:'repo'}},runId:123}},
+  workflowPaths:new Set(f.workflowFiles.map(file=>file.path)), group:f.group, ...(f.omitRoot ? {{}} : {{root:workspaceRoot}}), core, loadInventory,
   now:()=>Date.parse({json.dumps(NOW)})}})
 .then(result=>console.log(JSON.stringify({{result,workspaceRoot,writes,dispatches,requests,inventoryRequests,operations,activeDispatches,peakDispatches,completedDispatches}})))
 .catch(error=>console.log(JSON.stringify({{error:error.message,workspaceRoot,writes,dispatches,requests,inventoryRequests,operations,activeDispatches,peakDispatches,completedDispatches}})));
@@ -232,6 +246,209 @@ gate[f.method]({{github, context:{{eventName:'schedule',payload:{{}},repo:{{owne
 
 
 class QueueRecoveryTest(unittest.TestCase):
+    def test_dispatch_materialized_enqueue_only_for_exact_pr_ref_and_sha(self):
+        prefix = 'heads/gh-readonly-queue/master/pr-7-'
+
+        def candidate_ref(ref, sha):
+            return {
+                'ref': 'refs/' + ref,
+                'object': {'type': 'commit', 'sha': sha},
+            }
+
+        other_refs = [
+            candidate_ref(prefix + 'replaced', HEAD),
+            candidate_ref('heads/gh-readonly-queue/master/pr-70-other', OTHER),
+        ]
+        for materialized, available in [
+            (False, False),
+            (True, False),
+            (True, True),
+        ]:
+            refs = list(other_refs)
+            if available:
+                refs.append(candidate_ref(prefix + 'abcdef', OTHER))
+            with self.subTest(materialized=materialized, available=available):
+                result = dispatch(
+                    method='reconcileQueue',
+                    eventName='pull_request_target',
+                    payload={'pull_request': {'number': 7}},
+                    enqueuedCandidate=OTHER if materialized else None,
+                    queues=[
+                        queue(),  # Initial admission snapshot.
+                        queue(),  # Revalidate predecessors before enqueue.
+                        queue([entry(headCommit={'oid': OTHER})]),
+                    ],
+                    matchingRefs=refs,
+                    refs={prefix + 'abcdef': [OTHER]},
+                    runs=[admitted_run()],
+                    statuses=[
+                        {
+                            'id': 10,
+                            'context': 'ci-passed',
+                            'state': 'success',
+                            'description': 'Queue admission master CI passed; base policy '
+                            + 'f' * 64
+                            + '.',
+                            'target_url': attempts_url([admitted_run()]),
+                        }
+                    ],
+                )
+                self.assertNotIn('error', result, result)
+                routes = [r['route'] for r in result['requests']]
+                self.assertIn('enqueue', routes)
+                self.assertNotIn('pulls', routes)
+                queries = [
+                    r['options']['ref']
+                    for r in result['requests']
+                    if r['route'] == 'matchingRefs'
+                ]
+                self.assertEqual(queries, [prefix] if materialized else [])
+                self.assertEqual(
+                    [
+                        d['inputs']['queue_head_sha']
+                        for d in result['dispatches']
+                    ],
+                    [OTHER] if available else [],
+                )
+                self.assertFalse(
+                    any(w['context'] == 'ci-passed' for w in result['writes'])
+                )
+
+    def test_schedule_still_discovers_candidates_and_publishes_status(self):
+        result = dispatch(method='reconcileQueue', runs=[good_run()])
+        self.assertNotIn('error', result, result)
+        routes = [r['route'] for r in result['requests']]
+        self.assertIn('matchingRefs', routes)
+        self.assertIn('pulls', routes)
+        self.assertTrue(
+            any(
+                w['context'] == 'ci-passed' and w['state'] == 'success'
+                for w in result['writes']
+            )
+        )
+
+    def test_queue_completion_reconciles_only_trigger_candidate(self):
+        branch = 'gh-readonly-queue/master/pr-7-abcdef'
+        unrelated = 'gh-readonly-queue/master/pr-8-other'
+        for event in ['merge_group', 'workflow_dispatch']:
+            with self.subTest(event=event):
+                result = dispatch(
+                    method='reconcileQueue',
+                    eventName='workflow_run',
+                    payload={
+                        'action': 'completed',
+                        'workflow_run': good_run(
+                            event=event, head_branch=branch
+                        ),
+                    },
+                    enabled=['master', 'release-2.18'],
+                    matchingRefs=[
+                        {
+                            'ref': 'refs/heads/' + branch,
+                            'object': {'type': 'commit', 'sha': HEAD},
+                        },
+                        {
+                            'ref': 'refs/heads/' + unrelated,
+                            'object': {'type': 'commit', 'sha': OTHER},
+                        },
+                    ],
+                    refs={'heads/' + unrelated: [OTHER]},
+                    queues=[
+                        queue(
+                            [
+                                entry(headCommit={'oid': HEAD}),
+                                entry(8, position=2, headCommit={'oid': OTHER}),
+                            ]
+                        )
+                    ],
+                    prs={'7': pr(), '8': pr(8)},
+                )
+                self.assertNotIn('error', result, result)
+                self.assertEqual(
+                    [d['ref'] for d in result['dispatches']], [branch]
+                )
+                routes = [r['route'] for r in result['requests']]
+                self.assertNotIn('matchingRefs', routes)
+                self.assertNotIn('pulls', routes)
+                self.assertNotIn('queue', routes)
+                self.assertFalse(
+                    any(w['context'] == 'ci-passed' for w in result['writes'])
+                )
+                for r in result['requests']:
+                    if r['route'] == 'runs':
+                        self.assertEqual(r['options']['head_sha'], HEAD)
+                    self.assertNotEqual(
+                        r.get('options', {}).get('branch'), 'release-2.18'
+                    )
+
+    def test_unrelated_or_invalid_workflow_event_performs_no_queue_io(self):
+        for run in [
+            good_run(event='push'),
+            good_run(head_sha='invalid'),
+            good_run(head_branch='main'),
+            good_run(head_repository={'full_name': 'fork/repo'}),
+            good_run(repository={'full_name': 'fork/repo'}),
+        ]:
+            with self.subTest(run=run):
+                result = dispatch(
+                    method='reconcileQueue',
+                    eventName='workflow_run',
+                    payload={'action': 'completed', 'workflow_run': run},
+                )
+                self.assertNotIn('error', result, result)
+                self.assertEqual(result['requests'], [])
+                self.assertEqual(result['writes'], [])
+
+    def test_stale_queue_completion_does_not_dispatch_replacement(self):
+        branch = 'gh-readonly-queue/master/pr-7-abcdef'
+        for sha in [OTHER, None]:
+            with self.subTest(sha=sha):
+                result = dispatch(
+                    method='reconcileQueue',
+                    eventName='workflow_run',
+                    payload={
+                        'action': 'completed',
+                        'workflow_run': good_run(head_branch=branch),
+                    },
+                    refs={'heads/' + branch: [sha]},
+                    runs=[
+                        good_run(
+                            id=11,
+                            head_branch=branch,
+                            status='in_progress',
+                            conclusion=None,
+                        ),
+                        good_run(
+                            id=12,
+                            head_branch=branch,
+                            head_sha=OTHER,
+                            status='in_progress',
+                            conclusion=None,
+                        ),
+                        good_run(
+                            id=13,
+                            head_branch='gh-readonly-queue/master/pr-8-other',
+                            status='in_progress',
+                            conclusion=None,
+                        ),
+                    ],
+                )
+                self.assertNotIn('error', result, result)
+                self.assertEqual(result['dispatches'], [])
+                self.assertEqual(
+                    [
+                        op['options']['run_id']
+                        for op in result['operations']
+                        if op['route'] == 'cancel'
+                    ],
+                    [11],
+                )
+                self.assertEqual(result['inventoryRequests'], [])
+                self.assertEqual(result['writes'], [])
+                self.assertNotIn(
+                    'matchingRefs', [r['route'] for r in result['requests']]
+                )
+
     def test_dispatch_uses_workspace_when_caller_omits_root(self):
         for method in ['dispatchGroup', 'dispatchCandidates']:
             for omit_root in [True, False]:
@@ -251,6 +468,12 @@ class QueueRecoveryTest(unittest.TestCase):
                 result = dispatch(
                     method='dispatchCandidates',
                     branch='release-2.18',
+                    lanes=[
+                        lane(
+                            '.github/workflows/pre-commit.yml',
+                            branch='release-2.18',
+                        )
+                    ],
                     defaultBranch='main',
                     enabled=['~DEFAULT_BRANCH', 'release-2.18'],
                     branchRules={
@@ -503,13 +726,18 @@ class QueueDispatchTest(unittest.TestCase):
     def test_missing_lane_dispatches_exact_candidate_for_either_branch(self):
         for branch in ['master', 'main', 'release-2.18']:
             with self.subTest(branch=branch):
-                result = dispatch(branch=branch)
+                result = dispatch(
+                    branch=branch,
+                    lanes=[
+                        lane('.github/workflows/pre-commit.yml', branch=branch)
+                    ],
+                )
                 self.assertNotIn('error', result)
                 self.assertEqual(len(result['dispatches']), 1, result)
                 call = result['dispatches'][0]
                 self.assertEqual(call['owner'], 'owner')
                 self.assertEqual(call['repo'], 'repo')
-                self.assertEqual(call['workflow_id'], 'frontend.yml')
+                self.assertEqual(call['workflow_id'], 'pre-commit.yml')
                 self.assertEqual(
                     call['ref'], f'gh-readonly-queue/{branch}/pr-7-abcdef'
                 )
@@ -525,7 +753,7 @@ class QueueDispatchTest(unittest.TestCase):
                 reservations = [
                     write
                     for write in result['writes']
-                    if write['context'] == 'ci-queue-dispatch/frontend.yml'
+                    if write['context'] == 'ci-queue-dispatch/pre-commit.yml'
                 ]
                 self.assertEqual(len(reservations), 1, result)
                 self.assertEqual(

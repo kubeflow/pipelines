@@ -32,15 +32,14 @@ base policy changes. Queue candidates continue to run all applicable lanes again
 the exact combined SHA, with no relaxation of candidate freshness or image identity.
 
 The trusted `queue_admission` job runs independently of the status-recovery
-matrix. Each newly verified queue-ready success wakes the default-branch
-recovery workflow with its exact PR head. Every surviving serialized controller
-catches up other likely ready PRs, including on the five-minute recovery
-schedule, and freshly verifies policy and CI before admission. It also runs on approval,
-hold, draft, retarget, and head-change events, and during scheduled recovery.
-Ordinary events inspect the affected PR and all current queue members; scheduled
-recovery alone sweeps all open PRs. A replaced pending event is therefore not the
-only opportunity to remove a held PR. Admission is excluded from the aggregate's test
-checks to avoid a dependency cycle; it does not constitute CI evidence.
+matrix. A PR event reconciles admission or revocation for the affected PR.
+A newly verified PR success wakes admission for that exact head. When enqueue
+returns a built candidate, the controller can start its missing CI immediately.
+A queue workflow completion reconciles only the reported queue ref and SHA.
+The per-SHA publisher verifies the aggregate result. Scheduled recovery
+discovers candidates that GitHub built or replaced later, checks current
+queue members, and revisits ready PRs whose pending event was replaced. Admission is excluded
+from the aggregate's test checks to avoid a dependency cycle.
 
 Eligibility preserves Prow's `lgtm` plus `approved` requirement for normal PRs.
 Only the exact `dependabot[bot]` Bot identity receives the existing development
@@ -346,10 +345,12 @@ Activation order (Tide configuration remains unchanged):
    including no Tide App bypass, before relaxing freshness.
 5. Read the current release protection and reconcile any drift. Apply only
    [the required-checks patch](merge-queue-release-2.18-required-checks.json):
-   preserve existing App-bound DCO and pre-commit checks, add App-bound ci-passed,
-   and set strict freshness false. Preserve every unrelated protection.
+   require App-bound DCO and ci-passed and set strict freshness false. The
+   ci-passed publisher verifies pre-commit on release PRs and queue candidates.
+   A dispatched pre-commit job can pass on the candidate SHA while GitHub
+   omits it from the queue’s check rollup, so requiring it separately stalls merging.
 6. Observe a normally approved release PR automatically enter the queue, run all
-   required exact-candidate lanes, publish DCO/pre-commit/ci-passed, and merge.
+   required candidate lanes including pre-commit, pass DCO and ci-passed, and merge.
    Verify scheduled recovery and a hold/revoked approval blocks merging. Tide
    can still attempt direct merges but has no App bypass in the queue rule.
    Repository administrators can explicitly bypass through a PR; this does not

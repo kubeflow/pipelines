@@ -1124,6 +1124,7 @@ def emit_outputs(path, state, kind):
     with path.open('a') as stream:
         stream.write(
             f'run-id={state["identity"]["run_id"]}\nrepository={state["identity"]["repository"]}\n'
+            f'run-attempt={state["identity"]["run_attempt"]}\n'
         )
         stream.write(
             'artifact-ids='

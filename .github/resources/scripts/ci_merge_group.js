@@ -13,7 +13,7 @@
 
 const {applicable, validateInventory, invalidRunMetadata, loadBaseInventory} = require('./ci_expected_workflows');
 const {inspectQueue} = require('./merge_queue_admission');
-const {queueEnabled} = require('./merge_queue_policy');
+const {queueEnabled, missingReleasePreCommit} = require('./merge_queue_policy');
 const SHA = /^[0-9a-f]{40}$/;
 
 function candidate(context) {
@@ -77,6 +77,9 @@ function expectedWorkflows(inventory, workflowFiles, baseRef) {
   }
   for (const companion of requiredCompanions) {
     if (!expected.includes(companion)) throw new Error(`Missing release queue companion: ${companion}`);
+  }
+  if (missingReleasePreCommit(baseRef, expected)) {
+    throw new Error('release-2.18 requires an applicable pre-commit merge_group workflow');
   }
   if (!expected.length) throw new Error('No expected merge_group workflows');
   return expected;

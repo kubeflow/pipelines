@@ -53,7 +53,6 @@ const HEAD = options.mergedRecovery || options.verifyRecovery ? 'a'.repeat(40) :
 const calls = [], outputs = {}, descriptions = [], targetUrls = [];
 const requestCounts = {pr: 0, pulls: 0, currentRun: 0, inventory: 0, timeline: 0,
   files: 0, runs: 0, checks: 0, base: 0, associated: 0, statuses: 0, history: 0};
-const workflowName = options.workflowName || 'frontend.yml';
 let cycle = 0;
 let pr = {
   number: 7, state: 'open', changed_files: 1,
@@ -81,6 +80,7 @@ if (options.mergedRecovery) {
   pr.base.sha = 'e'.repeat(40); // Live API base may have advanced after merge.
   if (options.foreignBase) pr.base.repo.full_name = 'attacker/pipelines';
 }
+const workflowName = options.workflowName || (pr.base.ref === 'release-2.18' ? 'pre-commit.yml' : 'frontend.yml');
 let published = false;
 let pullReads = 0;
 let commitReads = 0;
