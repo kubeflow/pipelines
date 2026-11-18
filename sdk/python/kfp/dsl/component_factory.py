@@ -681,10 +681,12 @@ def _get_command_and_args_for_lightweight_component(
         # The archive is part of the cache key, so the gzip header must not
         # hold the compile time or the host OS. mtime=0 removes the compile
         # time. gzip.GzipFile is used because gzip.compress(mtime=0) writes
-        # the host OS into the header on Python versions before 3.13.
+        # the host OS into the header on Python versions before 3.13. The
+        # level is set because the default level differs between Python
+        # versions.
         compressed_buf = io.BytesIO()
         with gzip.GzipFile(
-            fileobj=compressed_buf, mode='wb', mtime=0
+            fileobj=compressed_buf, mode='wb', compresslevel=9, mtime=0
         ) as gzip_file:
             gzip_file.write(archive_bytes)
         compressed_bytes = compressed_buf.getvalue()

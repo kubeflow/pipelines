@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import re
+import tarfile
 import unittest
 from tempfile import TemporaryDirectory
 from typing import List
@@ -480,7 +481,7 @@ class TestPythonEOLWarning(unittest.TestCase):
                 pass
 
 
-def _get_compressed_archive(component_fn):
+def _get_compressed_archive(component_fn) -> bytes:
     """Extract the gzip bytes of a compiled component's embedded archive."""
     import base64
 
@@ -496,7 +497,7 @@ def _get_compressed_archive(component_fn):
     return base64.b64decode(archive_b64.encode('ascii'))
 
 
-def _get_archive(component_fn):
+def _get_archive(component_fn) -> bytes:
     """Extract the raw tar bytes from a compiled component's embedded
     archive."""
     import gzip
@@ -749,10 +750,9 @@ class TestEmbeddedArtifactSymlinkResolution(unittest.TestCase):
                     pass
 
 
-def _get_archive_members(component_fn):
+def _get_archive_members(component_fn) -> List[tarfile.TarInfo]:
     """List the tar members of a compiled component's embedded archive."""
     import io
-    import tarfile
 
     with tarfile.open(
         fileobj=io.BytesIO(_get_archive(component_fn)), mode='r'
@@ -760,7 +760,7 @@ def _get_archive_members(component_fn):
         return tar.getmembers()
 
 
-def _compile_embedded_component(embedded_artifact_path):
+def _compile_embedded_component(embedded_artifact_path: str):
     @component(
         base_image='python:3.11',
         embedded_artifact_path=embedded_artifact_path,
@@ -772,7 +772,7 @@ def _compile_embedded_component(embedded_artifact_path):
     return my_comp
 
 
-def _get_command(component_fn):
+def _get_command(component_fn) -> List[str]:
     return component_fn.component_spec.implementation.container.command
 
 
@@ -801,7 +801,7 @@ class TestEmbeddedArtifactDeterminism(unittest.TestCase):
             with open(path, 'w') as f:
                 f.write('X = 1\n')
 
-    def _set_mtime_of_all_paths(self, mtime):
+    def _set_mtime_of_all_paths(self, mtime: int) -> None:
         import os
 
         for path in (
@@ -927,7 +927,6 @@ class TestEmbeddedArtifactDeterminism(unittest.TestCase):
         # A component that zips its embedded files: ZIP rejects a 1970 mtime.
         import io
         import os
-        import tarfile
         import tempfile
         import zipfile
 

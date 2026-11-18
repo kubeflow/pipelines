@@ -12,6 +12,7 @@ import tarfile
 import tempfile
 import unittest
 import warnings
+from typing import List
 
 from kfp import dsl
 from kfp.dsl import component_factory
@@ -44,8 +45,9 @@ class TestNotebookComponentDecorator(unittest.TestCase):
             'nbformat': 4,
             'nbformat_minor': 5,
         }
-        tmpdir = tempfile.mkdtemp()
-        nb_path = os.path.join(tmpdir, 'tmp.ipynb')
+        temporary_directory = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        nb_path = os.path.join(temporary_directory.name, 'tmp.ipynb')
         with open(nb_path, 'w', encoding='utf-8') as f:
             json.dump(nb, f)
         return nb_path
@@ -73,7 +75,7 @@ class TestNotebookComponentDecorator(unittest.TestCase):
         # unchanged notebook, and the command is part of the cache key.
         nb_path = self._make_temp_notebook('pass\n')
 
-        def compile_notebook_component():
+        def compile_notebook_component() -> List[str]:
             @dsl.notebook_component(notebook_path=nb_path)
             def my_nb():
                 dsl.run_notebook()
