@@ -328,10 +328,14 @@ github.paginate.iterator = async function* () {
         (root / '.github').mkdir()
         (root / '.github/resources').symlink_to(ROOT / '.github/resources')
         (root / '.github/merge-queue-policy.json').write_text(
-            json.dumps({
-                'version': 1,
-                'enabled_branches': (options or {}).get('enabledBranches', []),
-            })
+            json.dumps(
+                {
+                    'version': 1,
+                    'enabled_branches': (options or {}).get(
+                        'enabledBranches', []
+                    ),
+                }
+            )
         )
         result = subprocess.run(
             [
