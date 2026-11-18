@@ -178,6 +178,11 @@ const github = {{rest: {{
   }}
   throw new Error('Unexpected API route: ' + route);
 }}, graphql:async (query, variables) => {{
+  if (query.includes('query RecoveryStatuses')) {{
+    requests.push({{route:'candidateStatus'}});
+    return {{repository: {{nameWithOwner:'owner/repo',
+      head0:{{__typename:'Commit',oid:variables.sha0,status:null}}}}}};
+  }}
   if (query.includes('query AdmissionReviewPolicy')) {{
     return {{repository:{{nameWithOwner:'owner/repo',ref:{{
       name:variables.branch.slice('refs/heads/'.length),branchProtectionRule:null
@@ -558,7 +563,7 @@ class QueueRecoveryTest(unittest.TestCase):
                         (write['sha'], write['state'])
                         for write in result['writes']
                     ],
-                    [(HEAD, 'pending'), (HEAD, 'success')],
+                    [(HEAD, 'success')],
                     result,
                 )
 
