@@ -7,6 +7,7 @@ Documentation for users of Kubeflow Pipelines.
 
 migration
 data-transfer
+troubleshoot-pod-failures
 core-functions/index
 components/index
 data-handling/index

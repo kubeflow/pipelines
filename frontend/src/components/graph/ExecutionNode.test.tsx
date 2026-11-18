@@ -16,6 +16,7 @@
 
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import ExecutionNode, { getIcon, getExecutionIcon, getDebugPauseIcon } from './ExecutionNode';
 import { PipelineTaskTaskState } from 'src/apisv2/run';
 import { ReactFlowProvider } from '@xyflow/react';
@@ -128,6 +129,75 @@ describe('ExecutionNode', () => {
     expect(screen.queryByTestId('WarningAmberIcon')).not.toBeInTheDocument();
   });
 
+  it('shows an unclassified lifecycle message as a blue status, not an amber warning', () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'odd-step',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'ContainerCreating',
+          lifecycleCategory: 'unknown',
+        }}
+      />,
+    );
+    expect(screen.getByTestId('InfoOutlinedIcon')).toBeInTheDocument();
+    expect(screen.queryByTestId('WarningAmberIcon')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'odd-step, pod lifecycle status' }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the amber warning for every classified category', () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'sched-step',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'Insufficient cpu',
+          lifecycleCategory: 'scheduling',
+        }}
+      />,
+    );
+    expect(screen.getByTestId('WarningAmberIcon')).toBeInTheDocument();
+    expect(screen.queryByTestId('InfoOutlinedIcon')).not.toBeInTheDocument();
+  });
+
+  it('shows the category and message in a tooltip on hover', async () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'stuck-step',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'Back-off pulling image "nope:latest"',
+          lifecycleCategory: 'image-pull',
+        }}
+      />,
+    );
+    await userEvent.hover(screen.getByTestId('WarningAmberIcon'));
+    const tooltip = await screen.findByTestId('lifecycle-tooltip');
+    expect(tooltip).toHaveTextContent('Image pull problem');
+    expect(tooltip).toHaveTextContent('Back-off pulling image "nope:latest"');
+  });
+
+  it('shows the reason in a tooltip on a failed node too', async () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'oom-step',
+          state: PipelineTaskTaskState.FAILED,
+          lifecycleMessage: 'main: OOMKilled (exit code 137)',
+          lifecycleCategory: 'runtime',
+        }}
+      />,
+    );
+    await userEvent.hover(screen.getByTestId('ErrorIcon'));
+    expect(await screen.findByTestId('lifecycle-tooltip')).toHaveTextContent('OOMKilled');
+  });
+
   it('shows no warning when the lifecycle message is empty', () => {
     renderWithProvider(
       <ExecutionNode
@@ -144,6 +214,21 @@ describe('ExecutionNode', () => {
       <ExecutionNode id='exec-1' data={{ label: 'titled-step', state: undefined }} />,
     );
     expect(screen.getByTitle('titled-step')).toBeInTheDocument();
+  });
+
+  it('keeps the task name as a title on the label when there is a lifecycle message', () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'long-named-step',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'Unschedulable: 0/1 nodes are available',
+          lifecycleCategory: 'scheduling',
+        }}
+      />,
+    );
+    expect(screen.getByTitle('long-named-step')).toHaveTextContent('long-named-step');
   });
 
   it('renders hidden, non-connectable edge anchors', () => {
