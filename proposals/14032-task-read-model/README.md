@@ -394,9 +394,9 @@ and error-contract tests.
 
 ## Graduation Criteria
 
-1. **Draft to implementable:** API/runtime/database/frontend owners approve
-   schemas, attempt/finalization invariants, authorization, bounds, retention,
-   compatibility, and a feasible nonblocking capture/bootstrap design.
+1. **Draft to implementable:** the repository review pools named below approve
+   the relevant schemas, attempt/finalization invariants, authorization, bounds,
+   retention, compatibility, and a feasible nonblocking capture/bootstrap design.
 2. **Backend capability enabled:** consistency, isolation, migration, recovery,
    and measured scale tests pass; published readiness and limits match reality.
 3. **Frontend adoption complete:** #14028's snapshot slice meets agreed budgets
@@ -408,17 +408,30 @@ of these criteria redefine completion of the mandatory #14668 separation work.
 
 ## Decisions Required Before Implementation
 
-| Decision | Proposed default / review owner |
+Review routing follows the versioned repository `OWNERS` files below, with their
+approver handles recorded for this draft. These are review pools, not newly
+assigned implementers or a requirement that every listed person approve. The
+applicable `OWNERS` files govern approval when implementation PRs are opened.
+
+| Scope | Repository owner path and approvers |
 | --- | --- |
-| Routes, RPCs, field types and clients | Canonical v2 additive operations above; API owners reserve field numbers and approve HTTP schemas/error mappings and compatibility fixtures. |
-| Summary/detail merge behavior | Current `GetTask` plus output-only revision; API/frontend owners approve stale/newer detail presentation without implying historical I/O. |
-| Accepted attempt identity and legacy writers | Consume #15516; runtime/API owners coordinate retry reset, legacy epoch handling, and legal terminal/finalization writes. |
-| Storage, write amplification and capture | Version table/journal with per-run revision allocation; database/runtime owners validate contention, lock order and every mutation path. |
-| Cursor, page and retention bounds | Provisional 500 rows, 1 MiB and 15 minutes; API/database/frontend owners approve lifetime versus compaction/quota guarantees and retry behavior from tests. |
-| Bootstrap and activation | Conditional bounded backfill plus capture; database/runtime owners prove baseline completeness, online DDL and all-writer rollout. API/frontend owners define per-run readiness. |
-| Authorization and scope | Recheck existing domain read authorization on every page; API/deployment owners approve cursor scope, revocation behavior and deployed RBAC coverage. |
-| Compatibility and rollback | Release/deployment owners set supported mixed-version window and activation conditions; disable optional reads without restoring retired UI infrastructure access. |
-| Separate relationship/discovery designs | Owners of #15522/#14041/#14301 approve their own schemas and acceptance; adoption of this proposal does not approve those APIs. |
+| Backend API, runtime and database | [backend/OWNERS](../../backend/OWNERS): @chensun, @hbelmiro, @mprahl, @nsingla, @alyssacgoins. This covers canonical `backend/api/v2`; root `api/OWNERS` covers a different directory. |
+| Frontend queries, cache and adoption | [frontend/OWNERS](../../frontend/OWNERS): @chensun, @HumairAK, @jeffspahr, @manaswinidas, @alyssacgoins. |
+| Python SDK/client compatibility | [sdk/OWNERS](../../sdk/OWNERS): @chensun, @mprahl, @alyssacgoins. |
+| Deployment, RBAC and capability configuration | [manifests/OWNERS](../../manifests/OWNERS): @chensun, @HumairAK, @juliusvonkohout. |
+| Proposal approval and release coordination | [OWNERS](../../OWNERS): @chensun, @droctothorpe, @HumairAK, @jeffspahr, @mprahl, @zazulam. |
+
+| Decision | Proposed default | Review routing |
+| --- | --- | --- |
+| Routes, RPCs, field types and clients | Canonical v2 additive operations above; reserve field numbers and approve HTTP schemas/error mappings and compatibility fixtures. | [backend/OWNERS](../../backend/OWNERS), with [sdk/OWNERS](../../sdk/OWNERS) and [frontend/OWNERS](../../frontend/OWNERS) for generated clients. |
+| Summary/detail merge behavior | Current `GetTask` plus output-only revision; approve stale/newer detail presentation without implying historical I/O. | [backend/OWNERS](../../backend/OWNERS), [frontend/OWNERS](../../frontend/OWNERS). |
+| Accepted attempt identity and legacy writers | Consume #15516; coordinate retry reset, legacy epoch handling, and legal terminal/finalization writes. | [backend/OWNERS](../../backend/OWNERS). |
+| Storage, write amplification and capture | Version table/journal with per-run revision allocation; validate contention, lock order and every mutation path. | [backend/OWNERS](../../backend/OWNERS). |
+| Cursor, page and retention bounds | Provisional 500 rows, 1 MiB and 15 minutes; approve lifetime versus compaction/quota guarantees and retry behavior from tests. | [backend/OWNERS](../../backend/OWNERS), [frontend/OWNERS](../../frontend/OWNERS). |
+| Bootstrap and activation | Conditional bounded backfill plus capture; prove baseline completeness, online DDL and all-writer rollout, and define per-run readiness. | [backend/OWNERS](../../backend/OWNERS), [frontend/OWNERS](../../frontend/OWNERS), [manifests/OWNERS](../../manifests/OWNERS) for activation controls. |
+| Authorization and scope | Recheck existing domain read authorization on every page; approve cursor scope, revocation behavior and deployed RBAC coverage. | [backend/OWNERS](../../backend/OWNERS), [manifests/OWNERS](../../manifests/OWNERS). |
+| Compatibility and rollback | Set the supported mixed-version window and activation conditions; disable optional reads without restoring retired UI infrastructure access. | [OWNERS](../../OWNERS), [backend/OWNERS](../../backend/OWNERS), [manifests/OWNERS](../../manifests/OWNERS), with SDK/frontend compatibility review above. |
+| Separate relationship/discovery designs | #15522/#14041/#14301 retain their own schemas and acceptance; adoption of this proposal does not approve those APIs. | [backend/OWNERS](../../backend/OWNERS), [frontend/OWNERS](../../frontend/OWNERS), through each separate issue/design review. |
 
 Acceptance as a draft does not declare the feature implementable or relax any
 existing issue's compatibility, authorization, retention, or migration criteria.
