@@ -15,15 +15,20 @@ const {workflowAttempts, publishedAttempts} = require('./ci_workflow_attempts');
 const {recoverPRGate} = require('./merge_queue_pr_gate_recovery');
 const {invalidRunMetadata} = require('./ci_expected_workflows');
 const {QUEUE_BRANCHES, loadPolicy, enabledBranches, queueEnabled, requireQueueRule} = require('./merge_queue_policy');
+const {checkDependencyConflict} = require('./queue_dependency_conflicts');
 const {publishAdmissionStatus, unresolvedConversations, enqueueBlocker} = require('./merge_queue_admission_status');
 const SHA = /^[0-9a-f]{40}$/;
-const QUEUE = `query($owner:String!, $repo:String!, $branch:String!) {
-  repository(owner:$owner, name:$repo) { nameWithOwner mergeQueue(branch:$branch) {
-    entries(first:100) { totalCount pageInfo { hasNextPage } nodes {
-      id position headCommit { oid } baseCommit { oid }
-      pullRequest { number headRefOid baseRefName }
-    } }
-  } }
+const QUEUE = `query($owner:String!, $repo:String!, $branch:String!, $ref:String!) {
+  repository(owner:$owner, name:$repo) {
+    nameWithOwner
+    baseRef: ref(qualifiedName:$ref) { target { oid } }
+    mergeQueue(branch:$branch) {
+      entries(first:100) { totalCount pageInfo { hasNextPage } nodes {
+        id position headCommit { oid } baseCommit { oid }
+        pullRequest { number headRefOid baseRefName }
+      } }
+    }
+  }
 }`;
 
 function policyReason(pr, repository, branch) {
@@ -58,8 +63,12 @@ async function readPR(github, context, number) {
 }
 
 async function readQueue(github, context, branch) {
-  const response = await github.graphql(QUEUE, {...context.repo, branch});
-  return queueEntries(response, context, branch);
+  return (await readQueueSnapshot(github, context, branch)).entries;
+}
+
+async function readQueueSnapshot(github, context, branch) {
+  const response = await github.graphql(QUEUE, {...context.repo, branch, ref: `refs/heads/${branch}`});
+  return {base: response?.repository?.baseRef?.target?.oid, entries: queueEntries(response, context, branch)};
 }
 
 function queueEntries(response, context, branch) {
@@ -209,15 +218,13 @@ async function inspectDispatchSnapshot({github, context, group, root}) {
 
 const RETRY_COOLDOWN_MS = 15 * 60 * 1000;
 
-async function retryRemoval(github, context, pr, consumed, now) {
-  const admittedAt = Date.parse(consumed.created_at);
-  if (!Number.isFinite(admittedAt) || admittedAt > now()) return null;
+async function latestQueueEvent(github, context, pr) {
   const response = await github.graphql(`query RetryRemoval($owner:String!, $repo:String!, $number:Int!) {
     repository(owner:$owner, name:$repo) { nameWithOwner pullRequest(number:$number) {
       number headRefOid baseRefName
       timelineItems(last:1, itemTypes:[ADDED_TO_MERGE_QUEUE_EVENT, REMOVED_FROM_MERGE_QUEUE_EVENT]) {
         nodes { __typename ... on RemovedFromMergeQueueEvent {
-          id reason createdAt beforeCommit { oid }
+          id reason createdAt actor { __typename login } beforeCommit { oid }
         } }
       }
     } }
@@ -230,7 +237,31 @@ async function retryRemoval(github, context, pr, consumed, now) {
       current.baseRefName !== pr.base.ref || !Array.isArray(events) || events.length > 1) {
     throw new Error('Incomplete queue retry removal evidence');
   }
-  const event = events[0];
+  return events[0];
+}
+
+async function retryRemoval(github, context, pr, consumed, now, fingerprint) {
+  const publishedAt = Date.parse(consumed.created_at);
+  if (!Number.isFinite(publishedAt) || publishedAt > now()) return null;
+  let admittedAt = publishedAt;
+  if (consumed.target_url) {
+    // Status publication can follow GitHub's removal. Use the server's actual
+    // enqueue time from this trusted, fingerprint-bound admission receipt.
+    const prefix = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/`;
+    const marker = `#queue-admission-time=${fingerprint}:`;
+    if (typeof consumed.target_url !== 'string' || consumed.creator?.type !== 'Bot' || consumed.creator.login !== 'github-actions[bot]' ||
+        !consumed.target_url.startsWith(prefix)) return null;
+    const [run, encodedTime, ...extra] = consumed.target_url.slice(prefix.length).split(marker);
+    if (!/^[1-9][0-9]*$/.test(run) || !encodedTime || extra.length) return null;
+    try {
+      const timestamp = decodeURIComponent(encodedTime);
+      if (encodeURIComponent(timestamp) !== encodedTime) return null;
+      admittedAt = Date.parse(timestamp);
+    } catch { return null; }
+    if (admittedAt > publishedAt) return null;
+  }
+  if (!Number.isFinite(admittedAt) || admittedAt > now()) return null;
+  const event = await latestQueueEvent(github, context, pr);
   if (!event || event.__typename !== 'RemovedFromMergeQueueEvent' || event.reason !== 'failed_checks') return null;
   const removedAt = Date.parse(event.createdAt);
   if (typeof event.id !== 'string' || !event.id || !SHA.test(event.beforeCommit?.oid || '') ||
@@ -239,10 +270,14 @@ async function retryRemoval(github, context, pr, consumed, now) {
   return event.id;
 }
 
-async function admissionPassed(github, context, pr, {now = () => Date.now(), reservation, afterEnqueue = false, onFailure} = {}) {
-  const statuses = await github.paginate(github.rest.repos.listCommitStatusesForRef, {
+function readStatuses(github, context, pr) {
+  return github.paginate(github.rest.repos.listCommitStatusesForRef, {
     ...context.repo, ref: pr.head.sha, per_page: 100,
   });
+}
+
+async function admissionPassed(github, context, pr, {now = () => Date.now(), reservation, afterEnqueue = false, onFailure, statuses} = {}) {
+  statuses ??= await readStatuses(github, context, pr);
   const status = statuses.find(status => status.context === 'ci-passed');
   if (status?.state === 'failure' && onFailure) await onFailure({github, context, pr});
   const prefix = `Queue admission ${pr.base.ref} CI passed; base policy `;
@@ -271,15 +306,48 @@ async function admissionPassed(github, context, pr, {now = () => Date.now(), res
   }
   const description = `Retry ${pr.base.ref}; CI attempts ${fingerprint}.`;
   const retry = statuses.find(item => item.context === 'queue-admission-retry' && item.description === description);
+  const compensationEvent = item => {
+    const prefix = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/`;
+    const marker = `#queue-retry-compensation=${consumed.id}:${fingerprint}:`;
+    const url = item?.target_url;
+    if (item?.context !== 'queue-admission-retry' || item.state !== 'error' ||
+        item.creator?.type !== 'Bot' || item.creator.login !== 'github-actions[bot]' ||
+        !Number.isSafeInteger(item.id) || item.id <= 0 ||
+        !Number.isSafeInteger(consumed.id) || consumed.id <= 0 || typeof url !== 'string' ||
+        !url.startsWith(prefix)) return null;
+    const [run, encodedEvent, ...extra] = url.slice(prefix.length).split(marker);
+    if (!/^[1-9][0-9]*$/.test(run) || !encodedEvent || extra.length) return null;
+    try {
+      const event = decodeURIComponent(encodedEvent);
+      return encodeURIComponent(event) === encodedEvent ? event : null;
+    } catch { return null; }
+  };
+  const stillCompensated = async item => {
+    const expected = compensationEvent(item);
+    if (!expected) return false;
+    const latest = await latestQueueEvent(github, context, pr);
+    return latest?.__typename === 'RemovedFromMergeQueueEvent' && latest.id === expected;
+  };
   if (retry) {
-    // Only this controller invocation may finish its pre-reserved retry. Every
-    // later sweep sees a consumed retry, including after an ambiguous enqueue.
+    // Only the unchanged, confirmed compensating removal releases a retry.
+    // A later manual queue event invalidates this receipt even on the same head.
+    if (await stillCompensated(retry)) {
+      return {fingerprint, removal: compensationEvent(retry), compensation: retry.id};
+    }
+    // Only this invocation may finish its pending reservation. Lost responses
+    // and failed cleanup keep the retry consumed.
     if (!reservation || retry.id !== reservation.id || retry.state !== 'pending' ||
         reservation.fingerprint !== fingerprint) return null;
-    if (!afterEnqueue && await retryRemoval(github, context, pr, consumed, now) !== reservation.admission.removal) return null;
+    if (!afterEnqueue) {
+      if (reservation.admission.compensation) {
+        const receipt = statuses.find(item => item.id === reservation.admission.compensation &&
+          item.description === description);
+        if (!await stillCompensated(receipt)) return null;
+      } else if (await retryRemoval(github, context, pr, consumed, now, fingerprint) !== reservation.admission.removal) return null;
+    }
     return reservation.admission;
   }
-  const removal = await retryRemoval(github, context, pr, consumed, now);
+  const removal = await retryRemoval(github, context, pr, consumed, now, fingerprint);
   return removal ? {fingerprint, removal} : null;
 }
 
@@ -305,12 +373,15 @@ async function dequeue(github, pr) {
   }`, {id: pr.node_id});
 }
 
-async function reconcilePR({github, context, number, branch, root, core, now = () => Date.now(), onFailure, expectedHead, expectedRepo, expectedRef}) {
+async function reconcilePR({github, context, number, branch, root, core, now = () => Date.now(), onFailure,
+  expectedHead, expectedRepo, expectedRef, conflictCheck = checkDependencyConflict, cache = new Map()}) {
   if (!await queueEnabled({github, context, branch, root})) return;
-  let entries = await readQueue(github, context, branch);
+  const initialQueue = await readQueueSnapshot(github, context, branch);
+  let entries = initialQueue.entries;
   const entry = entries.find(entry => entry.pullRequest.number === number);
   let pr;
   let enqueueAttempted = false;
+  let recordAcknowledgedAdmission;
   let enqueueConfirmed = false;
   const report = (description, state = 'pending') => pr?.base?.ref === branch &&
     publishAdmissionStatus({github, context, pr, core, description, state});
@@ -341,8 +412,7 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
           const current = await readPR(github, context, failedPR.number);
           if (snapshot(current) !== beforeRecovery ||
               policyReason(current, `${context.repo.owner}/${context.repo.repo}`, branch)) return false;
-          const statuses = await github.paginate(github.rest.repos.listCommitStatusesForRef,
-            {...context.repo, ref: failedPR.head.sha, per_page: 100});
+          const statuses = await readStatuses(github, context, failedPR);
           if (!Array.isArray(statuses) || statuses.length >= 1000) {
             throw new Error('Incomplete PR Gate recovery status evidence');
           }
@@ -350,7 +420,8 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
             await queueEnabled({github, context, branch, root});
         }});
     });
-    const admission = await admissionPassed(github, context, pr, {now, onFailure: recoverFailure});
+    const statuses = await readStatuses(github, context, pr);
+    const admission = await admissionPassed(github, context, pr, {now, statuses, onFailure: recoverFailure});
     if (!admission) {
       await report('Waiting for current-head CI or eligible queue retry.');
       return;
@@ -360,10 +431,20 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
       await report(`Waiting for ${unresolved} unresolved review conversation${unresolved === 1 ? '' : 's'}.`);
       return;
     }
+    if (!SHA.test(initialQueue.base || '')) throw new Error('Missing live base for queue admission');
     const before = snapshot(pr);
+    if (entries.length && await conflictCheck({github, context, pr, entries,
+      base: initialQueue.base, core, cache, statuses})) {
+      await report('Waiting for a conflicting dependency update earlier in the queue.');
+      return;
+    }
     pr = await readPR(github, context, number);
     if (snapshot(pr) !== before || JSON.stringify(await admissionPassed(github, context, pr, {now})) !== JSON.stringify(admission)) return;
     if (!await queueEnabled({github, context, branch, root})) return;
+    // Manual queue changes can race even an empty queue. Compare the live base,
+    // ordered membership and candidate SHAs before reserving a retry or enqueuing.
+    const currentQueue = await readQueueSnapshot(github, context, branch);
+    if (JSON.stringify(currentQueue) !== JSON.stringify(initialQueue)) return;
     let reservation;
     if (admission.removal) {
       const {data} = await github.rest.repos.createCommitStatus({...context.repo, sha:pr.head.sha,
@@ -383,7 +464,7 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
     enqueueAttempted = true;
     const enqueued = await github.graphql(`mutation($id:ID!, $head:GitObjectID!) {
       enqueuePullRequest(input:{pullRequestId:$id,expectedHeadOid:$head,jump:false}) {
-        mergeQueueEntry { id headCommit { oid } }
+        mergeQueueEntry { id enqueuedAt headCommit { oid } }
       }
     }`, {id: pr.node_id, head: pr.head.sha});
     if (typeof enqueued?.enqueuePullRequest?.mergeQueueEntry?.id !== 'string' ||
@@ -391,8 +472,60 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
       throw new Error('Incomplete enqueue response');
     }
     enqueueConfirmed = true;
+    const enqueuedAt = enqueued?.enqueuePullRequest?.mergeQueueEntry?.enqueuedAt;
+    const admissionTime = typeof enqueuedAt === 'string' && Number.isFinite(Date.parse(enqueuedAt)) ?
+      `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}#queue-admission-time=${admission.fingerprint}:${encodeURIComponent(enqueuedAt)}` : undefined;
+    let admissionRecorded = false;
+    recordAcknowledgedAdmission = async () => {
+      if (admissionRecorded) return;
+      await github.rest.repos.createCommitStatus({...context.repo, sha: pr.head.sha,
+        context: 'queue-admission-attempt', state: 'pending',
+        description: `Admission ${branch}; CI attempts ${admission.fingerprint}.`,
+        ...(admissionTime ? {target_url: admissionTime} : {})});
+      admissionRecorded = true;
+    };
     const after = await readPR(github, context, number);
     if (after.merged === true) return;
+    const afterQueue = await readQueueSnapshot(github, context, branch);
+    const admittedIndex = afterQueue.entries.findIndex(item => item.pullRequest.number === number);
+    if (admittedIndex < 0) {
+      // GitHub may remove a candidate before the first snapshot. That
+      // acknowledged attempt still consumes its budget without compensation.
+      await recordAcknowledgedAdmission();
+      return;
+    }
+    const predecessors = {base: afterQueue.base, entries: afterQueue.entries.slice(0, admittedIndex)};
+    // Enqueue can materialize/rebuild candidate commits for the same PR heads.
+    // Only changes to the base or ordered predecessor identities invalidate
+    // the dependency inputs after our own enqueue.
+    const predecessorIdentity = queue => [queue.base, queue.entries.map(item => [
+      item.id, item.pullRequest.number, item.pullRequest.headRefOid, item.pullRequest.baseRefName,
+    ])];
+    if (JSON.stringify(predecessorIdentity(predecessors)) !== JSON.stringify(predecessorIdentity(initialQueue))) {
+      // A manual enqueue or base move raced our final pre-enqueue snapshot.
+      // Remove this admission before recording consumption; do not invalidate
+      // unrelated predecessors or accept their unprobed dependency changes.
+      await dequeue(github, after);
+      const removed = await readQueueSnapshot(github, context, branch);
+      if (removed.entries.some(item => item.pullRequest.number === number)) {
+        throw new Error('Compensating dequeue not confirmed');
+      }
+      if (reservation) {
+        const removal = await latestQueueEvent(github, context, after);
+        if (removal?.__typename !== 'RemovedFromMergeQueueEvent' || typeof removal.id !== 'string' || !removal.id || removal.id === admission.removal ||
+            removal.reason !== 'manually_removed' || removal.actor?.__typename !== 'Bot' ||
+            !['github-actions', 'github-actions[bot]'].includes(removal.actor.login)) {
+          throw new Error('Compensating removal event not confirmed');
+        }
+        const consumed = statuses.find(item => item.context === 'queue-admission-attempt');
+        if (!Number.isSafeInteger(consumed?.id) || consumed.id <= 0) throw new Error('Missing consumed admission for compensation');
+        await github.rest.repos.createCommitStatus({...context.repo, sha:pr.head.sha,
+          context:'queue-admission-retry', state:'error',
+          description:`Retry ${branch}; CI attempts ${admission.fingerprint}.`,
+          target_url:`https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}#queue-retry-compensation=${consumed.id}:${admission.fingerprint}:${encodeURIComponent(removal.id)}`});
+      }
+      return;
+    }
     if (snapshot(after) !== before || JSON.stringify(await admissionPassed(github, context, after, {now, reservation, afterEnqueue:true})) !== JSON.stringify(admission) ||
         !await queueEnabled({github, context, branch, root})) {
       entries = await readQueue(github, context, branch);
@@ -400,11 +533,8 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
       await dequeue(github, after);
       await report('PR eligibility changed; awaiting fresh admission.');
     } else {
-      // Each CI fingerprint gets one initial admission and at most one delayed
-      // retry after failed checks. Base-policy restamps cannot reset that budget.
-      await github.rest.repos.createCommitStatus({...context.repo, sha: pr.head.sha,
-        context: 'queue-admission-attempt', state: 'pending',
-        description: `Admission ${branch}; CI attempts ${admission.fingerprint}.`});
+      // Each CI fingerprint gets one initial admission and one delayed retry.
+      await recordAcknowledgedAdmission();
       await report('Queued; awaiting merge-group checks.', 'success');
       const head = enqueued?.enqueuePullRequest?.mergeQueueEntry?.headCommit?.oid;
       if (SHA.test(head || '')) return {number, baseRef:branch, head};
@@ -413,6 +543,12 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
     // An enqueue may have succeeded even if its response was lost. Refresh the
     // queue and attempt removal independently of status/API failures.
     const errors = [error];
+    // An acknowledged enqueue followed by an unreadable snapshot must not
+    // silently regain its initial-admission budget either.
+    if (recordAcknowledgedAdmission) {
+      try { await recordAcknowledgedAdmission(); }
+      catch (statusError) { errors.push(statusError); }
+    }
     let removalRequired = Boolean(entry);
     let invalidationNumber = number;
     if (enqueueAttempted) {
@@ -506,12 +642,13 @@ async function eventTargets(github, context) {
     expectedRepo:run.head_repository.full_name, expectedRef:run.head_branch}];
 }
 
-async function sweep({github, context, root, core, queueOnly = false, now, onFailure}) {
+async function sweep({github, context, root, core, queueOnly = false, now, onFailure, conflictCheck}) {
+  const cache = new Map();
   if (context.eventName !== 'schedule') {
     if (!loadPolicy(root).enabled_branches.length) return [];
     const candidates = [];
     for (const target of await eventTargets(github, context)) {
-      const admitted = await reconcilePR({github, context, ...target, root, core, now, onFailure});
+      const admitted = await reconcilePR({github, context, ...target, root, core, now, onFailure, conflictCheck, cache});
       if (admitted) candidates.push(admitted);
     }
     return candidates;
@@ -556,7 +693,7 @@ async function sweep({github, context, root, core, queueOnly = false, now, onFai
           continue;
         }
         try {
-          await reconcilePR({github, context, number, branch, root, core, now, onFailure});
+          await reconcilePR({github, context, number, branch, root, core, now, onFailure, conflictCheck, cache});
         } catch (error) {
           failures.push(`#${number}: ${error.message}`);
         }

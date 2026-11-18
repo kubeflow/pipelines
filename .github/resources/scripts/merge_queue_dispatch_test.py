@@ -283,7 +283,11 @@ class QueueRecoveryTest(unittest.TestCase):
                     eventName='pull_request_target',
                     payload={'pull_request': {'number': 7}},
                     enqueuedCandidate=OTHER if materialized else None,
-                    queues=[queue(), queue([entry(headCommit={'oid': OTHER})])],
+                    queues=[
+                        queue(),  # Initial admission snapshot.
+                        queue(),  # Revalidate predecessors before enqueue.
+                        queue([entry(headCommit={'oid': OTHER})]),
+                    ],
                     matchingRefs=refs,
                     refs={prefix + 'abcdef': [OTHER]},
                     runs=[admitted_run()],

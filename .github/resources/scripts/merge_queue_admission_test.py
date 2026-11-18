@@ -87,11 +87,14 @@ def entry(number=7, branch='master', position=1, **overrides):
     }
 
 
-def queue(entries=None, **overrides):
+def queue(
+    entries: list[dict] | None = None, *, base: str = BASE, **overrides: object
+) -> dict:
     entries = [] if entries is None else entries
     return {
         'repository': {
             'nameWithOwner': 'owner/repo',
+            'baseRef': {'target': {'oid': base}},
             'mergeQueue': {
                 'entries': {
                     'nodes': entries,
@@ -104,7 +107,9 @@ def queue(entries=None, **overrides):
     }
 
 
-def run_case(method='reconcilePR', branch='master', **options):
+def run_case(
+    method: str = 'reconcilePR', branch: str = 'master', **options: object
+) -> dict:
     fixture = {
         'method': method,
         'branch': branch,
@@ -178,6 +183,8 @@ if (f.mockGateRecovery) {{
 }}
 const gate = require({json.dumps(str(MODULE))});
 let retryStatus;
+let enqueued = false;
+let compensatingRemoval = false;
 const counts = {{}};
 function next(name, values) {{
   const n = counts[name] || 0; counts[name] = n + 1;
@@ -204,7 +211,7 @@ const github = {{rest: {{
     }}
     writes.push({{route:'status', options}});
     if (f.statusWriteError) throw new Error('Status write failed');
-    const data = {{...options, id: 900, created_at: '2026-11-13T13:00:00Z'}};
+    const data = {{...options, id: 900, creator:{{type:'Bot',login:'github-actions[bot]'}}, created_at: '2026-11-13T13:00:00Z'}};
     if (options.context === 'queue-admission-retry') retryStatus = data;
     return {{data}};
   }}}},
@@ -227,10 +234,11 @@ const github = {{rest: {{
       throw error;
     }}
     if ('enqueueResponse' in f) return f.enqueueResponse;
-    return {{enqueuePullRequest:{{mergeQueueEntry:{{id:'ENTRY_7',headCommit:f.enqueuedHead ? {{oid:f.enqueuedHead}} : null}}}}}};
+    enqueued = Number(options.id.split('_')[1]);
+    return {{enqueuePullRequest:{{mergeQueueEntry:{{id:'ENTRY_7',headCommit:f.enqueuedHead ? {{oid:f.enqueuedHead}} : null,enqueuedAt:f.enqueuedAt || '2026-11-13T13:00:00Z'}}}}}};
   }}
   if (query.includes('dequeuePullRequest')) {{
-    writes.push({{route:'dequeue',options,query}}); return {{}};
+    writes.push({{route:'dequeue',options,query}}); enqueued = false; compensatingRemoval = true; return {{}};
   }}
   if (query.includes('query AdmissionReviewPolicy')) {{
     calls.push({{route:'review-policy',options,query}});
@@ -247,7 +255,15 @@ const github = {{rest: {{
   }}
   if (query.includes('query RetryRemoval')) {{
     calls.push({{route:'removal',options,query}});
-    return next('removal', f.removals || []);
+    const result = structuredClone(next('removal', f.removals || []));
+    if (compensatingRemoval && !f.staleCompensationEvent) {{
+      result.repository.pullRequest.timelineItems.nodes = [{{
+        __typename:'RemovedFromMergeQueueEvent',id:'COMPENSATING_REMOVAL',
+        reason:f.compensationReason || 'manually_removed',
+        actor:f.compensationActor || {{__typename:'Bot',login:'github-actions'}},
+        createdAt:'2026-11-13T13:00:00Z',beforeCommit:{{oid:{json.dumps(CANDIDATE)}}}}}];
+    }}
+    return result;
   }}
   if (query.includes('query DispatchSnapshot')) {{
     calls.push({{route:'dispatch-snapshot',options,query}});
@@ -270,9 +286,23 @@ const github = {{rest: {{
     return {{repository}};
   }}
   calls.push({{route:'queue',options}});
-  return next('queues',f.queues);
+  const result = structuredClone(next('queues',f.queues));
+  if (enqueued && !f.queueAdmissionMissing && result?.repository?.mergeQueue?.entries) {{
+    const collection = result.repository.mergeQueue.entries;
+    if (!collection.nodes.some(e => e.pullRequest.number === enqueued)) {{
+      collection.nodes.push({{id:'ENTRY_' + enqueued,position:collection.nodes.length+1,headCommit:null,baseCommit:null,
+        pullRequest:{{number:enqueued,headRefOid:{json.dumps(HEAD)},baseRefName:f.branch}}}});
+      collection.totalCount = collection.nodes.length;
+    }}
+  }}
+  return result;
 }}}};
-const args = {{github, context:{{repo:{{owner:'owner',repo:'repo'}},eventName:f.eventName,payload:f.payload,ref:f.ref}},
+const conflictCheck = async ({{pr, entries, base, statuses, cache}}) => {{
+  calls.push({{route:'dependency-check',number:pr.number,entries,base,
+    status:statuses[0]?.context,cache:cache instanceof Map}});
+  return (f.conflicted || []).includes(pr.number);
+}};
+const args = {{github, conflictCheck, context:{{repo:{{owner:'owner',repo:'repo'}},runId:42,eventName:f.eventName,payload:f.payload,ref:f.ref}},
   queueOnly:f.queueOnly || false, root:{json.dumps(str(root))}, number:f.number, branch:f.branch,
   group:{{baseRef:f.branch,branch:'gh-readonly-queue/' + f.branch + '/pr-7-test',head:f.candidate || {json.dumps(CANDIDATE)}}},
   core:{{info:()=>{{}},warning:()=>{{}}}}, now:()=>Date.parse(f.now || '2026-11-13T13:00:00Z')}};
@@ -777,6 +807,88 @@ class QueueAdmissionTest(unittest.TestCase):
                 )
                 self.assertEqual(result['writes'], [], result)
 
+    def test_queue_admission_rechecks_probe_input_before_enqueue(self) -> None:
+        queued = queue([entry(8)])
+        for first, current in [
+            (queue(), queued),
+            (queued, queue()),
+            (queued, queue([entry(8)], base=OTHER)),
+            (queued, queue([entry(8, headCommit={'oid': OTHER})])),
+            (queued, queue([entry(9)])),
+        ]:
+            with self.subTest(first=first, current=current):
+                result = run_case(queues=[first, current])
+                self.assertNotIn('error', result, result)
+                self.assertEqual(result['writes'], [], result)
+        result = run_case(
+            prs={'7': [pr(), pr(head={'sha': OTHER})]}, queues=[queued]
+        )
+        self.assertNotIn('error', result, result)
+        self.assertEqual(result['writes'], [], result)
+
+    def test_sweep_checks_new_unbuilt_entry_and_admits_independent_pr(
+        self,
+    ) -> None:
+        newly_admitted = entry(7, headCommit=None, baseCommit=None)
+        queued = queue([newly_admitted])
+        result = run_case(
+            'sweep',
+            listed=[{'number': n} for n in [7, 8, 9]],
+            prs={str(n): [pr(n)] for n in [7, 8, 9]},
+            queues=[queue(), queue(), queue(), queue(), queued],
+            conflicted=[8],
+        )
+        self.assertNotIn('error', result, result)
+        self.assertEqual(
+            [
+                w['options']['id']
+                for w in result['writes']
+                if w['route'] == 'enqueue'
+            ],
+            ['PR_7', 'PR_9'],
+        )
+        checks = [
+            c for c in result['calls'] if c['route'] == 'dependency-check'
+        ]
+        self.assertEqual([c['number'] for c in checks], [8, 9])
+        self.assertTrue(all(c['entries'] == [newly_admitted] for c in checks))
+        self.assertTrue(all(c['cache'] for c in checks))
+
+    def test_post_enqueue_predecessor_race_is_compensated_without_consumption(
+        self,
+    ) -> None:
+        result = run_case(queues=[queue(), queue(), queue([entry(8)])])
+        self.assertNotIn('error', result, result)
+        self.assertEqual(
+            [w['route'] for w in result['writes']], ['enqueue', 'dequeue']
+        )
+
+    def test_post_enqueue_candidate_refresh_preserves_same_predecessor_heads(
+        self,
+    ) -> None:
+        before = queue([entry(8)])
+        rebuilt = entry(8, headCommit={'oid': OTHER})
+        result = run_case(queues=[before, before, queue([rebuilt])])
+        self.assertNotIn('error', result, result)
+        self.assertEqual(
+            [w['route'] for w in result['writes']], ['enqueue', 'status']
+        )
+        rebuilt['pullRequest']['headRefOid'] = OTHER
+        changed = run_case(queues=[before, before, queue([rebuilt])])
+        self.assertNotIn('error', changed, changed)
+        self.assertEqual(
+            [w['route'] for w in changed['writes']], ['enqueue', 'dequeue']
+        )
+
+    def test_post_enqueue_append_does_not_change_predecessors(self) -> None:
+        result = run_case(
+            queues=[queue(), queue(), queue([entry(), entry(8, position=2)])]
+        )
+        self.assertNotIn('error', result, result)
+        self.assertEqual(
+            [w['route'] for w in result['writes']], ['enqueue', 'status']
+        )
+
     def test_pre_enqueue_head_or_label_changes_do_not_enqueue(self):
         for changed in [pr(head={'sha': OTHER}), pr(labels=[]), pr(draft=True)]:
             result = run_case(prs={'7': [pr(), changed]})
@@ -791,7 +903,7 @@ class QueueAdmissionTest(unittest.TestCase):
         ]:
             result = run_case(
                 prs={'7': [pr(), pr(), changed]},
-                queues=[queue(), queue([entry()])],
+                queues=[queue(), queue(), queue([entry()])],
             )
             self.assertNotIn('error', result)
             self.assertEqual(
@@ -845,7 +957,9 @@ class QueueAdmissionTest(unittest.TestCase):
             },
         ]:
             with self.subTest(options=options):
-                result = run_case(queues=[queue(), queue([entry()])], **options)
+                result = run_case(
+                    queues=[queue(), queue(), queue([entry()])], **options
+                )
                 self.assertIn('error', result)
                 self.assertTrue(
                     any(
@@ -922,7 +1036,7 @@ class QueueAdmissionTest(unittest.TestCase):
         self.assertEqual(changed['writes'], [], changed)
         changed_after = run_case(
             runs=[[run], [run], [dict(run, run_attempt=2)]],
-            queues=[queue(), queue([entry()])],
+            queues=[queue(), queue(), queue([entry()])],
         )
         self.assertEqual(
             [w['route'] for w in changed_after['writes']],
@@ -1025,7 +1139,8 @@ class QueueAdmissionTest(unittest.TestCase):
             [write['route'] for write in result['writes']], ['enqueue']
         )
         ambiguous = run_case(
-            queues=[queue([entry(8)]), None], enqueueError=True
+            queues=[queue([entry(8)]), queue([entry(8)]), None],
+            enqueueError=True,
         )
         self.assertIn('Enqueue rejected', ambiguous['error'])
         self.assertEqual(
@@ -1093,7 +1208,11 @@ class QueueAdmissionTest(unittest.TestCase):
     def test_post_enqueue_revocation_preserves_earlier_candidate(self):
         earlier = entry(8, headCommit={'oid': OTHER})
         result = run_case(
-            queues=[queue([earlier]), queue([earlier, entry(position=2)])],
+            queues=[
+                queue([earlier]),
+                queue([earlier]),
+                queue([earlier, entry(position=2)]),
+            ],
             prs={'7': [pr(), pr(), pr(labels=[])]},
         )
         self.assertNotIn('error', result)
@@ -1118,11 +1237,15 @@ class QueueAdmissionTest(unittest.TestCase):
         earlier = entry(8, headCommit={'oid': OTHER})
         result = run_case(
             queues=[queue([earlier]), queue([earlier])],
+            queueAdmissionMissing=True,
             prs={'7': [pr(), pr(), pr(labels=[])]},
         )
         self.assertNotIn('error', result)
-        self.assertFalse(
-            any(w['route'] == 'status' for w in result['writes']), result
+        self.assertEqual(
+            [w['route'] for w in result['writes']], ['enqueue', 'status']
+        )
+        self.assertEqual(
+            result['writes'][1]['options']['context'], 'queue-admission-attempt'
         )
 
     def test_shared_candidate_checks_all_batched_members(self):
@@ -1435,7 +1558,8 @@ class QueueAdmissionTest(unittest.TestCase):
                     if w['route'] == 'enqueue'
                 )
                 self.assertIn(
-                    'mergeQueueEntry { id headCommit { oid } }', mutation
+                    'mergeQueueEntry { id enqueuedAt headCommit { oid } }',
+                    mutation,
                 )
 
     def test_retarget_reconciles_old_queue_before_new_base(self):
@@ -1455,14 +1579,13 @@ class QueueAdmissionTest(unittest.TestCase):
             [w['route'] for w in result['writes']],
             ['status', 'dequeue', 'enqueue', 'status'],
         )
-        self.assertEqual(
-            [
-                c['options']['branch']
-                for c in result['calls']
-                if c['route'] == 'queue'
-            ],
-            ['main', 'release-2.18'],
-        )
+        branches = [
+            c['options']['branch']
+            for c in result['calls']
+            if c['route'] == 'queue'
+        ]
+        self.assertEqual(branches[0], 'main')
+        self.assertEqual(set(branches[1:]), {'release-2.18'})
 
     def test_ready_label_cannot_override_hold_or_stale_evidence(self) -> None:
         ready = pr(
@@ -1778,6 +1901,228 @@ class AutomaticRetryTest(unittest.TestCase):
             **changes,
         }
 
+    def test_dependency_conflict_preserves_retry_budget(self) -> None:
+        earlier = entry(8, headCommit=None)
+        result = run_case(
+            **self.fixture(queues=[queue([earlier])], conflicted=[7])
+        )
+        self.assertNotIn('error', result, result)
+        self.assertEqual(result['writes'], [], result)
+        self.assertEqual(
+            result['diagnostics'][-1]['description'],
+            'Waiting for a conflicting dependency update earlier in the queue.',
+        )
+        checks = [
+            c for c in result['calls'] if c['route'] == 'dependency-check'
+        ]
+        self.assertEqual(len(checks), 1, checks)
+        self.assertEqual(checks[0]['entries'], [earlier])
+        self.assertEqual(checks[0]['base'], BASE)
+        self.assertEqual(checks[0]['status'], 'ci-passed')
+
+    def test_queue_change_after_clean_probe_does_not_reserve_retry(
+        self,
+    ) -> None:
+        result = run_case(**self.fixture(queues=[queue([entry(8)]), queue()]))
+        self.assertNotIn('error', result, result)
+        self.assertEqual(result['writes'], [], result)
+        retried = run_case(**self.fixture(queues=[queue()]))
+        self.assertNotIn('error', retried, retried)
+        self.assertIn('enqueue', [w['route'] for w in retried['writes']])
+
+    def test_post_enqueue_race_releases_retry_only_after_confirmed_dequeue(
+        self,
+    ) -> None:
+        result = run_case(
+            **self.fixture(queues=[queue(), queue(), queue([entry(8)])])
+        )
+        self.assertNotIn('error', result, result)
+        self.assertEqual(
+            [w['route'] for w in result['writes']],
+            ['status', 'enqueue', 'dequeue', 'status'],
+        )
+        compensation = result['writes'][-1]['options']
+        self.assertEqual(compensation['context'], 'queue-admission-retry')
+        self.assertEqual(compensation['state'], 'error')
+        self.assertIn(
+            '#queue-retry-compensation=11:', compensation['target_url']
+        )
+        compensation.update(
+            id=901, creator={'type': 'Bot', 'login': 'github-actions[bot]'}
+        )
+        fixture = self.fixture()
+        fixture['statuses'][0].insert(0, compensation)
+        fixture['removals'][0]['repository']['pullRequest']['timelineItems'][
+            'nodes'
+        ][0]['id'] = 'COMPENSATING_REMOVAL'
+        retried = run_case(**fixture)
+        self.assertNotIn('error', retried, retried)
+        self.assertEqual(
+            [w['route'] for w in retried['writes']],
+            ['status', 'enqueue', 'status'],
+        )
+        # A later manual removal or enqueue cannot revive this old receipt.
+        for later in (
+            {
+                '__typename': 'RemovedFromMergeQueueEvent',
+                'id': 'MANUAL_REMOVAL',
+                'reason': 'manually_removed',
+            },
+            {'__typename': 'AddedToMergeQueueEvent', 'id': 'MANUAL_ENQUEUE'},
+        ):
+            for before_enqueue in (False, True):
+                with self.subTest(later=later, before_enqueue=before_enqueue):
+                    moved = self.fixture()
+                    moved['statuses'][0].insert(0, compensation)
+                    old = copy.deepcopy(fixture['removals'][0])
+                    new = copy.deepcopy(old)
+                    new['repository']['pullRequest']['timelineItems'][
+                        'nodes'
+                    ] = [later]
+                    moved['removals'] = (
+                        [old, old, new] if before_enqueue else [new]
+                    )
+                    rejected = run_case(**moved)
+                    self.assertNotIn('error', rejected, rejected)
+                    self.assertNotIn(
+                        'enqueue', [w['route'] for w in rejected['writes']]
+                    )
+        for change in (
+            {'creator': {'type': 'User', 'login': 'someone'}},
+            {'target_url': compensation['target_url'].replace('=11:', '=12:')},
+        ):
+            invalid = self.fixture()
+            invalid['statuses'][0].insert(0, dict(compensation, **change))
+            rejected = run_case(**invalid)
+            self.assertEqual(rejected['writes'], [])
+
+    def test_failed_compensation_does_not_release_retry(self) -> None:
+        result = run_case(
+            **self.fixture(queues=[queue(), queue(), queue([entry(8)]), None])
+        )
+        self.assertIn('error', result)
+        self.assertFalse(
+            any(
+                w['route'] == 'status' and w['options'].get('state') == 'error'
+                for w in result['writes']
+            )
+        )
+
+    def test_stale_compensating_event_cannot_release_retry(self) -> None:
+        result = run_case(
+            **self.fixture(
+                queues=[queue(), queue(), queue([entry(8)])],
+                staleCompensationEvent=True,
+            )
+        )
+        self.assertIn(
+            'Compensating removal event not confirmed', result.get('error', '')
+        )
+        self.assertFalse(
+            any(
+                w['route'] == 'status' and w['options'].get('state') == 'error'
+                for w in result['writes']
+            )
+        )
+
+    def test_disappeared_acknowledged_admission_consumes_budget_across_sweeps(
+        self,
+    ) -> None:
+        first = run_case(queueAdmissionMissing=True)
+        self.assertNotIn('error', first, first)
+        self.assertEqual(
+            [w['route'] for w in first['writes']], ['enqueue', 'status']
+        )
+        consumed = first['writes'][-1]['options']
+        consumed.update(
+            id=901,
+            created_at='2026-11-13T13:00:03Z',
+            creator={'type': 'Bot', 'login': 'github-actions[bot]'},
+        )
+        second = self.fixture()
+        second['statuses'][0][-1] = consumed
+        event = second['removals'][0]['repository']['pullRequest'][
+            'timelineItems'
+        ]['nodes'][0]
+        event['createdAt'] = '2026-11-13T13:00:01Z'
+        immediate = run_case(**second, now='2026-11-13T13:00:04Z')
+        self.assertEqual(immediate['writes'], [], immediate)
+        delayed = run_case(**second, now='2026-11-13T13:16:00Z')
+        self.assertEqual(
+            [w['route'] for w in delayed['writes']],
+            ['status', 'enqueue', 'status'],
+        )
+        event['createdAt'] = '2026-11-13T12:59:59Z'
+        older = run_case(**second, now='2026-11-13T13:16:00Z')
+        self.assertEqual(older['writes'], [], older)
+        event['createdAt'] = '2026-11-13T13:00:01Z'
+        for change in (
+            {'creator': {'type': 'User', 'login': 'someone'}},
+            {
+                'target_url': consumed['target_url'].replace(
+                    'owner/repo', 'other/repo'
+                )
+            },
+            {
+                'target_url': consumed['target_url'].replace(
+                    '13%3A00%3A00', '13%3A01%3A00'
+                )
+            },
+        ):
+            invalid = copy.deepcopy(second)
+            invalid['statuses'][0][-1].update(change)
+            rejected = run_case(**invalid, now='2026-11-13T13:16:00Z')
+            self.assertEqual(rejected['writes'], [], rejected)
+
+    def test_acknowledged_enqueue_read_failure_records_consumption(
+        self,
+    ) -> None:
+        result = run_case(prs={'7': [pr(), pr(), None]})
+        self.assertIn('error', result)
+        records = [
+            w
+            for w in result['writes']
+            if w['route'] == 'status'
+            and w['options'].get('context') == 'queue-admission-attempt'
+        ]
+        self.assertEqual(len(records), 1, result)
+        self.assertIn('dequeue', [w['route'] for w in result['writes']])
+
+    def test_noncontroller_removal_cannot_release_retry(self) -> None:
+        for override in (
+            {'compensationReason': 'failed_checks'},
+            {'compensationReason': 'merge_conflict'},
+            {
+                'compensationActor': {
+                    '__typename': 'User',
+                    'login': 'maintainer',
+                }
+            },
+            {
+                'compensationActor': {
+                    '__typename': 'Bot',
+                    'login': 'github-merge-queue',
+                }
+            },
+        ):
+            with self.subTest(override=override):
+                result = run_case(
+                    **self.fixture(
+                        queues=[queue(), queue(), queue([entry(8)])], **override
+                    )
+                )
+                self.assertIn(
+                    'Compensating removal event not confirmed',
+                    result.get('error', ''),
+                )
+                self.assertFalse(
+                    any(
+                        w['route'] == 'status'
+                        and w['options'].get('state') == 'error'
+                        for w in result['writes']
+                    )
+                )
+
     def test_retry_is_reserved_before_enqueue(self) -> None:
         result = run_case(**self.fixture())
         self.assertNotIn('error', result)
@@ -1921,7 +2266,7 @@ class AutomaticRetryTest(unittest.TestCase):
         result = run_case(
             **self.fixture(
                 prs={'7': [pr(), pr(), pr(), pr(head={'sha': OTHER})]},
-                queues=[queue(), queue([entry()])],
+                queues=[queue(), queue(), queue([entry()])],
             )
         )
         self.assertIn('dequeue', [w['route'] for w in result['writes']])
@@ -2324,7 +2669,7 @@ class AdmissionDiagnosticsTest(unittest.TestCase):
 
     def test_known_rejection_with_ambiguous_membership_still_fails_closed(self):
         result = run_case(
-            queues=[queue(), None],
+            queues=[queue(), queue(), None],
             enqueueError=[
                 {
                     'type': 'UNPROCESSABLE',
