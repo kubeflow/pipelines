@@ -496,6 +496,16 @@ class MergeGroupTest(unittest.TestCase):
                 self.assertEqual(
                     result['writes'][-1]['state'], 'success', result
                 )
+                # A later PR is outside this candidate. Its policy must not be
+                # read or turn this candidate's successful CI into a failure.
+                later = entry(
+                    8, branch=branch, position=2, headCommit={'oid': REBUILT}
+                )
+                extended = dict(options, queues=[queue([member, later])])
+                result = reconcile(**extended, queuePRs=[eligible])
+                self.assertEqual(
+                    result['writes'][-1]['state'], 'success', result
+                )
                 for snapshots in [
                     [held],
                     [eligible, held],

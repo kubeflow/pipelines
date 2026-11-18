@@ -16,6 +16,7 @@ const {recoverPRGate} = require('./merge_queue_pr_gate_recovery');
 const {invalidRunMetadata} = require('./ci_expected_workflows');
 const {QUEUE_BRANCHES, loadPolicy, enabledBranches, queueEnabled, requireQueueRule} = require('./merge_queue_policy');
 const {checkDependencyConflict} = require('./queue_dependency_conflicts');
+const {publishAdmissionStatus, unresolvedConversations, enqueueBlocker} = require('./merge_queue_admission_status');
 const SHA = /^[0-9a-f]{40}$/;
 const QUEUE = `query($owner:String!, $repo:String!, $branch:String!, $ref:String!) {
   repository(owner:$owner, name:$repo) {
@@ -134,20 +135,21 @@ function queuePR(pr, entry) {
 
 async function inspectQueue({github, context, group, root}) {
   if (!await queueEnabled({github, context, branch: group.baseRef, root})) return null;
-  const entries = await readQueue(github, context, group.baseRef);
+  const entries = candidatePrefix(await readQueue(github, context, group.baseRef), group.head);
   const policies = await readQueuePRs(github, context, entries);
   return queueFingerprint(entries, policies, context, group);
 }
 
+// A candidate contains its queue prefix. Later entries cannot affect its policy.
+// Include every entry sharing the candidate SHA when GitHub batches members.
+function candidatePrefix(entries, head) {
+  const candidateIndex = entries.findLastIndex(entry => entry.headCommit?.oid === head);
+  if (candidateIndex === -1) throw new Error('Candidate is not in the current merge queue');
+  return entries.slice(0, candidateIndex + 1);
+}
+
 function queueFingerprint(entries, policies, context, group) {
-  const candidateIndex = entries.findIndex(entry => entry.headCommit?.oid === group.head);
-  if (candidateIndex === -1) {
-    throw new Error('Candidate is not in the current merge queue');
-  }
   const members = [];
-  // GitHub exposes entries, not an authoritative group-members connection.
-  // Conservatively require every queued PR to remain eligible. A held later
-  // entry may temporarily block an earlier candidate until it is dequeued.
   for (const [index, entry] of entries.entries()) {
     const pr = policies[index];
     const reason = policyReason(pr, `${context.repo.owner}/${context.repo.repo}`, group.baseRef);
@@ -156,10 +158,8 @@ function queueFingerprint(entries, policies, context, group) {
     }
     members.push([pr.node_id, pr.number, pr.head.sha, pr.base.ref, pr.base.repo.full_name]);
   }
-  // Later eligible entries and unrelated label edits cannot change this
-  // candidate. Fingerprint its queue prefix only, while checking every entry's
-  // current approval/hold policy on each read above.
-  return JSON.stringify([entries.slice(0, candidateIndex + 1), members.slice(0, candidateIndex + 1)]);
+  // Unrelated labels do not alter the candidate's validated identity.
+  return JSON.stringify([entries, members]);
 }
 
 // Read all mutable dispatch identities together at each validation boundary.
@@ -204,7 +204,7 @@ async function inspectDispatchSnapshot({github, context, group, root}) {
       throw new Error('Incomplete queue dispatch ref identity');
     }
   }
-  const rawEntries = queueEntries(response, context, group.baseRef);
+  const rawEntries = candidatePrefix(queueEntries(response, context, group.baseRef), group.head);
   const policies = rawEntries.map(entry => queuePR(entry.pullRequest, entry));
   // Keep the fingerprint identical to inspectQueue: policy fields are validated
   // but unrelated label edits and later eligible entries do not change it.
@@ -351,7 +351,14 @@ async function admissionPassed(github, context, pr, {now = () => Date.now(), res
   return removal ? {fingerprint, removal} : null;
 }
 
-async function invalidateQueue(github, context, entries) {
+async function invalidateQueue(github, context, entries, number) {
+  // Revoke only candidates containing the affected PR. If membership is unknown,
+  // retain fail-closed invalidation rather than assuming an unaffected prefix.
+  if (number !== undefined) {
+    const index = entries.findIndex(entry => entry.pullRequest.number === number);
+    if (index === -1) return; // Fresh membership confirms the target is absent.
+    entries = entries.slice(index);
+  }
   const heads = new Set(entries.map(entry => entry.headCommit?.oid).filter(Boolean));
   for (const sha of heads) {
     await github.rest.repos.createCommitStatus({...context.repo, sha,
@@ -375,6 +382,9 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
   let pr;
   let enqueueAttempted = false;
   let recordAcknowledgedAdmission;
+  let enqueueConfirmed = false;
+  const report = (description, state = 'pending') => pr?.base?.ref === branch &&
+    publishAdmissionStatus({github, context, pr, core, description, state});
   try {
     pr = await readPR(github, context, number);
     if (expectedHead && (pr.head?.sha !== expectedHead ||
@@ -382,11 +392,19 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
         (expectedRef && pr.head?.ref !== expectedRef))) return;
     const reason = policyReason(pr, `${context.repo.owner}/${context.repo.repo}`, branch);
     if (entry && (reason || entry.pullRequest.headRefOid !== pr.head.sha)) {
-      await invalidateQueue(github, context, entries);
+      await invalidateQueue(github, context, entries, number);
       await dequeue(github, pr);
+      await report(reason || 'PR head changed; awaiting fresh admission.');
       return;
     }
-    if (entry || reason) return;
+    if (entry) {
+      await report('Queued; awaiting merge-group checks.', 'success');
+      return;
+    }
+    if (reason) {
+      await report(reason);
+      return;
+    }
     const recoverFailure = onFailure || (async ({pr: failedPR}) => {
       const beforeRecovery = snapshot(failedPR);
       await recoverPRGate({github, context, pr: failedPR, now,
@@ -404,11 +422,22 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
     });
     const statuses = await readStatuses(github, context, pr);
     const admission = await admissionPassed(github, context, pr, {now, statuses, onFailure: recoverFailure});
-    if (!admission) return;
+    if (!admission) {
+      await report('Waiting for current-head CI or eligible queue retry.');
+      return;
+    }
+    const unresolved = await unresolvedConversations(github, context, pr);
+    if (unresolved) {
+      await report(`Waiting for ${unresolved} unresolved review conversation${unresolved === 1 ? '' : 's'}.`);
+      return;
+    }
     if (!SHA.test(initialQueue.base || '')) throw new Error('Missing live base for queue admission');
     const before = snapshot(pr);
     if (entries.length && await conflictCheck({github, context, pr, entries,
-      base: initialQueue.base, core, cache, statuses})) return;
+      base: initialQueue.base, core, cache, statuses})) {
+      await report('Waiting for a conflicting dependency update earlier in the queue.');
+      return;
+    }
     pr = await readPR(github, context, number);
     if (snapshot(pr) !== before || JSON.stringify(await admissionPassed(github, context, pr, {now})) !== JSON.stringify(admission)) return;
     if (!await queueEnabled({github, context, branch, root})) return;
@@ -431,12 +460,18 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
     // checks, including DCO, and atomically rejects a changed PR head.
     // GITHUB_TOKEN admission does not reliably trigger merge_group Actions runs;
     // merge_queue_dispatch supplies missing CI via the workflow_dispatch exception.
+    await report('Awaiting queue admission.');
     enqueueAttempted = true;
     const enqueued = await github.graphql(`mutation($id:ID!, $head:GitObjectID!) {
       enqueuePullRequest(input:{pullRequestId:$id,expectedHeadOid:$head,jump:false}) {
         mergeQueueEntry { id enqueuedAt headCommit { oid } }
       }
     }`, {id: pr.node_id, head: pr.head.sha});
+    if (typeof enqueued?.enqueuePullRequest?.mergeQueueEntry?.id !== 'string' ||
+        !enqueued.enqueuePullRequest.mergeQueueEntry.id) {
+      throw new Error('Incomplete enqueue response');
+    }
+    enqueueConfirmed = true;
     const enqueuedAt = enqueued?.enqueuePullRequest?.mergeQueueEntry?.enqueuedAt;
     const admissionTime = typeof enqueuedAt === 'string' && Number.isFinite(Date.parse(enqueuedAt)) ?
       `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}#queue-admission-time=${admission.fingerprint}:${encodeURIComponent(enqueuedAt)}` : undefined;
@@ -494,11 +529,13 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
     if (snapshot(after) !== before || JSON.stringify(await admissionPassed(github, context, after, {now, reservation, afterEnqueue:true})) !== JSON.stringify(admission) ||
         !await queueEnabled({github, context, branch, root})) {
       entries = await readQueue(github, context, branch);
-      await invalidateQueue(github, context, entries);
+      await invalidateQueue(github, context, entries, number);
       await dequeue(github, after);
+      await report('PR eligibility changed; awaiting fresh admission.');
     } else {
       // Each CI fingerprint gets one initial admission and one delayed retry.
       await recordAcknowledgedAdmission();
+      await report('Queued; awaiting merge-group checks.', 'success');
       const head = enqueued?.enqueuePullRequest?.mergeQueueEntry?.headCommit?.oid;
       if (SHA.test(head || '')) return {number, baseRef:branch, head};
     }
@@ -513,6 +550,7 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
       catch (statusError) { errors.push(statusError); }
     }
     let removalRequired = Boolean(entry);
+    let invalidationNumber = number;
     if (enqueueAttempted) {
       try {
         entries = await readQueue(github, context, branch);
@@ -520,18 +558,27 @@ async function reconcilePR({github, context, number, branch, root, core, now = (
       } catch (refreshError) {
         errors.push(refreshError);
         removalRequired = true;
+        invalidationNumber = undefined; // The refreshed membership is unknown.
       }
     }
     // A rejected enqueue with confirmed absence must not revoke unrelated
     // candidates. An unreadable response still requires conservative cleanup.
     if (removalRequired) {
-      try { await invalidateQueue(github, context, entries); }
+      try { await invalidateQueue(github, context, entries, invalidationNumber); }
       catch (statusError) { errors.push(statusError); }
       if (pr) {
         try { await dequeue(github, pr); }
         catch (dequeueError) { errors.push(dequeueError); }
       }
     }
+    const blocker = enqueueAttempted && !enqueueConfirmed && !removalRequired && errors.length === 1
+      ? enqueueBlocker(error) : null;
+    if (blocker) {
+      await report(blocker);
+      core?.info?.(`PR #${number}: ${blocker}`);
+      return;
+    }
+    await report('Admission could not be verified; see the queue controller logs.');
     throw new Error(errors.map(failure => failure.message).join('; '));
   }
 }
@@ -639,7 +686,12 @@ async function sweep({github, context, root, core, queueOnly = false, now, onFai
       for (const number of numbers) {
         // Healthy queued members cannot be newly admitted. Invalid members retain
         // the existing fresh read and fail-closed invalidation/dequeue path.
-        if (healthy.has(number)) continue;
+        if (healthy.has(number)) {
+          const pr = policies[entries.findIndex(entry => entry.pullRequest.number === number)];
+          await publishAdmissionStatus({github, context, pr, core, state: 'success',
+            description: 'Queued; awaiting merge-group checks.'});
+          continue;
+        }
         try {
           await reconcilePR({github, context, number, branch, root, core, now, onFailure, conflictCheck, cache});
         } catch (error) {
