@@ -183,9 +183,14 @@ const github = {{rest: {{
     return {{repository: {{nameWithOwner:'owner/repo',
       head0:{{__typename:'Commit',oid:variables.sha0,status:null}}}}}};
   }}
+  if (query.includes('query AdmissionReviewPolicy')) {{
+    return {{repository:{{nameWithOwner:'owner/repo',ref:{{
+      name:variables.branch.slice('refs/heads/'.length),branchProtectionRule:null
+    }}}}}};
+  }}
   if (query.includes('enqueuePullRequest')) {{
     requests.push({{route:'enqueue',options:variables}});
-    return {{enqueuePullRequest:{{mergeQueueEntry:{{headCommit:f.enqueuedCandidate ? {{oid:f.enqueuedCandidate}} : null}}}}}};
+    return {{enqueuePullRequest:{{mergeQueueEntry:{{id:'ENTRY_7',headCommit:f.enqueuedCandidate ? {{oid:f.enqueuedCandidate}} : null}}}}}};
   }}
   if (query.includes('query DispatchSnapshot')) {{
     requests.push({{route:'dispatchSnapshot'}});

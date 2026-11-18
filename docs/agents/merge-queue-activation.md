@@ -41,6 +41,38 @@ discovers candidates that GitHub built or replaced later, checks current
 queue members, and revisits ready PRs whose pending event was replaced. Admission is excluded
 from the aggregate's test checks to avoid a dependency cycle.
 
+### Why a PR is waiting
+
+The optional `merge-queue-admission` commit status explains the latest admission
+assessment for the PR head. It is separate from `ci-passed`: green CI alone does
+not mean GitHub's merge requirements are satisfied. The status reports missing
+approvals or holds, waiting for current-head CI or an eligible retry, unresolved
+review conversations, or a recognized GitHub enqueue rejection. Once admitted,
+it reports `Queued; awaiting merge-group checks.` A surviving sweep also updates
+already queued PRs, so replaced controller jobs do not leave stale blocker text.
+
+Conversation counts are read across all review-thread pages when the branch's
+effective rulesets or classic branch protection require resolution. Resolve the threads after addressing them;
+replying alone does not satisfy GitHub's requirement. A race with a new comment
+is still enforced by GitHub at enqueue time. Known policy rejections leave a PR
+pending without failing the shared sweep. Unexpected API errors still fail the
+controller and retain its conservative cleanup; inspect the latest admission or
+recovery job logs when the diagnostic says admission could not be verified.
+
+Statuses are attached to the inspected head and identical updates are deduplicated.
+The controller revisits eligible PRs on subsequent events and five-minute recovery
+sweeps; the diagnostic is not a live guarantee and does not promise a start time.
+**Do not require this status or use it as CI evidence:** it succeeds after admission,
+so requiring it before enqueue would create a dependency cycle. Status publication
+errors are logged without blocking admission or removing a queued PR.
+
+Shared `queue_admission` job cancellations can be expected when GitHub replaces
+pending requests in the concurrency group. They do not describe an individual PR's
+eligibility. Use the per-PR diagnostic and native queue membership instead of a
+Tide summary of those jobs. Native-queue branches must remain excluded from Tide's
+merge queries as described below; this diagnostic does not deploy external Tide
+configuration changes.
+
 Eligibility preserves Prow's `lgtm` plus `approved` requirement for normal PRs.
 Only the exact `dependabot[bot]` Bot identity receives the existing development
 branch review exception. Draft/closed PRs, `needs-ok-to-test`, `needs-rebase`,
