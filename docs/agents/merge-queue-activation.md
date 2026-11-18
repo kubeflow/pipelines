@@ -52,7 +52,9 @@ it reports `Queued; awaiting merge-group checks.` A surviving sweep also updates
 already queued PRs, so replaced controller jobs do not leave stale blocker text.
 
 Conversation counts are read across all review-thread pages when the branch's
-effective rulesets or classic branch protection require resolution. Resolve the threads after addressing them;
+effective rulesets or classic branch protection require resolution. The controller
+reads classic protection through `Ref.refUpdateRule`, which is visible to non-admins.
+Resolve the threads after addressing them;
 replying alone does not satisfy GitHub's requirement. A race with a new comment
 is still enforced by GitHub at enqueue time. Known policy rejections leave a PR
 pending without failing the shared sweep. Unexpected API errors still fail the
