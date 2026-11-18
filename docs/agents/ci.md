@@ -628,14 +628,14 @@ never prove obsolescence. Current candidates and unrelated PR/manual runs are le
 
 Admission does not wait for unrelated status-recovery matrix jobs. Each newly
 verified queue-ready PR success dispatches the trusted default-branch recovery
-workflow with its PR number and exact head, inside request accounting. Every
-surviving serialized controller also lists likely ready PRs, so replacement of
-a pending job cannot lose its admission request. Approval and `ci-passed` labels
-are only discovery filters; fresh policy and CI evidence still authorize entry.
-The five-minute recovery sweep performs this ready-PR catch-up too, while the
-15-minute full sweep also discovers failed aggregates eligible for PR Gate
-recovery. Both schedules are subject to GitHub scheduling delays. Wakeup failures
-warn without revoking valid CI, and a later controller catches up. The
+workflow with its PR number and exact head, inside request accounting. PR events
+and wakeups reconcile the identified PR. Queue workflow completions inspect
+the reported candidate, using its ref and SHA. Fresh policy and CI evidence
+still authorize entry. The five-minute recovery sweep catches up ready PRs,
+missed events and candidates without a workflow completion. The 15-minute full
+sweep also discovers failed aggregates eligible for PR Gate recovery. Both
+schedules are subject to GitHub scheduling delays. Wakeup failures warn without
+revoking valid CI, and scheduled recovery can retry. The
 15-minute cooldown is a minimum, not a retry-time guarantee. After the retry
 budget is exhausted, fix or rerun PR CI; a new verified workflow fingerprint
 automatically permits admission again without adding queue labels manually.
