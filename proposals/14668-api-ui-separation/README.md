@@ -3,8 +3,8 @@
 - **Status:** Draft for discussion; not approved for implementation.
 - **Author:** Jeff Spahr (@jeffspahr).
 - **Tracking:** [#14668](https://github.com/kubeflow/pipelines/issues/14668).
-- **Target:** staged work on `main` for 3.0, where
-  each mandatory capability graduates on its own compatibility and isolation evidence.
+- **Target:** staged delivery on `main` for 3.0. Each mandatory capability graduates
+  on its own compatibility and isolation evidence.
 - **Source baseline:** [commit `8a79799a2`](https://github.com/kubeflow/pipelines/commit/8a79799a2f54a678b7535eb4697dfc6812a4bb66).
   Boundary implementation rechecked on November 11 against [commit `b5e247523`](https://github.com/kubeflow/pipelines/commit/b5e247523201027c2c0b05c3260f53bd0c89008b); intervening changes do not deliver these migrations.
 
@@ -160,7 +160,7 @@ specifications. The tracking issue mirrors this inventory and links here for des
 | Viewer lifecycle | separation | UI `/apps/tensorboard` CRUD and signed proxy | Add backend viewer CRUD, approved profiles and session-open/proxy contracts, including artifact/experiment contexts without runs. | [#15518](https://github.com/kubeflow/pipelines/issues/15518); adoption policy [#14391](https://github.com/kubeflow/pipelines/issues/14391) |
 | Bootstrap/configuration | separation | UI GKE metadata, health/configuration composition | Add `server_info` and namespace-aware `capabilities`; retain static UI configuration and health compatibility. Signing Job belongs to viewers; host-pod volume discovery belongs to artifacts. | [#15519](https://github.com/kubeflow/pipelines/issues/15519) |
 | Attempt identity/lifecycle | shared correctness | `TaskPod` name/UID/type; runtime task writes; private retry claim token | Add authoritative namespace and accepted execution-attempt identity; fence stale writes and define legal terminal/retry transitions. These correctness slices can ship independently of snapshots. | [#15516](https://github.com/kubeflow/pipelines/issues/15516); lifecycle coordination [#14322](https://github.com/kubeflow/pipelines/issues/14322), terminal guard [#14032](https://github.com/kubeflow/pipelines/issues/14032) |
-| Task read model | independent scale track | Full `GetTask`/`ListTasks`, sequential page drains | Add `ListTaskSummaries`/`ListTaskChanges`, revision-bound pagination, tombstones and selected-task detail reads. | [#14032](https://github.com/kubeflow/pipelines/issues/14032), [#14040](https://github.com/kubeflow/pipelines/issues/14040), [#14028](https://github.com/kubeflow/pipelines/issues/14028) |
+| Task read model | independent scale track | Full `GetTask`/`ListTasks`, sequential page drains | Add `ListTaskSummaries`/`ListTaskChanges`, revision-bound pagination, tombstones and selected-task detail reads. See [KEP-14032](https://github.com/kubeflow/pipelines/pull/15774). | [#14032](https://github.com/kubeflow/pipelines/issues/14032), [#14040](https://github.com/kubeflow/pipelines/issues/14040), [#14028](https://github.com/kubeflow/pipelines/issues/14028) |
 | Relationships | independent scale track | `ListArtifactTasks` selects one IO type | Add mutually exclusive repeated-type/direction selectors; decide or separately own bounded lineage traversal before closing. | [#15522](https://github.com/kubeflow/pipelines/issues/15522) |
 | Artifact grouping/task discovery | independent product track | Flat artifacts and run-scoped tasks | Reserve grouped artifact reads and namespace task search for product-approved schemas; trusted legacy-execution mapping is a distinct migration contract. | [#14041](https://github.com/kubeflow/pipelines/issues/14041), [#14301](https://github.com/kubeflow/pipelines/issues/14301), [#14029](https://github.com/kubeflow/pipelines/issues/14029) |
 | Existing API correctness/efficiency | separate fixes | Parent pipeline/version lookup; run-list version fan-out | Validate parent relationships; design a bounded metadata batch/projection. Neither requires waiting for UI infrastructure removal. | [#14920](https://github.com/kubeflow/pipelines/issues/14920), [#11346](https://github.com/kubeflow/pipelines/issues/11346) |
@@ -198,22 +198,44 @@ describes the proposed stock grant. Resolve the actual subject, namespace and re
 request, including continuations. Here “admin” means a project administrator in the namespace.
 The storage operator who controls cross-namespace grants has a separate deployment role.
 
+Stock single-user mode currently
+[skips the multi-user Artifact access review](https://github.com/kubeflow/pipelines/blob/c1ff1d2658d497b189509e67c32658bc2c3cfa89/backend/src/apiserver/server/artifact_server.go#L695-L699).
+For stock standalone, the installer configures one installation-local read principal on the
+trusted single-user entry path. It may read registered metadata and content under the
+installation grant. Use that principal for authorization, quotas and audit in this mode.
+A standalone deployment with external authentication binds its intended subjects explicitly.
+Public or untrusted traffic cannot assert the local identity through a header, and multi-user
+installs always use the namespace-scoped caller checks below.
+
 | Operation | SubjectAccessReview resource and verb | View | Edit | Admin | Additional check |
 | --- | --- | --- | --- | --- | --- |
 | Discover or read log sources, including legacy run/node logs | `runs.readLog` (existing) | Yes | Yes | Yes | Requested source belongs to the authorized run and attempt where known. |
 | Legacy run/node artifact bytes | `runs.readArtifact` (existing) | Yes | Yes | Yes | Verify run/node/object relationship and effective storage grant. |
 | Registered content, including preview, entries and archive | `artifacts.get` and proposed `artifacts.readArtifact` | Yes | Yes | Yes | Verify the registered object and each derived entry under the effective grant. |
 | Resolve/read a historical locator | Proposed `artifacts.readArtifact` in the authorized namespace | Yes | Yes | Yes | Apply current storage grant and caller binding on resolve and on each read. |
-| Run/task diagnostic projection and event pages | Proposed `runs.readDiagnostics` or `runs.readEvents`, respectively | Yes | Yes | Yes | Bind every record to the authorized run and execution evidence. |
+| Run/task diagnostic projection and event pages | Proposed `runs.readDiagnostics` for both | Yes | Yes | Yes | Bind every record to the authorized run and execution evidence. |
 | List/get viewers or open a session | Proposed `viewers.list/get/open`, according to operation | Yes | Yes | Yes | Filter lists by visibility. On open and renewal verify viewer access and every source grant. |
 | Create, patch, delete viewers | Proposed `viewers.create/update/delete`, respectively | No | Yes | Yes | Verify namespace, profile and context. Check source access before creating or changing inputs. |
 | Inspect bootstrap and capabilities | Deployment-visible build facts, authenticated capability query | Filtered | Filtered | Filtered | Expose only authorized namespace features. Each underlying operation repeats its own check. |
 | Maintain historical storage grants | Deployment/storage operator configuration | No | No | No | Separately delegated operators maintain grants and record changes. |
 
-The proposed viewer resource belongs to the KFP API. The existing manifests use `kubeflow.org`
-Viewer permissions. Publish equivalent role bindings and an opt-in migration for custom roles
-before switching routes. Verify least-privilege custom roles through direct API, SDK and
-compatibility paths. A caller holding only `artifacts.get` can still read metadata.
+Today the [pod info and event handlers](../../frontend/server/handlers/pod-info.ts) both check
+namespace `get` on `kubeflow.org/viewers`. The
+[artifact UI handler](../../frontend/server/handlers/artifacts.ts) also uses that check in
+authenticated mode. Map each custom role's intended workflows before enabling the new routes:
+
+| Existing workflow | Proposed opt-in binding in the same namespace |
+| --- | --- |
+| Read pod info or events | Grant `runs.readDiagnostics` for both bounded projections. Both expose the same run-scoped diagnostic evidence. A future API exposing broader event data needs separate review. |
+| Read registered artifact bytes | Grant `artifacts.readArtifact` and metadata `artifacts.get`. Historical reads need the content verb and an object grant. Keep the existing `runs.readArtifact` check on the legacy run/node route. |
+| Manage or open a Viewer | Map the existing `kubeflow.org` Viewer permissions to the corresponding KFP `viewers` operations, including `open` for session users. |
+
+Ship the stock role changes before cutover. Publish example Role rules and an opt-in migration
+for operators to bind to the same subjects, namespaces and intended resource restrictions.
+Verify allowed and denied operations for each custom role through the UI, SDK, direct API and
+compatibility routes before switching its traffic. A metadata-only role keeps metadata access.
+A denied new check is final on every adapter. Approving content access also requires an object
+grant. The workload permission to list Kubernetes Events is independent of the caller verb.
 
 #### Service account permissions
 
@@ -228,7 +250,7 @@ permissions needed for their separate reconciliation responsibilities.
 | --- | --- | --- | --- |
 | Core API server | Pod/log reads, workflow reads and configured authorization reviews | With separate adapters, authenticated backend calls only. If it hosts the runtime adapter, add the event read below. | Compare actual per-overlay bindings. Never copy the UI role wholesale. |
 | Runtime adapter | Reuse pod `get`, `pods/log.get` and workflow reads where already bound | Add `list` for core Events in served namespaces (or the selected events API group), using the resolved subject UID. | No new pod mutation, event writes or cluster-wide discovery for UI requests. |
-| Content service / receiver | Namespace-scoped object-store identity and explicit permitted mounts | Where needed, `get` only named launcher/provider configuration and named credential Secrets in the serving namespace. Read grant policy from the authorized resolver. Bind read-only `get/list/watch` on the proposed cluster-scoped grants only to the resolver that needs the policy cache. | Exclude Secret listing, grant writes and shared cross-tenant fallback credentials. Test rotation and revocation. |
+| Content service / receiver | Namespace-scoped object-store identity and explicit permitted mounts | Where needed, `get` only named launcher/provider configuration and named credential Secrets in the serving namespace. Read grant policy from the authorized resolver. The resolver reads cluster-scoped grants through the dedicated binding below. | Exclude Secret listing, grant writes and shared cross-tenant fallback credentials. Test rotation and revocation. |
 | Viewer manager / proxy | Viewer controller reconciles Viewer resources into workloads | Manager reads/creates/patches/deletes Viewer objects in enabled namespaces. Proxy receives scoped session/source checks and connects only to the resolved viewer. | No new generic proxy route, arbitrary deployment creation or signing-key mutation by the proxy. |
 | Signing-key initialization Job | Existing [named Secret get/update](../../manifests/kustomize/base/pipeline/ui-signing-key/rbac.yaml) | Move those two verbs to the dedicated viewer bootstrap identity. Mount only necessary key material in the signer. | Verify old-key adoption and rotation before retiring the frontend-image Job. |
 | UI server | Move each current infrastructure consumer to its owner | No Kubernetes workload verbs or storage credentials after cutover. | Remove automatic token mount. If backend hop authentication uses a projected token, restrict its audience to that backend. |
@@ -239,7 +261,14 @@ Record the rendered role diff beside each implementation PR. For a co-located fi
 API server service account needs the union of only those adapter permissions it actually uses.
 Record that union per installation. In particular, moving viewer or storage work behind an
 independently authenticated service adds no Viewer or storage Secret privileges to the core API
-server. The grant provisioning identity alone may create, update or revoke grants.
+server. In standalone the existing API service account has a namespaced Role and
+[RoleBinding](../../manifests/kustomize/base/pipeline/ml-pipeline-apiserver-rolebinding.yaml).
+A namespaced binding cannot read cluster-scoped grants. Both proposed overlays install a
+ClusterRole limited to `get/list/watch` on `ArtifactStorageGrant` and a ClusterRoleBinding
+to the dedicated grant resolver. If the API process hosts the resolver, explicitly bind those
+same verbs to its service account and show the resulting cluster-level read in the manifest
+diff. Install a separate, constrained writer binding for the operator/provisioner. Verify
+that the resolver cannot write policy, and the UI and tenant roles cannot read or write it.
 
 #### Audit and metrics
 
@@ -338,23 +367,59 @@ namespace editors cannot create or change it. Each record contains:
 | `operations`, `sharing` | Permitted read/preview/list/archive operations; private versus explicitly shared scope and its complete viewer audience. |
 | `generation`, `state` | Current revision and active/revoked state; invalid updates are rejected before activation. |
 
-A read requires the proposed `artifacts.readArtifact` permission in the authorized namespace and
-an active matching grant; registered IDs additionally require Artifact metadata access. The
-legacy run/node route retains `runs.readArtifact` plus the same object-grant enforcement. Grants
+Every read requires an active matching object grant. New content operations also require the
+effective `artifacts.readArtifact` permission in the authorized namespace. Registered IDs
+additionally require Artifact metadata access. The legacy run/node route uses its existing
+`runs.readArtifact` permission with the same object-grant enforcement. Grants
 cannot expand the actual storage identity's permissions. Artifact/importer rows, URI queries,
 namespace labels and tenant-editable launcher ConfigMaps cannot create grants or select a
 broader credential binding. Resolve provider settings under #14046, then match the actual
 destination and canonical object; do not authorize one spelling and fetch another.
 
-Provisioning may create private grants only from trusted allocation evidence binding a storage
-scope to the current namespace UID. Do not infer ownership of historical `artifacts/` objects,
-custom roots or a recreated namespace's old name-based prefix from matching metadata or broad
-credentials. Operators can adopt existing authorized scopes without moving objects; mixed legacy
-roots need trusted narrower object/prefix assignments or an explicit sharing decision.
-Cross-namespace overlapping grants require that decision and a declared audience, not automatic
-private ownership. Missing evidence produces an actionable denial rather than permissive
-fallback. Admission validation and per-grant failure isolation avoid one malformed record
-blocking unrelated tenants.
+An allocation is a durable reservation created by the installer, storage administrator or
+authorized profile provisioner. It records the installation and namespace UIDs, canonical
+provider endpoint/account, bucket and exact key or delimiter-bounded prefix, the scoped
+credential binding and the exclusive owner or approved sharing audience. The provisioner must
+control the allocation and verify storage ownership. Serialize overlapping reservations per
+canonical destination, persist the decision, then activate the grant. Concurrent provisioners
+cannot both claim the same private prefix. Reconciliation is idempotent for the same allocation
+and UID. A root string, an empty listing, a writable launcher ConfigMap, an Artifact/importer
+row or the ability to read the bucket does not establish that reservation. An operator can
+attest a historical scope from protected provisioning or storage inventory with the same facts.
+
+**Default grants and activation.** These are proposed installer and upgrade behaviors for the
+first artifact slice. The [compiled standalone fallback](../../backend/src/v2/config/env.go)
+is `minio://mlpipeline/v2/artifacts`. The
+[stock profile provisioner](../../manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py)
+configures a private root per namespace name and also provisions access to shared paths.
+
+- **Fresh standalone, stock storage.** The installer reserves `v2/artifacts/` exclusively in
+  its newly provisioned bucket at the actual backend endpoint. It issues one private grant for
+  read, preview, list and archive to the installation namespace UID and its scoped storage
+  identity. It provisions the grant before advertising content or accepting default allocations
+  as ready. For standalone Artifact records, map the backend's
+  [empty namespace sentinel](https://github.com/kubeflow/pipelines/blob/c1ff1d2658d497b189509e67c32658bc2c3cfa89/backend/src/apiserver/resource/resource_manager.go#L4006-L4012)
+  to this configured UID. Requests cannot select another audience. Reused or external stores
+  require an operator reservation before activation.
+- **Fresh multi-user, stock profile.** The profile provisioner reserves the private
+  `private-artifacts/{namespace}/v2/artifacts/` prefix in the configured bucket for the
+  current namespace UID and issues the same four operations to that one audience before
+  enabling reads there. The stock default creates no grant on the common `artifacts/` or
+  `shared/` prefix. For a recreated namespace, reserve a fresh UID-specific prefix, provision
+  its matching credential scope and point new writes there. Never rebind the old allocation
+  by name. Custom roots need a separate reservation or explicit sharing policy.
+- **Populated 2.18 upgrade.** Install the new policy support with the new routes disabled.
+  Create no blanket or inferred grants. Inventory existing roots and representative registered,
+  imported and legacy reads. An operator can adopt a proven private scope in place, assign
+  exact keys or narrower prefixes from trusted records, or record an explicit shared audience.
+  Compare authorized and denied reads in shadow mode without returning bytes. Enable per
+  namespace only after the operator accepts the parity report and dispositions for unresolved
+  objects. Keep unresolved objects denied by the new path and report the remediation. Keep
+  the pre-cutover configuration until the namespace is ready. Once switched, all aliases
+  enforce the same grants and cannot fall back on missing evidence or operator revocation.
+
+Admission rejects undeclared cross-audience overlap and isolates invalid grants. Losing a
+namespace, changing its UID or rebinding a storage endpoint requires a new allocation decision.
 
 For example, two namespace credentials may both read the old `bucket/artifacts/` root. That does
 not justify private grants for that whole prefix. An operator can bind an evidenced
@@ -397,11 +462,20 @@ cannot disable enforcement. Advertise effective limits through capabilities.
 | Preview | 64 KiB returned content, 1 MiB source-read budget, 30-second deadline; apply output bounds after decompression. Producer sidecars exceeding 64 KiB are rejected, not truncated. |
 | Entry listing | 200 entries per page, maximum 1,000; at most 10,000 examined entries or 30 seconds per request, with an explicit continuation/incomplete result. |
 | Raw read | 20 GiB response cap, 30-minute absolute and 30-second idle deadline; preserve raw bytes and support ranges without changing authorized identity. |
-| Directory archive | 10,000 members, 10 GiB aggregate source bytes, ten-minute deadline; at most four concurrent object reads. |
-| Concurrency / buffers | Two transfers per principal, eight per namespace, 32 per serving instance; 16 MiB application buffer budget per transfer, with SDK/process overhead measured separately. |
+| Directory archive | 10,000 members, 10 GiB aggregate source bytes, 30-minute absolute deadline; at most four concurrent object reads. |
+| Raw/archive admission | Two per principal, eight per namespace, 32 per serving instance. Budget 16 MiB of application buffers per transfer and measure SDK/process overhead separately. |
+| Preview/list admission | Separate short-read pool of eight per principal, 32 per namespace and 64 per serving instance. The preview source-byte, output and time ceilings still apply. |
 
-Principal and namespace admission limits apply across serving replicas; only the instance limit
-is local. Reject excess work promptly rather than creating an unbounded queue.
+The byte and absolute time limits both apply. Reaching 20 GiB of raw bytes in 30 minutes
+requires about 11.4 MiB/s sustained. The archive gets the same 30 minutes for 10 GiB of source
+bytes (about 5.7 MiB/s before object opens, encoding and downstream backpressure). Its byte
+limit measures input before compression. A slower transfer can reach its deadline first.
+Treat it as incomplete after headers. Raw clients can resume with a supported range and an
+unchanged object validator. Incomplete archives must be requested again.
+
+Previews and listings use the short-read pool even while two raw downloads are active. Apply
+principal and namespace limits across replicas and the instance limit locally. When a pool is
+full, return HTTP 429 with retry guidance (`Retry-After`) before opening storage.
 
 Preview JSON declares `representation`, `media_type`, `encoding` (`utf-8` or `base64`), `data`,
 `truncated` and `limits_applied`. Only report truncation when content was removed; arbitrary
@@ -566,6 +640,22 @@ historical binding, and resolve its location internally. For live pods, recheck 
 before streaming. Unsupported follow/time/tail selectors return `CAPABILITY_UNSUPPORTED`; they
 are not silently ignored. Timestamp absence and source precision remain explicit.
 
+Without `tail_lines`, start at the earliest available record that matches `since_time`, or the
+earliest retained record if omitted. Return the head of that selection up to `max_bytes`
+(10 MiB by default). A follow first drains this selection. If the backlog exhausts the byte
+budget it ends before waiting for new output. A UI requesting the most recent lines passes an
+explicit supported tail count. An unsupported tail must be reported to that client.
+
+Use the same 15-second authorization lease as content transfers for live, archived and plugin
+reads, including follows and compatibility adapters. Before opening, verify current
+`runs.readLog`, namespace UID, run/source binding and applicable source or archive grants.
+Renew from authoritative state every ten seconds with a five-second timeout, measured from the
+last successful observation. Stop immediately on denial and by lease expiry on failure. An
+independent timer cancels upstream reads and downstream writes even when either is stalled.
+Discard pending output and record an incomplete transfer after headers. Revocation never
+triggers live-to-archive fallback. The 30-minute absolute limit applies to both one-shot
+reads and follows.
+
 **Streaming contract:** return plain text with attachment/nosniff headers. Validate before
 committing headers; use bounded copying, cancellation and backpressure. Expose the effective
 byte limit and absolute deadline in response headers before streaming. After bytes start, abort
@@ -632,12 +722,13 @@ requires a new listing. Use deterministic ordering by observed time plus stable 
 repeated counts update one event rather than inventing new occurrences. The UI polls with
 cancellation and backoff, retaining successful data while displaying freshness or recovery.
 
-**Authorization and acceptance:** enforce `runs.readDiagnostics`/`runs.readEvents` plus
-run/task/source ownership, not the current namespace-only `VIEWERS` check. Fetch only objects
-resolved by those bindings and verify pod UID. Test missing Secret/image, pre-task orchestration
-failure, no-driver/plugin execution, recovered warnings, missing/expired history, namespace
-recreation, stale pod names, bounded refresh and two-namespace denial. Run the production view
-with UI Kubernetes access denied. #13192's extended per-attempt history remains separate.
+**Authorization and acceptance:** both projections require `runs.readDiagnostics` and a
+verified run/task/source binding. The custom-role migration covers existing namespace Viewer
+readers. Fetch only objects resolved by those bindings and verify pod UID. Test missing
+Secret/image, pre-task orchestration failure, no-driver/plugin execution, recovered warnings,
+missing/expired history, namespace recreation, stale pod names, bounded refresh and
+two-namespace denial. Run the production view with UI Kubernetes access denied. #13192's
+extended per-attempt history remains separate.
 
 #### Viewer lifecycle and proxy sessions
 
@@ -657,11 +748,12 @@ accept `artifact_id` directly and are resolved by the backend. Historical-only i
 accept caller-bound `content_ref` values from trusted content resolution and use a validated
 namespace context without inventing native rows. These are alternative input selectors, not a
 requirement to pre-resolve every registered artifact. Namespace identity and current storage
-authority come from backend resolution, not URI equality. Experiment
-aggregation authorizes every contributing source and reports partial/unavailable inputs.
-Persist canonical source identities and grant bindings. Later opens reauthorize these identities even after the five-minute transport reference expires. Require the matching
-`viewers` verb and source-context/content authorization. Authenticated requests cannot use the
-standalone default namespace as a fallback.
+authority come from backend resolution. Experiment aggregation authorizes each contributing
+source and reports partial or unavailable inputs. Persist canonical source identities and
+grant bindings. Later opens reauthorize those identities even after the five-minute transport
+reference expires. Require the matching `viewers` verb and source-context/content
+authorization. Authenticated requests cannot use the standalone default namespace as a
+fallback.
 
 Profiles select deployment-approved images, templates, service accounts and network targets.
 Visualization metadata cannot choose these values. Inventory supported customization and supply
@@ -695,7 +787,7 @@ activation.
 | --- | --- |
 | Source/event/viewer listing | 100 entries/page, maximum 500; cursor lifetime 15 minutes. |
 | Log bytes | `max_bytes=10 MiB`, maximum 64 MiB per read/follow session; the same cap bounds decompressed archive output. |
-| Log tail and follow | `tail_lines` omitted means no tail filter; maximum 10,000 when requested. Follow has a 30-minute absolute limit and 5-minute idle timeout. |
+| Log tail and follow | Omitting `tail_lines` reads the head of the selected interval. Maximum requested tail is 10,000 lines. One-shot reads and follows have a 30-minute absolute and 5-minute idle limit. All open log reads renew a 15-second authorization lease. |
 | Concurrent log reads | Four per authenticated principal and namespace UID; deployments also enforce a finite global budget. |
 | Diagnostics/events | Maximum 1 MiB encoded response and 16 KiB per message; explicit truncation markers, bounded field collections and source pagination. Never silently discard a source. |
 | Event window | Last hour by default; maximum requested lookback 24 hours. Report actual retained coverage rather than promising that retention. |
@@ -842,7 +934,7 @@ availability, supported contract version and limits, not a frontend build assump
 | Parallel lane: viewer/bootstrap | Move lifecycle, source authorization, session proxy/signing and configuration discovery. Qualify old viewer URLs, signing-key adoption and browser entry paths. |
 | Per-capability cutover | Enable clients only for advertised capabilities; preserve successful data and actionable unsupported/error states. Old URLs forward into the same backend policy. |
 | Final infrastructure removal | Demonstrate parity with UI Kubernetes/object-store access denied, then remove client libraries, credentials, RBAC/token mounts and storage-network access across supported overlays. |
-| Parallel read-model track | Deliver identity/lifecycle correctness independently; ship query sharing against the current API independently, then adopt snapshots when available. Grouping/search/lineage designs remain separately accepted. |
+| Parallel read-model track | Ship identity and shared queries independently. [KEP-14032](https://github.com/kubeflow/pipelines/pull/15774) owns snapshot delivery and adoption. Grouping, search and lineage have separate acceptance. |
 
 Start upgrade qualification from the actual populated 2.18 state, including its retained
 artifact ownership policy, existing roots and namespace credentials. Do not assume deferred
@@ -960,7 +1052,20 @@ a baseline to preserve.
   tenants, read-only viewers, editors and unauthorized callers. Spoof headers,
   Artifact/importer records, namespace IDs, source IDs and session references;
   never infer an object grant merely from a matching row or broad credentials.
-- Exercise direct registered-ID access and historical-only resolution. Deny tenant grant mutations and forged foreign-object metadata. Test overlapping audiences, stalled-stream lease expiry and quota admission across replicas.
+- Verify that a default registered artifact can be previewed and downloaded on clean
+  standalone and multi-user installs. Cover the standalone local principal and empty
+  namespace, unreserved external storage, profile name reuse, concurrent private claims and
+  explicit sharing. Upgrade a populated 2.18 store containing both attributable and ambiguous
+  keys. Check shadow results, per-namespace activation and legacy aliases after cutover. Deny
+  forged metadata and tenant grant writes.
+- Render both overlays and test the resolver's read-only cluster binding, the provisioner's
+  write boundary and custom-role migration for diagnostics, events, artifact content and
+  viewers. Verify metadata-only and cross-namespace denials before and after cutover.
+- Revoke an active log and content read during an upstream stall or downstream backpressure.
+  Verify cancellation by lease expiry, no further writes or archive fallback and an incomplete
+  response. Read a log larger than 10 MiB with and without a tail, then with a full backlog
+  and follow enabled. Race previews and two downloads across replicas and verify that each
+  pool admits up to its own limit. Exercise slow raw/archive reads at their absolute deadlines.
 - Test real S3-compatible stores and supported provider fixtures; keep live
   interoperability evidence separate from mocked cloud coverage. Include GCS,
   approved HTTP redirects, archives, supported isolated volumes, and central
@@ -1008,6 +1113,7 @@ contract tests.
   no-UI-infrastructure E2E test passes across supported overlays. No hidden old
   route can fall back to UI storage/Kubernetes credentials. Required permission
   and dependency removal is merged and documented.
+
 ## Decisions Required Before Implementation
 
 Review each slice with the relevant component owners. For backend and runtime contracts,
@@ -1020,18 +1126,20 @@ Review each slice with the relevant component owners. For backend and runtime co
 | Decision | Proposed starting point | Review |
 | --- | --- | --- |
 | Canonical v2 routes, field types and attempt IDs | Use the contracts in Design Details. Reserve additive field numbers, verify idempotent issuance, and exercise legacy records with absent attempt IDs. | Backend and frontend |
-| Artifact identity, sharing and limits | Use direct registered-ID reads and historical-only references. Exercise the historical grant example with two tenants, rotation and revocation before enabling reads. | Backend and manifests |
+| Artifact identity, sharing and limits | Use direct registered-ID reads and historical-only references. Qualify proposed standalone/profile grants and populated upgrade adoption, cross-audience overlap, rotation and revocation. | Backend and manifests |
 | Caller/workload RBAC | Validate the two matrices against rendered overlays and existing custom roles. Test denied alternatives through every entry point. | Backend and manifests |
 | Transfer bounds and sessions | Benchmark the defaults in the content, log and viewer sections against representative payloads and concurrent clients. Document negotiated limits and supported compatibility behavior. | Backend and frontend |
 | Viewer profiles, rollout and retirement | Translate supported profiles, establish signing-key adoption and the rollback window, then qualify the UI with infrastructure access denied. | Frontend, backend and manifests |
 
 ## Implementation History
 
-- 2026-11-18: Split optional metadata design into KEP-14032. Revised storage grants, caller and workload permissions, mandatory runtime contracts, audit evidence and proposed limits.
-
-- 2026-11-10: Initial draft and canonical API-change inventory linked from [#14668](https://github.com/kubeflow/pipelines/issues/14668).
-- 2026-11-11: Reviewed implementation coverage and dependency order; added frontend-server/image ownership, legacy artifact parity, focused delivery tickets and terminal-finalization semantics.
-- No implementation or release graduation is claimed by this proposal.
+- 2026-11-10: Linked the initial draft and canonical API inventory from
+  [#14668](https://github.com/kubeflow/pipelines/issues/14668).
+- 2026-11-11: Added frontend server and image ownership, legacy artifact compatibility,
+  delivery dependencies and terminal finalization requirements.
+- 2026-11-18: Split the optional read model into
+  [KEP-14032](https://github.com/kubeflow/pipelines/pull/15774). Specified grant bootstrap
+  and upgrade, custom-role migration, active-read revocation and operational limits.
 
 ## Drawbacks
 
@@ -1057,6 +1165,23 @@ tenant-authored metadata. These costs should be measured and delivered in indepe
 6. **Copy [#14883](https://github.com/kubeflow/pipelines/pull/14883)'s full adoption/readiness framework.** Retain it as reference
    evidence and reusable components; choose only the mechanisms needed by the
    reviewed backend authority model.
+7. **Store grants in namespaced resources.** One CR per tenant could use namespaced reads.
+   Shared audiences would need coordinated updates and a trusted cross-namespace overlap check.
+   A CR in a reserved operator namespace could keep the standalone reader on a Role. The
+   cluster-scoped grant keeps the allocation alive if the installation namespace is replaced.
+   A single reserved namespace can also give shared audiences one policy revision and is
+   viable for one installation. Cluster scope avoids a shared namespace naming and lifecycle
+   convention at the cost of cluster-level read access even in standalone.
+8. **Store grants in the KFP database or static operator configuration.** A database table
+   avoids a Kubernetes policy reader and supports transactional overlap checks. It requires an
+   admin interface, audit trail and migration. Static config is simpler for a fixed standalone
+   root. Profile creation, namespace UID changes and bounded revocation would require validated
+   distribution and coordinated reloads on every replica. The proposed CRD lets the installer
+   and profile controller reconcile the same policy with Kubernetes RBAC and audit.
+9. **Resolve every artifact before reading.** A universal reference gives both input types
+   one transport, but introduces an extra round trip, expiry and renewal for every registered
+   artifact. A registered ID already lets the backend load and authorize its target on each
+   read. Historical locators lack that stable ID and use a short-lived, caller-bound reference.
 
 ## Related Work
 
