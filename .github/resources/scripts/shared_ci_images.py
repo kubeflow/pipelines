@@ -939,6 +939,7 @@ def resolve_once(
     pin=None,
     require_bundle=False,
     unrelated_attempts=None,
+    select_attempt=None,
 ):
     run = None
     artifacts = None
@@ -969,6 +970,8 @@ def resolve_once(
                 # A head SHA can belong to multiple PRs or merge revisions.
                 # Validate provenance before judging an unrelated run's result.
                 validate_run(run, identity, check_conclusion=False)
+                if select_attempt is not None:
+                    select_attempt(attempt)
                 artifacts = api.artifacts(run['id'])
                 source = named_artifact(
                     artifacts,
@@ -1074,6 +1077,16 @@ def resolve(
     previous_deadline = getattr(api, 'deadline', None)
     previous_polling = getattr(api, 'polling', False)
     api.polling = True
+
+    def select_attempt(attempt):
+        nonlocal completed_producer, publication_deadline
+        if completed_producer is not None and attempt != completed_producer:
+            # The old attempt's publication budget cannot bound API calls or
+            # retries for a newly discovered producer.
+            completed_producer = None
+            publication_deadline = None
+            api.deadline = deadline
+
     try:
         while True:
             api.deadline = min(deadline, publication_deadline or deadline)
@@ -1086,6 +1099,7 @@ def resolve(
                     state,
                     pin=lambda pinned: write_json(path, pinned),
                     unrelated_attempts=unrelated_attempts,
+                    select_attempt=select_attempt,
                     require_bundle=require_bundle,
                 )
                 write_json(path, state)

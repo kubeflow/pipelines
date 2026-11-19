@@ -528,6 +528,45 @@ class SharedImageTests(unittest.TestCase):
         self.assertEqual(state['identity'], matching.source)
         self.assertEqual(json.loads(self.state_path.read_text()), state)
 
+    def test_new_candidate_uses_discovery_deadline_for_first_request(self):
+        self.api.current_run.update(status='completed', conclusion='success')
+        self.api.items.clear()
+        matching = self.newer_candidate(dict(self.consumer, run_id=30))
+        matching.images('amd64', self.directory)
+        now = [0]
+        self.api.runs = lambda sha: (
+            [self.api.current_run] if now[0] < 50 else [matching.current_run]
+        )
+        self.api.run = matching.run
+        artifacts = self.api.artifacts
+
+        def slow_artifacts(run_id):
+            if run_id == matching.current_run['id'] and now[0] == 50:
+                # A transient error after the old cutoff must also retry
+                # under the discovery budget.
+                self.assertEqual(self.api.deadline, 150)
+                now[0] += 11
+                raise shared.APIError('temporary artifact service error')
+            return artifacts(run_id)
+
+        def wait(seconds):
+            now[0] += seconds
+
+        self.api.artifacts = slow_artifacts
+        state = shared.resolve(
+            self.api,
+            self.consumer,
+            'amd64',
+            'images',
+            self.state_path,
+            timeout=150,
+            poll=50,
+            clock=lambda: now[0],
+            sleep=wait,
+        )
+        self.assertEqual(now[0], 111)
+        self.assertEqual(state['identity'], matching.source)
+
     def newer_candidate(self, source):
         newer = FakeAPI(source)
         original_artifacts = self.api.artifacts
