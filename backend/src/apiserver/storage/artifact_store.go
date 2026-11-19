@@ -24,7 +24,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
 	"sort"
 	"strings"
 
@@ -522,63 +521,87 @@ func (s *ArtifactStore) getArtifactByIdentityKey(namespace, identityKey string) 
 	return artifacts[0], nil
 }
 
+type rowScanner interface {
+	Scan(dest ...any) error
+}
+
+type reqIDRowScanner struct {
+	reqID *string
+	inner rowScanner
+}
+
+func (s *reqIDRowScanner) Scan(dest ...any) error {
+	allDest := make([]any, 0, len(dest)+1)
+	allDest = append(allDest, s.reqID)
+	allDest = append(allDest, dest...)
+	return s.inner.Scan(allDest...)
+}
+
+func scanArtifactRow(scanner rowScanner) (*model.Artifact, error) {
+	var uuid, namespace string
+	var name, uri, uriHash, description, identityKey sql.NullString
+	var artifactType int32
+	var createdAtInSec, lastUpdateInSec int64
+	var metadataBytes []byte
+	var numberValue sql.NullFloat64
+
+	err := scanner.Scan(
+		&uuid,
+		&namespace,
+		&artifactType,
+		&uri,
+		&uriHash,
+		&name,
+		&description,
+		&createdAtInSec,
+		&lastUpdateInSec,
+		&metadataBytes,
+		&numberValue,
+		&identityKey,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse metadata JSON
+	var metadata model.JSONData
+	if metadataBytes != nil {
+		err = metadata.Scan(metadataBytes)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to parse artifact metadata")
+		}
+	}
+
+	artifact := &model.Artifact{
+		UUID:            uuid,
+		Namespace:       namespace,
+		Type:            model.ArtifactType(artifactType),
+		URIHash:         uriHash.String,
+		Name:            name.String,
+		Description:     description.String,
+		CreatedAtInSec:  createdAtInSec,
+		LastUpdateInSec: lastUpdateInSec,
+		Metadata:        metadata,
+	}
+	if numberValue.Valid {
+		artifact.NumberValue = &numberValue.Float64
+	}
+	if identityKey.Valid {
+		artifact.IdentityKey = &identityKey.String
+	}
+
+	if uri.Valid {
+		artifact.URI = &uri.String
+	}
+	return artifact, nil
+}
+
 func (s *ArtifactStore) scanRows(rows *sql.Rows) ([]*model.Artifact, error) {
 	var artifacts []*model.Artifact
 	for rows.Next() {
-		var uuid, namespace string
-		var name, uri, uriHash, description, identityKey sql.NullString
-		var artifactType int32
-		var createdAtInSec, lastUpdateInSec int64
-		var metadataBytes []byte
-		var numberValue sql.NullFloat64
-
-		err := rows.Scan(
-			&uuid,
-			&namespace,
-			&artifactType,
-			&uri,
-			&uriHash,
-			&name,
-			&description,
-			&createdAtInSec,
-			&lastUpdateInSec,
-			&metadataBytes,
-			&numberValue,
-			&identityKey,
-		)
+		artifact, err := scanArtifactRow(rows)
 		if err != nil {
 			return nil, err
-		}
-
-		// Parse metadata JSON
-		var metadata model.JSONData
-		if metadataBytes != nil {
-			err = metadata.Scan(metadataBytes)
-			if err != nil {
-				return nil, util.NewInternalServerError(err, "Failed to parse artifact metadata")
-			}
-		}
-
-		artifact := &model.Artifact{
-			UUID:            uuid,
-			Namespace:       namespace,
-			Type:            model.ArtifactType(artifactType),
-			URIHash:         uriHash.String,
-			Name:            name.String,
-			Description:     description.String,
-			CreatedAtInSec:  createdAtInSec,
-			LastUpdateInSec: lastUpdateInSec,
-			Metadata:        metadata,
-		}
-		if numberValue.Valid {
-			artifact.NumberValue = &numberValue.Float64
-		}
-		if identityKey.Valid {
-			artifact.IdentityKey = &identityKey.String
-		}
-
-		if uri.Valid {
-			artifact.URI = &uri.String
 		}
 		artifacts = append(artifacts, artifact)
 	}
@@ -720,6 +743,9 @@ func (s *ArtifactStore) GetArtifact(id string) (*model.Artifact, error) {
 }
 
 // GetArtifactsByIDs fetches a batch of artifacts keyed by artifact UUID.
+// It joins the requested IDs to the stored UUIDs in SQL using the column's
+// own comparison semantics, returning the matching request spelling alongside
+// each row to preserve database collation and trailing whitespace behavior.
 func (s *ArtifactStore) GetArtifactsByIDs(artifactIDs []string) (map[string]*model.Artifact, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
@@ -744,78 +770,60 @@ func (s *ArtifactStore) GetArtifactsByIDs(artifactIDs []string) (map[string]*mod
 		return artifactsByID, nil
 	}
 
-	sqlStr, args, err := qb.
-		Select(dialect.QuoteAll(q, artifactColumns)...).
+	args := make([]interface{}, len(dedupedIDs))
+	for i, id := range dedupedIDs {
+		args[i] = id
+	}
+
+	selectCols := make([]string, 0, 1+len(artifactColumns))
+	selectCols = append(selectCols, q("req")+"."+q("req_id"))
+	for _, col := range artifactColumns {
+		selectCols = append(selectCols, q(artifactTableName)+"."+q(col))
+	}
+
+	unionClause := "(SELECT ? AS " + q("req_id") + strings.Repeat(" UNION ALL SELECT ?", len(dedupedIDs)-1) + ") " + q("req")
+	joinClause := unionClause + " ON " + q(artifactTableName) + "." + q("UUID") + " = " + q("req") + "." + q("req_id")
+
+	queryBuilder := qb.
+		Select(selectCols...).
 		From(q(artifactTableName)).
-		Where(sq.Eq{q("UUID"): dedupedIDs}).
-		ToSql()
+		Join(joinClause, args...)
+
+	var sqlStr string
+	var sqlArgs []interface{}
+	var err error
+	if s.dbDialect != nil {
+		sqlStr, sqlArgs, err = s.dbDialect.FinalizeSelect(queryBuilder)
+	} else {
+		sqlStr, sqlArgs, err = queryBuilder.ToSql()
+	}
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to get artifacts by IDs: %v", err.Error())
 	}
 
-	r, err := s.db.Query(sqlStr, args...)
+	r, err := s.db.Query(sqlStr, sqlArgs...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get artifacts by IDs: %v", err.Error())
 	}
 	defer r.Close()
 
-	artifacts, err := s.scanRows(r)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to scan artifacts by IDs: %v", err.Error())
-	}
-	for _, a := range artifacts {
-		artifactsByID[a.UUID] = a
-	}
-	if isColumnCaseInsensitive(s.db, s.dbDialect, artifactTableName) {
-		byLower := make(map[string]*model.Artifact, len(artifacts))
-		for _, a := range artifacts {
-			byLower[strings.ToLower(a.UUID)] = a
+	for r.Next() {
+		var reqID string
+		scanner := &reqIDRowScanner{
+			reqID: &reqID,
+			inner: r,
 		}
-		for _, reqID := range artifactIDs {
-			if reqID == "" {
-				continue
-			}
-			if _, exists := artifactsByID[reqID]; exists {
-				continue
-			}
-			if matched, ok := byLower[strings.ToLower(reqID)]; ok {
-				artifactsByID[reqID] = matched
-			}
+		artifact, err := scanArtifactRow(scanner)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to scan artifacts by IDs: %v", err.Error())
 		}
+		artifactsByID[reqID] = artifact
 	}
+	if err := r.Err(); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to iterate artifacts by IDs: %v", err.Error())
+	}
+
 	return artifactsByID, nil
-}
-
-var uuidColDefRegex = regexp.MustCompile(`(?i)(?:^|[\s(,"'\[` + "`" + `])UUID(?:['"` + "`" + `\]]*\s+)([^,]+)`)
-var nocaseCollateRegex = regexp.MustCompile(`(?i)\bCOLLATE\s+["'` + "`" + `\[]?NOCASE["'` + "`" + `\]]?(?:\W|$)`)
-
-// isColumnCaseInsensitive checks if the UUID column on the given table has case-insensitive collation.
-// MySQL uses case-insensitive collation by default (e.g. utf8mb4_general_ci), but can be case-sensitive
-// if explicitly defined with a binary or case-sensitive collation (e.g. utf8mb4_bin).
-// PostgreSQL uses case-sensitive collation.
-// SQLite uses case-sensitive collation by default, but case-insensitive if the UUID column is defined with COLLATE NOCASE.
-func isColumnCaseInsensitive(db *sql.DB, d dialect.DBDialect, tableName string) bool {
-	if d != nil && d.Name() == "mysql" {
-		if db != nil {
-			var collation string
-			row := db.QueryRow("SELECT COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME=? AND COLUMN_NAME='UUID' AND (TABLE_SCHEMA=DATABASE() OR DATABASE() IS NULL)", tableName)
-			if err := row.Scan(&collation); err == nil && collation != "" {
-				return strings.HasSuffix(strings.ToLower(collation), "_ci")
-			}
-		}
-		return true
-	}
-	if d != nil && d.Name() == "sqlite" && db != nil {
-		var tableSQL string
-		row := db.QueryRow("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", tableName)
-		if err := row.Scan(&tableSQL); err == nil {
-			match := uuidColDefRegex.FindStringSubmatch(tableSQL)
-			if len(match) > 1 {
-				return nocaseCollateRegex.MatchString(match[1])
-			}
-		}
-	}
-	return false
 }
 
 // GetArtifactsByURI returns artifacts matching Namespace and URI exactly.

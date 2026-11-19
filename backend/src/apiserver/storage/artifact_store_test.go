@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -160,6 +159,11 @@ func TestGetArtifactsByIDs_CaseSensitivityAndNOCASE(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, upperBatch, "expected no match for mixed-case ID on case-sensitive database")
 
+	// Trailing whitespace fails on exact-matching database
+	spaceBatch, err := storeStandard.GetArtifactsByIDs([]string{art.UUID + "   "})
+	require.NoError(t, err)
+	assert.Empty(t, spaceBatch, "expected no match for trailing-space ID on exact-matching database")
+
 	// 2. Case-insensitive database: SQLite table defined with COLLATE NOCASE
 	dbNocase, testDialect := NewFakeDBOrFatal()
 	defer dbNocase.Close()
@@ -199,7 +203,7 @@ func TestGetArtifactsByIDs_CaseSensitivityAndNOCASE(t *testing.T) {
 	assert.Equal(t, artNocase.UUID, nocaseBatch[upperNocaseID].UUID)
 
 	// 3. Mixed-column table: UUID is case-sensitive (BINARY), but Name uses COLLATE NOCASE.
-	// isColumnCaseInsensitive must NOT be tricked by NOCASE on another column.
+	// UUID comparison is governed by UUID column collation, unaffected by NOCASE on Name.
 	dbMixed, testDialectMixed := NewFakeDBOrFatal()
 	defer dbMixed.Close()
 	_, err = dbMixed.Exec("DROP TABLE IF EXISTS " + artifactTableName)
@@ -312,17 +316,52 @@ func TestGetArtifactsByIDs_CaseSensitivityAndNOCASE(t *testing.T) {
 	assert.NotEmpty(t, quotedBatch, "expected mixed-case ID to match on quoted NOCASE column definition")
 	assert.NotNil(t, quotedBatch[upperQuotedID])
 	assert.Equal(t, artQuoted.UUID, quotedBatch[upperQuotedID].UUID)
-}
 
-func TestIsColumnCaseInsensitive_MySQL(t *testing.T) {
-	mysqlDialect := dialect.NewDBDialect("mysql")
-	// 1. MySQL dialect with nil db falls back to true (standard MySQL default is case-insensitive)
-	assert.True(t, isColumnCaseInsensitive(nil, mysqlDialect, "artifacts"))
+	// 6. Collation comparison semantics (e.g. SQLite COLLATE RTRIM):
+	// When table column has COLLATE RTRIM, trailing whitespace in request ID matches the stored UUID.
+	// Both single-row lookup and batch lookup must succeed and return the map keyed by the requested spelling.
+	dbRtrim, testDialectRtrim := NewFakeDBOrFatal()
+	defer dbRtrim.Close()
+	_, err = dbRtrim.Exec("DROP TABLE IF EXISTS " + artifactTableName)
+	require.NoError(t, err)
+	_, err = dbRtrim.Exec(`CREATE TABLE ` + artifactTableName + ` (
+		UUID VARCHAR(255) COLLATE RTRIM NOT NULL PRIMARY KEY,
+		Namespace VARCHAR(255),
+		Name VARCHAR(255),
+		Type INTEGER,
+		URI VARCHAR(255),
+		URIHash VARCHAR(64),
+		Description TEXT,
+		CreatedAtInSec BIGINT,
+		LastUpdateInSec BIGINT,
+		Metadata TEXT,
+		IdentityKey VARCHAR(255),
+		NumberValue DOUBLE PRECISION
+	)`)
+	require.NoError(t, err)
 
-	// 2. MySQL dialect when information_schema query fails falls back to true
-	db, _ := NewFakeDBOrFatal()
-	defer db.Close()
-	assert.True(t, isColumnCaseInsensitive(db, mysqlDialect, "artifacts"))
+	storeRtrim := NewArtifactStore(dbRtrim, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil), testDialectRtrim)
+	artRtrim, err := storeRtrim.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:       strPTR("s3://bucket/test-rtrim"),
+		Name:      "test-artifact-rtrim",
+	})
+	require.NoError(t, err)
+
+	// Single lookup with trailing spaces matches under RTRIM
+	var singleUUID string
+	err = dbRtrim.QueryRow("SELECT UUID FROM "+artifactTableName+" WHERE UUID = ?", artRtrim.UUID+"   ").Scan(&singleUUID)
+	require.NoError(t, err)
+	assert.Equal(t, artRtrim.UUID, singleUUID)
+
+	// Batch lookup with trailing spaces matches under RTRIM and keys result by requested spelling
+	rtrimReqID := artRtrim.UUID + "   "
+	rtrimBatch, err := storeRtrim.GetArtifactsByIDs([]string{rtrimReqID})
+	require.NoError(t, err)
+	assert.NotEmpty(t, rtrimBatch, "expected trailing-space ID to match under COLLATE RTRIM")
+	assert.NotNil(t, rtrimBatch[rtrimReqID])
+	assert.Equal(t, artRtrim.UUID, rtrimBatch[rtrimReqID].UUID)
 }
 
 func TestGetArtifactsByURI_ExactNamespaceAndURIMatch(t *testing.T) {

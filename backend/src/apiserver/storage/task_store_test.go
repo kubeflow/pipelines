@@ -1338,6 +1338,11 @@ func TestGetTasksByIDs_CaseSensitivityAndNOCASE(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, upperBatch, "expected no match for mixed-case ID on case-sensitive database")
 
+	// Trailing whitespace fails on exact-matching database
+	spaceBatch, err := taskStoreStandard.GetTasksByIDs([]string{task.UUID + "   "})
+	require.NoError(t, err)
+	assert.Empty(t, spaceBatch, "expected no match for trailing-space ID on exact-matching database")
+
 	// 2. Case-insensitive database: SQLite table defined with COLLATE NOCASE
 	dbNocase, testDialect := NewFakeDBOrFatal()
 	defer dbNocase.Close()
@@ -1384,7 +1389,7 @@ func TestGetTasksByIDs_CaseSensitivityAndNOCASE(t *testing.T) {
 	assert.Equal(t, taskNocase.UUID, nocaseBatch[upperNocaseID].UUID)
 
 	// 3. Mixed-column table: UUID is case-sensitive (BINARY), but Name uses COLLATE NOCASE.
-	// isColumnCaseInsensitive must NOT be tricked by NOCASE on another column.
+	// UUID comparison is governed by UUID column collation, unaffected by NOCASE on Name.
 	dbMixed, testDialectMixed := NewFakeDBOrFatal()
 	defer dbMixed.Close()
 	var mixedSchema string
@@ -1512,6 +1517,58 @@ func TestGetTasksByIDs_CaseSensitivityAndNOCASE(t *testing.T) {
 	assert.NotEmpty(t, quotedBatch, "expected mixed-case ID to match on quoted NOCASE column definition")
 	assert.NotNil(t, quotedBatch[upperQuotedID])
 	assert.Equal(t, taskQuoted.UUID, quotedBatch[upperQuotedID].UUID)
+
+	// 6. Collation comparison semantics (e.g. SQLite COLLATE RTRIM):
+	// When table column has COLLATE RTRIM, trailing whitespace in request ID matches the stored UUID.
+	// Both single-row lookup and batch lookup must succeed and return the map keyed by the requested spelling.
+	dbRtrim, testDialectRtrim := NewFakeDBOrFatal()
+	defer dbRtrim.Close()
+	var rtrimSchema string
+	err = dbRtrim.QueryRow("SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'").Scan(&rtrimSchema)
+	require.NoError(t, err)
+	_, err = dbRtrim.Exec("DROP TABLE tasks")
+	require.NoError(t, err)
+	for _, target := range []string{"`UUID` varchar(191)", "\"UUID\" varchar(191)", "UUID varchar(191)", "`UUID` text", "\"UUID\" text", "UUID text"} {
+		if strings.Contains(rtrimSchema, target) {
+			rtrimSchema = strings.Replace(rtrimSchema, target, target+" COLLATE RTRIM", 1)
+			break
+		}
+	}
+	_, err = dbRtrim.Exec(rtrimSchema)
+	require.NoError(t, err)
+
+	runStoreRtrim := NewRunStore(dbRtrim, util.NewFakeTimeForEpoch(), testDialectRtrim)
+	_, err = runStoreRtrim.CreateRun(&model.Run{
+		UUID:         "run-1",
+		K8SName:      "run1",
+		DisplayName:  "run1",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+	})
+	require.NoError(t, err)
+
+	taskStoreRtrim := NewTaskStore(dbRtrim, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil), testDialectRtrim)
+	taskRtrim, err := taskStoreRtrim.CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   "run-1",
+		Name:      "test-task-rtrim",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	// Single lookup with trailing spaces matches under RTRIM
+	var singleUUID string
+	err = dbRtrim.QueryRow("SELECT UUID FROM tasks WHERE UUID = ?", taskRtrim.UUID+"   ").Scan(&singleUUID)
+	require.NoError(t, err)
+	assert.Equal(t, taskRtrim.UUID, singleUUID)
+
+	// Batch lookup with trailing spaces matches under RTRIM and keys result by requested spelling
+	rtrimReqID := taskRtrim.UUID + "   "
+	rtrimBatch, err := taskStoreRtrim.GetTasksByIDs([]string{rtrimReqID})
+	require.NoError(t, err)
+	assert.NotEmpty(t, rtrimBatch, "expected trailing-space ID to match under COLLATE RTRIM")
+	assert.NotNil(t, rtrimBatch[rtrimReqID])
+	assert.Equal(t, taskRtrim.UUID, rtrimBatch[rtrimReqID].UUID)
 }
 
 func TestGetTaskCountsForRuns(t *testing.T) {

@@ -999,6 +999,10 @@ func (s *TaskStore) FindLatestCachedTask(namespace, fingerprint string) (*model.
 	return tasks[0], nil
 }
 
+// GetTasksByIDs fetches a batch of tasks keyed by task ID without hydrating artifacts.
+// It joins the requested IDs to the stored UUIDs in SQL using the column's
+// own comparison semantics, returning the matching request spelling alongside
+// each row to preserve database collation and trailing whitespace behavior.
 func (s *TaskStore) GetTasksByIDs(taskIDs []string) (map[string]*model.Task, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
@@ -1023,12 +1027,34 @@ func (s *TaskStore) GetTasksByIDs(taskIDs []string) (map[string]*model.Task, err
 		return tasksByID, nil
 	}
 
-	rowsSQL, rowsArgs, err := qb.
-		Select(dialect.QuoteAll(q, taskColumns)...).
-		From(q("tasks")).
-		Where(sq.Eq{q("UUID"): dedupedTaskIDs}).
-		OrderBy(q("RunUUID")+" ASC", q("CreatedAtInSec")+" ASC", q("UUID")+" ASC").
-		ToSql()
+	args := make([]interface{}, len(dedupedTaskIDs))
+	for i, id := range dedupedTaskIDs {
+		args[i] = id
+	}
+
+	selectCols := make([]string, 0, 1+len(taskColumns))
+	selectCols = append(selectCols, q("req")+"."+q("req_id"))
+	for _, col := range taskColumns {
+		selectCols = append(selectCols, q(tableName)+"."+q(col))
+	}
+
+	unionClause := "(SELECT ? AS " + q("req_id") + strings.Repeat(" UNION ALL SELECT ?", len(dedupedTaskIDs)-1) + ") " + q("req")
+	joinClause := unionClause + " ON " + q(tableName) + "." + q("UUID") + " = " + q("req") + "." + q("req_id")
+
+	queryBuilder := qb.
+		Select(selectCols...).
+		From(q(tableName)).
+		Join(joinClause, args...).
+		OrderBy(q(tableName)+"."+q("RunUUID")+" ASC", q(tableName)+"."+q("CreatedAtInSec")+" ASC", q(tableName)+"."+q("UUID")+" ASC")
+
+	var rowsSQL string
+	var rowsArgs []interface{}
+	var err error
+	if s.dbDialect != nil {
+		rowsSQL, rowsArgs, err = s.dbDialect.FinalizeSelect(queryBuilder)
+	} else {
+		rowsSQL, rowsArgs, err = queryBuilder.ToSql()
+	}
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to get tasks by IDs: %v", err.Error())
 	}
@@ -1039,30 +1065,22 @@ func (s *TaskStore) GetTasksByIDs(taskIDs []string) (map[string]*model.Task, err
 	}
 	defer rows.Close()
 
-	tasks, err := s.scanRows(rows)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to scan tasks by IDs: %v", err.Error())
-	}
-	for _, task := range tasks {
-		tasksByID[task.UUID] = task
-	}
-	if isColumnCaseInsensitive(s.db, s.dbDialect, tableName) {
-		byLower := make(map[string]*model.Task, len(tasks))
-		for _, task := range tasks {
-			byLower[strings.ToLower(task.UUID)] = task
+	for rows.Next() {
+		var reqID string
+		scanner := &reqIDRowScanner{
+			reqID: &reqID,
+			inner: rows,
 		}
-		for _, reqID := range taskIDs {
-			if reqID == "" {
-				continue
-			}
-			if _, exists := tasksByID[reqID]; exists {
-				continue
-			}
-			if matched, ok := byLower[strings.ToLower(reqID)]; ok {
-				tasksByID[reqID] = matched
-			}
+		task, err := scanTaskRow(scanner)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to scan tasks by IDs: %v", err.Error())
 		}
+		tasksByID[reqID] = task
 	}
+	if err := rows.Err(); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to iterate tasks by IDs: %v", err.Error())
+	}
+
 	return tasksByID, nil
 }
 
