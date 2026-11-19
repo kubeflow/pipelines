@@ -305,7 +305,7 @@ class InventoryTests(unittest.TestCase):
     @unittest.skipUnless(
         shutil.which('kubectl'), 'kubectl is needed to render the stock overlay'
     )
-    def test_rendered_stock_overlay_uses_all_seven_refs(self):
+    def test_rendered_stock_overlay_uses_all_standalone_refs(self):
         base = (
             Path(__file__).resolve().parents[3]
             / 'manifests/kustomize/env/platform-agnostic'

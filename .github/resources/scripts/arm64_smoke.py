@@ -32,11 +32,17 @@ CI_IMAGES = {
     'kfp-scheduled-workflow-controller': 'scheduledworkflow',
     'kfp-frontend': 'frontend',
     'kfp-viewer-crd-controller': 'viewer-crd-controller',
+    'kfp-profile-controller': 'profile-controller',
     'kfp-driver': 'driver',
     'kfp-launcher': 'launcher',
 }
 IMAGES = set(CI_IMAGES)
-CONTROL_IMAGES = IMAGES - {'kfp-driver', 'kfp-launcher'}
+# The standalone smoke does not deploy the multi-user profile controller.
+CONTROL_IMAGES = IMAGES - {
+    'kfp-driver',
+    'kfp-launcher',
+    'kfp-profile-controller',
+}
 MARKER = 'KFP_NATIVE_ARM64_EXECUTION_OK'
 DRIVER_PLUGIN_MANIFEST = (
     Path(__file__).resolve().parents[3] / 'manifests/kustomize/base/pipeline/'

@@ -1,0 +1,4 @@
+# Runtime only. sync.py uses the standard library and botocore.
+botocore==1.44.3
+# Keep the HTTP client on the patched Python >=3.10 release line.
+urllib3==2.8.0

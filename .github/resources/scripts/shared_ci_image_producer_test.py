@@ -27,6 +27,7 @@ IMAGES = {
     'driver',
     'frontend',
     'viewer-crd-controller',
+    'profile-controller',
 }
 
 
@@ -50,6 +51,49 @@ assert.throws(() => architectures({}, 'merge_group',
   {merge_group: {base_ref: 'refs/heads/release-2.19'}}, []));
 """
         subprocess.run(['node', '-e', script], cwd=ROOT, check=True)
+
+    def test_profile_runtime_is_built_and_published_on_both_architectures(
+        self,
+    ) -> None:
+        from arm64_smoke import CI_IMAGES, CONTROL_IMAGES
+        from osv_manifest_images import is_first_party
+        from shared_ci_images import IMAGES as shared_images
+
+        context = 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller'
+        for line in ('master', 'release'):
+            jobs = workflow(f'image-builds-{line}.yml')['jobs']
+            matrix = jobs[f'build-images-for-{line}']['strategy']['matrix']
+            profile = [
+                item
+                for item in matrix['image']
+                if item['name'] == 'kfp-profile-controller'
+            ]
+            self.assertEqual(
+                profile,
+                [
+                    {
+                        'name': 'kfp-profile-controller',
+                        'dockerfile': context + '/Dockerfile',
+                        'context': context,
+                    }
+                ],
+            )
+            self.assertEqual(
+                {item['platform'] for item in matrix['arch']},
+                {'linux/amd64', 'linux/arm64'},
+            )
+            self.assertIn(
+                {'image': 'kfp-profile-controller'},
+                jobs['create-manifests']['strategy']['matrix']['component'],
+            )
+        self.assertIn('profile-controller', shared_images)
+        self.assertEqual(
+            CI_IMAGES['kfp-profile-controller'], 'profile-controller'
+        )
+        self.assertNotIn('kfp-profile-controller', CONTROL_IMAGES)
+        self.assertTrue(
+            is_first_party('ghcr.io/kubeflow/kfp-profile-controller:2.18.1')
+        )
 
     def test_only_shared_producer_calls_image_builder(self) -> None:
         callers = []
@@ -134,6 +178,10 @@ assert.throws(() => architectures({}, 'merge_group',
             == './.github/actions/download-artifact-with-retry'
         )
         self.assertNotIn('github-token', download['with'])
+        from shared_ci_images import IMAGES as required_images
+
+        names = download['with']['pattern'].split('}', 1)[0].removeprefix('{')
+        self.assertEqual(set(names.split(',')), set(required_images))
         self.assertIn('github.run_attempt', download['with']['pattern'])
         self.assertIn('inputs.architecture', download['with']['pattern'])
         verify = next(
@@ -211,6 +259,10 @@ assert.throws(() => architectures({}, 'merge_group',
         prepare = next(s for s in steps if s.get('id') == 'go-context')
         self.assertIn('image-build-provenance.py prepare', prepare['run'])
         self.assertIn('--sha "$GITHUB_SHA"', prepare['run'])
+        self.assertEqual(
+            prepare['env']['IMAGE_CONTEXT'], '${{ matrix.context }}'
+        )
+        self.assertIn('--context "$IMAGE_CONTEXT"', prepare['run'])
         for name in ('save-image', 'rebuild'):
             build = next(s for s in steps if s.get('id') == name)
             self.assertEqual(

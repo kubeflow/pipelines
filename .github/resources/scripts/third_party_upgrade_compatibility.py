@@ -23,10 +23,11 @@ import subprocess
 import sys
 import time
 import urllib.request
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from pathlib import Path
 
 import yaml
+from third_party_upgrade_scan import build_profile_image, image_reference
 
 ROOT = Path(__file__).resolve().parents[3]
 SEAWEED = ROOT / 'manifests/kustomize/third-party/seaweedfs/base'
@@ -289,6 +290,110 @@ def upgrade_store(target):
     wait_ready('seaweedfs')
 
 
+PROFILE_DEPLOYMENT = 'kubeflow-pipelines-profile-controller'
+PROFILE_ROLLBACK_IMAGE = 'docker.io/alpine/k8s:1.37.2'
+
+
+def profile_running_image(expected: str) -> dict:
+    """Require a ready running pod for the requested runtime, not an old
+    replica."""
+    pods = json.loads(
+        kubectl('get', 'pods', '-l', f'app={PROFILE_DEPLOYMENT}', '-o', 'json')
+    )['items']
+    active = [
+        pod for pod in pods if not pod['metadata'].get('deletionTimestamp')
+    ]
+    if len(active) != 1:
+        raise AssertionError('Expected one active profile controller pod')
+    pod = active[0]
+    container = next(
+        item
+        for item in pod['spec']['containers']
+        if item['name'] == 'profile-controller'
+    )
+    status = next(
+        item
+        for item in pod['status']['containerStatuses']
+        if item['name'] == 'profile-controller'
+    )
+    if (
+        container['image'] != expected
+        or not status.get('ready')
+        or 'running' not in status.get('state', {})
+        or not status.get('imageID')
+    ):
+        raise AssertionError(
+            'Profile controller is not running the requested image'
+        )
+    return {
+        'image': expected,
+        'image_id': status['imageID'],
+        'pod_uid': pod['metadata']['uid'],
+    }
+
+
+def exercise_profile_rollback(
+    candidate: str,
+    secret: dict,
+    admin_credentials: tuple[str, str],
+    evidence: Path,
+) -> None:
+    """Change only the runtime image and prove data/credential continuity both
+    ways."""
+    run(
+        'bash',
+        str(ROOT / '.github/resources/scripts/docker-pull-with-retry.sh'),
+        PROFILE_ROLLBACK_IMAGE,
+    )
+    run(
+        'kind',
+        'load',
+        'docker-image',
+        '--name',
+        CLUSTER,
+        PROFILE_ROLLBACK_IMAGE,
+    )
+    receipts = []
+    keys = ['private-artifacts/compat-user/after-upgrade']
+    for phase, image in [
+        ('rollback', PROFILE_ROLLBACK_IMAGE),
+        ('restore', candidate),
+    ]:
+        kubectl(
+            'set',
+            'image',
+            f'deployment/{PROFILE_DEPLOYMENT}',
+            f'profile-controller={image}',
+        )
+        wait_ready(PROFILE_DEPLOYMENT)
+        receipt = profile_running_image(image)
+        with forward(
+            PROFILE_DEPLOYMENT, PROFILE_LOCAL_PORT, PROFILE_PORT, evidence
+        ) as webhook:
+            for _ in range(2):
+                if (
+                    sync_profile(webhook, 'compat-user', secret)['data']
+                    != secret['data']
+                ):
+                    raise AssertionError(
+                        f'Profile {phase} replaced existing credentials'
+                    )
+        with forward('seaweedfs', S3_LOCAL_PORT, S3_PORT, evidence) as endpoint:
+            with closing(client(endpoint, *admin_credentials)) as admin:
+                verify_state(admin)
+            with closing(client(endpoint, *secret_credentials(secret))) as user:
+                for key in keys:
+                    verify_payload(user, key)
+                key = f'private-artifacts/compat-user/after-{phase}'
+                user.put_object(Bucket=BUCKET, Key=key, Body=PAYLOAD)
+                verify_payload(user, key)
+                keys.append(key)
+        receipts.append({'phase': phase, **receipt})
+    (evidence / 'profile-rollback.json').write_text(
+        json.dumps(receipts, indent=2) + '\n'
+    )
+
+
 def exercise_profile(admin_credentials, evidence):
     """Check retained data and issue reusable credentials through the
     webhook."""
@@ -296,6 +401,30 @@ def exercise_profile(admin_credentials, evidence):
     profile = [
         obj for obj in rendered(PROFILE) if obj['kind'] != 'DecoratorController'
     ]
+    reference = image_reference(ROOT, 'profile-controller')
+    sha = run('git', '-C', str(ROOT), 'rev-parse', 'HEAD').strip()
+    build = build_profile_image(ROOT, reference, sha)
+    if build:
+        run('kind', 'load', 'docker-image', '--name', CLUSTER, build['image'])
+        deployment = next(
+            obj
+            for obj in profile
+            if obj['kind'] == 'Deployment'
+            and obj['metadata']['name']
+            == 'kubeflow-pipelines-profile-controller'
+        )
+        container = next(
+            item
+            for item in deployment['spec']['template']['spec']['containers']
+            if item['name'] == 'profile-controller'
+        )
+        container['image'] = build['image']
+        container['imagePullPolicy'] = 'Never'
+        image = json.loads(run('docker', 'image', 'inspect', build['image']))[0]
+        build['image_id'] = image['Id']
+        (evidence / 'profile-runtime.json').write_text(
+            json.dumps(build, indent=2) + '\n'
+        )
     apply(profile)
     wait_ready('kubeflow-pipelines-profile-controller')
     with forward('seaweedfs', S3_LOCAL_PORT, S3_PORT, evidence) as endpoint:
@@ -324,6 +453,29 @@ def exercise_profile(admin_credentials, evidence):
         )
         verify_payload(user, 'private-artifacts/compat-user/after-upgrade')
         verify_state(s3)
+    kubectl(
+        'rollout', 'restart', 'deployment/kubeflow-pipelines-profile-controller'
+    )
+    wait_ready('kubeflow-pipelines-profile-controller')
+    with forward(
+        'kubeflow-pipelines-profile-controller',
+        PROFILE_LOCAL_PORT,
+        PROFILE_PORT,
+        evidence,
+    ) as webhook:
+        if (
+            sync_profile(webhook, 'compat-user', secret)['data']
+            != secret['data']
+        ):
+            raise AssertionError(
+                'Profile restart replaced existing credentials'
+            )
+    exercise_profile_rollback(
+        build['image'] if build else reference,
+        secret,
+        admin_credentials,
+        evidence,
+    )
     return secret
 
 
@@ -363,6 +515,13 @@ def write_result(evidence, baseline_image, target, pvc_uid):
                     'profile-health',
                     'profile-iam-credentials',
                     'profile-idempotence',
+                    'profile-restart-credentials',
+                    'profile-rollback-running-image',
+                    'profile-rollback-health-reconcile-idempotence',
+                    'profile-rollback-credentials-and-object-continuity',
+                    'profile-restore-running-image',
+                    'profile-restore-health-reconcile-idempotence',
+                    'profile-restore-credentials-and-object-continuity',
                     'new-image-write',
                     'restart-read',
                     'restart-credentials',

@@ -22,6 +22,9 @@ import unittest
 from pathlib import Path
 
 HACK = Path(__file__).resolve().parent
+PROFILE_PATH = (
+    'base/installs/multi-user/pipelines-profile-controller/kustomization.yaml'
+)
 PLUGIN_PATHS = (
     'base/pipeline/ml-pipeline-driver-plugin-cm.yaml',
     'env/cert-manager/platform-agnostic-standalone-tls/patches/ml-pipeline-driver-plugin-cm.yaml',
@@ -43,6 +46,7 @@ class YqReleaseTest(unittest.TestCase):
             'base/pipeline/kustomization.yaml',
             'base/installs/generic/pipeline-install-config.yaml',
             'base/pipeline/ml-pipeline-apiserver-deployment.yaml',
+            PROFILE_PATH,
             *PLUGIN_PATHS,
         )
         with tempfile.TemporaryDirectory() as directory:
@@ -65,8 +69,9 @@ class YqReleaseTest(unittest.TestCase):
                 for path in paths:
                     self.assertEqual((root / path).stat().st_mode, modes[path])
                 expected = copy.deepcopy(before)
-                for image in expected[paths[0]]['images']:
-                    image['newTag'] = tag
+                for path in (paths[0], PROFILE_PATH):
+                    for image in expected[path]['images']:
+                        image['newTag'] = tag
                 expected[paths[1]]['data']['appVersion'] = tag
                 containers = expected[paths[2]]['spec']['template']['spec'][
                     'containers'
@@ -78,7 +83,7 @@ class YqReleaseTest(unittest.TestCase):
                                 env['value'] = (
                                     f'ghcr.io/kubeflow/kfp-launcher:{tag}'
                                 )
-                for path in paths[:3]:
+                for path in paths[:4]:
                     self.assertEqual(read_yaml(root / path), expected[path])
                 for path in PLUGIN_PATHS:
                     original = before[path]['data']['sidecar.container']

@@ -25,8 +25,8 @@ spec:
             - ALL
           seccompProfile:
             type: RuntimeDefault
-        # We just need an image with the python botocore library installed
-        image: docker.io/alpine/k8s:1.37.2
+        # Python and botocore only; controller code is mounted from the hooks ConfigMap.
+        image: ghcr.io/kubeflow/kfp-profile-controller:master
         command: ["python", "/hooks/sync.py"]
         envFrom:
         - configMapRef:

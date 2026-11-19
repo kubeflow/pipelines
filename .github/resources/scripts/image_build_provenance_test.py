@@ -98,15 +98,15 @@ class ImageBuildProvenanceTest(unittest.TestCase):
         prepare.assert_called_once()
 
     def test_recipe_paths_rejected_before_classification(self) -> None:
+        (self.source / 'api-alias').symlink_to('backend/Dockerfile')
         for recipe in (
+            'api-alias',
             'backend/../backend/Dockerfile',
             str(self.source / 'backend/Dockerfile'),
         ):
             for operation in ('prepare', 'verify'):
                 with self.subTest(recipe=recipe, operation=operation):
-                    with self.assertRaisesRegex(
-                        ValueError, 'relative.*traversal'
-                    ):
+                    with self.assertRaisesRegex(ValueError, 'Dockerfile must'):
                         if operation == 'prepare':
                             MODULE.prepare(
                                 self.source,
