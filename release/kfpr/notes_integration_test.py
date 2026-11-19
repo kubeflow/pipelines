@@ -509,6 +509,41 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
             path = self.root / 'release-state-notes' / f'{tag}.md'
             path.write_text('Reviewed user-facing changes.\n')
 
+    def test_first_publication_can_complete_fresh_drafts_at_edit_prompt(self):
+        self.context.runner.dry_run = False
+        directory = self.root / 'release-state-notes'
+
+        def edit(_prompt):
+            for tag in ('sdk-2.1.1', '2.1.1'):
+                draft = directory / f'{tag}.md'
+                self.assertIn('<!-- TODO:', draft.read_text())
+                draft.write_text('Reviewed release notes.\n')
+
+        with (
+            mock.patch.object(
+                self.context.runner,
+                'run',
+                return_value=subprocess.CompletedProcess([], 1),
+            ) as run,
+            mock.patch.object(
+                self.context.runner, 'capture', return_value='[[]]'
+            ),
+            mock.patch.object(
+                steps, '_remote_release_sha', return_value=self.target
+            ),
+            mock.patch.object(steps, 'confirm', side_effect=edit) as confirm,
+            contextlib.redirect_stdout(io.StringIO()) as output,
+        ):
+            steps.step_create_sdk_release(self.context)
+
+        confirm.assert_called_once()
+        for product in ('backend', 'sdk'):
+            self.assertRegex(output.getvalue(), rf'{product}: [^\n]*unfinished')
+        self.assertIn(
+            ['gh', 'release', 'create', 'sdk-2.1.1'],
+            [call.args[0][:4] for call in run.call_args_list],
+        )
+
     def test_publication_uses_resolved_target_and_reviewed_file(self):
         self.write_reviewed_notes()
         for product, remote_sha, publish in (

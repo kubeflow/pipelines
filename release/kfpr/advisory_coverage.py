@@ -1,4 +1,5 @@
-"""Match public repository advisories to a release and its user-facing notes."""
+"""Match public repository advisories to a release and its user-facing
+notes."""
 
 import json
 import re
@@ -18,7 +19,9 @@ _GHSA = r'GHSA-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}'
 _FIXED_RELEASE = re.compile(r'(?:>=|==|=)?\s*v?(\d+\.\d+\.\d+)\s*')
 _BARE_LINK = re.compile(
     rf'(?:^|[\s(<]){re.escape(_ADVISORY_BASE)}({_GHSA})/?'
-    r'(?=[)>,;\s]|\.(?:\s|$)|$)'
+    # Fragments stay on the advisory. Punctuation terminates a bare URL
+    # only at its end; a comma inside the path is part of the destination.
+    r'(?=#|[).,;:!?]*(?:[<>\s]|$))'
 )
 
 
@@ -91,7 +94,8 @@ def fetch_release_advisories(
 
 
 def _linked_advisories(text: str) -> set[str]:
-    """Check rendered link destinations and GitHub's bare URLs in ordinary prose."""
+    """Check rendered link destinations and GitHub's bare URLs in ordinary
+    prose."""
     ids = set()
     for block in MarkdownIt('commonmark').parse(text):
         if block.type != 'inline':

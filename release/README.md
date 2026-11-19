@@ -649,8 +649,9 @@ the review checks its GitHub release body; if coverage is missing there, update
 the published notes before continuing. The preview command never publishes a
 release or marks a checkpoint complete.
 
-Both GitHub publication steps show the combined review and recheck coverage after
-confirmation, including when resuming. Use the offline editorial inventory below
+Both GitHub publication steps show gaps in the initial drafts and pause for edits.
+After confirmation, they recheck the final Markdown and block publication if gaps
+remain, including when resuming. Use the offline editorial inventory below
 to prepare the prose before the live review. For examples of highlights, security
 improvements, and operator actions, see the [2.18.0 backend notes](https://github.com/kubeflow/pipelines/releases/tag/2.18.0)
 and [2.18.0 SDK notes](https://github.com/kubeflow/pipelines/releases/tag/sdk-2.18.0).

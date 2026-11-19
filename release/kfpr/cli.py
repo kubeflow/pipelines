@@ -546,7 +546,8 @@ def review_notes_command(
         help='Existing release checkpoint.',
     ),
 ) -> None:
-    """Preview all selected release pages and check public advisory coverage."""
+    """Preview all selected release pages and check public advisory
+    coverage."""
     from .steps import review_release_notes
 
     try:

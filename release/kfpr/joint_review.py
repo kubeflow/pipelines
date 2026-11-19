@@ -41,8 +41,9 @@ def show_review(
 ) -> list[str]:
     """Read the current pages and public advisories on every review.
 
-    Completed sibling releases are read from GitHub, so a checkpoint resumed
-    after public disclosure also checks what users can actually read.
+    Completed sibling releases are read from GitHub, so a checkpoint
+    resumed after public disclosure also checks what users can actually
+    read.
     """
     notes: dict[str, str] = {}
     sources: dict[str, str] = {}

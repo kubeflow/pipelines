@@ -101,6 +101,8 @@ class ReleaseAdvisoryTest(unittest.TestCase):
             f'[Read about the SDK fix][sdk]\n\n[sdk]: {sdk.url}',
             f'Visit <{sdk.url}>.',
             f'Full advisory: {sdk.url}.',
+            f'Impact: {sdk.url}#impact',
+            f'Fixed ({sdk.url}), see the next advisory.',
         ):
             with self.subTest(text=text):
                 validate_advisory_coverage([sdk], {'sdk': text})
@@ -115,6 +117,9 @@ class ReleaseAdvisoryTest(unittest.TestCase):
             f'<!-- {sdk.url} -->',
             f'```md\n{sdk.url}\n```',
             f'`{sdk.url}`',
+            f'{sdk.url},extra',
+            f'{sdk.url};another',
+            f'{sdk.url})suffix',
             f'[fixed]({sdk.url}-unrelated)',
             f'[fixed](https://example.org/?url={sdk.url})',
             self.sdk_id,

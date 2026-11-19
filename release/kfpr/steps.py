@@ -1518,13 +1518,17 @@ def _release_notes_preview(
     *,
     publishing_product: str | None = None,
 ) -> Path:
-    """Review editable notes before publication and restore generated sections."""
+    """Review editable notes before publication and restore generated
+    sections."""
     path = _prepare_release_notes_preview(context, tag, render, selected)
     provenance_path = path.with_suffix('.json')
     print(f'Release notes preview: {path}')
     reviewed_text = path.read_text()
     if publishing_product and not context.runner.dry_run:
-        _require_release_notes_review(context, publishing_product)
+        for issue in review_release_notes(
+            context, publishing_product=publishing_product
+        ):
+            print(f'Release notes warning: {issue}')
     else:
         print(reviewed_text)
     _print_notes_warnings(reviewed_text)

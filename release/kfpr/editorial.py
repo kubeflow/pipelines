@@ -153,11 +153,31 @@ def _outside_fences(text: str) -> tuple[list[str], set[int]]:
 
 
 def _placeholder_warnings(lines: list[str]) -> list[str]:
-    return [
-        f'Line {number}: unfinished TODO/TBD/FIXME placeholder; resolve or remove it.'
-        for number, line in enumerate(lines, 1)
-        if _PLACEHOLDER.search(line)
-    ]
+    text = '\n'.join(lines)
+    if not _PLACEHOLDER.search(text):
+        return []
+    # Render-time dependency: workflow-only imports of kfpr omit CLI packages.
+    from markdown_it import MarkdownIt
+
+    warnings = []
+    for block in MarkdownIt('commonmark').parse(text):
+        if block.type == 'inline':
+            fragments = [
+                token.content
+                for token in block.children or []
+                if token.type in ('text', 'html_inline')
+            ]
+        elif block.type == 'html_block':
+            # The scaffold deliberately puts its prompts in HTML comments.
+            fragments = [block.content]
+        else:
+            continue
+        if any(_PLACEHOLDER.search(fragment) for fragment in fragments):
+            warnings.append(
+                f'Block starting on line {block.map[0] + 1}: unfinished '
+                'TODO/TBD/FIXME placeholder; resolve or remove it.'
+            )
+    return warnings
 
 
 def publication_blockers(text: str) -> list[str]:
