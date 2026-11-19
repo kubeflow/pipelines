@@ -193,6 +193,9 @@ jobs:
           - image: frontend
             dockerfile: frontend/Dockerfile
             context: .
+          - image: tensorboard
+            dockerfile: backend/Dockerfile.tensorboard
+            context: .
           - image: viewer-crd-controller
             dockerfile: backend/Dockerfile.viewercontroller
             context: .
@@ -222,7 +225,7 @@ jobs:
           printf '%s' "$context_json" | jq -r '"context=\(.context)", "dockerfile=\(.dockerfile)"' >> "$GITHUB_OUTPUT"
 
       - name: Set up Go provenance reader
-        if: ${{ matrix.image != 'frontend' }}
+        if: ${{ matrix.image != 'frontend' && matrix.image != 'tensorboard' }}
         uses: ./.github/actions/setup-go
 
       - name: Read frontend Node version
@@ -338,7 +341,7 @@ jobs:
 
       - name: Verify native Go image provenance
         id: verify-go
-        if: ${{ matrix.image != 'frontend' && (steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
+        if: ${{ matrix.image != 'frontend' && matrix.image != 'tensorboard' && (steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
         env:
           DOCKERFILE: ${{ matrix.dockerfile }}
           CI_IMAGE: ${{ matrix.image }}

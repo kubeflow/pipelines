@@ -15,6 +15,7 @@
 
 import copy
 import json
+import runpy
 import shutil
 import subprocess
 import tempfile
@@ -46,8 +47,20 @@ class YqReleaseTest(unittest.TestCase):
             *PLUGIN_PATHS,
         )
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root / 'hack').mkdir()
+            repository = Path(directory)
+            root = repository / 'manifests/kustomize'
+            (root / 'hack').mkdir(parents=True)
+            (repository / 'hack').mkdir()
+            shutil.copy(
+                HACK.parents[2] / 'hack/update_tensorboard_image.py',
+                repository / 'hack/update_tensorboard_image.py',
+            )
+            for source in runpy.run_path(
+                str(repository / 'hack/update_tensorboard_image.py')
+            )['REQUIRED_PATHS']:
+                destination = repository / source
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(HACK.parents[2] / source, destination)
             shutil.copy(HACK / 'release.sh', root / 'hack/release.sh')
             for path in paths:
                 (root / path).parent.mkdir(parents=True, exist_ok=True)

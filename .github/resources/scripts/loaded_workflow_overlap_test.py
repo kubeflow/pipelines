@@ -40,6 +40,7 @@ WORKFLOW_JOBS = {
     '.github/workflows/kfp-sdk-client-tests.yml': ('sdk-client-tests',),
     '.github/workflows/kfp-webhooks.yml': ('webhook-tests',),
     '.github/workflows/upgrade-test.yml': ('upgrade-test',),
+    '.github/workflows/tensorboard-acceptance.yml': ('deployed',),
 }
 
 
@@ -110,8 +111,14 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
             for step in steps
             if step.get('uses') == './.github/actions/shared-ci-images'
         ]
-        self.assertEqual(len(downloads), 1)
-        download = downloads[0]
+        self.assertEqual(len(downloads), 2)
+        download, tensorboard_download = downloads
+        self.assertEqual(tensorboard_download['with']['kind'], 'tensorboard')
+        self.assertEqual(
+            tensorboard_download['if'],
+            "${{ inputs.load_tensorboard_image == 'true' }}",
+        )
+        self.assertEqual(tensorboard_download['with']['layout'], 'flat')
         self.assertEqual(
             download['with']['kind'],
             "${{ steps.runtime-image-cache-files.outputs.ready == 'true' && 'images' || 'all' }}",

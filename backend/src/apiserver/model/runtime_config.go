@@ -22,4 +22,9 @@ type RuntimeConfig struct {
 	// output directory of the pipeline. It is used by the system to
 	// generate the paths of output artifacts. Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)
 	PipelineRoot LargeText `gorm:"column:PipelineRoot;"`
+
+	// Overrides caching for every task of the run. Nil keeps the caching
+	// settings the pipeline was compiled with; false and true are explicit
+	// choices and must stay distinct from nil.
+	EnableCaching *bool `gorm:"column:EnableCaching;"`
 }
