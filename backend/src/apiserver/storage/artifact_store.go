@@ -787,14 +787,22 @@ func (s *ArtifactStore) GetArtifactsByIDs(artifactIDs []string) (map[string]*mod
 }
 
 var uuidColDefRegex = regexp.MustCompile(`(?i)(?:^|[\s(,"'\[` + "`" + `])UUID(?:['"` + "`" + `\]]*\s+)([^,]+)`)
-var nocaseCollateRegex = regexp.MustCompile(`(?i)\bCOLLATE\s+NOCASE\b`)
+var nocaseCollateRegex = regexp.MustCompile(`(?i)\bCOLLATE\s+["'` + "`" + `\[]?NOCASE["'` + "`" + `\]]?(?:\W|$)`)
 
 // isColumnCaseInsensitive checks if the UUID column on the given table has case-insensitive collation.
-// MySQL uses case-insensitive collation by default (e.g. utf8mb4_general_ci).
+// MySQL uses case-insensitive collation by default (e.g. utf8mb4_general_ci), but can be case-sensitive
+// if explicitly defined with a binary or case-sensitive collation (e.g. utf8mb4_bin).
 // PostgreSQL uses case-sensitive collation.
 // SQLite uses case-sensitive collation by default, but case-insensitive if the UUID column is defined with COLLATE NOCASE.
 func isColumnCaseInsensitive(db *sql.DB, d dialect.DBDialect, tableName string) bool {
 	if d != nil && d.Name() == "mysql" {
+		if db != nil {
+			var collation string
+			row := db.QueryRow("SELECT COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME=? AND COLUMN_NAME='UUID' AND (TABLE_SCHEMA=DATABASE() OR DATABASE() IS NULL)", tableName)
+			if err := row.Scan(&collation); err == nil && collation != "" {
+				return strings.HasSuffix(strings.ToLower(collation), "_ci")
+			}
+		}
 		return true
 	}
 	if d != nil && d.Name() == "sqlite" && db != nil {

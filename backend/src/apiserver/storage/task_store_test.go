@@ -1469,6 +1469,49 @@ func TestGetTasksByIDs_CaseSensitivityAndNOCASE(t *testing.T) {
 	assert.NotEmpty(t, multilineBatch, "expected mixed-case ID to match on multiline NOCASE column definition")
 	assert.NotNil(t, multilineBatch[upperMultilineID])
 	assert.Equal(t, taskMultiline.UUID, multilineBatch[upperMultilineID].UUID)
+
+	// 5. Quoted SQLite column definition with COLLATE "NOCASE".
+	dbQuoted, testDialectQuoted := NewFakeDBOrFatal()
+	defer dbQuoted.Close()
+	var quotedSchema string
+	err = dbQuoted.QueryRow("SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'").Scan(&quotedSchema)
+	require.NoError(t, err)
+	_, err = dbQuoted.Exec("DROP TABLE tasks")
+	require.NoError(t, err)
+	for _, target := range []string{"`UUID` varchar(191)", "\"UUID\" varchar(191)", "UUID varchar(191)", "`UUID` text", "\"UUID\" text", "UUID text"} {
+		if strings.Contains(quotedSchema, target) {
+			quotedSchema = strings.Replace(quotedSchema, target, target+" COLLATE \"NOCASE\"", 1)
+			break
+		}
+	}
+	_, err = dbQuoted.Exec(quotedSchema)
+	require.NoError(t, err)
+
+	runStoreQuoted := NewRunStore(dbQuoted, util.NewFakeTimeForEpoch(), testDialectQuoted)
+	_, err = runStoreQuoted.CreateRun(&model.Run{
+		UUID:         "run-1",
+		K8SName:      "run1",
+		DisplayName:  "run1",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+	})
+	require.NoError(t, err)
+
+	taskStoreQuoted := NewTaskStore(dbQuoted, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil), testDialectQuoted)
+	taskQuoted, err := taskStoreQuoted.CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   "run-1",
+		Name:      "test-task-quoted",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	upperQuotedID := strings.ToUpper(taskQuoted.UUID)
+	quotedBatch, err := taskStoreQuoted.GetTasksByIDs([]string{upperQuotedID})
+	require.NoError(t, err)
+	assert.NotEmpty(t, quotedBatch, "expected mixed-case ID to match on quoted NOCASE column definition")
+	assert.NotNil(t, quotedBatch[upperQuotedID])
+	assert.Equal(t, taskQuoted.UUID, quotedBatch[upperQuotedID].UUID)
 }
 
 func TestGetTaskCountsForRuns(t *testing.T) {

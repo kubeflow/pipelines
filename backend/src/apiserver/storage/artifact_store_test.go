@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -274,6 +275,54 @@ func TestGetArtifactsByIDs_CaseSensitivityAndNOCASE(t *testing.T) {
 	assert.NotEmpty(t, multilineBatch, "expected mixed-case ID to match on multiline NOCASE column definition")
 	assert.NotNil(t, multilineBatch[upperMultilineID])
 	assert.Equal(t, artMultiline.UUID, multilineBatch[upperMultilineID].UUID)
+
+	// 5. Quoted SQLite column definition with COLLATE "NOCASE".
+	dbQuoted, testDialectQuoted := NewFakeDBOrFatal()
+	defer dbQuoted.Close()
+	_, err = dbQuoted.Exec("DROP TABLE IF EXISTS " + artifactTableName)
+	require.NoError(t, err)
+	_, err = dbQuoted.Exec(`CREATE TABLE ` + artifactTableName + ` (
+		UUID VARCHAR(255) COLLATE "NOCASE" NOT NULL PRIMARY KEY,
+		Namespace VARCHAR(255),
+		Name VARCHAR(255),
+		Type INTEGER,
+		URI VARCHAR(255),
+		URIHash VARCHAR(64),
+		Description TEXT,
+		CreatedAtInSec BIGINT,
+		LastUpdateInSec BIGINT,
+		Metadata TEXT,
+		IdentityKey VARCHAR(255),
+		NumberValue DOUBLE PRECISION
+	)`)
+	require.NoError(t, err)
+
+	storeQuoted := NewArtifactStore(dbQuoted, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil), testDialectQuoted)
+	artQuoted, err := storeQuoted.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:       strPTR("s3://bucket/test-quoted"),
+		Name:      "test-artifact-quoted",
+	})
+	require.NoError(t, err)
+
+	upperQuotedID := "A23E4567-E89B-12D3-A456-426655441011"
+	quotedBatch, err := storeQuoted.GetArtifactsByIDs([]string{upperQuotedID})
+	require.NoError(t, err)
+	assert.NotEmpty(t, quotedBatch, "expected mixed-case ID to match on quoted NOCASE column definition")
+	assert.NotNil(t, quotedBatch[upperQuotedID])
+	assert.Equal(t, artQuoted.UUID, quotedBatch[upperQuotedID].UUID)
+}
+
+func TestIsColumnCaseInsensitive_MySQL(t *testing.T) {
+	mysqlDialect := dialect.NewDBDialect("mysql")
+	// 1. MySQL dialect with nil db falls back to true (standard MySQL default is case-insensitive)
+	assert.True(t, isColumnCaseInsensitive(nil, mysqlDialect, "artifacts"))
+
+	// 2. MySQL dialect when information_schema query fails falls back to true
+	db, _ := NewFakeDBOrFatal()
+	defer db.Close()
+	assert.True(t, isColumnCaseInsensitive(db, mysqlDialect, "artifacts"))
 }
 
 func TestGetArtifactsByURI_ExactNamespaceAndURIMatch(t *testing.T) {

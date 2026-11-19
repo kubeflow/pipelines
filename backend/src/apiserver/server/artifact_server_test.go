@@ -1716,10 +1716,7 @@ type runSelectiveSubjectAccessReviewClient struct {
 }
 
 func (c *runSelectiveSubjectAccessReviewClient) Create(_ context.Context, review *authzv1.SubjectAccessReview, _ metav1.CreateOptions) (*authzv1.SubjectAccessReview, error) {
-	allowed := true
-	if review.Spec.ResourceAttributes != nil && review.Spec.ResourceAttributes.Name == c.deniedRunK8SName {
-		allowed = false
-	}
+	allowed := review.Spec.ResourceAttributes == nil || review.Spec.ResourceAttributes.Name != c.deniedRunK8SName
 	return &authzv1.SubjectAccessReview{
 		Status: authzv1.SubjectAccessReviewStatus{
 			Allowed: allowed,
