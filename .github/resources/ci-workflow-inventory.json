@@ -308,7 +308,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "1cc41d552ef4b4bead2f830eb9c7177d41dfeb8cc23c7f72d1ae605f283b6531",
+      "header_sha256": "15064ffaab9bd6a65ca1b2090b928c606080bc80ceb19ceebc8683aab4512a12",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -386,6 +386,7 @@
           "backend/test/v2/resources/hello-world-with-returning-component.yaml",
           "test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py",
           "backend/Dockerfile",
+          "backend/src/apiserver/config/sample_config.json",
           "backend/api/build_kfp_server_api_python_package.sh",
           "api/v2alpha1/python/generate_proto.py",
           "kubernetes_platform/python/generate_proto.py",
