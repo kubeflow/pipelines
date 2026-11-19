@@ -27,7 +27,9 @@ SCRIPT = (
 
 
 class ArtifactProxyReadinessTest(unittest.TestCase):
-    def test_wait_failure_reports_pod_and_events_and_preserves_status(self):
+    def test_wait_failure_reports_pod_and_events_and_preserves_status(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             kubectl = Path(directory) / 'kubectl'
             kubectl.write_text(
