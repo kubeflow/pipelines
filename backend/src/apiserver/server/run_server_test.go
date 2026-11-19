@@ -395,6 +395,25 @@ func TestRunServer_CreateRun_SingleUser(t *testing.T) {
 			true,
 			"parameter(s) provided are not required by pipeline:",
 		},
+		{
+			"Invalid V2 - percent in pipeline_root",
+			&apiv2.CreateRunRequest{
+				Run: &apiv2.Run{
+					DisplayName:  "run1",
+					ExperimentId: DefaultFakeUUID,
+					PipelineSource: &apiv2.Run_PipelineSpec{
+						PipelineSpec: pipelineSpecStruct,
+					},
+					RuntimeConfig: &apiv2.RuntimeConfig{
+						Parameters:   runtimeParams,
+						PipelineRoot: "s3://bucket/root%20dir/x",
+					},
+				},
+			},
+			nil,
+			true,
+			"s3://bucket/root%20dir/x",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

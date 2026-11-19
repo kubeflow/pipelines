@@ -138,3 +138,106 @@ func TestParseBucketPathToConfig_RejectsEncodedQueryDelimitersInPath(t *testing.
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "encoded query delimiters")
 }
+
+func TestValidatePipelineRoot_RejectsPercentInPrefix(t *testing.T) {
+	for _, root := range []string{
+		"s3://bucket/root%20dir",
+		"s3://bucket/root%20dir/x",
+		"gs://bucket/100%complete",
+		"minio://bucket/root%25dir/sub",
+	} {
+		t.Run(root, func(t *testing.T) {
+			err := ValidatePipelineRoot(root)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "percent signs are not allowed in pipeline root prefix")
+			require.Contains(t, err.Error(), root)
+		})
+	}
+}
+
+func TestParseBucketPathToConfig_AllowsPercentInDecodedArtifactPrefix(t *testing.T) {
+	// Imported artifact URIs are decoded by SplitObjectURI before being parsed,
+	// so a valid artifact key such as "100%complete" must still be accepted.
+	prefix, base, err := SplitObjectURI("s3://bucket/root/100%25complete/model")
+	require.NoError(t, err)
+	assert.Equal(t, "s3://bucket/root/100%complete", prefix)
+	assert.Equal(t, "model", base)
+
+	cfg, err := ParseBucketPathToConfig(prefix)
+	require.NoError(t, err)
+	assert.Equal(t, "root/100%complete/", cfg.Prefix)
+
+	rootCfg, err := ParseBucketPathToConfig("s3://bucket/root")
+	require.NoError(t, err)
+	assert.True(t, IsWithinBucketRoot(rootCfg, cfg))
+}
+
+func TestParseBucketPathToConfig_AllowsSpacesUnicodeAmpersandAndQuery(t *testing.T) {
+	testCases := []struct {
+		name           string
+		path           string
+		expectedPrefix string
+		expectedQuery  string
+	}{
+		{
+			name:           "spaces",
+			path:           "s3://bucket/root dir/x",
+			expectedPrefix: "root dir/x/",
+		},
+		{
+			name:           "unicode",
+			path:           "s3://bucket/café/日本語",
+			expectedPrefix: "café/日本語/",
+		},
+		{
+			name:           "ampersand in prefix",
+			path:           "s3://bucket/a&b/x",
+			expectedPrefix: "a&b/x/",
+		},
+		{
+			name:           "query string with question mark and ampersand",
+			path:           "s3://bucket/root dir?endpoint=seaweedfs:9000&disableSSL=true",
+			expectedPrefix: "root dir/",
+			expectedQuery:  "?endpoint=seaweedfs:9000&disableSSL=true",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg, err := ParseBucketPathToConfig(tc.path)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedPrefix, cfg.Prefix)
+			assert.Equal(t, tc.expectedQuery, cfg.QueryString)
+		})
+	}
+}
+
+func TestParseBucketPathToConfig_RegressionRootPercent20DirVsRootSpaceDir(t *testing.T) {
+	// SplitObjectURI decodes %20, so an unescaped artifact URI built from a
+	// "root%20dir" prefix would collide with "root dir/x".
+	spacePrefix, spaceBase, err := SplitObjectURI("s3://bucket/root dir/x")
+	require.NoError(t, err)
+	escapedPrefix, escapedBase, err := SplitObjectURI("s3://bucket/root%20dir/x")
+	require.NoError(t, err)
+	assert.Equal(t, spacePrefix, escapedPrefix)
+	assert.Equal(t, spaceBase, escapedBase)
+
+	// "root dir" is accepted and round-trips through PrefixedBucket + SplitObjectURI.
+	spaceRootCfg, err := ParseBucketPathToConfig("s3://bucket/root dir")
+	require.NoError(t, err)
+	persistedURI := spaceRootCfg.PrefixedBucket() + "/x"
+	assert.Equal(t, "s3://bucket/root dir/x", persistedURI)
+	resolvedPrefix, resolvedBase, err := SplitObjectURI(persistedURI)
+	require.NoError(t, err)
+	assert.Equal(t, "x", resolvedBase)
+	resolvedPrefixCfg, err := ParseBucketPathToConfig(resolvedPrefix)
+	require.NoError(t, err)
+	assert.True(t, IsWithinBucketRoot(spaceRootCfg, resolvedPrefixCfg))
+
+	// "root%20dir" and "root%20dir/x" are rejected as pipeline roots so the ambiguous pair cannot be configured.
+	for _, badPath := range []string{"s3://bucket/root%20dir", "s3://bucket/root%20dir/x"} {
+		err := ValidatePipelineRoot(badPath)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), badPath)
+	}
+}

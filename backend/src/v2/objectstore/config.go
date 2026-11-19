@@ -128,6 +128,27 @@ func (b *Config) Hash() string {
 
 var bucketPattern = regexp.MustCompile(`(^[a-z][a-z0-9]+:///?)([^/?]+)(/[^?]*)?(\?.+)?$`)
 
+// ValidatePipelineRoot rejects pipeline roots whose prefix contains percent
+// signs, which would otherwise collide with unescaped object keys when
+// persisted artifact URIs are decoded.
+func ValidatePipelineRoot(pipelineRoot string) error {
+	if pipelineRoot == "" {
+		return nil
+	}
+	if ms := bucketPattern.FindStringSubmatch(pipelineRoot); len(ms) == 5 {
+		prefix := strings.TrimPrefix(ms[3], "/")
+		if strings.Contains(prefix, "%") {
+			return fmt.Errorf("percent signs are not allowed in pipeline root prefix: %q", pipelineRoot)
+		}
+		return nil
+	}
+	pathPart, _, _ := strings.Cut(pipelineRoot, "?")
+	if strings.Contains(pathPart, "%") {
+		return fmt.Errorf("percent signs are not allowed in pipeline root prefix: %q", pipelineRoot)
+	}
+	return nil
+}
+
 func ParseBucketPathToConfig(path string) (*Config, error) {
 	parsedPath, err := url.Parse(path)
 	if err == nil && hasEscapedQueryDelimiter(parsedPath.EscapedPath()) {
