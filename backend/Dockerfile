@@ -32,7 +32,7 @@ COPY . .
 RUN GO111MODULE=on go build -buildvcs=true -mod=readonly -o /bin/apiserver ./backend/src/apiserver
 
 # 2. Compile preloaded pipeline samples
-FROM python:3.14-slim AS compiler
+FROM python:3.15-slim AS compiler
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev jq wget curl protobuf-compiler make git
 RUN pip install uv
 
