@@ -30,7 +30,9 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -663,4 +665,53 @@ func TestCanAccessExperimentAndGet(t *testing.T) {
 	// Non-existent experiment returns an error
 	_, err = server.canAccessExperimentAndGet(ctx, "non-existent-id", resourceAttrs)
 	assert.NotNil(t, err)
+}
+
+type countingExperimentStore struct {
+	storage.ExperimentStoreInterface
+	getExperimentCalls int
+}
+
+func (c *countingExperimentStore) GetExperiment(id string) (*model.Experiment, error) {
+	c.getExperimentCalls++
+	return c.ExperimentStoreInterface.GetExperiment(id)
+}
+
+func TestGetExperiment_MultiUser_SingleLookup(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	countingStore := &countingExperimentStore{ExperimentStoreInterface: clientManager.ExperimentStore()}
+	clientManager.SetExperimentStore(countingStore)
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	server := createExperimentServer(resourceManager)
+
+	// Create an experiment
+	created, err := server.CreateExperiment(ctx, &apiV2.CreateExperimentRequest{
+		Experiment: &apiV2.Experiment{
+			DisplayName: "single-lookup-exp",
+			Namespace:   "ns1",
+		},
+	})
+	assert.Nil(t, err)
+
+	// Reset lookup counter before calling public GetExperiment handler
+	countingStore.getExperimentCalls = 0
+
+	// Call public GetExperiment handler
+	got, err := server.GetExperiment(ctx, &apiV2.GetExperimentRequest{
+		ExperimentId: created.ExperimentId,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, created.ExperimentId, got.ExperimentId)
+	assert.Equal(t, "single-lookup-exp", got.DisplayName)
+	assert.Equal(t, "ns1", got.Namespace)
+
+	// In multi-user mode, getExperiment reuses the experiment fetched during authorization,
+	// executing exactly one database lookup instead of two.
+	assert.Equal(t, 1, countingStore.getExperimentCalls, "expected exactly 1 experiment database lookup on authorized GetExperiment")
 }
