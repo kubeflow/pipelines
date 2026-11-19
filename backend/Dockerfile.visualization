@@ -18,7 +18,7 @@
 # and exporter.py files in the directory specified above.
 
 # This image should run Python 3.11 to satisfy protobuf v4-compatible deps.
-FROM python:3.11-slim
+FROM python:3.15-slim
 
 RUN apt-get update \
   && apt-get upgrade -y \

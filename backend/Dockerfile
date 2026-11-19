@@ -32,7 +32,7 @@ COPY . .
 RUN GO111MODULE=on go build -buildvcs=true -mod=readonly -o /bin/apiserver ./backend/src/apiserver
 
 # 2. Compile preloaded pipeline samples
-FROM python:3.11-slim AS compiler
+FROM python:3.15-slim AS compiler
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev jq wget curl
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 COPY backend/requirements.txt .
