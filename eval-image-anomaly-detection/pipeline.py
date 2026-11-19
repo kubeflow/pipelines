@@ -14,8 +14,7 @@
 """Production-grade KFP v2 Image Processing, Feature Extraction, and Anomaly
 Detection Pipeline."""
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.component(
@@ -54,11 +53,13 @@ def fetch_image_batch(
             if i % 5 == 0:
                 # Structural anomaly: high-contrast distinct intensity patch
                 arr = np.random.randint(
-                    200, 256, size=(100, 100, 3), dtype=np.uint8)
+                    200, 256, size=(100, 100, 3), dtype=np.uint8
+                )
             else:
                 # Regular background noise image array
                 arr = np.random.randint(
-                    0, 120, size=(100, 100, 3), dtype=np.uint8)
+                    0, 120, size=(100, 100, 3), dtype=np.uint8
+                )
             img = Image.fromarray(arr)
             img_byte_arr = io.BytesIO()
             img.save(img_byte_arr, format='PNG')
@@ -104,10 +105,13 @@ def extract_visual_features(
     os.makedirs(features_dir.path, exist_ok=True)
 
     features_list = []
-    filenames = sorted([
-        f for f in os.listdir(raw_images_dir.path)
-        if f.lower().endswith(('.png', '.jpg', '.jpeg'))
-    ])
+    filenames = sorted(
+        [
+            f
+            for f in os.listdir(raw_images_dir.path)
+            if f.lower().endswith(('.png', '.jpg', '.jpeg'))
+        ]
+    )
 
     for fname in filenames:
         img_path = os.path.join(raw_images_dir.path, fname)
@@ -120,8 +124,9 @@ def extract_visual_features(
             max_val = float(np.max(flattened))
             min_val = float(np.min(flattened))
             # Structural feature row: summary distribution statistics plus feature slice
-            row = [mean_val, std_val, max_val, min_val
-                  ] + flattened[:100].tolist()
+            row = [mean_val, std_val, max_val, min_val] + flattened[
+                :100
+            ].tolist()
             features_list.append(row)
 
     feature_matrix = pd.DataFrame(features_list)
