@@ -46,7 +46,7 @@ spec:
         maxAge: 1h
         cache:
           configMap:
-            name: argo-demo-cache
+            name: kfp-cache
       container:
         image: kfp-argo-demo:dev
         imagePullPolicy: Never

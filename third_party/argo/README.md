@@ -1,12 +1,8 @@
-# Third Party dependency -- Argo
+# Argo Workflows runtime pin
 
-This folder holds resources for KFP to redistribute <https://argo-workflows.readthedocs.io/>
-container images.
+`VERSION` selects the upstream Argo installation used by the native deployment.
+There is no vendored or patched workflow controller in this repository.
 
-There's no code change. At this time, the purpose of this directory is solely to contain
-release-related scripts and metadata for the Argo Workflows dependency
-
-## Upgrade Argo image
-
-See documentation in [UPGRADE.md](./UPGRADE.md)
-
+When updating the version, run the native schema/resource tests, the complete
+compatibility corpus and the deployed browser acceptance test. The deployment
+uses upstream PostgreSQL archive/offloaded status and ordinary Argo memoization.

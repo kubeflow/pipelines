@@ -1,70 +1,34 @@
+// Copyright 2026 The Kubeflow Authors
+// SPDX-License-Identifier: Apache-2.0
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { visualizer } from 'rollup-plugin-visualizer';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const proxyTarget = 'http://localhost:3001';
-const proxyPaths = ['/api', '/apis', '/apps', '/artifacts', '/hub', '/k8s', '/system'];
-
-const proxy = proxyPaths.reduce<Record<string, { target: string; changeOrigin: boolean }>>(
-  (acc, prefix) => {
-    acc[prefix] = { target: proxyTarget, changeOrigin: true };
-    return acc;
-  },
-  {},
-);
-
-export default defineConfig(({ mode }) => ({
+const directory = path.dirname(fileURLToPath(import.meta.url));
+// Development uses the deployed authenticated proxy, never a KFP API server.
+const target = process.env.KFP_NATIVE_PROXY || 'http://127.0.0.1:3003';
+export default defineConfig({
   base: './',
-  plugins: [
-    react(),
-    mode === 'analyze' &&
-      visualizer({
-        filename: 'build/bundle-report.html',
-        gzipSize: true,
-        brotliSize: true,
-        open: true,
-      }),
-  ].filter(Boolean),
-  resolve: {
-    alias: {
-      src: path.resolve(__dirname, 'src'),
-    },
-  },
+  plugins: [react()],
+  resolve: { alias: { src: path.resolve(directory, 'src') } },
   server: {
+    host: '127.0.0.1',
     port: 3000,
     proxy: {
-      ...proxy,
-      // Opt-in, loopback-only quick-start proxy; never used by production builds.
-      ...(process.env.KFP_ARGO_DEMO === 'true'
-        ? {
-            '^/argo/': {
-              target: 'https://localhost:2746',
-              changeOrigin: true,
-              secure: false,
-              rewrite: (url: string) => url.replace(/^\/argo/, ''),
-            },
-          }
-        : {}),
+      '^/argo/': { target, changeOrigin: true },
+      '^/kubernetes/': { target, changeOrigin: true },
     },
   },
-  optimizeDeps: {
-    exclude: ['@mui/material/colors'],
-  },
   build: {
-    target: 'es2015',
     outDir: 'build',
     assetsDir: 'static',
     sourcemap: true,
     rollupOptions: {
       input: {
-        main: path.resolve(__dirname, 'index.html'),
-        argo: path.resolve(__dirname, 'argo.html'),
+        main: path.resolve(directory, 'index.html'),
+        argo: path.resolve(directory, 'argo.html'),
       },
     },
   },
-}));
+});

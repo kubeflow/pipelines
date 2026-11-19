@@ -1,110 +1,46 @@
-# Kubeflow Pipelines
+# Kubeflow Pipelines on native Argo
 
-[![SDK Documentation Status](https://readthedocs.org/projects/kubeflow-pipelines/badge/?version=latest)](https://kubeflow-pipelines.readthedocs.io/en/stable/?badge=latest)
-[![SDK Package version](https://img.shields.io/pypi/v/kfp?color=%2334D058&label=pypi%20package)](https://pypi.org/project/kfp)
-[![SDK Supported Python versions](https://img.shields.io/pypi/pyversions/kfp.svg?color=%2334D058)](https://pypi.org/project/kfp)
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9938/badge)](https://www.bestpractices.dev/projects/9938)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/kubeflow/pipelines)
+This fork keeps KFP's Python authoring model and graph/log widgets while using
+Argo Workflows as the execution model and source of truth.
 
-## Overview of the Kubeflow pipelines service
+```text
+KFP Python DSL → captured tasks/groups/channels → WorkflowTemplate / Workflow / CronWorkflow
+                                                       ↓
+                                            Argo workflow-controller
+                                                       ↓
+                                       component containers + Argo executor
 
-[Kubeflow](https://www.kubeflow.org/) is a machine learning (ML) toolkit that is dedicated to making deployments of ML workflows on Kubernetes simple, portable, and scalable.
-
-**Kubeflow pipelines** are reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK.
-
-The Kubeflow pipelines service has the following goals:
-
-* End to end orchestration: enabling and simplifying the orchestration of end to end machine learning pipelines
-* Easy experimentation: making it easy for you to try numerous ideas and techniques, and manage your various trials/experiments.
-* Easy re-use: enabling you to re-use components and pipelines to quickly cobble together end to end solutions, without having to re-build each time.
-
-## Installation
-
-* Kubeflow Pipelines can be installed as part of the [Kubeflow Platform](https://www.kubeflow.org/docs/started/installing-kubeflow/#kubeflow-platform). Alternatively you can deploy [Kubeflow Pipelines](https://www.kubeflow.org/docs/components/pipelines/operator-guides/installation/) as a standalone service.
-
-* Pipeline execution uses the [Argo Emissary executor](https://argo-workflows.readthedocs.io/en/latest/workflow-executors/), which is independent of the Kubernetes container runtime.
-
-### Dependencies Compatibility Matrix
-
-| Dependency     | Versions         |
-| -------------- |------------------|
-| Argo Workflows | v4.0, v4.1 |
-| MySQL          | v8               |
-
-> **KFP 3.0 compatibility notice:** This branch supports Argo Workflows 4.0.x and 4.1.x,
-> tested at 4.0.13 and 4.1.6 respectively. Argo 3.x is not supported on this branch;
-> KFP 2.x release branches retain their documented compatibility coverage. Before upgrading
-> to KFP 3.0, operators must upgrade their controller to a supported 4.x release. Follow
-> [the KFP 3.0 compatibility tracking issue](https://github.com/kubeflow/pipelines/issues/14139)
-> for the removal and migration work.
-
-## Documentation
-
-See [Releases](RELEASE.md) for what changed, upgrade guidance, compatibility, and the maintainer release runbook.
-
-Get started with your first pipeline and read further information in the [Kubeflow Pipelines overview](https://www.kubeflow.org/docs/components/pipelines/overview/).
-
-See the various ways you can [use the Kubeflow Pipelines SDK](https://kubeflow-pipelines.readthedocs.io/en/stable/).
-
-See the Kubeflow [Pipelines API doc](https://www.kubeflow.org/docs/components/pipelines/reference/api/kubeflow-pipeline-api-spec/) for API specification.
-
-Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.io/en/stable/) when writing pipelines using the Python SDK.
-
-## Deep Wiki
-Check out our AI Powered repo documentation on [DeepWiki](https://deepwiki.com/kubeflow/pipelines).
-
-> :warning: Please note, this is AI generated and may not have completely accurate information.
-
-## Contributing to Kubeflow Pipelines
-
-Before you start contributing to Kubeflow Pipelines, read the guidelines in [How to Contribute](./CONTRIBUTING.md). To learn how to build and deploy Kubeflow Pipelines from source code, read the [developer guide](./developer_guide.md).
-
-### Optional `just` command runner
-
-For local developer convenience, this repository includes an optional [just](https://github.com/casey/just) command runner at the repo root. It provides short aliases for existing `make` targets and does not replace any CI or release workflows.
-
-To use it, install `just` and run, for example:
-
-```bash
-just           # list available recipes
-just backend-test
-just backend-images
+Native KFP UI → Kubernetes + Argo Server → resources, archive, logs and artifacts
 ```
 
-Notes:
+The KFP API server, ScheduledWorkflow/persistence/viewer controllers, driver and
+launcher services, run database, REST clients, legacy frontend server, and their
+build/deployment/release stack are removed. Component execution has no in-process
+runner or fallback to a KFP backend.
 
-* All `just` recipes are thin wrappers around existing `make` targets (for example, `make -C backend/src/v2 test`).
-* There is intentionally no generic `just build` or `just test` recipe; heavy or Docker-building flows are exposed only via explicitly named recipes such as `backend-images`.
+## Start here
 
-## Kubeflow Pipelines Community
+- [Build, deploy and verify on local Kubernetes](samples/argo-native/README.md)
+- [Compile a pipeline](docs/user-guides/core-functions/compile-a-pipeline.md)
+- [Run a pipeline](docs/user-guides/core-functions/run-a-pipeline.md)
+- [Architecture and cleanup boundary](docs/agents/architecture.md)
+- [Contribution instructions](CONTRIBUTING.md)
 
-### Community Meeting
+`make sdk-test` runs the retained SDK and cleanup-boundary tests.
+`make frontend-test` builds and tests the native UI and offline viewer.
+`bash test/native-deployment.sh` creates a disposable Kind stack and runs actual
+workflow and authenticated browser acceptance tests. Use explicit contexts when
+working with an existing cluster.
 
-The Kubeflow Pipelines Community Meeting occurs every other Wed 10-11AM (PST).
+## Retained schemas
 
-[Calendar Invite](https://calendar.google.com/event?action=TEMPLATE&tmeid=NTdoNG5uMDBtcnJlYmdlOWt1c2lkY25jdmlfMjAxOTExMTNUMTgwMDAwWiBqZXNzaWV6aHVAZ29vZ2xlLmNvbQ&tmsrc=jessiezhu%40google.com&scp=ALL)
+The shared `pipeline_spec.proto` and Kubernetes executor-config schema remain for
+DSL type checking, portable container definitions and Kubernetes argument models.
+They are not REST APIs, deployed controllers, or a pipeline execution IR builder.
+Regenerate their Python bindings with `make generate-python`.
 
-[Direct Meeting Link](https://zoom.us/j/92607298595?pwd%3DVlKLUbiguGkbT9oKbaoDmCxrhbRop7.1&sa=D&source=calendar&ust=1736264977415448&usg=AOvVaw1EIkjFsKy0d4yQPptIJS3x)
-
-[Meeting notes](http://bit.ly/kfp-meeting-notes)
-
-### Slack
-
-We also have a slack channel (#kubeflow-pipelines) on the Cloud Native Computing Foundation Slack workspace. You can find more details at [https://www.kubeflow.org/docs/about/community/#kubeflow-slack-channels](https://www.kubeflow.org/docs/about/community/#kubeflow-slack-channels)
-
-## Architecture
-
-Details about the KFP Architecture can be found at [Architecture.md](docs/sdk/Architecture.md)
-
-## Blog posts
-
-* [From Raw Data to Model Serving: A Blueprint for the AI/ML Lifecycle with Kubeflow](https://blog.kubeflow.org/fraud-detection-e2e/) (By [Helber Belmiro](https://github.com/hbelmiro))
-* [Getting started with Kubeflow Pipelines](https://cloud.google.com/blog/products/ai-machine-learning/getting-started-kubeflow-pipelines) (By Amy Unruh)
-* How to create and deploy a Kubeflow Machine Learning Pipeline (By Lak Lakshmanan)
-  * [Part 1: How to create and deploy a Kubeflow Machine Learning Pipeline](https://medium.com/data-science/how-to-create-and-deploy-a-kubeflow-machine-learning-pipeline-part-1-efea7a4b650f)
-  * [Part 2: How to deploy Jupyter notebooks as components of a Kubeflow ML pipeline](https://medium.com/data-science/how-to-deploy-jupyter-notebooks-as-components-of-a-kubeflow-ml-pipeline-part-2-b1df77f4e5b3)
-  * [Part 3: How to carry out CI/CD in Machine Learning (“MLOps”) using Kubeflow ML pipelines](https://medium.com/google-cloud/how-to-carry-out-ci-cd-in-machine-learning-mlops-using-kubeflow-ml-pipelines-part-3-bdaf68082112)
-
-## Acknowledgments
-
-Kubeflow pipelines uses [Argo Workflows](https://github.com/argoproj/argo-workflows) by default under the hood to orchestrate Kubernetes resources. The Argo community has been very supportive and we are very grateful.
+The native compiler intentionally has a bounded compatibility contract. Unsupported
+constructs fail explicitly; inspect the sample README before migrating a pipeline.
+Global artifact indexing, migration of historical KFP runs, and KFP client/server
+compatibility are not provided. The sample stack uses local development storage
+credentials and must not be exposed as a production multi-tenant installation.

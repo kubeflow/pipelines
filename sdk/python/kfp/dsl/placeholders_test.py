@@ -207,7 +207,7 @@ class TestIfPresentPlaceholder(parameterized.TestCase):
 
         with tempfile.TemporaryDirectory() as tempdir:
             output_yaml = os.path.join(tempdir, 'component.yaml')
-            compiler.Compiler().compile(
+            compiler.Compiler(disable_caching=True).compile(
                 pipeline_func=container_component, package_path=output_yaml
             )
 
@@ -228,7 +228,7 @@ class TestIfPresentPlaceholder(parameterized.TestCase):
 
         with tempfile.TemporaryDirectory() as tempdir:
             output_yaml = os.path.join(tempdir, 'component.yaml')
-            compiler.Compiler().compile(
+            compiler.Compiler(disable_caching=True).compile(
                 pipeline_func=container_component, package_path=output_yaml
             )
 
@@ -247,10 +247,20 @@ class TestIfPresentPlaceholder(parameterized.TestCase):
                 ],
             )
 
+        @dsl.container_component
+        def producer(out: dsl.Output[dsl.Artifact]):
+            return dsl.ContainerSpec(
+                image='alpine', command=['touch', out.path]
+            )
+
+        @dsl.pipeline
+        def pipeline():
+            container_component(a=producer().outputs['out'])
+
         with tempfile.TemporaryDirectory() as tempdir:
-            output_yaml = os.path.join(tempdir, 'component.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=container_component, package_path=output_yaml
+            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler(disable_caching=True).compile(
+                pipeline, output_yaml
             )
 
 

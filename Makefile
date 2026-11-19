@@ -1,44 +1,16 @@
+.PHONY: test sdk-test frontend-test generate-python build
 
-# Regenerate all generated files and golden test files
-.PHONY: regenerate-all
-regenerate-all:
-	@echo "==> Regenerating K8s Native API CRDs..."
-	cd backend/src/crd/kubernetes && $(MAKE) generate manifests
-	@echo "==> Regenerating backend proto code (v2)..."
-	cd backend/api && API_VERSION=v2 $(MAKE) generate
-	@echo "==> Regenerating kfp-server-api-package (v2)..."
-	cd backend/api && API_VERSION=v2 $(MAKE) generate-kfp-server-api-package
-	@echo "==> Updating proto test golden files..."
-	cd backend/test/proto_tests && UPDATE_EXPECTED=true go test .
-	@echo "==> Updating compiler test golden files..."
-	cd backend/test/compiler && go test . -updateCompiledFiles
-	@echo "==> All files regenerated successfully!"
+generate-python:
+	uv run --frozen --extra codegen python hack/generate-python.py
 
-# Check diff for generated files. Changes confined to the generator version
-# comment that protoc-gen-go and protoc-gen-go-grpc stamp into their output are
-# reported and allowed, because those versions come from the Go module manifests
-# and so change on any module bump without the generated code differing.
-.PHONY: check-diff
-check-diff:
-	python3 .github/resources/scripts/check_generated_diff.py
+sdk-test:
+	uv run --frozen --extra test python -m pytest -q sdk/python/kfp test samples/argo-native/deploy_test.py .github/scripts
 
-.PHONY: check-go-version
-check-go-version:
-	python3 .github/resources/scripts/update_go_version.py --check
+frontend-test:
+	cd frontend && npm run test:ci
 
-.PHONY: update-go-version
-update-go-version:
-	@if [ -z "$(GO_VERSION)" ]; then \
-		echo "GO_VERSION is required; run make update-go-version GO_VERSION=1.X.Y" >&2; \
-		exit 2; \
-	fi
-	python3 .github/resources/scripts/update_go_version.py --version "$(GO_VERSION)"
+test: sdk-test frontend-test
 
-# Tools
-BIN_DIR ?= $(CURDIR)/bin
-
-.PHONY: ginkgo
-ginkgo:
-	mkdir -p $(BIN_DIR)
-	GOBIN=$(BIN_DIR) go install github.com/onsi/ginkgo/v2/ginkgo@latest
-	@echo "Ginkgo installed to $(BIN_DIR)/ginkgo"
+build:
+	uv build --package kfp --wheel
+	cd frontend && npm run build

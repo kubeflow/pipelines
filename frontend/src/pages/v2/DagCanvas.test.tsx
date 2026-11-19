@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { mockResizeObserver } from 'src/TestUtils';
 import { deeplyNestedSpec, manySubDagsSpec, nestedArtifactSpec } from 'src/data/test/groupedFlow';
-import { convertSubDagToFlowElements } from 'src/lib/v2/StaticFlow';
+import { resolveGraph as convertSubDagToFlowElements } from 'src/data/test/groupedFlow';
 import DagCanvas, { DagCanvasProps } from './DagCanvas';
 
 const resolve = (layers: string[]) => convertSubDagToFlowElements(nestedArtifactSpec, layers);

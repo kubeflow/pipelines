@@ -30,6 +30,21 @@ def resources(upstream, namespace, ui_image):
             continue
         resource = copy.deepcopy(original)
         metadata = resource.get('metadata', {})
+        if metadata.get('name') in {
+            'httpbin',
+            'my-httpbin-cred',
+            'github.com',
+            'github.com.service-account-token',
+            'default.service-account-token',
+            'argo-server-sso',
+            'argo-workflows-webhook-clients',
+            'agent-default',
+            'artifactgc-default',
+            'executor-default',
+            'pod-manager-default',
+            'workflow-manager-default',
+        }:
+            continue
         if resource['kind'] == 'Namespace':
             continue
         if metadata.get('namespace') == 'argo':

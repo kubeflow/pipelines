@@ -4,13 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { mockResizeObserver } from 'src/TestUtils';
 import { nestedArtifactSpec } from 'src/data/test/groupedFlow';
-import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { Viewer, type ViewerState } from './Viewer';
 
 const initial: ViewerState = {
   revision: 1,
   error: null,
-  spec: PipelineSpec.toJSON(nestedArtifactSpec) as Record<string, unknown>,
+  spec: nestedArtifactSpec as unknown as Record<string, unknown>,
 };
 
 beforeEach(() => mockResizeObserver());
@@ -37,7 +36,8 @@ describe('standalone viewer using the KFP pipeline graph', () => {
     expect(screen.queryByText('Train model')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Expand Training pipeline' }));
     fireEvent.click(screen.getByText('Train model'));
-    expect(screen.getByText('Output Artifacts')).toBeInTheDocument();
+    expect(screen.getByText('Native Argo template')).toBeInTheDocument();
+    expect(document.querySelector('.ace_editor')).not.toBeNull();
     expect(screen.getByText('Image')).toBeInTheDocument();
     expect(screen.getByText('python:3.11')).toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
@@ -58,14 +58,11 @@ describe('standalone viewer using the KFP pipeline graph', () => {
     await act(async () => {});
     fireEvent.click(screen.getByRole('button', { name: 'Collapse Training pipeline' }));
     fireEvent.click(screen.getByText('Deploy model'));
-    const updated = PipelineSpec.fromJSON(initial.spec);
-    updated.deploymentSpec!.executors['exec-evaluate'].container.image = 'python:3.13';
-    updated.root!.dag!.tasks.deploy.taskInfo!.name = 'Deploy updated model';
-    next = {
-      ...initial,
-      revision: 2,
-      spec: PipelineSpec.toJSON(updated) as Record<string, unknown>,
-    };
+    const updated = structuredClone(nestedArtifactSpec);
+    const deploy = updated.spec.templates!.find((template) => template.name === 'deploy')!;
+    deploy.container.image = 'python:3.13';
+    deploy.metadata.annotations['workflows.argoproj.io/display-name'] = 'Deploy updated model';
+    next = { ...initial, revision: 2, spec: updated as unknown as Record<string, unknown> };
     await act(async () => {
       await vi.advanceTimersByTimeAsync(750);
     });
@@ -100,13 +97,10 @@ describe('standalone viewer using the KFP pipeline graph', () => {
     await act(async () => {});
     fireEvent.click(screen.getByText('Deploy model'));
     expect(screen.getByRole('button', { name: 'close' })).toBeInTheDocument();
-    const updated = PipelineSpec.fromJSON(initial.spec);
-    delete updated.root!.dag!.tasks.deploy;
-    next = {
-      ...initial,
-      revision: 2,
-      spec: PipelineSpec.toJSON(updated) as Record<string, unknown>,
-    };
+    const updated = structuredClone(nestedArtifactSpec);
+    const root = updated.spec.templates!.find((template) => template.name === 'root')!;
+    root.dag.tasks = root.dag.tasks.filter((task: { name: string }) => task.name !== 'deploy');
+    next = { ...initial, revision: 2, spec: updated as unknown as Record<string, unknown> };
     await act(async () => {
       await vi.advanceTimersByTimeAsync(750);
     });

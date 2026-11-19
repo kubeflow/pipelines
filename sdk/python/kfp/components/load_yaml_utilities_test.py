@@ -19,7 +19,6 @@ import unittest
 from typing import Optional
 from unittest import mock
 
-import yaml
 from absl.testing import parameterized
 
 from kfp import compiler, components, dsl
@@ -162,7 +161,7 @@ spec:
     def test_container_component_round_trip(self, entrypoint):
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, 'compiled.yaml')
-            compiler.Compiler().compile(round_trip_component, path)
+            round_trip_component.component_spec.save_to_component_yaml(path)
             with open(path) as f:
                 loaded = self.load(entrypoint, f.read(), directory)
 
@@ -199,44 +198,32 @@ spec:
                     for arg in round_trip_component.component_spec.implementation.container.args
                 ],
             )
-            compiler.Compiler().compile(loaded, path)
+            loaded.component_spec.save_to_component_yaml(path)
             reloaded = components.load_component_from_file(path)
             self.assertEqual(reloaded.pipeline_spec, loaded.pipeline_spec)
             self.assertEqual(reloaded.component_spec, spec)
 
     @parameterized.product(entrypoint=['text', 'file', 'url'])
-    def test_pipeline_with_platform_spec_round_trip(self, entrypoint):
+    def test_native_pipeline_is_not_a_container_definition(self, entrypoint):
+        @dsl.container_component
+        def echo():
+            return dsl.ContainerSpec(image='busybox', command=['true'])
 
         @dsl.pipeline
-        def pipeline(
-            dataset: dsl.Input[dsl.Dataset], message: str = 'hello'
-        ) -> dsl.Model:
-            task = round_trip_component(dataset=dataset, message=message)
-            task.set_env_variable('MESSAGE', 'test')
-            task.platform_config['kubernetes'] = {
-                'podMetadata': {'labels': {'test': 'round-trip'}}
-            }
-            return task.outputs['model']
+        def pipeline():
+            echo()
 
         with tempfile.TemporaryDirectory() as directory:
-            path = os.path.join(directory, 'compiled.yaml')
-            compiler.Compiler().compile(pipeline, path)
-            with open(path) as f:
-                text = f.read()
-            self.assertLen(list(yaml.safe_load_all(text)), 2)
-            loaded = self.load(entrypoint, text, directory)
-            self.assertEqual(loaded.pipeline_spec, pipeline.pipeline_spec)
-            self.assertEqual(loaded.platform_spec, pipeline.platform_spec)
-            self.assertEqual(
-                loaded.component_spec.inputs, pipeline.component_spec.inputs
-            )
-            self.assertEqual(
-                loaded.component_spec.outputs, pipeline.component_spec.outputs
-            )
-            compiler.Compiler().compile(loaded, path)
-            reloaded = components.load_component_from_file(path)
-            self.assertEqual(reloaded.pipeline_spec, loaded.pipeline_spec)
-            self.assertEqual(reloaded.platform_spec, loaded.platform_spec)
+            path = os.path.join(directory, 'pipeline.yaml')
+            compiler.Compiler(disable_caching=True).compile(pipeline, path)
+            with open(path) as stream:
+                text = stream.read()
+            with self.assertRaisesRegex(ValueError, 'Component YAML'):
+                self.load(entrypoint, text, directory)
+            with self.assertRaisesRegex(
+                ValueError, 'Only container component definitions'
+            ):
+                pipeline.component_spec.save_to_component_yaml(path)
 
     def test_gcs_url(self):
         response = mock.Mock(content=b'not a pipeline')

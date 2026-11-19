@@ -1,54 +1,28 @@
-// Copyright 2021 The Kubeflow Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Copyright 2026 The Kubeflow Authors
+// SPDX-License-Identifier: Apache-2.0
 
-import { PipelineTaskTaskState } from 'src/apisv2/run';
-import { DebugPauseBarrier } from 'src/lib/v2/DebugPauseUtils';
-
+/** View-only icon states. Execution status remains Argo's workflow/node status. */
+export enum PipelineTaskTaskState {
+  RUNTIME_STATE_UNSPECIFIED = 'RUNTIME_STATE_UNSPECIFIED',
+  RUNNING = 'RUNNING',
+  CACHED = 'CACHED',
+  FAILED = 'FAILED',
+  SKIPPED = 'SKIPPED',
+  SUCCEEDED = 'SUCCEEDED',
+}
 export type SubDagKind = 'Sub-DAG' | 'Loop' | 'Iteration' | 'Condition';
-
-// Being used as the base interace for Node and Edge in Reactflow.
-export type FlowElementDataBase = {
-  label: string;
-  taskId?: string;
-  [key: string]: any;
-};
-
+export type FlowElementDataBase = { label: string; taskId?: string; [key: string]: any };
 export type SubDagTaskData = FlowElementDataBase & {
   groupKind?: SubDagKind;
   expectedTaskCount?: number;
   state?: PipelineTaskTaskState;
-  // Pod lifecycle diagnostic from the driver pod, same semantics as on execution nodes.
   lifecycleMessage?: string;
 };
-
-export type SubDagFlowElementData = SubDagTaskData & {
-  // Callback action if a SubDag expand button is clicked.
-  expand: (nodeKey: string) => void;
-};
-
+export type SubDagFlowElementData = SubDagTaskData & { expand: (nodeKey: string) => void };
 export type ExecutionFlowElementData = FlowElementDataBase & {
   state?: PipelineTaskTaskState;
-  // Pod lifecycle diagnostic from the execution engine. Set only while the task has an
-  // unresolved problem such as ImagePullBackOff, and cleared when the task recovers.
   lifecycleMessage?: string;
-  // Set when the task is currently parked at a debug-pause barrier, as
-  // reported live by the launcher (see DebugPauseUtils.ts). This is a
-  // separate overlay on top of `state`, not a replacement for it - the task
-  // continues to report RUNNING while this is set.
-  debugPauseBarrier?: DebugPauseBarrier;
 };
-
 export type ArtifactFlowElementData = FlowElementDataBase & {
   hasArtifact?: boolean;
   producerSubtask?: string;

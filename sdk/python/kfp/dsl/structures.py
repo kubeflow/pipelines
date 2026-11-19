@@ -14,18 +14,15 @@
 """Definitions for component spec."""
 
 import ast
-import collections
 import dataclasses
 import itertools
 import re
-import uuid
 from decimal import Decimal
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
 import yaml
 from google.protobuf import json_format
 
-import kfp
 from kfp.dsl import container_component_artifact_channel as artifact_channel
 from kfp.dsl import placeholders, utils
 from kfp.dsl.component_task_config import TaskConfigPassthrough
@@ -375,7 +372,12 @@ class ContainerSpecImplementation:
             image=container_dict['image'],
             command=container_dict.get('command'),
             args=container_dict.get('args'),
-            env=container_dict.get('env'),
+            env={
+                item['name']: item['value']
+                for item in container_dict.get('env', [])
+            }
+            if isinstance(container_dict.get('env'), list)
+            else container_dict.get('env'),
             resources=None,
         )  # can only be set on tasks
 
@@ -568,10 +570,9 @@ class Implementation:
             )
             return Implementation(container=container_spec)
         else:
-            pipeline_spec = json_format.ParseDict(
-                pipeline_spec_dict, pipeline_spec_pb2.PipelineSpec()
+            raise ValueError(
+                'Pipeline graph IR is no longer loadable as a component; compile the original Python source to Argo.'
             )
-            return Implementation(graph=pipeline_spec)
 
 
 def check_placeholder_references_valid_io_name(
@@ -753,7 +754,7 @@ class ComponentSpec:
             return None
 
         component_key = utils.sanitize_component_name(raw_name)
-        component_spec_dict = pipeline_spec_dict['components'].get(
+        component_spec_dict = pipeline_spec_dict.get('components', {}).get(
             component_key, pipeline_spec_dict['root']
         )
 
@@ -826,10 +827,9 @@ class ComponentSpec:
             component_yaml
         )
 
-        if (
-            'implementation' in pipeline_spec_dict
-            or pipeline_spec_dict.get('kind') == 'Workflow'
-        ):
+        if 'implementation' in pipeline_spec_dict or pipeline_spec_dict.get(
+            'kind'
+        ) in {'Workflow', 'WorkflowTemplate', 'CronWorkflow'}:
             raise ValueError(
                 'Component YAML must use the PipelineSpec IR format. '
                 'Legacy component definitions and Argo Workflows are not supported. '
@@ -846,133 +846,23 @@ class ComponentSpec:
         return component_spec
 
     def save_to_component_yaml(self, output_file: str) -> None:
-        """Saves ComponentSpec into IR YAML file.
+        """Save a portable container definition, without compiling a pipeline."""
+        from pathlib import Path
 
-        Args:
-            output_file: File path to store the component yaml.
-        """
-        from kfp.compiler import pipeline_spec_builder as builder
-
-        pipeline_spec = self.to_pipeline_spec()
-        builder.write_pipeline_spec_to_file(
-            pipeline_spec,
-            None,
-            pipeline_spec_pb2.PlatformSpec(),
-            output_file,
+        target = Path(output_file)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            yaml.safe_dump(
+                json_format.MessageToDict(self.to_pipeline_spec()),
+                sort_keys=False,
+            )
         )
 
     def to_pipeline_spec(self) -> pipeline_spec_pb2.PipelineSpec:
-        """Creates a pipeline instance and constructs the pipeline spec for a
-        single component.
+        """Return the shared schema representation of a container definition."""
+        from kfp.dsl.component_definition import serialize
 
-        Args:
-            component_spec: The ComponentSpec to convert to PipelineSpec.
-
-        Returns:
-            A PipelineSpec proto representing the compiled component.
-        """
-        # import here to avoid circular module dependency
-        from kfp.compiler import compiler_utils
-        from kfp.compiler import pipeline_spec_builder as builder
-        from kfp.dsl import pipeline_channel, pipeline_task, tasks_group
-
-        args_dict = {}
-        pipeline_inputs = self.inputs or {}
-
-        for arg_name, input_spec in pipeline_inputs.items():
-            args_dict[arg_name] = pipeline_channel.create_pipeline_channel(
-                name=arg_name,
-                channel_type=input_spec.type,
-                is_artifact_list=input_spec.is_artifact_list,
-            )
-
-        task = pipeline_task.PipelineTask(self, args_dict)
-
-        # instead of constructing a pipeline with pipeline_context.Pipeline,
-        # just build the single task group
-        group = tasks_group.TasksGroup(
-            group_type=tasks_group.TasksGroupType.PIPELINE
-        )
-        group.tasks.append(task)
-
-        group.name = uuid.uuid4().hex
-
-        pipeline_name = self.name
-        task_group = group
-
-        pipeline_outputs = {}
-        pipeline_output_spec = self.outputs or {}
-
-        for arg_name, output_spec in pipeline_output_spec.items():
-            pipeline_outputs[arg_name] = (
-                pipeline_channel.create_pipeline_channel(
-                    name=arg_name,
-                    channel_type=output_spec.type,
-                    task_name=task.name,
-                )
-            )
-
-        utils.validate_pipeline_name(pipeline_name)
-
-        pipeline_spec = pipeline_spec_pb2.PipelineSpec()
-        pipeline_spec.pipeline_info.name = pipeline_name
-        pipeline_spec.sdk_version = f'kfp-{kfp.__version__}'
-        # Schema version 2.1.0 is required for kfp-pipeline-spec>0.1.13
-        pipeline_spec.schema_version = '2.1.0'
-
-        # if we decide to surface component outputs to pipeline level,
-        # can just assign the component_spec_proto directly to .root
-        component_spec_proto = (
-            builder._build_component_spec_from_component_spec_structure(self)
-        )
-        pipeline_spec.root.CopyFrom(component_spec_proto)
-
-        builder._build_dag_outputs(
-            component_spec=pipeline_spec.root, dag_outputs=pipeline_outputs
-        )
-
-        deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
-        root_group = task_group
-
-        task_name_to_parent_groups, group_name_to_parent_groups = (
-            compiler_utils.get_parent_groups(root_group)
-        )
-
-        def get_inputs(
-            task_group: tasks_group.TasksGroup, task_name_to_parent_groups
-        ):
-            inputs = collections.defaultdict(set)
-            if len(task_group.tasks) != 1:
-                raise ValueError(
-                    f'Error compiling component. Expected one task in task group, got {len(task_group.tasks)}.'
-                )
-            only_task = task_group.tasks[0]
-            if only_task.channel_inputs:
-                for group_name in task_name_to_parent_groups[only_task.name]:
-                    inputs[group_name].add((only_task.channel_inputs[-1], None))
-            return inputs
-
-        inputs = get_inputs(task_group, task_name_to_parent_groups)
-
-        builder.build_spec_by_group(
-            pipeline_spec=pipeline_spec,
-            deployment_config=deployment_config,
-            group=root_group,
-            inputs=inputs,
-            outputs=collections.defaultdict(
-                dict
-            ),  # empty -- no sub-DAG outputs to surface
-            dependencies={},  # no dependencies for single-component pipeline
-            rootgroup_name=root_group.name,
-            task_name_to_parent_groups=task_name_to_parent_groups,
-            group_name_to_parent_groups=group_name_to_parent_groups,
-            name_to_for_loop_group={},  # no for loop in single-component pipeline
-            platform_spec=pipeline_spec_pb2.PlatformSpec(),  # no PlatformSpec single-component pipeline
-            is_compiled_component=True,
-            group_name_to_component_name={},  # no subgroups in single-component pipeline
-        )
-
-        return pipeline_spec
+        return serialize(self)
 
 
 def normalize_time_string(duration: str) -> str:

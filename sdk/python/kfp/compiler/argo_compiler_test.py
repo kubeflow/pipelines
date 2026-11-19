@@ -17,7 +17,7 @@ def identity(value: int) -> int:
 
 def test_decorator_captures_without_building_ir(tmp_path):
     with patch(
-        'kfp.compiler.pipeline_spec_builder.create_pipeline_spec',
+        'kfp.dsl.structures.ComponentSpec.to_pipeline_spec',
         side_effect=AssertionError('IR builder called'),
     ):
 

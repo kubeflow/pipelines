@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { vi, describe, it, expect, afterEach } from 'vitest';
-import { PipelineTaskTaskState } from 'src/apisv2/run';
+import { PipelineTaskTaskState } from 'src/components/graph/Constants';
 import {
   argoGraph,
   argoArtifactUrl,

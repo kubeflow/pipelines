@@ -14,7 +14,13 @@ def test_isolated_client_auth_and_persistent_services():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     upstream = []
-    for name in ('argo-server', 'workflow-controller', 'minio', 'postgres'):
+    for name in (
+        'argo-server',
+        'workflow-controller',
+        'minio',
+        'postgres',
+        'httpbin',
+    ):
         container = {
             'name': name,
             'image': 'quay.io/argoproj/example:latest',
@@ -38,6 +44,7 @@ def test_isolated_client_auth_and_persistent_services():
         for item in result
         if item['kind'] == 'Deployment'
     }
+    assert 'httpbin' not in deployments
     args = deployments['argo-server']['spec']['template']['spec']['containers'][
         0
     ]['args']

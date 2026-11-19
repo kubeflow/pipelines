@@ -121,7 +121,7 @@ class TestComponentDecorator(unittest.TestCase):
             def reloaded_pipeline():
                 loaded_component()
 
-            compiler.Compiler().compile(
+            compiler.Compiler(disable_caching=True).compile(
                 reloaded_pipeline, os.path.join(directory, 'pipeline.yaml')
             )
 
@@ -146,7 +146,7 @@ class TestComponentDecorator(unittest.TestCase):
             def reloaded_pipeline():
                 loaded()
 
-            compiler.Compiler().compile(
+            compiler.Compiler(disable_caching=True).compile(
                 reloaded_pipeline, os.path.join(directory, 'pipeline.yaml')
             )
 

@@ -317,12 +317,7 @@ class TestOneOfRequiresSameType(unittest.TestCase):
             return dsl.OneOf(t1.output, t2.output)
 
         self.assertEqual(
-            my_pipeline.pipeline_spec.components['comp-condition-branches-1']
-            .output_definitions.parameters[
-                'pipelinechannel--condition-branches-1-oneof-1'
-            ]
-            .parameter_type,
-            3,
+            my_pipeline.pipeline_spec.outputs.channel_type, 'String'
         )
 
     def test_different_parameter_types(self):
@@ -356,20 +351,8 @@ class TestOneOfRequiresSameType(unittest.TestCase):
             return dsl.OneOf(t1.outputs['out'], t2.outputs['out'])
 
         self.assertEqual(
-            my_pipeline.pipeline_spec.components['comp-condition-branches-1']
-            .output_definitions.artifacts[
-                'pipelinechannel--condition-branches-1-oneof-1'
-            ]
-            .artifact_type.schema_title,
-            'system.Artifact',
-        )
-        self.assertEqual(
-            my_pipeline.pipeline_spec.components['comp-condition-branches-1']
-            .output_definitions.artifacts[
-                'pipelinechannel--condition-branches-1-oneof-1'
-            ]
-            .artifact_type.schema_version,
-            '0.0.1',
+            my_pipeline.pipeline_spec.outputs.channel_type,
+            'system.Artifact@0.0.1',
         )
 
     def test_different_artifact_type(self):

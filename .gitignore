@@ -1,123 +1,44 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-
-# JS Sourcemaps
-*.js.map
-
-# Dependencies
+# Dependencies and build products
 node_modules/
-bower_components/
-
-# Build output
-dist
-__debug_bin*
-
-# Web server
-frontend/server/dist
-
-# Python built package
-*.egg-info
-dist
-.tox
-
-# UI test outputs
-frontend/test/ui/visual-regression/errorShots
-frontend/test/ui/visual-regression/screenshots/diff
-frontend/test/ui/visual-regression/screenshots/screen
-frontend/.visual/
-
-# sqlite db
-*.db
-
-# IDE
-.idea/
-.ijwb/
-*.iml
-.obsidian/
-
-# Merge files
-*.orig
-
-*.pyc
-.DS_Store
-build
-
-.ipynb_checkpoints
-*.egg-info
-
-# go vendor
-vendor
-
-# Go module cache
-backend/pkg/mod/cache
-
-# Bazel output artifacts
-bazel-*
-
-# VSCode
-.vscode
-
-# Test temporary files
-_artifacts
-
-# Generated Python SDK documentation
-_build
-
-# sed backups
-*.bak
-
-# virtualenv
 .venv/
 venv/
-
-# python sdk package
+dist/
+build/
+*.egg-info/
+__pycache__/
+*.pyc
 *.tar.gz
+_build/
 
-# Copy from kubeflow/frontend
-coverage/
-
-# Python cache
-__pycache__
-.pytest_cache
-
-# Coverage
-.coverage
+# Test/preview output
+.pytest_cache/
+.ruff_cache/
 .coverage*
-
-# kfp local execution default directory
-local_outputs/
-
-# Ignore the Kind cluster kubeconfig
-kubeconfig_dev-pipelines-api
-
-# Release automation checkpoint
-release-state.json
-release-state-notes/
-
-# Ignore debug Driver Dockerfile produced from `make -C backend image_driver_debug`
-backend/Dockerfile.driver-debug
-
-backend/src/crd/kubernetes/bin
-
-**/allure-*
+coverage/
+*.log
+*.out
+*.js.map
+*.db
 **/*.html
 !frontend/index.html
 !frontend/argo.html
 reports/
 logs/
-*.out
-*test_*output*
+_artifacts/
+.preview/
 
-# Project-local tools
+# Local tools and editor state
 bin/
-
-# UI Smoke Test working directory
-.ui-smoke-test/
-frontend/scripts/ui-smoke-test/node_modules/
+.idea/
+.vscode/
+.DS_Store
+*.bak
+*.orig
+.ipynb_checkpoints/
 .npm-cache/
 .npm/
 
-# Don't commit docs written with https://github.com/obra/superpowers.
-docs/superpowers
+# Existing local credentials and test artifacts
+kubeconfig_dev-pipelines-api
+kubeconfig*
+*test_*output*

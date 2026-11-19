@@ -17,7 +17,6 @@ class CustomBuildHook(BuildHookInterface):
         generated = (
             'kfp/pipeline_spec/pipeline_spec_pb2.py',
             'kfp/kubernetes/kubernetes_executor_config_pb2.py',
-            'kfp/server_api/__init__.py',
         )
         for relative_path in generated:
             source = Path(self.root) / relative_path

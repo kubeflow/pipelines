@@ -1,46 +1,31 @@
-// Copyright 2021 The Kubeflow Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Copyright 2026 The Kubeflow Authors
+// SPDX-License-Identifier: Apache-2.0
+import {
+  buildGraphLayout,
+  getArtifactNodeKey,
+  getKeysFromArtifactNodeKey,
+  getTaskNodeKey,
+  getTaskKeyFromNodeKey,
+  isNode,
+} from './StaticFlow';
 
-import { PipelineSpec } from 'src/generated/pipeline_spec';
-import { testBestPractices } from 'src/TestUtils';
-import { convertFlowElements } from './StaticFlow';
-import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
-import { load } from 'js-yaml';
+it('round-trips native view keys and rejects invalid keys', () => {
+  expect(getTaskKeyFromNodeKey(getTaskNodeKey('train'))).toBe('train');
+  expect(getKeysFromArtifactNodeKey(getArtifactNodeKey('train', 'model'))).toEqual([
+    'train',
+    'model',
+  ]);
+  expect(() => getTaskKeyFromNodeKey('wrong')).toThrow();
+  expect(() => getKeysFromArtifactNodeKey('artifact.invalid')).toThrow();
+});
 
-testBestPractices();
-describe('StaticFlow', () => {
-  it('converts simple pipeline with element ids to graph', () => {
-    const yamlObject = load(v2YamlTemplateString);
-
-    const pipelineSpec = PipelineSpec.fromJSON(yamlObject);
-
-    const graph = convertFlowElements(pipelineSpec);
-    for (let element of graph) {
-      const index = [
-        'task.preprocess',
-        'task.train',
-        'artifact.preprocess.output_dataset_one',
-        'artifact.preprocess.output_dataset_two_path',
-        'artifact.train.model',
-        'outedge.preprocess.output_dataset_one',
-        'inedge.output_dataset_two_path.train',
-        'outedge.preprocess.output_dataset_two_path',
-        'inedge.output_dataset_one.train',
-        'outedge.train.model',
-        'paramedge.preprocess.train',
-      ].findIndex((x) => x === element.id);
-      expect(index > -1).toBeTruthy();
-    }
-  });
+it('lays dependencies above consumers using card dimensions', () => {
+  const result = buildGraphLayout([
+    { id: 'a', data: { label: 'A' }, position: { x: 0, y: 0 }, width: 300, height: 60 },
+    { id: 'b', data: { label: 'B' }, position: { x: 0, y: 0 } },
+    { id: 'edge', source: 'a', target: 'b' },
+  ]);
+  const nodes = result.filter(isNode);
+  expect(nodes[0].position.y + 60).toBeLessThan(nodes[1].position.y);
+  expect(result[2]).toMatchObject({ source: 'a', target: 'b' });
 });

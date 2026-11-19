@@ -17,15 +17,13 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import ErrorIcon from '@mui/icons-material/Error';
 import ListAltIcon from '@mui/icons-material/ListAlt';
-import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { ReactElement } from 'react';
-import { PipelineTaskTaskState } from 'src/apisv2/run';
+import { PipelineTaskTaskState, ExecutionFlowElementData } from './Constants';
 import StopCircle from 'src/icons/StopCircle';
 import { classes } from 'typestyle';
-import { ExecutionFlowElementData } from './Constants';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
 
@@ -40,13 +38,7 @@ function ExecutionNode({ id, data, selected }: ExecutionNodeProps) {
   // A lifecycle message is a warning, not a failure: the node only turns red once the
   // task itself is FAILED, so the failed icon takes precedence over the warning.
   const showWarning = !!data.lifecycleMessage && data.state !== PipelineTaskTaskState.FAILED;
-  // Pause barrier is an overlay on the task's real state (still RUNNING
-  // while parked) - render it instead of the state icon.
-  let icon = data.debugPauseBarrier
-    ? getDebugPauseIcon()
-    : showWarning
-      ? getWarningIcon()
-      : getIcon(data.state);
+  const icon = showWarning ? getWarningIcon() : getIcon(data.state);
   let executionIcon = getExecutionIcon(data.state);
 
   const fullWidth = icon ? 'w-64' : 'w-56';
@@ -149,19 +141,3 @@ function getStateIconWrapper(element: ReactElement, backgroundClasses: string) {
     </div>
   );
 }
-
-// Grey, distinct from the real state icons - a paused task waits on a person.
-export function getDebugPauseIcon() {
-  return getStateIconWrapper(
-    <PauseCircleIcon data-testid='execution-icon-debug-paused' className='text-mui-grey-600' />,
-    'bg-mui-grey-200',
-  );
-}
-
-// The following code can be used for `canceling state`
-// return (
-//   <div className='px-2 h-full self-stretch flex flex-col justify-center rounded-r-lg bg-mui-lightblue-100'>
-//     <CircularProgress size={24} />
-//     {/* <SyncDisabledIcon className=' text-mui-organge-300' /> */}
-//   </div>
-// );

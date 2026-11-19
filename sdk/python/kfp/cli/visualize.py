@@ -28,7 +28,6 @@ from typing import Any
 
 import click
 import yaml
-from google.protobuf.json_format import ParseError
 
 from kfp.cli import visualization
 
@@ -220,7 +219,6 @@ def _update(
     except (
         OSError,
         ValueError,
-        ParseError,
         yaml.YAMLError,
         subprocess.TimeoutExpired,
         RecursionError,

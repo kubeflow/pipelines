@@ -1,7 +1,7 @@
 // Copyright 2026 The Kubeflow Authors
 // SPDX-License-Identifier: Apache-2.0
 
-import { PipelineTaskTaskState } from 'src/apisv2/run';
+import { PipelineTaskTaskState } from 'src/components/graph/Constants';
 import type { PipelineFlowElement } from './v2/FlowTypes';
 import { buildGraphLayout, NodeTypeNames } from './v2/StaticFlow';
 

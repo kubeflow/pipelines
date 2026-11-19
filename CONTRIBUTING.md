@@ -229,16 +229,12 @@ use `chore` as the fallback.
 
 Scope is optional, it can be one of the following:
 
-* **frontend**: user interface or frontend server related, folder `frontend`, `frontend/server`
-* **backend**: Backend, folder `backend`
-* **sdk**: `kfp` python package, folder `sdk`
-* **sdk/client**: `kfp-server-api` python package, folder `backend/api/v2/python_http_client`
-* **components**: Pipeline components, folder `components`
-* **deployment**: Kustomize or gcp marketplace manifests, folder `manifests`
-* **metadata**: Related to machine learning metadata (MLMD), folder `backend/metadata_writer`
-* **cache**: Native task caching, folder `backend/src/v2/cacheutils`
-* **swf**: Scheduled workflow, folder `backend/src/crd/controller/scheduledworkflow`
-* **viewer**: Tensorboard viewer, folder `backend/src/crd/controller/viewer`
+* **frontend**: Native UI and offline graph widgets, folder `frontend`
+* **sdk**: Authoring, native compiler and component runtime, folder `sdk`
+* **deployment**: Argo stack and acceptance tests, folder `samples/argo-native`
+* **schema**: Shared authoring/Kubernetes schema sources and generators
+* **ci**: Native validation and repository automation
+* **docs**: Usage, architecture and compatibility documentation
 
 If you think the PR is related to multiple scopes, you can choose the major one or
 split the PR to focused sub-PRs. Note, splitting large PRs that affect multiple

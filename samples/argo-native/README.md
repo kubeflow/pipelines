@@ -149,16 +149,15 @@ reuse a cache after deleting its object-store data.
 
 ## Verification
 
-Core Python coverage on both supported versions:
+Run the full retained Python suite on both supported versions:
 
 ```sh
-uv run python -m pytest -q \
-  sdk/python/kfp/dsl/{pipeline_task_test.py,base_component_test.py,executor_test.py,argo_runtime_test.py} \
-  sdk/python/kfp/compiler/{argo_compiler_test.py,native_contract_test.py} \
-  sdk/python/kfp/cli/{native_cli_test.py,visualize_test.py} \
-  samples/argo-native/{install_demo_test.py,deploy_test.py}
+uv run --frozen --extra test python -m pytest -q sdk/python/kfp test samples/argo-native/deploy_test.py
 # Repeat with: uv run --python 3.11 --isolated --frozen --extra test python -m pytest ...
 ```
+
+`bash test/native-deployment.sh` performs the complete build/deploy/acceptance flow
+in a new disposable Kind cluster. It does not operate on the existing OrbStack stack.
 
 With the Argo CLI environment above, run the actual Kubernetes compatibility corpus:
 
@@ -209,26 +208,26 @@ verification covers success and failure, not every legacy cancellation/error-cod
 semantic. Component images must contain this checkout's runtime or install its
 wheel, not an unmodified upstream KFP runtime.
 
-The native entrypoint does not mount KFP client/server providers. Upstream IR/client
-compatibility is intentionally not provided. Broad upstream SDK runs were attempted
-on Python 3.11/3.13 and failed on those old contracts; the complete upstream suite
-is **not green**. Those results are not presented as successful native verification.
-Legacy backend/IR source and historical tests remain in the monorepo during this
-prototype; the deployed execution path does not use them. The Docker Python
-dependency remains necessary for component image building, not local execution.
+The KFP backend, REST clients, old pipeline IR compiler, old UI/server and their
+integration/serialization tests have been retired. The full retained SDK and native
+UI suites are the validation target; retired APIs are not silently emulated. A small
+container-definition serializer and shared authoring/configuration schemas remain
+for SDK loading and image building. The Docker Python dependency is used for image
+building. See [the stock-KFP feature gap inventory](../../docs/compatibility.md).
 
 Discovery is bounded to 100 live/archive list results per source and five explicitly
 selected runs for comparison. Lineage is derived from declared task inputs/outputs
 and producer metadata. There is no global artifact index, migration service, new
-application backend or custom controller. The initial handwritten workflow and
-Stage A setup tests remain as runtime-contract evidence; use `deploy.py`, not the
-old Stage A installer, for the current deployment.
+application backend or custom controller. The handwritten workflow remains a
+runtime-contract fixture. The obsolete Stage A installer is removed; `deploy.py`
+is the only deployment generator, and unused upstream demo services are filtered out.
 
 <details>
 <summary>Failure fixes and architecture evidence</summary>
 
 - The interrupted Stage A setup used a retired MinIO image and lacked scoped cache
-  update permission. Reproducer tests failed before those fixes and passed afterward.
+  update permission. The obsolete installer is now retired; the current deployment
+  and its tests use the repository Argo pin and scoped cache permissions.
 - Exit-handler verification caught successful cleanup masking a failed body. Both
   `body` and `exit` are now explicit Argo DAG targets, with failure-aware dependency
   expressions. No extra control pod is introduced.

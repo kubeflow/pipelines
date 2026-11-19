@@ -1,37 +1,36 @@
-# Kubeflow Pipelines
+# Native Kubeflow Pipelines
 
-Kubeflow Pipelines is a monorepo for compiling, running, and managing machine-learning pipelines on Kubernetes.
+This fork keeps KFP authoring and visualization and executes native Argo resources.
+The KFP API server, drivers, launchers, ScheduledWorkflow/persistence/viewer
+controllers, REST clients and their deployment stack have been retired.
 
-## Bug fixes and PR evidence
+## Changes and evidence
 
-- Start each bug fix with a minimal, repeatable reproducer. Record the steps or command, required inputs, and expected versus actual behavior in the PR description.
-- Add an automated regression test that exercises the reported failure. Verify that it fails for the expected reason before the fix and passes after the fix; keep the test in the PR.
-- Show the evidence in the PR description: identify the regression test, include the exact command used to run it, and report the before-fix failure and after-fix passing result. Link to the passing CI run when available. If verification is blocked, state what remains unverified instead of claiming the fix is proven.
-- Include a picture, diagram, or animation in the PR description that explains the problem and the fix. Clearly label the before and after behavior; use screenshots or a recording for visible changes, or a diagram (such as Mermaid) for logic, data flow, and backend changes.
+- Start bug fixes with a repeatable reproducer and add a regression test. Verify
+  the expected failure before the fix and the passing result afterward.
+- Record exact validation commands and results, including anything unverified.
+- PR descriptions start with `## Problem` when the change needs explanation.
+  Include a before/after diagram or screenshot when applicable.
+- Sign commits with `git commit -s`; do not add agent co-authors.
+- Preserve authoring type checks and native cluster execution. Use Kubernetes and
+  Argo clients for management; do not restore retired KFP endpoints or controllers.
 
-## Task-specific guides
+## Guides
 
-Read the guide relevant to the files or task you are changing:
+Read the relevant guide before changing its area:
 
 - [Conventions](docs/agents/conventions.md)
-- [Architecture and runtime](docs/agents/architecture.md)
-- [Development and deployment](docs/agents/development.md)
-- [Testing and formatting](docs/agents/testing.md)
-- [Nonblocking database changes](docs/agents/database-migrations.md) before changing
-  models, indexes, migrations, startup SQL or backfills
-- [Generated code and APIs](docs/agents/generation.md)
+- [Architecture](docs/agents/architecture.md)
+- [Development/deployment](docs/agents/development.md)
+- [Tests/formatting](docs/agents/testing.md)
+- [Schema generation](docs/agents/generation.md) for generated bindings
 - [Frontend](docs/agents/frontend.md)
-- [CI and workflows](docs/agents/ci.md)
-- [Dependency updates](docs/agents/dependabot.md)
-- [Go version policy](docs/agents/go-version-policy.md) when changing compiler,
-  module, setup-action, or builder-image pins
-- [Domain documentation](docs/agents/domain.md) when exploring domain behavior or architecture decisions
-- [GitHub issue tracking](docs/agents/issue-tracker.md) for issue or pull-request work
-- [Triage labels](docs/agents/triage-labels.md) for issue triage
+- [CI](docs/agents/ci.md)
+- [Dependencies](docs/agents/dependabot.md)
+- [Domain](docs/agents/domain.md) when exploring domain behavior
+- [Issue tracking](docs/agents/issue-tracker.md) for issue/PR work
+- [Triage labels](docs/agents/triage-labels.md) for triage
 
-## Pull request descriptions
-
-When applicable, start PR descriptions with a `## Problem` section. Explain the
-underlying problem and why it matters, assuming the reader has no prior context,
-so they can understand the proposed solution. Omit this section for trivial,
-self-explanatory changes, such as fixing a hyperlink.
+The executable deployment and compatibility contract are documented in
+[samples/argo-native/README.md](samples/argo-native/README.md). Use explicit
+Kubernetes contexts; preserve unrelated workloads and existing run/artifact data.

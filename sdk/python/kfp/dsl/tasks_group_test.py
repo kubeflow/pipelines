@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import tempfile
 import unittest
 
-from kfp import compiler, dsl
+from kfp import dsl
 from kfp.dsl import (
     Artifact,
     Input,
@@ -165,8 +163,7 @@ class ExitHandlerTest(unittest.TestCase):
             with dsl.ExitHandler(exit_task):
                 pass
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            package_path = os.path.join(tmpdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path
-            )
+        task = my_pipeline.pipeline_spec.pipeline.tasks['exit-comp']
+        self.assertEqual(task.inputs['param'].name, 'p')
+        self.assertEqual(task.inputs['art'].name, 'a')
+        self.assertIsNone(task.inputs['art'].task_name)

@@ -1,4 +1,0 @@
-Dataflow
-==========================
-
-.. automodule:: preview.dataflow

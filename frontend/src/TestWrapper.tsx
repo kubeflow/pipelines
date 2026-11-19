@@ -1,36 +1,13 @@
-/*
- * Copyright 2021 The Kubeflow Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2026 The Kubeflow Authors
+// SPDX-License-Identifier: Apache-2.0
+import type { PropsWithChildren } from 'react';
+import { StyledEngineProvider, ThemeProvider } from '@mui/material/styles';
+import { theme } from './Css';
 
-import React, { useState } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter } from 'react-router';
-
-interface CommonTestWrapperProps {
-  children: React.ReactElement;
-}
-export const CommonTestWrapper: React.FC<CommonTestWrapperProps> = (props) => {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: { queries: { retry: false } },
-      }),
-  );
+export function CommonTestWrapper({ children }: PropsWithChildren) {
   return (
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>{props.children}</QueryClientProvider>
-    </BrowserRouter>
+    <StyledEngineProvider injectFirst>
+      <ThemeProvider theme={theme}>{children}</ThemeProvider>
+    </StyledEngineProvider>
   );
-};
+}

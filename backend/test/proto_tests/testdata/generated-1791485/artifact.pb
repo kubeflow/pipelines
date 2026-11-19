@@ -1,4 +1,0 @@
-
-artifact-123model-artifactTrained model artifact *!gs://bucket/models/model-artifact2
-	framework	xgboostBภาสฌJ
-namespace1

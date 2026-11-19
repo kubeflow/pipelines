@@ -420,8 +420,10 @@ class TypeUtilsTest(parameterized.TestCase):
             consume_list(values=outputs.output)
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            package_path = os.path.join(tmpdir, 'typed_pipeline.json')
-            compiler.Compiler().compile(typed_pipeline, package_path)
+            package_path = os.path.join(tmpdir, 'typed_pipeline.yaml')
+            compiler.Compiler(disable_caching=True).compile(
+                typed_pipeline, package_path
+            )
             self.assertTrue(os.path.exists(package_path))
 
     def test_pipeline_compile_with_builtin_list_and_dict_annotations(self):
@@ -445,9 +447,11 @@ class TypeUtilsTest(parameterized.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             package_path = os.path.join(
-                tmpdir, 'typed_pipeline_list_and_dict.json'
+                tmpdir, 'typed_pipeline_list_and_dict.yaml'
             )
-            compiler.Compiler().compile(typed_pipeline, package_path)
+            compiler.Compiler(disable_caching=True).compile(
+                typed_pipeline, package_path
+            )
             self.assertTrue(os.path.exists(package_path))
 
     def test_pipeline_compile_with_builtin_and_typing_generic_annotations(self):
@@ -477,9 +481,11 @@ class TypeUtilsTest(parameterized.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             package_path = os.path.join(
-                tmpdir, 'typed_pipeline_builtin_and_typing.json'
+                tmpdir, 'typed_pipeline_builtin_and_typing.yaml'
             )
-            compiler.Compiler().compile(typed_pipeline, package_path)
+            compiler.Compiler(disable_caching=True).compile(
+                typed_pipeline, package_path
+            )
             self.assertTrue(os.path.exists(package_path))
 
 
@@ -823,7 +829,7 @@ class TestTypeChecking(parameterized.TestCase):
                 t = double(num=x)
             return dsl.Collected(t.outputs['out_dataset'])
 
-        loaded_math_pipeline = compile_and_load_component(math_pipeline)
+        loaded_math_pipeline = math_pipeline
 
         @dsl.pipeline
         def outer_math_pipeline(
@@ -902,7 +908,7 @@ class TestTypeChecking(parameterized.TestCase):
 
         with self.assertRaisesRegex(
             InconsistentTypeException,
-            r"Incompatible return type provided for output of pipeline 'outer-math-pipeline'\. Output of type 'List\[system\.Dataset@0\.0\.1\]' cannot be surfaced as pipeline output type 'system\.Dataset@0\.0\.1",
+            r"Incompatible return type provided for output of pipeline 'outer-math-pipeline'.*List\[system\.Dataset@0\.0\.1\]",
         ):
 
             @dsl.pipeline
@@ -920,7 +926,7 @@ def compile_and_load_component(
 
     with tempfile.TemporaryDirectory() as tempdir:
         output_path = os.path.join(tempdir, 'pipeline.yaml')
-        compiler.Compiler().compile(comp, output_path)
+        comp.component_spec.save_to_component_yaml(output_path)
         return components.load_component_from_file(output_path)
 
 

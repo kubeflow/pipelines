@@ -161,19 +161,12 @@ def pipeline():
         (_match, open, data, close) => {
           const payload = JSON.parse(data);
           // Native template metadata exercises the same read-only code editor.
-          if (payload.state.spec.kind === 'WorkflowTemplate') {
-            for (const template of payload.state.spec.spec.templates) {
-              template.metadata ||= {};
-              template.metadata.annotations ||= {};
-              template.metadata.annotations['pipelines.kubeflow.org/artifact-schema'] =
-                '{"type":"object"}';
-            }
-          } else {
-            for (const component of Object.values(payload.state.spec.components)) {
-              for (const artifact of Object.values(component.outputDefinitions?.artifacts ?? {})) {
-                artifact.artifactType = { instanceSchema: '{"type":"object"}' };
-              }
-            }
+          assert.equal(payload.state.spec.kind, 'WorkflowTemplate');
+          for (const template of payload.state.spec.spec.templates) {
+            template.metadata ||= {};
+            template.metadata.annotations ||= {};
+            template.metadata.annotations['pipelines.kubeflow.org/artifact-schema'] =
+              '{"type":"object"}';
           }
           return open + JSON.stringify(payload).replaceAll('<', '\\u003c') + close;
         },
@@ -221,8 +214,13 @@ def pipeline():
       );
 
       const lastHtml = await readFile(html, 'utf8');
-      const exported = JSON.parse(lastHtml.match(/<script id="kfp-data" type="application\/json">(.*?)<\/script>/s)[1]);
-      assert.equal(exported.state.spec.metadata.annotations['pipelines.kubeflow.org/display-name'], 'other');
+      const exported = JSON.parse(
+        lastHtml.match(/<script id="kfp-data" type="application\/json">(.*?)<\/script>/s)[1],
+      );
+      assert.equal(
+        exported.state.spec.metadata.annotations['pipelines.kubeflow.org/display-name'],
+        'other',
+      );
       const lastMarkdown = await readFile(markdown, 'utf8');
       await writeFile(source, 'invalid Python !!!');
       await live.getByRole('alert').waitFor();

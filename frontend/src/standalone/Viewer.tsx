@@ -16,9 +16,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import PipelineGraph from 'src/components/graph/PipelineGraph';
 import Editor from 'src/components/Editor';
-import { PipelineSpec } from 'src/generated/pipeline_spec';
 import type { LayerFlowElement } from 'src/lib/v2/FlowTypes';
-import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 import { argoStaticView, type ArgoManifest } from 'src/lib/ArgoGraph';
 
 export interface ViewerState {
@@ -69,7 +67,6 @@ export function Viewer({ initial, live }: { initial: ViewerState; live: boolean 
           name: native.name,
           elements: native.elements,
           resolveLayers: native.resolve,
-          template: undefined,
           renderDetails: (selected: LayerFlowElement) => {
             const detail = native.describe(selected.layers, selected.element.id);
             return (
@@ -92,12 +89,9 @@ export function Viewer({ initial, live }: { initial: ViewerState; live: boolean 
           },
         };
       }
-      const spec = PipelineSpec.fromJSON(state.spec);
-      return {
-        name: spec.pipelineInfo?.name,
-        template: JSON.stringify(state.spec),
-        elements: convertFlowElements(spec),
-      };
+      throw new Error(
+        'Expected a native Argo Workflow, WorkflowTemplate or CronWorkflow. Recompile the Python source.',
+      );
     } catch (error) {
       return { error: `Unable to display pipeline: ${String(error)}` };
     }
@@ -126,7 +120,6 @@ export function Viewer({ initial, live }: { initial: ViewerState; live: boolean 
       )}
       {graph?.elements && (
         <PipelineGraph
-          templateString={graph.template}
           resolveLayers={graph.resolveLayers}
           renderDetails={graph.renderDetails}
           elements={graph.elements}

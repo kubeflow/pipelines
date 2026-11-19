@@ -391,7 +391,6 @@ test('deployed native lifecycle and RBAC', { timeout: 720000 }, async () => {
       .sort();
     assert.deepEqual(deployments, [
       'argo-server',
-      'httpbin',
       'kfp-argo-ui',
       'minio',
       'postgres',

@@ -1,37 +1,20 @@
-# Architecture and Runtime
+# Architecture
 
-## Architecture
+`GraphComponent` captures DSL tasks, groups and channels. The native compiler
+lowers those objects to WorkflowTemplates, Workflows and CronWorkflows. Argo owns
+execution, status, transfer, cache and archive; the Python bridge runs inside each
+component container. The static UI/proxy has no application database or backend.
 
-- Diagram: [`images/kfp-cluster-wide-architecture.png`](../../images/kfp-cluster-wide-architecture.png).
-- This fork captures DSL tasks/groups/channels before IR construction and compiles them directly to native Argo resources. See `plan.md` for the migration checkpoint and `samples/argo-native/README.md` for the executable prototype.
-- Argo owns scheduling, input resolution, artifact transfer, memoization and status. `argo_runtime.py` invokes unchanged Python functions inside component containers; no KFP driver, launcher service or API server is required by this path.
-- Legacy backend/IR code remains in the monorepo during migration but is not the native prototype's execution model.
-- The executor entrypoint is `sdk/python/kfp/dsl/executor_main.py`; it does not participate in compilation.
-- Runtime containers install `kfp` with `--no-deps`; `_KFP_RUNTIME=true` disables most SDK imports. Task code must not depend on SDK-only modules unless the base image supplies their dependencies.
+The two protobuf bindings in `kfp.pipeline_spec` and `kfp.kubernetes` remain shared
+authoring/configuration schemas. `dsl/component_definition.py` serializes portable
+container definitions for the SDK loader/image builder; it does not register tasks,
+compile pipeline IR or contact a server. This is distinct from the removed REST
+API definitions and old pipeline IR builder.
 
-## Packages and key paths
+The browser reads Kubernetes ConfigMaps for experiments and Argo resources for
+versions, runs and schedules. Argo Server provides hydrated/offloaded status and
+archive/artifact access. UID is run identity. Cache metadata retains the original
+producer. Tokens stay in memory and namespace roles enforce permissions.
 
-| Area | Path |
-| --- | --- |
-| Native SDK compiler | `sdk/python/kfp/compiler/argo_compiler.py`, `argo_groups.py` |
-| DSL | `sdk/python/kfp/dsl/` |
-| Platform integration | `sdk/python/kfp/kubernetes/` |
-| Pipeline-spec APIs | `api/` |
-| Backend | `backend/` |
-| Frontend | `frontend/` |
-| Deployment manifests | `manifests/` |
-| Pipeline fixtures and workflow goldens | `test_data/` |
-
-- `kfp` is one distribution containing `kfp.pipeline_spec`, `kfp.kubernetes`,
-  and the generated REST client `kfp.server_api`. It no longer extends a shared
-  namespace with separately installed distributions.
-- Kubernetes bindings rewrite generated pipeline-spec imports through
-  `kubernetes_platform/python/generate_proto.py`; proto and Go sources stay in
-  their domain directories.
-
-## Execution boundary
-
-Components are called inside `@dsl.pipeline` to capture tasks. Submit compiled
-resources to Argo on Kubernetes; there is no in-process runner or compatibility
-fallback. Offline compilation, validation and runtime unit tests remain supported.
-Docker's Python package remains necessary for `kfp component build`, not execution.
+`test/native_cleanup_test.py` guards the retired-service boundary. The repo has no
+Go execution backend, KFP controllers, KFP REST clients, or in-process runners.

@@ -26,6 +26,7 @@ from kfp.dsl import (
     structures,
     tasks_group,
 )
+from kfp.dsl.types import type_utils
 
 
 class GraphComponent(base_component.BaseComponent):
@@ -66,6 +67,27 @@ class GraphComponent(base_component.BaseComponent):
 
         if not dsl_pipeline.tasks:
             raise ValueError('Task is missing from pipeline.')
+
+        # Return validation belongs to graph capture, not a removed IR backend.
+        returned = (
+            pipeline_outputs._asdict()
+            if hasattr(pipeline_outputs, '_asdict')
+            else pipeline_outputs
+            if isinstance(pipeline_outputs, dict)
+            else {'Output': pipeline_outputs}
+            if pipeline_outputs is not None
+            else {}
+        )
+        for name, output in (component_spec.outputs or {}).items():
+            if name not in returned:
+                raise ValueError(
+                    f'Pipeline output {name!r} is missing; return the declared output channel.'
+                )
+            type_utils.verify_type_compatibility(
+                given_value=returned[name],
+                expected_spec=output,
+                error_message_prefix=f'Incompatible return type provided for output of pipeline {self.name!r}: ',
+            )
 
         # Validate workspace configuration if workspace features are used
         self._validate_workspace_requirements(dsl_pipeline, pipeline_config)

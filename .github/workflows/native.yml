@@ -1,0 +1,115 @@
+name: Native Argo CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sdk:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync --frozen --extra test --extra codegen --extra lint
+      - run: uv run python hack/generate-python.py
+      - run: git diff --exit-code -- sdk/python/kfp/pipeline_spec sdk/python/kfp/kubernetes
+      - run: uv run ruff check sdk/python/kfp samples/argo-native hack/generate-python.py test
+      - run: uv run python -m pytest -q sdk/python/kfp test samples/argo-native/deploy_test.py .github/scripts
+      - run: uv build --package kfp --wheel --sdist
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: '3.13'
+      - run: uv sync --frozen --extra test
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm install --global npm@11.17.0
+      - run: npm ci
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npm run test:ci
+        working-directory: frontend
+      - run: git diff --exit-code -- sdk/python/kfp/cli/viewer_assets
+
+  deployment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: frontend/.nvmrc
+      - run: npm install --global npm@11.17.0
+      - name: Install pinned cluster and workflow CLIs
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir=$(mktemp -d)
+          cd "$dir"
+          kind_base=https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0
+          curl -fsSLO "$kind_base/kind-linux-amd64"
+          curl -fsSLO "$kind_base/kind-linux-amd64.sha256sum"
+          sha256sum --check kind-linux-amd64.sha256sum
+          sudo install kind-linux-amd64 /usr/local/bin/kind
+          version=$(< "$GITHUB_WORKSPACE/third_party/argo/VERSION")
+          argo_base="https://github.com/argoproj/argo-workflows/releases/download/$version"
+          curl -fsSLO "$argo_base/argo-linux-amd64.gz"
+          curl -fsSLO "$argo_base/argo-workflows-cli-checksums.txt"
+          grep ' argo-linux-amd64.gz$' argo-workflows-cli-checksums.txt | sha256sum --check -
+          gzip -d argo-linux-amd64.gz
+          sudo install argo-linux-amd64 /usr/local/bin/argo
+      - run: uv sync --frozen --extra test
+      - run: npm ci && npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: bash test/native-deployment.sh
+      - name: Cluster diagnostics
+        if: failure()
+        run: |
+          kubectl --context kind-native-kfp -n kfp-argo get pods,workflows,events || true
+          kubectl --context kind-native-kfp -n kfp-argo logs deployment/workflow-controller --tail=100 || true
+
+  ci-passed:
+    if: always()
+    needs: [sdk, frontend, deployment]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all native checks
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          assert all(job['result'] == 'success' for job in json.loads(os.environ['RESULTS']).values())
+          PY

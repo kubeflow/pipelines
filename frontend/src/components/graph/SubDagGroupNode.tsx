@@ -4,9 +4,8 @@
 import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import { Node, NodeProps } from '@xyflow/react';
-import { PipelineTaskTaskState } from 'src/apisv2/run';
+import { PipelineTaskTaskState, SubDagFlowElementData } from './Constants';
 import { classes, style } from 'typestyle';
-import { SubDagFlowElementData } from './Constants';
 import { color } from 'src/Css';
 import { getIcon, getLifecycleWarningLabel, getWarningIcon } from './ExecutionNode';
 import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';

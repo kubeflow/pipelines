@@ -20,7 +20,7 @@ import unittest
 
 from absl.testing import parameterized
 
-from kfp import compiler, components, dsl
+from kfp import components, dsl
 from kfp.dsl import component_factory, placeholders, structures
 from kfp.pipeline_spec import pipeline_spec_pb2
 
@@ -108,7 +108,7 @@ class StructuresTest(parameterized.TestCase):
         )
         with tempfile.TemporaryDirectory() as tempdir:
             output_path = os.path.join(tempdir, 'component.yaml')
-            compiler.Compiler().compile(test_component, output_path)
+            test_component.component_spec.save_to_component_yaml(output_path)
 
             # test that it can be read back correctly
             with open(output_path, 'r') as f:
@@ -641,7 +641,7 @@ sdkVersion: kfp-2.0.0-alpha.2""")
 
     def test_description_extraction_index_out_of_bounds(self):
         compiled_yaml = textwrap.dedent("""\
-            {pipelineInfo: {name: component-1}, components: {}, root: {dag: {tasks: {}}}, deploymentSpec: {executors: {}}}
+            {pipelineInfo: {name: component-1}, components: {}, root: {executorLabel: exec-component-1}, deploymentSpec: {executors: {exec-component-1: {container: {image: busybox}}}}}
             # some comment
             # Description: some text
             #              continued text""")

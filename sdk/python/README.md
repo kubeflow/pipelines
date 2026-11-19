@@ -1,183 +1,49 @@
+# KFP native authoring SDK
 
-Kubeflow Pipelines is a platform for building and deploying portable, scalable machine learning workflows based on Docker containers within the [Kubeflow](https://www.kubeflow.org/) project.
+This fork captures the KFP Python DSL and compiles native Argo WorkflowTemplates,
+Workflows and CronWorkflows. It includes the in-container Python bridge and the
+shared authoring/Kubernetes schema bindings. KFP REST clients, the old pipeline IR
+builder, server-backed management commands and in-process runners are removed.
 
-Use Kubeflow Pipelines to compose a multi-step workflow ([pipeline](https://www.kubeflow.org/docs/components/pipelines/concepts/pipeline/)) as a [graph](https://www.kubeflow.org/docs/components/pipelines/concepts/graph/) of containerized [tasks](https://www.kubeflow.org/docs/components/pipelines/concepts/step/) using Python code and/or YAML. Then, [run](https://www.kubeflow.org/docs/components/pipelines/concepts/run/) your pipeline with specified pipeline arguments, rerun your pipeline with new arguments or data, [schedule](https://www.kubeflow.org/docs/components/pipelines/concepts/run-trigger/) your pipeline to run on a recurring basis, organize your runs into [experiments](https://www.kubeflow.org/docs/components/pipelines/concepts/experiment/), save machine learning artifacts to compliant [artifact registries](https://www.kubeflow.org/docs/components/pipelines/concepts/metadata/), and visualize it all through the [Kubeflow Dashboard](https://www.kubeflow.org/docs/components/central-dash/overview/).
+## Build and install
 
-## Native Argo fork
-
-This checkout's compiler emits native Argo WorkflowTemplates, Workflows and
-CronWorkflows, not KFP PipelineSpec IR. Pipeline tasks execute on Kubernetes;
-the in-process runner package and its SDK entrypoints have been removed.
-Use `samples/argo-native/README.md` in the repository for the tested deployment,
-image snapshots, CLI options and compatibility limits. Legacy client/server
-interfaces are not a compatibility target for this fork.
-
-## Installation
-
-The KFP SDK requires Python 3.11 or later, including in component runtime images
-that install the SDK. Generic container components that do not install the SDK
-can use other runtimes.
-
-Build and install this checkout's wheel from the repository root. A published
-upstream wheel does not contain this prototype's runtime bridge:
+Use Python 3.11 or newer. From the repository root:
 
 ```sh
 uv build --package kfp --wheel
 python -m pip install dist/kfp-*.whl
 ```
 
-The unified SDK includes `kfp.pipeline_spec`, `kfp.kubernetes`, and the generated
-REST client at `kfp.server_api`. `kfp[kubernetes]` remains a compatibility extra;
-Kubernetes support is included by default.
+The wheel contains generated bindings and offline viewer assets. Consumers do not
+need protoc or Node. Maintainers regenerate bindings with `make generate-python`
+and viewer assets with `npm --prefix frontend run build:viewer`.
 
-### Migrating from the split packages
-
-For the first release containing consolidation, set `KFP_VERSION` to that
-release's version and run this one-time cleanup **before** installing the SDK:
+## Compile, preview and build components
 
 ```sh
-python -m pip uninstall -y kfp-pipeline-spec kfp-server-api kfp-kubernetes &&
-python -m pip install --upgrade --force-reinstall "kfp==$KFP_VERSION"
+kfp dsl compile --py pipeline.py --output pipeline.yaml --disable-caching
+kfp visualize pipeline.py --format both -o pipeline.html
+kfp visualize pipeline.py --watch
+kfp component build --help
 ```
 
-Do not uninstall those packages after installing unified `kfp`: their old
-installation records contain shared files and uninstalling them can remove
-parts of the new SDK. If that has already happened, repeat the installation
-command with `--force-reinstall`. Restart running notebooks/interpreters after
-upgrading. Update direct imports of `kfp_server_api` to `kfp.server_api`;
-`kfp.pipeline_spec` and `kfp.kubernetes` imports are unchanged. Dependencies that
-explicitly require the retired distributions must also be migrated; use a fresh
-environment if other applications still need the split SDK.
+`kfp visualize` accepts trusted Python or native Argo YAML/JSON. It embeds the
+shared graph, artifact cards, nested DAGs and JSON inspector in self-contained
+HTML. Markdown contains Mermaid diagrams. Native previews have a 10,000-element
+budget; loops are not unrolled. No run is submitted. Python previews disable
+caching because deployment image identities are not required for graph inspection.
 
-## Preview pipelines locally
+Only compile trusted Python: decorators execute module-level source while capturing
+the graph. Watch mode preserves the previous exports on errors. `--serve` optionally
+serves a loopback-scoped viewer; use `--no-open` to avoid opening a browser. Plain
+exports and watch-only mode do not serve content or launch a browser.
 
-`kfp visualize` reads Python (`.py`), native Argo resources, or historical KFP v2
-specifications (`.yaml`, `.yml`, `.json`), without a cluster or server credentials.
-Python graph previews disable memoization and do not submit a run:
+Portable container component definitions can still be loaded with `kfp.components`
+and exported with `component_spec.save_to_component_yaml`. The small definition
+serializer uses the shared schema but never builds execution DAG IR or contacts a
+backend. Compiled pipeline IR and KFP API resources are not accepted as component
+definitions; compile their original Python source to Argo instead.
 
-```sh
-# Offline, interactive React Flow HTML (defaults to pipeline.html).
-kfp visualize pipeline.py
-
-# Select a function when a Python file defines multiple pipelines.
-kfp visualize pipeline.py --function training -o training.html
-
-# Mermaid diagrams in Markdown; the output extension selects the format.
-kfp visualize pipeline.yaml -o pipeline.md
-# Equivalent: kfp visualize pipeline.yaml --format markdown
-
-# Regenerate HTML on saved changes, without starting a server.
-kfp visualize pipeline.py -w
-
-# Regenerate Markdown for an editor or third-party Mermaid viewer.
-kfp visualize pipeline.py --format markdown -w
-
-# Compile once per change and update both pipeline.html and pipeline.md.
-kfp visualize pipeline.py --format both -w
-# Choose another output stem: report.html and report.md.
-kfp visualize pipeline.py --format both -o report -w
-
-# Serve a live preview and automatically open it in the default browser.
-kfp visualize pipeline.py --format both -w -s
-
-# Serve and open a snapshot without watching for edits.
-kfp visualize pipeline.py -s
-
-# Serve without launching a browser (useful on remote/headless machines).
-kfp visualize pipeline.py -w -s --no-open
-# Short form: kfp visualize pipeline.py -w -s -n
-```
-
-`--format` accepts `html`, `both`, or `markdown`, defaulting to HTML. When
-`--format` is omitted, an explicit `.html` or `.md` output path selects the
-format. With `both`, `-o report`, `-o report.html`, and `-o report.md` all produce
-`report.html` and `report.md`. Both artifacts are rendered and staged before
-either destination is replaced. Each replacement is atomic, but the pair is
-not a filesystem transaction.
-
-HTML exports include JavaScript, styles, data, and third-party licenses: they
-work offline, including in HTML previewers that permit JavaScript. They contain
-the same graph canvas, task/artifact cards, inline DAG expansion, controls, and
-node inspector as the KFP pipeline UI. Markdown exports contain one Mermaid
-task-dependency diagram per DAG and need a Mermaid-aware renderer. Both show
-static dependencies, including parameter/artifact inputs and explicit ordering;
-loops are not unrolled, and no runtime execution status is shown. Native Argo
-Workflows, WorkflowTemplates and CronWorkflows with local DAG templates are
-supported; resolve external template references before exporting. Native views
-consume Argo directly, without reconstructing IR. Historical IR YAML and Kubernetes
-`PipelineVersion` manifests remain readable. JSON parsing preserves Unicode and
-numeric constants.
-
-Native previews have a 10,000-element expansion budget. For historical IR, HTML
-validates compact reusable definitions while Markdown applies the expansion budget.
-Invalid references and cycles are rejected before replacing an export. Historical
-IR views still require `deploymentSpec`; native views use Argo templates instead.
-Compilation or validation errors preserve the previous exports and preview.
-
-`-w` is a short alias for `--watch`. Watching only updates files; it never
-starts a server unless `--serve` / `-s` is also supplied. Watch mode observes
-**saved files**, not unsaved editor buffers. Python inputs are recompiled in a
-fresh process after changes to `.py` files beneath the
-input's directory (excluding hidden directories, `venv`, `node_modules`, and
-`__pycache__`). Imports outside that directory and non-Python configuration files
-are not watched. YAML/JSON inputs watch only the input file. Compilation has a
-60-second timeout. Compilation, rendering, or staging failures preserve the
-last successful exports and print the error; the live HTML viewer also displays
-it and recovers on the next valid change. Third-party HTML/Markdown viewers
-control their own reload behavior.
-
-`--serve` / `-s` serves an HTML preview with any export format and opens the
-preview once in the default browser after the server starts. The launch attempt
-runs in the background, so a browser command that waits for its window to close
-does not block updates. Stopping the CLI does not wait for or close the browser.
-By itself it serves a snapshot; combine it with `--watch` / `-w` for live updates. Pass `--no-open` /
-`-n` to keep serving without launching a browser. The URL is always printed, and
-if automatic launch fails, serving continues with a warning so you can open it
-manually. Plain exports and watch-only commands never launch a browser.
-
-The server binds only to
-`127.0.0.1` on an automatically selected port and serves only the viewer and its
-graph data, not the workspace. Keep it private: the graph includes component
-specifications. A separately opened `.html` file is an offline snapshot, not a
-live connection. Remote environments require port forwarding to reach the
-printed URL; retain its `127.0.0.1:<port>` Host and token path. Stop with Ctrl+C.
-
-**Only compile trusted Python:** importing a pipeline executes its module-level
-code, including arbitrary side effects. The visualizer does not itself submit
-runs. Exported task/component specifications can contain source code or literal
-credentials; review them before sharing.
-
-## Getting started
-
-The following is an example of a simple pipeline that uses the `kfp` v2 syntax:
-
-```python
-from kfp import dsl
-import kfp
-
-
-@dsl.component
-def add(a: float, b: float) -> float:
-    '''Calculates sum of two arguments'''
-    return a + b
-
-
-@dsl.pipeline(
-    name='Addition pipeline',
-    description='An example pipeline that performs addition calculations.')
-def add_pipeline(
-    a: float = 1.0,
-    b: float = 7.0,
-):
-    first_add_task = add(a=a, b=4.0)
-    second_add_task = add(a=first_add_task.output, b=b)
-
-
-client = kfp.Client(host='<my-host-url>')
-client.create_run_from_pipeline_func(
-    add_pipeline, arguments={
-        'a': 7.0,
-        'b': 8.0
-    })
-
-```
+Use Kubernetes/Argo clients and the native UI for submission and management. See
+`samples/argo-native/README.md` and `docs/compatibility.md` in the repository for the
+deployed workflow, immutable image snapshots, tests and feature boundaries.

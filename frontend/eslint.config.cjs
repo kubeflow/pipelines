@@ -5,19 +5,14 @@ const globals = require('globals');
 const { createNodeResolver, importX } = require('eslint-plugin-import-x');
 const reactHooks = require('eslint-plugin-react-hooks');
 
-const sourceFiles = ['src/**/*.{js,ts,tsx}', 'server/**/*.ts'];
+const sourceFiles = ['src/**/*.{js,ts,tsx}'];
 
 module.exports = [
   {
     ignores: [
       '**/node_modules/**',
-      'server/dist/**',
-      'server/src/generated/**',
       '**/*.test.ts',
       '**/*.test.tsx',
-      'src/generated/**',
-      'src/apisv2/**',
-      'src/stories/**',
     ],
   },
   {
@@ -100,12 +95,6 @@ module.exports = [
           allowObject: true,
         },
       ],
-    },
-  },
-  {
-    files: ['server/**/*.ts'],
-    rules: {
-      'import-x/no-unresolved': 'off',
     },
   },
 ];

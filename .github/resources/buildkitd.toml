@@ -1,2 +1,0 @@
-[registry."docker.io"]
-  mirrors = ["mirror.gcr.io"]

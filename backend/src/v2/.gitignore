@@ -1,5 +1,0 @@
-# optional Makefile env config
-.env
-
-# build directory
-build/

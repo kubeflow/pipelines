@@ -260,7 +260,42 @@ That tests the two hardest assumptions immediately: whether KFP components can r
 
 ### Validation status
 
-### Final deployment checkpoint — 2026-11-18
+### Backend cleanup checkpoint — 2026-11-19
+
+The user approved two commits: implementation checkpoint `2a1c1439a`, followed by
+an isolated cleanup commit. The cleanup removes the KFP backend/API/controllers,
+legacy clients/UI/server, Go stack, old manifests, catalog/sample/integration code,
+and backend/release/merge-queue build machinery. Native-only CI replaces it;
+security scanning and basic contributor/issue automation remain.
+
+- The retained SDK/cleanup/deployment/governance tests pass on Python 3.11 and 3.13:
+  981 tests. All 161 retained UI tests and both production/offline browser tests pass.
+- Schema regeneration, wheel/sdist boundary checks, docs build and actionlint pass.
+- A fresh disposable Kind deployment passed all nine compatibility cases and the
+  full authenticated browser acceptance test. Its temporary kubeconfig leaves the
+  user's global Kubernetes context unchanged.
+- The cleaned UI/runtime are also redeployed to native OrbStack, namespace `kfp-argo`.
+  Only five deployments remain: Argo Server/controller, static UI, PostgreSQL and
+  object storage. The unused httpbin deployment/service/credential was removed.
+  Existing runs, archives and persistent artifact data are retained.
+- Current deployed UI image: `kfp-argo-ui:cleaned`; version
+  `argo-ml-demo-0c0f13da152a`; component snapshot
+  `kfp-argo-demo:kfp-894a37d992ea877832582479e0819bb5de22de92de450849f2c6c088ec01dc66`.
+  OrbStack browser acceptance passed after redeployment. The URL remains
+  `http://127.0.0.1:3003/argo.html?namespace=kfp-argo`.
+- `docs/compatibility.md` compares unavailable features with stock baseline
+  `7780f12acfbde9f16169c7fcbfdfb6c3ef5432ea`, excluding the execution mode the user
+  did not want listed. It separates known gaps from unverified compatibility.
+- The two shared authoring/Kubernetes schema bindings and a small **container
+  definition** serializer remain intentionally. There is no pipeline IR builder,
+  KFP REST client or hidden backend behind them.
+- Validation logs: `/tmp/kfp-cleanup-python{311,313}.log`,
+  `/tmp/kfp-cleanup-sdk-full.log`, `/tmp/kfp-cleanup-browser.log`,
+  `/tmp/kfp-cleanup-docs.log`, `/tmp/kfp-cleanup-isolated-deployment.log`, and
+  `/tmp/kfp-cleanup-orbstack.log`. The final response reports exact Git LOC deltas
+  for the cleanup and the full branch, with generated/lockfile lines separated.
+
+### Earlier deployment checkpoint (superseded) — 2026-11-18
 
 The verified prototype scope is deployed and passing on native OrbStack Kubernetes.
 This is not a claim of complete upstream SDK/client compatibility.
