@@ -7,7 +7,7 @@ DATABASE ?= mysql
 # change the default to true for all databases.
 WEBHOOK_PROXY_ENABLED ?= $(if $(filter mysql,$(DATABASE)),true,false)
 
-CERT_MANAGER_VERSION ?= v1.16.2
+CERT_MANAGER_VERSION ?= v1.21.3
 DRA_DRIVER_NAMESPACE ?= dra-example-driver
 
 # Validate DATABASE value
@@ -47,6 +47,7 @@ IMG_TAG_SCHEDULEDWORKFLOW ?= scheduledworkflow
 IMG_TAG_VIEWERCONTROLLER  ?= viewercontroller
 IMG_TAG_DRIVER            ?= kfp-driver
 IMG_TAG_LAUNCHER          ?= kfp-launcher
+IMG_TAG_TENSORBOARD       ?= kfp-tensorboard
 IMG_TAG_WEBHOOK_PROXY     ?= domain.local/kfp/webhook-proxy:latest
 
 
@@ -64,7 +65,7 @@ clean:
 	rm -rf $(BUILD)
 
 .PHONY: image_all
-image_all: image_apiserver image_persistence_agent image_swf image_viewer image_driver image_launcher
+image_all: image_apiserver image_persistence_agent image_swf image_viewer image_driver image_launcher image_tensorboard
 
 .PHONY: image_apiserver
 image_apiserver:
@@ -185,3 +186,7 @@ lint:
 .PHONY: format
 format:
 	golangci-lint fmt
+
+.PHONY: image_tensorboard
+image_tensorboard:
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build -t ${IMG_REGISTRY}${IMG_TAG_TENSORBOARD} -f backend/Dockerfile.tensorboard .

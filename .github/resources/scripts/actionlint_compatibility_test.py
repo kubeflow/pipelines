@@ -31,7 +31,7 @@ class ActionlintCompatibilityTest(unittest.TestCase):
         self.patterns = self.config['paths'][WORKFLOW]['ignore']
 
     def test_exceptions_only_match_known_diagnostics(self):
-        self.assertEqual(len(self.patterns), 4)
+        self.assertEqual(len(self.patterns), 5)
         job_context = (
             '{check_run_id: number; container: {id: string; network: string}; '
             'services: {string => {id: string; network: string; ports: '
@@ -46,6 +46,8 @@ class ActionlintCompatibilityTest(unittest.TestCase):
             'property "workflow_ref" is not defined in object type '
             + job_context,
             cache_diagnostic,
+            'property "workflow_sha" is not defined in object type '
+            + job_context,
         )
         for diagnostic in known:
             self.assertTrue(
@@ -58,6 +60,8 @@ class ActionlintCompatibilityTest(unittest.TestCase):
             known[0].replace('"concurrency"', '"jobs"'),
             known[1].replace('copilot-requests', 'unknown-scope'),
             known[2].replace('workflow_ref', 'workflow_refs'),
+            known[4].replace('workflow_sha', 'workflow_shas'),
+            known[4].replace('check_run_id: number; ', ''),
             known[2].replace('check_run_id: number; ', ''),
             'property "admission-result" is not defined in object type '
             '{aw_context: string}',

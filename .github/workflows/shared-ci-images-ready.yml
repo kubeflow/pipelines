@@ -11,6 +11,10 @@ on:
         description: Verify application images once and publish them for same-run downloads
         type: boolean
         default: false
+      include_tensorboard:
+        description: Also resolve the optional viewer image before cluster setup
+        type: boolean
+        default: false
     outputs:
       image-artifact-id:
         description: Immutable ID of the verified same-run application image bundle
@@ -41,8 +45,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           IMAGE_ARCHITECTURE: ${{ inputs.architecture }}
+          INCLUDE_TENSORBOARD: ${{ inputs.include_tensorboard }}
         run: |
-          python3 .github/resources/scripts/shared_ci_images.py prepare \
+          extra=()
+          if [[ "$INCLUDE_TENSORBOARD" == true ]]; then extra+=(--include-tensorboard); fi
+          python3 .github/resources/scripts/shared_ci_images.py prepare "${extra[@]}" \
             --architecture "$IMAGE_ARCHITECTURE" \
             --state "$RUNNER_TEMP/kfp-shared-images.json" --output "$GITHUB_OUTPUT"
       - name: Download and verify producer application images

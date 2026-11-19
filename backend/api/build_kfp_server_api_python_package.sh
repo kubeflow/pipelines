@@ -48,12 +48,8 @@ if [ -z "$VERSION" ]; then
     exit 1
 fi
 
-codegen_file=/tmp/openapi-generator-cli.jar
-# Browse all versions in: https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/
-codegen_uri="https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/4.3.1/openapi-generator-cli-4.3.1.jar"
-if ! [ -f "$codegen_file" ]; then
-    curl --fail --location --retry 3 "$codegen_uri" -o "$codegen_file"
-fi
+codegen_file="${TMPDIR:-/tmp}/openapi-generator-cli.jar"
+bash "$DIR/download_openapi_generator.sh" "$codegen_file"
 
 pushd "$(dirname "$0")"
 

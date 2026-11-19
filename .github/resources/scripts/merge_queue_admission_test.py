@@ -241,10 +241,12 @@ const github = {{rest: {{
     writes.push({{route:'dequeue',options,query}}); enqueued = false; compensatingRemoval = true; return {{}};
   }}
   if (query.includes('query AdmissionReviewPolicy')) {{
+    if (query.includes('branchProtectionRule')) throw new Error('Resource not accessible by integration');
+    if (!query.includes('refUpdateRule')) throw new Error('Missing viewer-readable branch policy');
     calls.push({{route:'review-policy',options,query}});
     if (f.reviewPolicies) return next('review-policy',f.reviewPolicies);
     return {{repository:{{nameWithOwner:'owner/repo',ref:{{name:f.branch,
-      branchProtectionRule:f.classicPolicy === null ? null : {{requiresConversationResolution:f.classicPolicy !== false}}}}}}}};
+      refUpdateRule:f.classicPolicy === null ? null : {{requiresConversationResolution:f.classicPolicy !== false}}}}}}}};
   }}
   if (query.includes('query AdmissionConversations')) {{
     calls.push({{route:'conversations',options,query}});
@@ -1856,14 +1858,14 @@ class QueueAdmissionTest(unittest.TestCase):
 
 
 class AutomaticRetryTest(unittest.TestCase):
-    def fixture(self, **changes: object) -> dict:
+    def fixture(self, branch: str = 'master', **changes: object) -> dict:
         stamp = attempts_url([admitted_run()]).split('=')[-1]
         passed = {
             'id': 10,
             'context': 'ci-passed',
             'state': 'success',
             'target_url': attempts_url([admitted_run()]),
-            'description': 'Queue admission master CI passed; base policy '
+            'description': f'Queue admission {branch} CI passed; base policy '
             + 'f' * 64
             + '.',
         }
@@ -1872,7 +1874,7 @@ class AutomaticRetryTest(unittest.TestCase):
             'context': 'queue-admission-attempt',
             'state': 'pending',
             'created_at': '2026-11-13T12:10:00Z',
-            'description': f'Admission master; CI attempts {stamp}.',
+            'description': f'Admission {branch}; CI attempts {stamp}.',
         }
         removal = {
             'repository': {
@@ -1880,7 +1882,7 @@ class AutomaticRetryTest(unittest.TestCase):
                 'pullRequest': {
                     'number': 7,
                     'headRefOid': HEAD,
-                    'baseRefName': 'master',
+                    'baseRefName': branch,
                     'timelineItems': {
                         'nodes': [
                             {
@@ -1896,10 +1898,39 @@ class AutomaticRetryTest(unittest.TestCase):
             }
         }
         return {
+            'branch': branch,
             'statuses': [[passed, consumed]],
             'removals': [removal],
             **changes,
         }
+
+    def test_classic_only_release_review_blocker_preserves_retry(self) -> None:
+        fixture = self.fixture(
+            branch='release-2.18',
+            rules=[[{'type': 'merge_queue'}]],
+            classicPolicy=True,
+        )
+        blocked = run_case(
+            **fixture, conversations=[conversations([{'isResolved': False}])]
+        )
+        self.assertNotIn('error', blocked)
+        self.assertEqual(blocked['writes'], [])
+        self.assertEqual(
+            blocked['diagnostics'][-1]['description'],
+            'Waiting for 1 unresolved review conversation.',
+        )
+
+        resolved = run_case(
+            **fixture, conversations=[conversations([{'isResolved': True}])]
+        )
+        self.assertNotIn('error', resolved)
+        self.assertEqual(
+            [w['route'] for w in resolved['writes']],
+            ['status', 'enqueue', 'status'],
+        )
+        self.assertEqual(
+            resolved['writes'][0]['options']['context'], 'queue-admission-retry'
+        )
 
     def test_dependency_conflict_preserves_retry_budget(self) -> None:
         earlier = entry(8, headCommit=None)
@@ -2370,15 +2401,27 @@ class AdmissionDiagnosticsTest(unittest.TestCase):
             'Waiting for 2 unresolved review conversations.',
         )
 
-    def test_resolved_conversations_transition_to_queued(self):
-        result = run_case(conversations=[conversations([{'isResolved': True}])])
-        self.assertNotIn('error', result)
-        self.assertEqual(result['writes'][0]['route'], 'enqueue')
-        self.assertEqual(result['diagnostics'][-1]['state'], 'success')
-        self.assertEqual(
-            result['diagnostics'][-1]['description'],
-            'Queued; awaiting merge-group checks.',
-        )
+    def test_resolved_conversations_transition_to_queued(self) -> None:
+        for branch in ('main', 'release-2.18'):
+            with self.subTest(branch=branch):
+                result = run_case(
+                    branch=branch,
+                    conversations=[conversations([{'isResolved': True}])],
+                )
+                self.assertNotIn('error', result)
+                policy_reads = [
+                    call['options']['branch']
+                    for call in result['calls']
+                    if call['route'] == 'review-policy'
+                ]
+                self.assertTrue(policy_reads)
+                self.assertEqual(set(policy_reads), {f'refs/heads/{branch}'})
+                self.assertEqual(result['writes'][0]['route'], 'enqueue')
+                self.assertEqual(result['diagnostics'][-1]['state'], 'success')
+                self.assertEqual(
+                    result['diagnostics'][-1]['description'],
+                    'Queued; awaiting merge-group checks.',
+                )
 
     def test_healthy_queue_fast_path_updates_previously_blocked_status(self):
         result = run_case('sweep', queues=[queue([entry()])], listed=[pr()])
@@ -2519,7 +2562,7 @@ class AdmissionDiagnosticsTest(unittest.TestCase):
                     'nameWithOwner': 'owner/repo',
                     'ref': {
                         'name': 'master',
-                        'branchProtectionRule': {},
+                        'refUpdateRule': {},
                     },
                 }
             },
@@ -2528,7 +2571,7 @@ class AdmissionDiagnosticsTest(unittest.TestCase):
                     'nameWithOwner': 'owner/repo',
                     'ref': {
                         'name': 'different-branch',
-                        'branchProtectionRule': None,
+                        'refUpdateRule': None,
                     },
                 }
             },

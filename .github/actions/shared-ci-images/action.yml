@@ -5,7 +5,7 @@ inputs:
     description: Native image architecture
     default: amd64
   kind:
-    description: Branch images, runtime dependencies, or both (images, runtime, all)
+    description: Branch images, runtime dependencies, both, or optional viewer (images, runtime, all, tensorboard)
     default: images
   path:
     description: Local destination for verified archives
@@ -62,7 +62,7 @@ runs:
           --architecture "$IMAGE_ARCHITECTURE" --kind "$IMAGE_KIND" \
           --state "$PRODUCER_STATE" --output "$GITHUB_OUTPUT"
     - name: Download exact shared image artifacts
-      if: ${{ !inputs.image-artifact-id || inputs.kind == 'runtime' }}
+      if: ${{ !inputs.image-artifact-id || (inputs.kind != 'images' && inputs.kind != 'all') }}
       uses: ./.github/actions/download-artifact-with-retry
       with:
         artifact-ids: ${{ steps.resolve.outputs.artifact-ids }}
@@ -73,7 +73,7 @@ runs:
         merge-multiple: 'true'
         required-files: ${{ steps.resolve.outputs.required-files }}
     - name: Download verified application images from this workflow run
-      if: ${{ inputs.image-artifact-id && inputs.kind != 'runtime' }}
+      if: ${{ inputs.image-artifact-id && (inputs.kind == 'images' || inputs.kind == 'all') }}
       uses: ./.github/actions/download-artifact-with-retry
       with:
         artifact-ids: ${{ inputs.image-artifact-id }}

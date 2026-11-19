@@ -221,7 +221,7 @@
     {
       "path": ".github/workflows/ci-images.yml",
       "name": "Shared CI Images",
-      "header_sha256": "e62eda342a8dd7250b6bcbc16c94e751029772a42bc7c0281e73789e17d41e91",
+      "header_sha256": "b1e6919533df14d98f4961be5a6bb93c734c207cb1650810ed37ddfe7728e890",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -283,6 +283,18 @@
           "third_party/**",
           "tools/k8s-native/**",
           "uv.lock",
+          "backend/Dockerfile.tensorboard",
+          "backend/src/tensorboard/**",
+          "backend/src/crd/controller/viewer/**",
+          "frontend/src/components/viewers/Tensorboard*",
+          "frontend/server/handlers/tensorboard*",
+          "test/tensorboard/**",
+          "hack/update_tensorboard_image.py",
+          ".github/workflows/tensorboard-acceptance.yml",
+          ".github/resources/scripts/artifact-files.sh",
+          ".github/resources/scripts/ci-image-artifacts.sh",
+          ".github/resources/scripts/load-tensorboard-image.sh",
+          ".github/resources/scripts/shared_ci_images.py",
           "!**/*.md",
           "!**/OWNERS"
         ]
@@ -308,7 +320,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "1cc41d552ef4b4bead2f830eb9c7177d41dfeb8cc23c7f72d1ae605f283b6531",
+      "header_sha256": "30869abf9e136b92d88df449393f970b8ed5b6c8043d284c303f240665a3df63",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -357,6 +369,12 @@
           ".github/workflows/build-tools-images.yml",
           ".github/workflows/runtime-base-images.yml",
           ".github/workflows/ci-scripts-tests.yml",
+          ".github/workflows/tensorboard-acceptance.yml",
+          "backend/Dockerfile.tensorboard",
+          "backend/src/tensorboard/**",
+          "test/tensorboard/**",
+          "hack/update_tensorboard_image.py",
+          "manifests/kustomize/hack/release.sh",
           ".github/workflows/third-party-image-upgrades.yml",
           ".github/workflows/check-requirements-txt.yml",
           ".github/workflows/check-uv-lock.yml",
@@ -1248,7 +1266,7 @@
     {
       "path": ".github/workflows/shared-ci-images-ready.yml",
       "name": "Shared CI image readiness",
-      "header_sha256": "f0147cf67250496e5a98851d9b0e8c9098aa0a2b63e5d8e064692adb0f3effd6",
+      "header_sha256": "2be9fbf47c652eae8e14e26df02db3aac62000a693580747158844cc6d251ccd",
       "pull_request": null,
       "merge_group": null
     },
@@ -1262,9 +1280,40 @@
     {
       "path": ".github/workflows/tensorboard-acceptance.yml",
       "name": "TensorBoard runtime acceptance",
-      "header_sha256": "a093494daf3bb910cfa789f85d270326adcd30724923ae75a3a70b74794430bb",
-      "pull_request": null,
-      "merge_group": null
+      "header_sha256": "3c33292f11fef7c31a42e432f17f0c5e99150f0cbb9d5cda70c3e4a4d70e5bd2",
+      "pull_request": {
+        "paths": [
+          "backend/Dockerfile.tensorboard",
+          "backend/src/tensorboard/**",
+          "backend/src/crd/controller/viewer/**",
+          "frontend/src/components/viewers/Tensorboard*",
+          "frontend/server/handlers/tensorboard*",
+          "test/tensorboard/**",
+          "hack/update_tensorboard_image.py",
+          ".github/workflows/tensorboard-acceptance.yml",
+          ".github/actions/deploy/**",
+          ".github/actions/download-artifact-with-retry/**",
+          ".github/resources/scripts/artifact-files.sh",
+          ".github/resources/scripts/ci-image-artifacts.sh",
+          ".github/resources/scripts/load-tensorboard-image.sh",
+          ".github/workflows/image-builds.yml",
+          ".github/workflows/shared-ci-images-ready.yml",
+          ".github/actions/shared-ci-images/**",
+          ".github/resources/scripts/shared_ci_images.py",
+          "!**/*.md",
+          "!**/OWNERS"
+        ]
+      },
+      "merge_group": {
+        "types": [
+          "checks_requested"
+        ],
+        "branches": [
+          "master",
+          "main",
+          "release-2.18"
+        ]
+      }
     },
     {
       "path": ".github/workflows/third-party-image-scanning.yml",

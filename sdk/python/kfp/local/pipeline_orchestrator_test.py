@@ -610,14 +610,9 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             pipeline_root=ROOT_FOR_TESTING,
         )
 
-        # Use numpy>=1.26.0 for Python 3.13 compatibility (has pre-built wheels)
-        import sys
-
-        numpy_version = (
-            'numpy>=1.26.0' if sys.version_info >= (3, 13) else 'numpy==1.24.3'
+        @dsl.component(
+            packages_to_install=[testing_utilities.NUMPY_PACKAGE_SPEC]
         )
-
-        @dsl.component(packages_to_install=[numpy_version])
         def package_using_op() -> List[int]:
             import numpy as np
 
@@ -644,14 +639,9 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             pipeline_root=ROOT_FOR_TESTING,
         )
 
-        # Use numpy>=1.26.0 for Python 3.13 compatibility (has pre-built wheels)
-        import sys
-
-        numpy_version = (
-            'numpy>=1.26.0' if sys.version_info >= (3, 13) else 'numpy==1.24.3'
+        @dsl.component(
+            packages_to_install=[testing_utilities.NUMPY_PACKAGE_SPEC]
         )
-
-        @dsl.component(packages_to_install=[numpy_version])
         def package_using_op() -> List[int]:
             import numpy as np
 

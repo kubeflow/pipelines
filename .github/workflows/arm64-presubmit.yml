@@ -77,6 +77,7 @@ jobs:
     uses: ./.github/workflows/shared-ci-images-ready.yml
     with:
       architecture: arm64
+      include_tensorboard: true
 
   smoke:
     needs: image-artifacts-ready
@@ -96,6 +97,14 @@ jobs:
         with:
           ready-state: ${{ needs.image-artifacts-ready.outputs.state }}
           architecture: arm64
+          path: arm64-images
+          layout: flat
+      - name: Download verified shared ARM TensorBoard image
+        uses: ./.github/actions/shared-ci-images
+        with:
+          architecture: arm64
+          kind: tensorboard
+          ready-state: ${{ needs.image-artifacts-ready.outputs.state }}
           path: arm64-images
           layout: flat
       - name: Install KFP and run a pipeline natively
