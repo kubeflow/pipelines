@@ -33,6 +33,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	authorizationv1 "k8s.io/api/authorization/v1"
@@ -678,13 +679,14 @@ func initWithVersionUnderPipelineB(t *testing.T, httpClient *http.Client) (*reso
 	return clientManager, resourceManager, createPipelineServer(resourceManager, httpClient)
 }
 
-func TestPipelineServer_GetPipelineVersion_WrongParent(t *testing.T) {
+// Carries forward the GET reproduction from #13808.
+func TestGetPipelineVersion_RejectsMismatchedPipelineID(t *testing.T) {
 	clientManager, _, pipelineServer := initWithVersionUnderPipelineB(t, nil)
 	defer clientManager.Close()
 
 	_, err := pipelineServer.GetPipelineVersion(context.Background(), &apiv2.GetPipelineVersionRequest{PipelineId: parentTestPipelineA, PipelineVersionId: parentTestVersionB})
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "not found")
+		assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	}
 
 	version, err := pipelineServer.GetPipelineVersion(context.Background(), &apiv2.GetPipelineVersionRequest{PipelineId: parentTestPipelineB, PipelineVersionId: parentTestVersionB})
@@ -698,7 +700,7 @@ func TestPipelineServer_UpdatePipelineVersion_WrongParent(t *testing.T) {
 
 	_, err := pipelineServer.UpdatePipelineVersion(context.Background(), &apiv2.UpdatePipelineVersionRequest{PipelineVersion: &apiv2.PipelineVersion{PipelineId: parentTestPipelineA, PipelineVersionId: parentTestVersionB, DisplayName: "renamed"}})
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "not found")
+		assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	}
 	version, err := resourceManager.GetPipelineVersion(parentTestVersionB)
 	assert.Nil(t, err)
@@ -717,7 +719,7 @@ func TestPipelineServer_DeletePipelineVersion_WrongParent(t *testing.T) {
 
 	_, err := pipelineServer.DeletePipelineVersion(context.Background(), &apiv2.DeletePipelineVersionRequest{PipelineId: parentTestPipelineA, PipelineVersionId: parentTestVersionB})
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "not found")
+		assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	}
 	_, err = resourceManager.GetPipelineVersion(parentTestVersionB)
 	assert.Nil(t, err, "the version must survive a delete under the wrong pipeline")
@@ -743,6 +745,7 @@ func TestPipelineServer_CreatePipelineVersion_ParentMismatch(t *testing.T) {
 		},
 	})
 	if assert.Error(t, err) {
+		assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 		assert.Contains(t, err.Error(), "does not match")
 	}
 }

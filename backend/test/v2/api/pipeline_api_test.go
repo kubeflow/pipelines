@@ -1731,6 +1731,38 @@ var _ = Describe("Get Pipeline Version API Tests >", Label(constants.POSITIVE, c
 			Expect(err).NotTo(HaveOccurred())
 			Expect(retrievedVersion.PipelineID).To(Equal(pipeline1.PipelineID))
 		})
+
+		It("Rejects a create whose body names a different pipeline than the URL", func() {
+			pipelineDir := "valid"
+			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
+			name1 := testContext.Pipeline.PipelineGeneratedName + "-1"
+			pipeline1 := uploadPipelineAndVerify(pipelineSpecFilePath, &name1, nil)
+			name2 := testContext.Pipeline.PipelineGeneratedName + "-2"
+			pipeline2 := uploadPipelineAndVerify(pipelineSpecFilePath, &name2, nil)
+
+			// The parent check runs before the package URL is fetched, so the URL
+			// does not need to be reachable from the API server.
+			_, err := pipelineClient.CreatePipelineVersion(&pipeline_params.PipelineServiceCreatePipelineVersionParams{
+				PipelineID: pipeline1.PipelineID,
+				PipelineVersion: &pipeline_model.V2PipelineVersion{
+					DisplayName: "mismatched-parent",
+					PipelineID:  pipeline2.PipelineID,
+					PackageURL:  &pipeline_model.V2URL{PipelineURL: "https://example.com/pipeline.yaml"},
+				},
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("does not match"))
+			Expect(err.Error()).To(ContainSubstring("(code: 3)"), "a conflicting parent is InvalidArgument")
+
+			// Neither pipeline gained a version.
+			for _, pipelineID := range []string{pipeline1.PipelineID, pipeline2.PipelineID} {
+				versions, _, _, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+					PipelineID: pipelineID,
+				})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(versions).Should(HaveLen(1))
+			}
+		})
 	})
 
 	Context("List pipeline versions with tags '/pipelines/{pipeline_id}/versions' >", func() {
