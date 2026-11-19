@@ -13,7 +13,6 @@
 # limitations under the License.
 """Base class for KFP components."""
 
-import abc
 from typing import List
 
 from kfp.dsl import pipeline_context, pipeline_task, structures
@@ -21,7 +20,7 @@ from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 
-class BaseComponent(abc.ABC):
+class BaseComponent:
     """Base class for a component.
 
     **Note:** ``BaseComponent`` is not intended to be used to construct components directly. Use ``@kfp.dsl.component`` or ``kfp.components.load_component_from_*()`` instead.
@@ -104,11 +103,13 @@ class BaseComponent(abc.ABC):
                 f'{argument_or_arguments}: {arguments}.'
             )
 
+        if pipeline_context.Pipeline.get_default_pipeline() is None:
+            raise RuntimeError(
+                'Call components inside @dsl.pipeline, then compile and submit the pipeline to Argo.'
+            )
         return pipeline_task.PipelineTask(
             component_spec=self.component_spec,
             args=task_inputs,
-            execute_locally=pipeline_context.Pipeline.get_default_pipeline()
-            is None,
             execution_caching_default=pipeline_context.Pipeline.get_execution_caching_default(),
         )
 
@@ -126,11 +127,6 @@ class BaseComponent(abc.ABC):
         empty per component_spec.platform_spec default.
         """
         return self.component_spec.platform_spec
-
-    @abc.abstractmethod
-    def execute(self, **kwargs):
-        """Executes the component locally if implemented by the inheriting
-        subclass."""
 
     @property
     def required_inputs(self) -> List[str]:

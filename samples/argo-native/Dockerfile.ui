@@ -1,0 +1,4 @@
+FROM nginxinc/nginx-unprivileged:1.29-alpine
+COPY frontend/build/ /usr/share/nginx/html/
+COPY frontend/build/argo.html /usr/share/nginx/html/index.html
+COPY samples/argo-native/nginx.conf /etc/nginx/conf.d/default.conf

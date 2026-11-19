@@ -54,6 +54,15 @@ def executor_main():
     )
 
     parser.add_argument(
+        '--argo_input', help='Static kfp-argo/v1 runtime contract.'
+    )
+    parser.add_argument(
+        '--argo_parameters',
+        default='[]',
+        help='Argo inputs.parameters JSON array.',
+    )
+
+    parser.add_argument(
         constants.DISABLE_ARTIFACT_PREVIEWS_FLAG,
         dest='artifact_previews',
         action='store_false',
@@ -109,8 +118,17 @@ def executor_main():
         module_name=module_name, module_directory=module_directory
     )
 
-    executor_input = json.loads(args.executor_input)
     function_to_execute = getattr(module, func_name)
+    if args.argo_input is not None:
+        from kfp.dsl import argo_runtime
+
+        argo_runtime.execute(
+            function_to_execute,
+            json.loads(args.argo_input),
+            json.loads(args.argo_parameters),
+        )
+        return
+    executor_input = json.loads(args.executor_input)
 
     logging.info(f'Got executor_input:\n{json.dumps(executor_input, indent=4)}')
 

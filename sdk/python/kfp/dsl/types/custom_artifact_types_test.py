@@ -979,9 +979,7 @@ class TestPydanticBasemodelRuntimeIsolation(_TestCaseWithThirdPartyPackage):
     directory and PYTHONPATH are set explicitly, rather than inherited from the
     test process.
 
-    Unlike `kfp.local.SubprocessRunner`, which runs the same command but
-    inherits the developer machine's cwd and installed packages
-    wholesale, this reproduces the isolation boundary a real component
+    This reproduces the isolation boundary a real component
     runtime has: a `pydantic.BaseModel` used for component I/O is only
     resolvable if its module is explicitly made importable at runtime
     (e.g., via `packages_to_install` or a custom `base_image`), not

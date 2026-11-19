@@ -28,6 +28,7 @@ from typing import Any
 import yaml
 from google.protobuf import json_format
 
+from kfp.cli import native_visualization
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 
@@ -52,6 +53,7 @@ def load_spec(path: Path, function: str | None = None) -> dict[str, Any]:
                 str(path),
                 '--output',
                 str(compiled),
+                '--disable-caching',
             ]
             if function:
                 command.extend(['--function', function])
@@ -77,6 +79,9 @@ def load_spec(path: Path, function: str | None = None) -> dict[str, Any]:
     for document in documents:
         if not isinstance(document, dict):
             continue
+        if document.get('kind') in native_visualization.KINDS:
+            candidates.append(document)
+            continue
         if document.get('kind') == 'PipelineVersion':
             manifest_spec = document.get('spec')
             if not isinstance(manifest_spec, dict):
@@ -89,6 +94,9 @@ def load_spec(path: Path, function: str | None = None) -> dict[str, Any]:
             'Expected one KFP v2 pipeline spec with a root DAG. '
             'Choose a compiled pipeline YAML/JSON or a Python file.'
         )
+    if candidates[0].get('kind') in native_visualization.KINDS:
+        native_visualization.view(candidates[0])
+        return candidates[0]
     message = json_format.ParseDict(
         candidates[0], pipeline_spec_pb2.PipelineSpec()
     )
@@ -149,6 +157,9 @@ def _task_dependencies(tasks: dict[str, Any]) -> dict[str, set[str]]:
 
 def validate_spec(spec: dict[str, Any]) -> None:
     """Validate a renderable spec without expanding reusable DAG instances."""
+    if spec.get('kind') in native_visualization.KINDS:
+        native_visualization.view(spec)
+        return
     # The shared graph/inspector requires this field; an empty object is valid.
     # Apply the same contract to all formats since Markdown may also be served.
     if spec.get('deploymentSpec') is None:
@@ -210,6 +221,8 @@ def build_view(spec: dict[str, Any]) -> dict[str, Any]:
     The budget counts DAGs, tasks, and dependencies. HTML uses the
     compact spec directly and does not need this expansion.
     """
+    if spec.get('kind') in native_visualization.KINDS:
+        return native_visualization.view(spec)
     validate_spec(spec)
     graphs = []
     components = spec.get('components', {})

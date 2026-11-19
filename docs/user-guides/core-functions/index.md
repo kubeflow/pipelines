@@ -11,7 +11,6 @@ control-flow
 caching
 platform-specific-features
 build-advanced-pipeline
-execute-kfp-pipelines-locally
 connect-api
 cli
 ```

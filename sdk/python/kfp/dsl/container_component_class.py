@@ -32,9 +32,3 @@ class ContainerComponent(base_component.BaseComponent):
         self.pipeline_func = pipeline_func
 
         self._prevent_using_output_lists_of_artifacts()
-
-    def execute(self, **kwargs):
-        # ContainerComponent`: Also inherits from `BaseComponent`.
-        # As its name suggests, this class backs (custom) container components.
-        # Its `execute()` method uses `docker run` for local component execution
-        raise NotImplementedError

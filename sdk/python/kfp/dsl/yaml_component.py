@@ -46,7 +46,3 @@ class YamlComponent(base_component.BaseComponent):
         return json_format.ParseDict(
             component_dict, pipeline_spec_pb2.PipelineSpec()
         )
-
-    def execute(self, *args, **kwargs):
-        """Not implemented."""
-        raise NotImplementedError

@@ -100,9 +100,8 @@ class BlockPipelineTaskRegistration(unittest.TestCase):
             modified_identity = call_pipeline_spec(identity)
             modified_identity(text='text')
 
-        self.assertEqual(len(pipeline_custom_job.pipeline_spec.components), 1)
         self.assertEqual(
-            len(pipeline_custom_job.pipeline_spec.deployment_spec), 1
+            len(pipeline_custom_job.pipeline_spec.pipeline.tasks), 1
         )
 
     def test_call_directly_in_pipeline(self):
@@ -116,9 +115,8 @@ class BlockPipelineTaskRegistration(unittest.TestCase):
             identity.pipeline_spec
             identity(text='text')
 
-        self.assertEqual(len(pipeline_custom_job.pipeline_spec.components), 1)
         self.assertEqual(
-            len(pipeline_custom_job.pipeline_spec.deployment_spec), 1
+            len(pipeline_custom_job.pipeline_spec.pipeline.tasks), 1
         )
 
 

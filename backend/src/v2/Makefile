@@ -59,8 +59,7 @@ test-watch:
 dev: pipeline/hello_world \
 	pipeline/critical/producer_consumer_param \
 	pipeline/essential/lightweight_python_functions_pipeline \
-	pipeline/essential/lightweight_python_functions_with_outputs \
-	pipeline/local_execution/local_execution_pipeline_with_exit_handler
+	pipeline/essential/lightweight_python_functions_with_outputs
 
 .PHONY: build image-dev
 build: build/compiler build/driver
@@ -105,7 +104,6 @@ pipeline/pipeline_with_importer:
 pipeline/two_step_pipeline:
 pipeline/essential/lightweight_python_functions_pipeline:
 pipeline/essential/lightweight_python_functions_with_outputs:
-pipeline/local_execution/local_execution_pipeline_with_exit_handler:
 pipeline/collected_artifacts:
 pipeline/parallel_and_nested/pipeline_with_loops:
 pipeline/pipeline_with_parallelfor_pipeline_param:

@@ -15,9 +15,11 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import PipelineGraph from 'src/components/graph/PipelineGraph';
+import Editor from 'src/components/Editor';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import type { LayerFlowElement } from 'src/lib/v2/FlowTypes';
 import { convertFlowElements } from 'src/lib/v2/StaticFlow';
+import { argoStaticView, type ArgoManifest } from 'src/lib/ArgoGraph';
 
 export interface ViewerState {
   spec: Record<string, unknown> | null;
@@ -61,6 +63,35 @@ export function Viewer({ initial, live }: { initial: ViewerState; live: boolean 
   const graph = useMemo(() => {
     if (!state.spec) return null;
     try {
+      if (['Workflow', 'WorkflowTemplate', 'CronWorkflow'].includes(String(state.spec.kind))) {
+        const native = argoStaticView(state.spec as unknown as ArgoManifest);
+        return {
+          name: native.name,
+          elements: native.elements,
+          resolveLayers: native.resolve,
+          template: undefined,
+          renderDetails: (selected: LayerFlowElement) => {
+            const detail = native.describe(selected.layers, selected.element.id);
+            return (
+              <>
+                <h2>Native Argo template</h2>
+                <dl>
+                  <dt>Image</dt>
+                  <dd>{String(detail.template?.container?.image || 'DAG / control flow')}</dd>
+                </dl>
+                <Editor
+                  mode='json'
+                  readOnly
+                  width='100%'
+                  height='420px'
+                  value={JSON.stringify(detail, null, 2)}
+                  setOptions={{ useWorker: false }}
+                />
+              </>
+            );
+          },
+        };
+      }
       const spec = PipelineSpec.fromJSON(state.spec);
       return {
         name: spec.pipelineInfo?.name,
@@ -96,6 +127,8 @@ export function Viewer({ initial, live }: { initial: ViewerState; live: boolean 
       {graph?.elements && (
         <PipelineGraph
           templateString={graph.template}
+          resolveLayers={graph.resolveLayers}
+          renderDetails={graph.renderDetails}
           elements={graph.elements}
           selection={selection}
           onSelectionChange={setSelection}

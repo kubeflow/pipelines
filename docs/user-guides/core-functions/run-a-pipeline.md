@@ -1,136 +1,59 @@
 # Run a Pipeline
 
-## Overview
+[Compile the pipeline](compile-a-pipeline.md) to native Argo YAML, then submit it
+through Kubernetes, Argo CLI or the native UI. This execution path has no KFP API
+server and does not provide `kfp.Client` submission compatibility.
 
-Kubeflow Pipelines (KFP) provides several ways to trigger a pipeline run:
+## Native UI
 
-1. [__KFP Dashboard__](#run-pipeline---kfp-dashboard)
-2. [__KFP SDK Client__](#run-pipeline---kfp-sdk-client)
-3. [__KFP CLI__](#run-pipeline---kfp-cli)
+For the local deployment, open
+`http://127.0.0.1:3003/argo.html?namespace=kfp-argo` and connect with a
+namespace-scoped token. The complete deployment and authentication commands are
+in `samples/argo-native/README.md` in the repository.
 
-:::{tip}
-This guide only covers how to trigger an immediate pipeline run. 
-For more advanced scheduling options please see the "Recurring Runs" section of the dashboard and API.
-:::
+1. Open **Pipelines and versions** and upload the compiled WorkflowTemplate YAML.
+2. Select a version, its parameters, and an optional experiment.
+3. Choose **Start run**.
+4. Open **Runs** to inspect the graph, task metadata, typed artifacts and logs.
+5. Check specific runs to compare their metrics.
 
-## Run Pipeline - KFP Dashboard
+Experiments are ConfigMaps and membership is a workflow label. Deleting an
+experiment does not delete its runs. Recurring runs are ordinary CronWorkflows;
+new schedules start suspended and can be enabled from **Recurring runs**.
 
-The first and easiest way to run a pipeline is by submitting it via the KFP dashboard.
+## Kubernetes and Argo CLI
 
-To submit a pipeline for an immediate run:
-
-1. [Compile a pipeline][compile-a-pipeline] to IR YAML.
-
-2. From the "Pipelines" tab in the dashboard, select `+ Upload pipeline`:
-
-   ![Upload pipeline button](../../images/submit-a-pipeline-on-dashboard.png)
-
-3. Upload the pipeline `.yaml`, `.zip` or `.tar.gz` file, populate the upload form, then click `Create`.
-
-   ![Upload pipeline screen](../../images/upload-a-pipeline.png)
-
-4. From the "Runs" tab, select `+ Create run`:
-
-   ![Create run button](../../images/create-run.png)
-
-5. Select the pipeline you want to run, populate the run form, then click `Start`:
-
-   ![Start a run screen](../../images/start-a-run.png)
-
-## Run Pipeline - KFP SDK Client
-
-You may also programmatically submit pipeline runs from the KFP SDK client. 
-The client supports two ways of submitting runs: _from IR YAML_ or _from a Python pipeline function_. 
-
-:::{note}
-See the [Connect the SDK to the API](connect-api.md) guide for more information about creating a KFP client.
-:::
-
-For either approach, start by instantiating a [`kfp.Client()`][kfp-client]:
-
-```python
-import kfp
-
-# TIP: you may need to authenticate with the KFP instance
-kfp_client = kfp.Client()
+```sh
+kubectl --context orbstack -n kfp-argo apply -f pipeline.yaml
+argo submit -n kfp-argo --from workflowtemplate/NAME_IN_PIPELINE_YAML --watch
 ```
 
-To submit __IR YAML__ for execution use the [`.create_run_from_pipeline_package()`][kfp-client-create_run_from_pipeline_package] method:
+For a standalone `Workflow` instead, use `kubectl create -f run.yaml` or
+`argo submit run.yaml`. A `generateName` resource is created, not updated with
+`kubectl apply`.
 
-```python
-#from kfp import compiler, dsl
-#
-#@dsl.component
-#def add(a: float, b: float) -> float:
-#   return a + b
-#
-#@dsl.pipeline(name="Add two Numbers")
-#def add_pipeline(a: float, b: float):
-#   add_task = add(a=a, b=b)
-#
-#compiler.Compiler().compile(
-#    add_pipeline, 
-#    package_path="./add-pipeline.yaml"
-#)
+When node status is offloaded, use Argo Server for workflow details and logs,
+not only the Kubernetes API. For the local authenticated proxy:
 
-kfp_client.create_run_from_pipeline_package(
-    "./add-pipeline.yaml", 
-    arguments={
-        "a": 1,
-        "b": 2,
-    }
-)
+```sh
+export ARGO_SERVER=127.0.0.1:3003
+export ARGO_BASE_HREF=/argo
+export ARGO_HTTP1=true
+export ARGO_SECURE=false
+export ARGO_TOKEN="Bearer $(kubectl --context orbstack -n kfp-argo create token argo-ui-editor --duration=2h)"
+argo list -n kfp-argo
 ```
 
-To submit a python __pipeline function__ for execution use the [`.create_run_from_pipeline_func()`][kfp-client-create_run_from_pipeline_func] convenience method, which wraps compilation and run submission into one method:
+These HTTP settings are for a loopback port-forward only. Production deployments
+need authenticated same-origin ingress and normal TLS validation. Do not embed a
+cluster-admin token in the browser.
 
-```python
-#from kfp import dsl
-#
-#@dsl.component
-#def add(a: float, b: float) -> float:
-#    return a + b
-#
-#@dsl.pipeline(name="Add two Numbers")
-#def add_pipeline(a: float, b: float):
-#    add_task = add(a=a, b=b)
+## Run identity and history
 
-kfp_client.create_run_from_pipeline_func(
-    add_pipeline,
-    arguments={
-        "a": 1,
-        "b": 2,
-    }
-)
-```
+A workflow's Kubernetes UID is its run ID. The UI deduplicates live and archived
+results by UID and uses Argo's archive endpoints after the live Workflow is deleted.
+Artifact and cache metadata retain the original producing run/task identity.
 
-## Run Pipeline - KFP CLI
-
-The [`kfp run create`][kfp-cli-run-create] command allows you to submit a pipeline from the command line. 
-
-Here is the output of `kfp run create --help`:
-
-```shell
-kfp run create [OPTIONS] [ARGS]...
-```
-
-For example, the following command submits the `./path/to/pipeline.yaml` IR YAML to the KFP backend:
-
-```shell
-kfp run create \
-  --experiment-name "my-experiment" \
-  --package-file "./path/to/pipeline.yaml"
-```
-
-For more information about the `kfp` CLI, please see:
-
-- [Use the CLI][use-the-cli]
-- [CLI Reference][kfp-cli]
-
-[compile-a-pipeline]: compile-a-pipeline.md
-[use-the-cli]: cli.md
-[kfp-cli]: https://kubeflow-pipelines.readthedocs.io/en/latest/source/cli.html
-[kfp-cli-run-create]: https://kubeflow-pipelines.readthedocs.io/en/latest/source/cli.html#kfp-run-create
-[kfp-client]: https://kubeflow-pipelines.readthedocs.io/en/latest/source/client.html#kfp.client.Client
-[kfp-client-create_run_from_pipeline_func]: https://kubeflow-pipelines.readthedocs.io/en/latest/source/client.html#kfp.client.Client.create_run_from_pipeline_func
-[kfp-client-create_run_from_pipeline_package]: https://kubeflow-pipelines.readthedocs.io/en/latest/source/client.html#kfp.client.Client.create_run_from_pipeline_package
+The local verification script exercises archive access, offloaded status, native
+approval gates, denied mutations, recurring-run persistence, cache reuse and
+artifact retention through the actual deployed APIs.

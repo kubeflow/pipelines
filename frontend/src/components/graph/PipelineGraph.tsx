@@ -35,6 +35,8 @@ interface PipelineGraphProps {
   onSelectionChange: (selection: LayerFlowElement | null) => void;
   /** Omit for an ephemeral preview, without persisted expansion preferences. */
   graphId?: string;
+  resolveLayers?: LayerElementsResolver;
+  renderDetails?: (selection: LayerFlowElement) => ReactNode;
   children?: ReactNode;
 }
 
@@ -45,6 +47,8 @@ export default function PipelineGraph({
   selection,
   onSelectionChange,
   graphId,
+  resolveLayers,
+  renderDetails,
   children,
 }: PipelineGraphProps) {
   const pipelineSpec = useMemo(
@@ -52,8 +56,13 @@ export default function PipelineGraph({
     [templateString],
   );
   const getSubDagElements = useCallback<LayerElementsResolver>(
-    (layers) => (pipelineSpec ? convertSubDagToFlowElements(pipelineSpec, layers) : []),
-    [pipelineSpec],
+    (layers) =>
+      resolveLayers
+        ? resolveLayers(layers)
+        : pipelineSpec
+          ? convertSubDagToFlowElements(pipelineSpec, layers)
+          : [],
+    [pipelineSpec, resolveLayers],
   );
   const currentSelection = useMemo(() => {
     if (!selection) return null;
@@ -73,12 +82,12 @@ export default function PipelineGraph({
         graphId={graphId}
         layers={ROOT_LAYERS}
         elements={elements}
-        getSubDagElements={pipelineSpec ? getSubDagElements : undefined}
+        getSubDagElements={pipelineSpec || resolveLayers ? getSubDagElements : undefined}
         selectedElement={currentSelection}
         onElementClick={(_event, selected) => onSelectionChange(selected)}
       />
       {children}
-      {templateString && (
+      {(templateString || renderDetails) && (
         <div className='z-20'>
           <SidePanel
             isOpen={!!currentSelection}
@@ -88,11 +97,15 @@ export default function PipelineGraph({
           >
             <div className={commonCss.page}>
               <div className={padding(20, 'lr')}>
-                <StaticNodeDetailsV2
-                  templateString={templateString}
-                  layers={currentSelection?.layers ?? ROOT_LAYERS}
-                  element={currentSelection?.element ?? null}
-                />
+                {renderDetails ? (
+                  currentSelection && renderDetails(currentSelection)
+                ) : (
+                  <StaticNodeDetailsV2
+                    templateString={templateString!}
+                    layers={currentSelection?.layers ?? ROOT_LAYERS}
+                    element={currentSelection?.element ?? null}
+                  />
+                )}
               </div>
             </div>
           </SidePanel>

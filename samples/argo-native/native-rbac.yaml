@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argo-workflow
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: argo-workflow
+rules:
+  - apiGroups: [argoproj.io]
+    resources: [workflowtaskresults]
+    verbs: [create, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo-workflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: argo-workflow
+subjects:
+  - kind: ServiceAccount
+    name: argo-workflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kfp-cache
+  labels:
+    workflows.argoproj.io/configmap-type: Cache
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kfp-cache
+rules:
+  - apiGroups: ['']
+    resources: [configmaps]
+    resourceNames: [kfp-cache]
+    verbs: [get, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kfp-cache
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kfp-cache
+subjects:
+  - kind: ServiceAccount
+    name: argo
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argo-ui-proxy
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argo-ui-editor
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argo-ui-reader
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: argo-ui-read
+rules:
+  - apiGroups: [argoproj.io]
+    resources: [workflows, workflowtemplates, cronworkflows]
+    verbs: [get, list, watch]
+  - apiGroups: ['']
+    resources: [pods, pods/log, configmaps]
+    verbs: [get, list, watch]
+  - apiGroups: ['']
+    resources: [secrets]
+    resourceNames: [my-minio-cred]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo-ui-read
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: argo-ui-read
+subjects:
+  - kind: ServiceAccount
+    name: argo-ui-reader
+  - kind: ServiceAccount
+    name: argo-ui-editor
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: argo-ui-edit
+rules:
+  - apiGroups: [argoproj.io]
+    resources: [workflows, cronworkflows]
+    verbs: [create, update, patch, delete]
+  - apiGroups: [argoproj.io]
+    resources: [workflowtemplates]
+    verbs: [create, delete]
+  - apiGroups: ['']
+    resources: [configmaps]
+    verbs: [create, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo-ui-edit
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: argo-ui-edit
+subjects:
+  - kind: ServiceAccount
+    name: argo-ui-editor

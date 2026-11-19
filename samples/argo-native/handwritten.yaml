@@ -1,0 +1,151 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: argo-ml-demo-
+  labels:
+    pipelines.kubeflow.org/pipeline: argo-ml-demo
+    pipelines.kubeflow.org/experiment: argo-demo
+spec:
+  entrypoint: pipeline
+  serviceAccountName: argo-workflow
+  arguments:
+    parameters:
+      - name: factor
+        value: '1.0'
+  templates:
+    - name: pipeline
+      dag:
+        tasks:
+          - name: prepare
+            template: prepare
+          - name: train
+            template: train
+            dependencies: [prepare]
+            arguments:
+              parameters:
+                - name: factor
+                  value: '{{workflow.parameters.factor}}'
+              artifacts:
+                - name: dataset
+                  from: '{{tasks.prepare.outputs.artifacts.dataset}}'
+                - name: dataset-metadata
+                  from: '{{tasks.prepare.outputs.artifacts.dataset-metadata}}'
+          - name: evaluate
+            template: evaluate
+            dependencies: [train]
+            arguments:
+              artifacts:
+                - name: model
+                  from: '{{tasks.train.outputs.artifacts.model}}'
+                - name: model-metadata
+                  from: '{{tasks.train.outputs.artifacts.model-metadata}}'
+    - name: prepare
+      memoize:
+        # Demo only: bump this key whenever the component image changes.
+        key: prepare-v2
+        maxAge: 1h
+        cache:
+          configMap:
+            name: argo-demo-cache
+      container:
+        image: kfp-argo-demo:dev
+        imagePullPolicy: Never
+        command: [python, -m, kfp.dsl.executor_main]
+        args:
+          - --component_module_path
+          - /demo.py
+          - --function_to_execute
+          - prepare
+          - --argo_input
+          - >-
+            {"schema":"kfp-argo/v1","outputDirectory":"/tmp/kfp/outputs","outputs":{"dataset":{"type":"system.Dataset@0.0.1","path":"/tmp/kfp/outputs/dataset","metadataPath":"/tmp/kfp/outputs/dataset.json","uri":"s3://argo-artifacts/{run}/{task}/dataset"}}}
+        env: &identity
+          - name: KFP_ARGO_RUN_UID
+            value: '{{workflow.uid}}'
+          - name: KFP_ARGO_NODE_ID
+            value: '{{pod.name}}'
+          - name: KFP_ARGO_NAMESPACE
+            value: '{{workflow.namespace}}'
+      outputs:
+        artifacts:
+          - name: dataset
+            path: /tmp/kfp/outputs/dataset
+            archive: {none: {}}
+            s3: {key: '{{workflow.uid}}/{{pod.name}}/dataset'}
+          - name: dataset-metadata
+            path: /tmp/kfp/outputs/dataset.json
+            archive: {none: {}}
+          - name: kfp-metadata
+            path: /tmp/kfp/outputs/metadata.json
+            archive: {none: {}}
+    - name: train
+      inputs:
+        parameters:
+          - name: factor
+        artifacts:
+          - name: dataset
+            path: /tmp/kfp/inputs/dataset
+          - name: dataset-metadata
+            path: /tmp/kfp/inputs/dataset.json
+      container:
+        image: kfp-argo-demo:dev
+        imagePullPolicy: Never
+        command: [python, -m, kfp.dsl.executor_main]
+        args:
+          - --component_module_path
+          - /demo.py
+          - --function_to_execute
+          - train
+          - --argo_parameters
+          - '{{inputs.parameters}}'
+          - --argo_input
+          - >-
+            {"schema":"kfp-argo/v1","outputDirectory":"/tmp/kfp/outputs","inputs":{"factor":{"type":"Float"},"dataset":{"type":"system.Dataset@0.0.1","path":"/tmp/kfp/inputs/dataset","metadataPath":"/tmp/kfp/inputs/dataset.json"}},"outputs":{"model":{"type":"system.Model@0.0.1","path":"/tmp/kfp/outputs/model","metadataPath":"/tmp/kfp/outputs/model.json","uri":"s3://argo-artifacts/{run}/{task}/model"}}}
+        env: *identity
+      outputs:
+        artifacts:
+          - name: model
+            path: /tmp/kfp/outputs/model
+            archive: {none: {}}
+            s3: {key: '{{workflow.uid}}/{{pod.name}}/model'}
+          - name: model-metadata
+            path: /tmp/kfp/outputs/model.json
+            archive: {none: {}}
+          - name: kfp-metadata
+            path: /tmp/kfp/outputs/metadata.json
+            archive: {none: {}}
+    - name: evaluate
+      inputs:
+        artifacts:
+          - name: model
+            path: /tmp/kfp/inputs/model
+          - name: model-metadata
+            path: /tmp/kfp/inputs/model.json
+      container:
+        image: kfp-argo-demo:dev
+        imagePullPolicy: Never
+        command: [python, -m, kfp.dsl.executor_main]
+        args:
+          - --component_module_path
+          - /demo.py
+          - --function_to_execute
+          - evaluate
+          - --argo_input
+          - >-
+            {"schema":"kfp-argo/v1","outputDirectory":"/tmp/kfp/outputs","inputs":{"model":{"type":"system.Model@0.0.1","path":"/tmp/kfp/inputs/model","metadataPath":"/tmp/kfp/inputs/model.json"}},"outputs":{"metrics":{"type":"system.Metrics@0.0.1","path":"/tmp/kfp/outputs/metrics","metadataPath":"/tmp/kfp/outputs/metrics.json","uri":"s3://argo-artifacts/{run}/{task}/metrics"},"Output":{"type":"Float","path":"/tmp/kfp/outputs/Output"}}}
+        env: *identity
+      outputs:
+        parameters:
+          - name: Output
+            valueFrom: {path: /tmp/kfp/outputs/Output}
+        artifacts:
+          - name: metrics
+            path: /tmp/kfp/outputs/metrics
+            archive: {none: {}}
+            s3: {key: '{{workflow.uid}}/{{pod.name}}/metrics'}
+          - name: metrics-metadata
+            path: /tmp/kfp/outputs/metrics.json
+            archive: {none: {}}
+          - name: kfp-metadata
+            path: /tmp/kfp/outputs/metadata.json
+            archive: {none: {}}

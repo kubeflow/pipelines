@@ -3,16 +3,27 @@ Kubeflow Pipelines is a platform for building and deploying portable, scalable m
 
 Use Kubeflow Pipelines to compose a multi-step workflow ([pipeline](https://www.kubeflow.org/docs/components/pipelines/concepts/pipeline/)) as a [graph](https://www.kubeflow.org/docs/components/pipelines/concepts/graph/) of containerized [tasks](https://www.kubeflow.org/docs/components/pipelines/concepts/step/) using Python code and/or YAML. Then, [run](https://www.kubeflow.org/docs/components/pipelines/concepts/run/) your pipeline with specified pipeline arguments, rerun your pipeline with new arguments or data, [schedule](https://www.kubeflow.org/docs/components/pipelines/concepts/run-trigger/) your pipeline to run on a recurring basis, organize your runs into [experiments](https://www.kubeflow.org/docs/components/pipelines/concepts/experiment/), save machine learning artifacts to compliant [artifact registries](https://www.kubeflow.org/docs/components/pipelines/concepts/metadata/), and visualize it all through the [Kubeflow Dashboard](https://www.kubeflow.org/docs/components/central-dash/overview/).
 
+## Native Argo fork
+
+This checkout's compiler emits native Argo WorkflowTemplates, Workflows and
+CronWorkflows, not KFP PipelineSpec IR. Pipeline tasks execute on Kubernetes;
+the in-process runner package and its SDK entrypoints have been removed.
+Use `samples/argo-native/README.md` in the repository for the tested deployment,
+image snapshots, CLI options and compatibility limits. Legacy client/server
+interfaces are not a compatibility target for this fork.
+
 ## Installation
 
 The KFP SDK requires Python 3.11 or later, including in component runtime images
 that install the SDK. Generic container components that do not install the SDK
 can use other runtimes.
 
-To install `kfp`, run:
+Build and install this checkout's wheel from the repository root. A published
+upstream wheel does not contain this prototype's runtime bridge:
 
 ```sh
-pip install kfp
+uv build --package kfp --wheel
+python -m pip install dist/kfp-*.whl
 ```
 
 The unified SDK includes `kfp.pipeline_spec`, `kfp.kubernetes`, and the generated
@@ -40,8 +51,9 @@ environment if other applications still need the split SDK.
 
 ## Preview pipelines locally
 
-`kfp visualize` reads Python (`.py`) or compiled KFP v2 specifications
-(`.yaml`, `.yml`, `.json`), without a cluster or server credentials:
+`kfp visualize` reads Python (`.py`), native Argo resources, or historical KFP v2
+specifications (`.yaml`, `.yml`, `.json`), without a cluster or server credentials.
+Python graph previews disable memoization and do not submit a run:
 
 ```sh
 # Offline, interactive React Flow HTML (defaults to pipeline.html).
@@ -89,19 +101,18 @@ the same graph canvas, task/artifact cards, inline DAG expansion, controls, and
 node inspector as the KFP pipeline UI. Markdown exports contain one Mermaid
 task-dependency diagram per DAG and need a Mermaid-aware renderer. Both show
 static dependencies, including parameter/artifact inputs and explicit ordering;
-loops are not unrolled, and no runtime execution status is shown. Legacy Argo
-Workflow YAML and standalone component specs are not supported. Compiler multi-document YAML and Kubernetes `PipelineVersion`
-manifests are supported. JSON files use JSON parsing to preserve Unicode and
+loops are not unrolled, and no runtime execution status is shown. Native Argo
+Workflows, WorkflowTemplates and CronWorkflows with local DAG templates are
+supported; resolve external template references before exporting. Native views
+consume Argo directly, without reconstructing IR. Historical IR YAML and Kubernetes
+`PipelineVersion` manifests remain readable. JSON parsing preserves Unicode and
 numeric constants.
 
-HTML validates reusable DAG definitions once and keeps the spec compact.
-Markdown expands instance paths, with a limit of 10,000 DAGs, tasks, and
-dependency edges in total; use HTML for pipelines that exceed this limit.
-Missing/empty task display names and incomplete task-output or final-status
-producer references are rejected before replacing an export. All formats require
-a `deploymentSpec` field so their validated state can also be served by the shared
-KFP graph/inspector; an explicit empty object is supported. Removing the field
-or a producer name during an edit preserves the previous exports and preview.
+Native previews have a 10,000-element expansion budget. For historical IR, HTML
+validates compact reusable definitions while Markdown applies the expansion budget.
+Invalid references and cycles are rejected before replacing an export. Historical
+IR views still require `deploymentSpec`; native views use Argo templates instead.
+Compilation or validation errors preserve the previous exports and preview.
 
 `-w` is a short alias for `--watch`. Watching only updates files; it never
 starts a server unless `--serve` / `-s` is also supplied. Watch mode observes

@@ -6,7 +6,7 @@ What is Kubeflow Pipelines?
 
 Kubeflow Pipelines (KFP) is a platform for building and deploying portable and scalable machine learning (ML) workflows using containers on Kubernetes-based systems.
 With KFP you can author :ref:`components <what-is-a-component>` and :ref:`pipelines <what-is-a-pipeline>` using the :ref:`KFP Python SDK <kfp-python-sdk>`, compile pipelines 
-to an :ref:`intermediate representation YAML <what-is-a-compiled-pipeline>`, and submit the pipeline to run on a KFP-conformant backend such as the :ref:`open source KFP backend <open-source-deployment>`, `Google Cloud Vertex AI Pipelines <https://cloud.google.com/vertex-ai/docs/pipelines/introduction>`_, or KFP local.
+to native Argo YAML, and submit it to Argo Workflows on Kubernetes. This fork does not execute pipelines in-process; the deployment sections below describe the upstream KFP backend.
 
 The open source KFP backend is available as a core component of Kubeflow or as a standalone installation. 
 

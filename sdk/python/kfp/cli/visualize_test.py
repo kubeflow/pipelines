@@ -586,7 +586,9 @@ def pipeline():
     step()
 """)
     assert (
-        visualization.load_spec(source, 'pipeline')['pipelineInfo']['name']
+        visualization.load_spec(source, 'pipeline')['metadata']['annotations'][
+            'pipelines.kubeflow.org/display-name'
+        ]
         == 'first'
     )
     cached_mtime = helper.stat().st_mtime
@@ -594,7 +596,9 @@ def pipeline():
     helper.write_text('NAME = "other"\n')
     os.utime(helper, (cached_mtime, cached_mtime))
     assert (
-        visualization.load_spec(source, 'pipeline')['pipelineInfo']['name']
+        visualization.load_spec(source, 'pipeline')['metadata']['annotations'][
+            'pipelines.kubeflow.org/display-name'
+        ]
         == 'other'
     )
     source.write_text('this is invalid Python')

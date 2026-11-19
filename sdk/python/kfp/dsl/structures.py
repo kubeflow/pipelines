@@ -20,7 +20,7 @@ import itertools
 import re
 import uuid
 from decimal import Decimal
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
 import yaml
 from google.protobuf import json_format
@@ -512,6 +512,18 @@ class ImporterSpec:
 
 
 @dataclasses.dataclass
+class CapturedGraph:
+    """Validated DSL objects retained for native execution-engine
+    compilation."""
+
+    pipeline: Any
+    outputs: Any
+    config: Any = None
+    pipeline_root: Optional[str] = None
+    display_name: Optional[str] = None
+
+
+@dataclasses.dataclass
 class Implementation:
     """Implementation definition.
 
@@ -524,7 +536,9 @@ class Implementation:
     container: Optional[ContainerSpecImplementation] = None
     importer: Optional[ImporterSpec] = None
     # Use type forward reference to skip the type validation in BaseModel.
-    graph: Optional['pipeline_spec_pb2.PipelineSpec'] = None
+    graph: Optional[Union[CapturedGraph, 'pipeline_spec_pb2.PipelineSpec']] = (
+        None
+    )
 
     @classmethod
     def from_pipeline_spec_dict(

@@ -104,6 +104,7 @@ backend/src/crd/kubernetes/bin
 **/allure-*
 **/*.html
 !frontend/index.html
+!frontend/argo.html
 reports/
 logs/
 *.out

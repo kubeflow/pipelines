@@ -51,19 +51,19 @@ re-exports. Notebooks and Markdown are outside the Python formatting check.
 Docformatter still wraps docstring prose: run it before `ruff format`, and run
 the hook chain twice to check that both tools agree.
 
-Run the complete SDK unit selection with both Python 3.11 and 3.13 after
-changing packaging or local-runner test setup; a runtime-only or serial subset
-does not exercise cross-worker installation races. `LocalRunnerEnvironmentTestCase`
-isolates both the SDK build source and the subprocess installation destination.
-Even `use_venv=False` tests use a disposable per-test interpreter, while retaining
-the runner's actual install locking and per-task-venv behavior. Never let test
-components reinstall packages into the pytest workers' shared environment.
+Run the SDK selection with Python 3.11 and 3.13 after packaging changes.
+The native fork has no in-process pipeline runners. Runtime unit tests may invoke
+component functions against staged temporary files; end-to-end pipeline execution
+must use Argo on Kubernetes.
 
-The SDK integration presubmit builds one wheel from the actual checkout and uses
-it for both local-execution and runtime regressions. DockerRunner tests bind-mount
-that wheel read-only at its absolute package path; subprocess tests install the
-same artifact. Keep real per-component installs, dependency resolution, both Python
-versions, and all cases. Do not restore Git URL installs per component: queue-SHA
-fetches and repeated builds can exceed the integration job's timeout. Run
+The SDK integration presubmit builds a wheel from the actual checkout for runtime
+command regressions. Preserve isolated runtime environments and never reinstall
+packages into pytest workers. Run
 `PYTHONPATH=.github/resources/scripts python -m unittest sdk_runtime_test queue_test_sources_test`
-and the local-execution wheel-mount regressions after changing this handoff.
+after changing that handoff.
+
+Native compatibility verification compiles and executes its corpus with
+`uv run python samples/argo-native/verify_compatibility.py --context CONTEXT --namespace NAMESPACE`.
+It asserts skipped branches, typed collection, failed loop iterations, body and
+cleanup failure propagation, and container/Python artifact transfer. The explicit
+failure cases must fail as expected; accepting any terminal status is insufficient.

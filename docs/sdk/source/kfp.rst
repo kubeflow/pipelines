@@ -11,6 +11,5 @@ API Reference
    components
    client
    registry
-   local
    kubernetes
    server_api

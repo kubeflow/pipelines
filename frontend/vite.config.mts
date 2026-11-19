@@ -8,15 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const proxyTarget = 'http://localhost:3001';
-const proxyPaths = [
-  '/api',
-  '/apis',
-  '/apps',
-  '/artifacts',
-  '/hub',
-  '/k8s',
-  '/system',
-];
+const proxyPaths = ['/api', '/apis', '/apps', '/artifacts', '/hub', '/k8s', '/system'];
 
 const proxy = proxyPaths.reduce<Record<string, { target: string; changeOrigin: boolean }>>(
   (acc, prefix) => {
@@ -45,7 +37,20 @@ export default defineConfig(({ mode }) => ({
   },
   server: {
     port: 3000,
-    proxy,
+    proxy: {
+      ...proxy,
+      // Opt-in, loopback-only quick-start proxy; never used by production builds.
+      ...(process.env.KFP_ARGO_DEMO === 'true'
+        ? {
+            '^/argo/': {
+              target: 'https://localhost:2746',
+              changeOrigin: true,
+              secure: false,
+              rewrite: (url: string) => url.replace(/^\/argo/, ''),
+            },
+          }
+        : {}),
+    },
   },
   optimizeDeps: {
     exclude: ['@mui/material/colors'],
@@ -55,5 +60,11 @@ export default defineConfig(({ mode }) => ({
     outDir: 'build',
     assetsDir: 'static',
     sourcemap: true,
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        argo: path.resolve(__dirname, 'argo.html'),
+      },
+    },
   },
 }));
