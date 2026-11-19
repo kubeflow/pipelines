@@ -1037,9 +1037,9 @@ func (s *TaskStore) GetTasksByIDs(taskIDs []string) (map[string]*model.Task, err
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get tasks by IDs: %v", err.Error())
 	}
+	defer rows.Close()
 
 	tasks, err := s.scanRows(rows)
-	rows.Close()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to scan tasks by IDs: %v", err.Error())
 	}

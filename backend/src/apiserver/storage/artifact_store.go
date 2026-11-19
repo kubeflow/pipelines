@@ -757,9 +757,9 @@ func (s *ArtifactStore) GetArtifactsByIDs(artifactIDs []string) (map[string]*mod
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get artifacts by IDs: %v", err.Error())
 	}
+	defer r.Close()
 
 	artifacts, err := s.scanRows(r)
-	r.Close()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to scan artifacts by IDs: %v", err.Error())
 	}
@@ -786,7 +786,8 @@ func (s *ArtifactStore) GetArtifactsByIDs(artifactIDs []string) (map[string]*mod
 	return artifactsByID, nil
 }
 
-var uuidColDefRegex = regexp.MustCompile(`(?i)(?:^|[\s(,"'\[` + "`" + `])UUID(?:[\s,"'\]` + "`" + `]+)([^,\n]+)`)
+var uuidColDefRegex = regexp.MustCompile(`(?i)(?:^|[\s(,"'\[` + "`" + `])UUID(?:['"` + "`" + `\]]*\s+)([^,]+)`)
+var nocaseCollateRegex = regexp.MustCompile(`(?i)\bCOLLATE\s+NOCASE\b`)
 
 // isColumnCaseInsensitive checks if the UUID column on the given table has case-insensitive collation.
 // MySQL uses case-insensitive collation by default (e.g. utf8mb4_general_ci).
@@ -802,8 +803,7 @@ func isColumnCaseInsensitive(db *sql.DB, d dialect.DBDialect, tableName string) 
 		if err := row.Scan(&tableSQL); err == nil {
 			match := uuidColDefRegex.FindStringSubmatch(tableSQL)
 			if len(match) > 1 {
-				upperDef := strings.ToUpper(match[1])
-				return strings.Contains(upperDef, "COLLATE NOCASE") || strings.Contains(upperDef, "COLLATE  NOCASE")
+				return nocaseCollateRegex.MatchString(match[1])
 			}
 		}
 	}

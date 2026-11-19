@@ -235,6 +235,45 @@ func TestGetArtifactsByIDs_CaseSensitivityAndNOCASE(t *testing.T) {
 	assert.Equal(t, 1, len(mixedBatch))
 	assert.NotNil(t, mixedBatch[artMixed.UUID])
 	assert.Nil(t, mixedBatch[upperID], "expected nonexistent uppercase ID not to resolve when only Name has NOCASE")
+
+	// 4. Multiline SQLite column definition with COLLATE NOCASE.
+	// SQLite allows newlines in column definitions, e.g. between VARCHAR(255) and COLLATE NOCASE.
+	dbMultiline, testDialectMultiline := NewFakeDBOrFatal()
+	defer dbMultiline.Close()
+	_, err = dbMultiline.Exec("DROP TABLE IF EXISTS " + artifactTableName)
+	require.NoError(t, err)
+	_, err = dbMultiline.Exec(`CREATE TABLE ` + artifactTableName + ` (
+		UUID VARCHAR(255)
+			COLLATE NOCASE NOT NULL PRIMARY KEY,
+		Namespace VARCHAR(255),
+		Name VARCHAR(255),
+		Type INTEGER,
+		URI VARCHAR(255),
+		URIHash VARCHAR(64),
+		Description TEXT,
+		CreatedAtInSec BIGINT,
+		LastUpdateInSec BIGINT,
+		Metadata TEXT,
+		IdentityKey VARCHAR(255),
+		NumberValue DOUBLE PRECISION
+	)`)
+	require.NoError(t, err)
+
+	storeMultiline := NewArtifactStore(dbMultiline, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil), testDialectMultiline)
+	artMultiline, err := storeMultiline.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:       strPTR("s3://bucket/test-multiline"),
+		Name:      "test-artifact-multiline",
+	})
+	require.NoError(t, err)
+
+	upperMultilineID := "A23E4567-E89B-12D3-A456-426655441011"
+	multilineBatch, err := storeMultiline.GetArtifactsByIDs([]string{upperMultilineID})
+	require.NoError(t, err)
+	assert.NotEmpty(t, multilineBatch, "expected mixed-case ID to match on multiline NOCASE column definition")
+	assert.NotNil(t, multilineBatch[upperMultilineID])
+	assert.Equal(t, artMultiline.UUID, multilineBatch[upperMultilineID].UUID)
 }
 
 func TestGetArtifactsByURI_ExactNamespaceAndURIMatch(t *testing.T) {

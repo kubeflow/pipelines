@@ -791,7 +791,7 @@ func (s *ArtifactServer) authorizeArtifactTaskAccess(ctx context.Context, taskID
 			if !ok {
 				return util.Wrap(util.NewResourceNotFoundError("task", taskID), "Failed to get task for authorization")
 			}
-			if err = authorizeRunID(task.RunUUID); err != nil {
+			if err := authorizeRunID(task.RunUUID); err != nil {
 				return err
 			}
 		}
@@ -811,7 +811,7 @@ func (s *ArtifactServer) authorizeArtifactTaskAccess(ctx context.Context, taskID
 			if !ok {
 				return util.Wrap(util.NewResourceNotFoundError("artifact", artifactID), "Failed to get artifact for authorization")
 			}
-			if err = authorizeNamespace(artifact.Namespace); err != nil {
+			if err := authorizeNamespace(artifact.Namespace); err != nil {
 				return err
 			}
 		}

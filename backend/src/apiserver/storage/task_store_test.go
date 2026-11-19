@@ -1426,6 +1426,49 @@ func TestGetTasksByIDs_CaseSensitivityAndNOCASE(t *testing.T) {
 	assert.Equal(t, 1, len(mixedBatch))
 	assert.NotNil(t, mixedBatch[taskMixed.UUID])
 	assert.Nil(t, mixedBatch[upperMixedID], "expected nonexistent uppercase ID not to resolve when only Name has NOCASE")
+
+	// 4. Multiline SQLite column definition with COLLATE NOCASE.
+	dbMultiline, testDialectMultiline := NewFakeDBOrFatal()
+	defer dbMultiline.Close()
+	var multilineSchema string
+	err = dbMultiline.QueryRow("SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'").Scan(&multilineSchema)
+	require.NoError(t, err)
+	_, err = dbMultiline.Exec("DROP TABLE tasks")
+	require.NoError(t, err)
+	for _, target := range []string{"`UUID` varchar(191)", "\"UUID\" varchar(191)", "UUID varchar(191)", "`UUID` text", "\"UUID\" text", "UUID text"} {
+		if strings.Contains(multilineSchema, target) {
+			multilineSchema = strings.Replace(multilineSchema, target, target+"\n\t\tCOLLATE NOCASE", 1)
+			break
+		}
+	}
+	_, err = dbMultiline.Exec(multilineSchema)
+	require.NoError(t, err)
+
+	runStoreMultiline := NewRunStore(dbMultiline, util.NewFakeTimeForEpoch(), testDialectMultiline)
+	_, err = runStoreMultiline.CreateRun(&model.Run{
+		UUID:         "run-1",
+		K8SName:      "run1",
+		DisplayName:  "run1",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+	})
+	require.NoError(t, err)
+
+	taskStoreMultiline := NewTaskStore(dbMultiline, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil), testDialectMultiline)
+	taskMultiline, err := taskStoreMultiline.CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   "run-1",
+		Name:      "test-task-multiline",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	upperMultilineID := strings.ToUpper(taskMultiline.UUID)
+	multilineBatch, err := taskStoreMultiline.GetTasksByIDs([]string{upperMultilineID})
+	require.NoError(t, err)
+	assert.NotEmpty(t, multilineBatch, "expected mixed-case ID to match on multiline NOCASE column definition")
+	assert.NotNil(t, multilineBatch[upperMultilineID])
+	assert.Equal(t, taskMultiline.UUID, multilineBatch[upperMultilineID].UUID)
 }
 
 func TestGetTaskCountsForRuns(t *testing.T) {
