@@ -457,10 +457,76 @@ class SharedImageTests(unittest.TestCase):
     def test_actual_merge_sha_not_head_sha_controls_reuse(self):
         self.api.images('amd64', self.directory)
         self.consumer['source_sha'] = 'd' * 40
-        with self.assertRaisesRegex(
-            shared.InvalidEvidence, 'source_sha mismatch'
+        self.api.current_run.update(status='completed', conclusion='success')
+        now = [0]
+
+        def wait(seconds):
+            self.assertFalse(self.state_path.exists())
+            now[0] += seconds
+
+        with (
+            mock.patch.object(
+                self.api, 'document', wraps=self.api.document
+            ) as read,
+            self.assertRaisesRegex(
+                shared.InvalidEvidence, 'Timed out.*producer'
+            ),
         ):
-            self.resolve()
+            shared.resolve(
+                self.api,
+                self.consumer,
+                'amd64',
+                'images',
+                self.state_path,
+                timeout=90,
+                poll=30,
+                clock=lambda: now[0],
+                sleep=wait,
+            )
+        self.assertEqual(now[0], 90)
+        self.assertFalse(self.state_path.exists())
+        self.assertEqual(read.call_count, 1)
+
+    def test_waits_for_newly_visible_producer_with_matching_merge_sha(self):
+        self.consumer['source_sha'] = 'd' * 40
+        self.api.images('amd64', self.directory)
+        self.api.current_run.update(status='completed', conclusion='success')
+        stale_source = self.api.items.pop(1)
+        matching = self.newer_candidate(dict(self.consumer, run_id=30))
+        matching.items.clear()
+        self.api.run = matching.run
+        now = [0]
+        self.api.runs = lambda sha: (
+            [self.api.current_run]
+            if now[0] < 90
+            else [matching.current_run, self.api.current_run]
+        )
+
+        def wait(seconds):
+            self.assertFalse(self.state_path.exists())
+            now[0] += seconds
+            if now[0] == 30:
+                # Its late source identifies the completed run as unrelated.
+                # Its publication grace must not shorten discovery.
+                self.api.items[1] = stale_source
+            elif now[0] == 120:
+                matching.add('ci-image-source-attempt-1', matching.source)
+                matching.images('amd64', self.directory)
+
+        state = shared.resolve(
+            self.api,
+            self.consumer,
+            'amd64',
+            'images',
+            self.state_path,
+            timeout=150,
+            poll=30,
+            clock=lambda: now[0],
+            sleep=wait,
+        )
+        self.assertEqual(now[0], 120)
+        self.assertEqual(state['identity'], matching.source)
+        self.assertEqual(json.loads(self.state_path.read_text()), state)
 
     def newer_candidate(self, source):
         newer = FakeAPI(source)
