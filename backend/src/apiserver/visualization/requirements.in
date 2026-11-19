@@ -5,7 +5,7 @@ itables==2.9.1
 ipykernel==7.1.0
 ipython==9.18.1
 Jinja2>=3.1.2,<4
-jupyter-client==8.6.3
+jupyter-client==8.10.0
 markupsafe>=2.1.1
 nbconvert==7.17.2
 nbformat==5.10.4
