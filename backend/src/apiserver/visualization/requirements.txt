@@ -172,7 +172,7 @@ libclang==18.1.1
     # via tensorflow
 markdown-it-py==4.2.0
     # via rich
-markupsafe==3.0.2
+markupsafe==3.0.4
     # via
     #   -r requirements.in
     #   jinja2
