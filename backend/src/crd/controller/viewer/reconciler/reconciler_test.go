@@ -638,3 +638,33 @@ func TestReconcile_MaxNumViewersIsEnforced(t *testing.T) {
 		t.Errorf("Got services %v\n. Want %v", gotSvcs, wantSvcs)
 	}
 }
+
+func TestReconcile_DefaultTensorboardImage(t *testing.T) {
+	view := &viewerV1beta1.Viewer{
+		ObjectMeta: metav1.ObjectMeta{Name: "viewer-default", Namespace: "kubeflow"},
+		Spec: viewerV1beta1.ViewerSpec{
+			Type:            viewerV1beta1.ViewerTypeTensorboard,
+			TensorboardSpec: viewerV1beta1.TensorboardSpec{LogDir: "s3://artifacts/events"},
+		},
+	}
+	cli := fake.NewFakeClient(view)
+	reconciler, _ := New(cli, scheme.Scheme, &Options{MaxNumViewers: 10})
+	_, err := reconciler.Reconcile(context.Background(), reconcile.Request{
+		NamespacedName: types.NamespacedName{Name: view.Name, Namespace: view.Namespace},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	deployments := getDeployments(t, cli)
+	if len(deployments) != 1 {
+		t.Fatalf("expected one viewer deployment, got %d", len(deployments))
+	}
+	container := deployments[0].Spec.Template.Spec.Containers[0]
+	if container.Image != defaultTensorflowImage {
+		t.Fatalf("default image = %q, want %q", container.Image, defaultTensorflowImage)
+	}
+	expectedArgs := []string{"tensorboard", "--logdir=s3://artifacts/events", "--path_prefix=/tensorboard/viewer-default/", "--bind_all"}
+	if diff := cmp.Diff(expectedArgs, container.Args); diff != "" {
+		t.Fatalf("viewer arguments mismatch (-want +got): %s", diff)
+	}
+}

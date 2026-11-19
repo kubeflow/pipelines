@@ -140,6 +140,11 @@ func (f *FakeClientManager) ExperimentStore() storage.ExperimentStoreInterface {
 	return f.experimentStore
 }
 
+// SetExperimentStore replaces the experiment store. Intended for tests that count lookups.
+func (f *FakeClientManager) SetExperimentStore(store storage.ExperimentStoreInterface) {
+	f.experimentStore = store
+}
+
 func (f *FakeClientManager) PipelineStore() storage.PipelineStoreInterface {
 	return f.pipelineStore
 }
