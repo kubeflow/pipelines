@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -766,6 +767,10 @@ func (s *ArtifactStore) GetArtifactsByIDs(artifactIDs []string) (map[string]*mod
 		artifactsByID[a.UUID] = a
 	}
 	if isColumnCaseInsensitive(s.db, s.dbDialect, artifactTableName) {
+		byLower := make(map[string]*model.Artifact, len(artifacts))
+		for _, a := range artifacts {
+			byLower[strings.ToLower(a.UUID)] = a
+		}
 		for _, reqID := range artifactIDs {
 			if reqID == "" {
 				continue
@@ -773,21 +778,20 @@ func (s *ArtifactStore) GetArtifactsByIDs(artifactIDs []string) (map[string]*mod
 			if _, exists := artifactsByID[reqID]; exists {
 				continue
 			}
-			for _, a := range artifacts {
-				if strings.EqualFold(a.UUID, reqID) {
-					artifactsByID[reqID] = a
-					break
-				}
+			if matched, ok := byLower[strings.ToLower(reqID)]; ok {
+				artifactsByID[reqID] = matched
 			}
 		}
 	}
 	return artifactsByID, nil
 }
 
+var uuidColDefRegex = regexp.MustCompile(`(?i)(?:^|[\s(,"'\[` + "`" + `])UUID(?:[\s,"'\]` + "`" + `]+)([^,\n]+)`)
+
 // isColumnCaseInsensitive checks if the UUID column on the given table has case-insensitive collation.
 // MySQL uses case-insensitive collation by default (e.g. utf8mb4_general_ci).
 // PostgreSQL uses case-sensitive collation.
-// SQLite uses case-sensitive collation by default, but case-insensitive if defined with COLLATE NOCASE.
+// SQLite uses case-sensitive collation by default, but case-insensitive if the UUID column is defined with COLLATE NOCASE.
 func isColumnCaseInsensitive(db *sql.DB, d dialect.DBDialect, tableName string) bool {
 	if d != nil && d.Name() == "mysql" {
 		return true
@@ -796,7 +800,11 @@ func isColumnCaseInsensitive(db *sql.DB, d dialect.DBDialect, tableName string) 
 		var tableSQL string
 		row := db.QueryRow("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", tableName)
 		if err := row.Scan(&tableSQL); err == nil {
-			return strings.Contains(strings.ToUpper(tableSQL), "NOCASE")
+			match := uuidColDefRegex.FindStringSubmatch(tableSQL)
+			if len(match) > 1 {
+				upperDef := strings.ToUpper(match[1])
+				return strings.Contains(upperDef, "COLLATE NOCASE") || strings.Contains(upperDef, "COLLATE  NOCASE")
+			}
 		}
 	}
 	return false

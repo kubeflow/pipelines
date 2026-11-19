@@ -1382,6 +1382,50 @@ func TestGetTasksByIDs_CaseSensitivityAndNOCASE(t *testing.T) {
 	assert.NotEmpty(t, nocaseBatch, "expected mixed-case ID to match on case-insensitive database")
 	assert.NotNil(t, nocaseBatch[upperNocaseID])
 	assert.Equal(t, taskNocase.UUID, nocaseBatch[upperNocaseID].UUID)
+
+	// 3. Mixed-column table: UUID is case-sensitive (BINARY), but Name uses COLLATE NOCASE.
+	// isColumnCaseInsensitive must NOT be tricked by NOCASE on another column.
+	dbMixed, testDialectMixed := NewFakeDBOrFatal()
+	defer dbMixed.Close()
+	var mixedSchema string
+	err = dbMixed.QueryRow("SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'").Scan(&mixedSchema)
+	require.NoError(t, err)
+	_, err = dbMixed.Exec("DROP TABLE tasks")
+	require.NoError(t, err)
+	for _, target := range []string{"`Name` varchar(128)", "\"Name\" varchar(128)", "Name varchar(128)"} {
+		if strings.Contains(mixedSchema, target) {
+			mixedSchema = strings.Replace(mixedSchema, target, target+" COLLATE NOCASE", 1)
+			break
+		}
+	}
+	_, err = dbMixed.Exec(mixedSchema)
+	require.NoError(t, err)
+
+	runStoreMixed := NewRunStore(dbMixed, util.NewFakeTimeForEpoch(), testDialectMixed)
+	_, err = runStoreMixed.CreateRun(&model.Run{
+		UUID:         "run-1",
+		K8SName:      "run1",
+		DisplayName:  "run1",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+	})
+	require.NoError(t, err)
+
+	taskStoreMixed := NewTaskStore(dbMixed, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil), testDialectMixed)
+	taskMixed, err := taskStoreMixed.CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   "run-1",
+		Name:      "test-task-mixed",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	upperMixedID := strings.ToUpper(taskMixed.UUID)
+	mixedBatch, err := taskStoreMixed.GetTasksByIDs([]string{taskMixed.UUID, upperMixedID})
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(mixedBatch))
+	assert.NotNil(t, mixedBatch[taskMixed.UUID])
+	assert.Nil(t, mixedBatch[upperMixedID], "expected nonexistent uppercase ID not to resolve when only Name has NOCASE")
 }
 
 func TestGetTaskCountsForRuns(t *testing.T) {

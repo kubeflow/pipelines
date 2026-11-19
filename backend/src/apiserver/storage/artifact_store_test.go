@@ -196,6 +196,45 @@ func TestGetArtifactsByIDs_CaseSensitivityAndNOCASE(t *testing.T) {
 	assert.NotEmpty(t, nocaseBatch, "expected mixed-case ID to match on case-insensitive database")
 	assert.NotNil(t, nocaseBatch[upperNocaseID])
 	assert.Equal(t, artNocase.UUID, nocaseBatch[upperNocaseID].UUID)
+
+	// 3. Mixed-column table: UUID is case-sensitive (BINARY), but Name uses COLLATE NOCASE.
+	// isColumnCaseInsensitive must NOT be tricked by NOCASE on another column.
+	dbMixed, testDialectMixed := NewFakeDBOrFatal()
+	defer dbMixed.Close()
+	_, err = dbMixed.Exec("DROP TABLE IF EXISTS " + artifactTableName)
+	require.NoError(t, err)
+	_, err = dbMixed.Exec(`CREATE TABLE ` + artifactTableName + ` (
+		UUID VARCHAR(255) NOT NULL PRIMARY KEY,
+		Namespace VARCHAR(255),
+		Name VARCHAR(255) COLLATE NOCASE,
+		Type INTEGER,
+		URI VARCHAR(255),
+		URIHash VARCHAR(64),
+		Description TEXT,
+		CreatedAtInSec BIGINT,
+		LastUpdateInSec BIGINT,
+		Metadata TEXT,
+		IdentityKey VARCHAR(255),
+		NumberValue DOUBLE PRECISION
+	)`)
+	require.NoError(t, err)
+
+	storeMixed := NewArtifactStore(dbMixed, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil), testDialectMixed)
+	artMixed, err := storeMixed.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:       strPTR("s3://bucket/test-mixed"),
+		Name:      "test-artifact-mixed",
+	})
+	require.NoError(t, err)
+
+	// In mixed-column table, batch containing existing lowercase ID and nonexistent uppercase ID:
+	// exact match succeeds, uppercase ID does NOT match.
+	mixedBatch, err := storeMixed.GetArtifactsByIDs([]string{artMixed.UUID, upperID})
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(mixedBatch))
+	assert.NotNil(t, mixedBatch[artMixed.UUID])
+	assert.Nil(t, mixedBatch[upperID], "expected nonexistent uppercase ID not to resolve when only Name has NOCASE")
 }
 
 func TestGetArtifactsByURI_ExactNamespaceAndURIMatch(t *testing.T) {

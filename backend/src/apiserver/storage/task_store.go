@@ -1047,6 +1047,10 @@ func (s *TaskStore) GetTasksByIDs(taskIDs []string) (map[string]*model.Task, err
 		tasksByID[task.UUID] = task
 	}
 	if isColumnCaseInsensitive(s.db, s.dbDialect, tableName) {
+		byLower := make(map[string]*model.Task, len(tasks))
+		for _, task := range tasks {
+			byLower[strings.ToLower(task.UUID)] = task
+		}
 		for _, reqID := range taskIDs {
 			if reqID == "" {
 				continue
@@ -1054,11 +1058,8 @@ func (s *TaskStore) GetTasksByIDs(taskIDs []string) (map[string]*model.Task, err
 			if _, exists := tasksByID[reqID]; exists {
 				continue
 			}
-			for _, task := range tasks {
-				if strings.EqualFold(task.UUID, reqID) {
-					tasksByID[reqID] = task
-					break
-				}
+			if matched, ok := byLower[strings.ToLower(reqID)]; ok {
+				tasksByID[reqID] = matched
 			}
 		}
 	}
