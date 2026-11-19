@@ -13,7 +13,7 @@
     "form-data": "^4.0.6",
     "google-auth-library": "^11.3.3",
     "gunzip-maybe": "^1.4.1",
-    "http-proxy-middleware": "^4.2.1",
+    "http-proxy-middleware": "^4.2.2",
     "js-yaml": "^5.5.0",
     "lodash": ">=4.18.1",
     "peek-stream": "^1.1.3",
