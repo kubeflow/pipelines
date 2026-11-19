@@ -71,7 +71,7 @@ setuptools.setup(
             "sphinx>=5.0.2,<9.0.0; python_version >= '3.10'",
             "sphinx-immaterial==0.9.0; python_version < '3.10'",
             "sphinx-immaterial==0.12.6; python_version >= '3.10'",
-            "sphinx-rtd-theme==2.0.0",
+            "sphinx-rtd-theme==3.1.0",
             "m2r2==0.3.4",
             "sphinx-notfound-page==1.0.4",
         ]),
