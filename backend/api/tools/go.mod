@@ -23,13 +23,13 @@ require (
 	github.com/felixge/httpsnoop v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
-	github.com/go-openapi/analysis v1.0.1 // indirect
+	github.com/go-openapi/analysis v1.0.2 // indirect
 	github.com/go-openapi/codescan v0.36.3 // indirect
 	github.com/go-openapi/errors v0.22.9 // indirect
 	github.com/go-openapi/inflect v1.0.0 // indirect
 	github.com/go-openapi/jsonpointer v1.0.2 // indirect
 	github.com/go-openapi/jsonreference v1.0.3 // indirect
-	github.com/go-openapi/loads v0.25.3 // indirect
+	github.com/go-openapi/loads v0.25.4 // indirect
 	github.com/go-openapi/runtime v0.33.4 // indirect
 	github.com/go-openapi/runtime/server-middleware v0.33.4 // indirect
 	github.com/go-openapi/spec v1.0.1 // indirect
@@ -44,7 +44,7 @@ require (
 	github.com/go-openapi/swag/stringutils v0.29.2 // indirect
 	github.com/go-openapi/swag/typeutils v0.29.2 // indirect
 	github.com/go-openapi/swag/yamlutils v0.29.2 // indirect
-	github.com/go-openapi/validate v1.0.1 // indirect
+	github.com/go-openapi/validate v1.0.2 // indirect
 	github.com/go-swagger/go-swagger v0.36.4 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
@@ -80,7 +80,7 @@ require (
 	github.com/toqueteos/webbrowser v1.2.1 // indirect
 	github.com/yuin/gopher-lua v1.1.2 // indirect
 	github.com/zclconf/go-cty v1.19.0 // indirect
-	go.yaml.in/yaml/v3 v3.0.5 // indirect
+	go.yaml.in/yaml/v3 v3.0.6 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.6 // indirect
 	golang.org/x/crypto v0.59.0 // indirect
 	golang.org/x/mod v0.42.0 // indirect
