@@ -776,3 +776,10 @@ invalidate an earlier independent candidate. When removing an ineligible PR,
 revoke its candidate and downstream candidates that contain its changes, then
 dequeue that PR. Entries sharing a candidate SHA must all pass policy checks.
 Unknown queue membership or a failed global policy snapshot still fails closed.
+
+The release-2.18 `kfp-profile-controller` image is first-party and is covered by
+the release source image matrix on AMD64 and ARM64. Its classification in
+`osv_manifest_images.py` prevents third-party inventory from rejecting that
+repository. Main’s current `alpine/k8s` profile-controller runtime remains a
+third-party scan target; classification follows the image repository, not the
+component name. Unknown KFP repositories still fail closed.
