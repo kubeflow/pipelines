@@ -13,8 +13,7 @@
 # limitations under the License.
 """Production-grade KFP v2 Customer Churn Prediction Pipeline."""
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.component(
@@ -48,27 +47,37 @@ def load_churn_data(
     tenure = np.random.randint(1, 72, size=num_samples)
     monthly_charges = np.random.uniform(18.0, 120.0, size=num_samples)
     total_charges = tenure * monthly_charges + np.random.normal(
-        0, 10, size=num_samples)
+        0, 10, size=num_samples
+    )
     num_support_tickets = np.random.poisson(lam=2, size=num_samples)
     contract_type = np.random.choice([0, 1, 2], size=num_samples)
 
-    churn_logit = (-0.05 * tenure + 0.02 * monthly_charges +
-                   0.3 * num_support_tickets - 0.8 * contract_type)
+    churn_logit = (
+        -0.05 * tenure
+        + 0.02 * monthly_charges
+        + 0.3 * num_support_tickets
+        - 0.8 * contract_type
+    )
     churn_prob = 1 / (1 + np.exp(-churn_logit))
     churn = (churn_prob > np.median(churn_prob)).astype(int)
 
-    df = pd.DataFrame({
-        'tenure': tenure,
-        'monthly_charges': monthly_charges,
-        'total_charges': total_charges,
-        'num_support_tickets': num_support_tickets,
-        'contract_type': contract_type,
-        'churn': churn,
-    })
+    df = pd.DataFrame(
+        {
+            'tenure': tenure,
+            'monthly_charges': monthly_charges,
+            'total_charges': total_charges,
+            'num_support_tickets': num_support_tickets,
+            'contract_type': contract_type,
+            'churn': churn,
+        }
+    )
 
     # Scale continuous features dynamically using a standard scaler
     continuous_cols = [
-        'tenure', 'monthly_charges', 'total_charges', 'num_support_tickets'
+        'tenure',
+        'monthly_charges',
+        'total_charges',
+        'num_support_tickets',
     ]
     scaler = StandardScaler()
     df[continuous_cols] = scaler.fit_transform(df[continuous_cols])
@@ -88,7 +97,11 @@ def load_churn_data(
 @dsl.component(
     base_image='python:3.11',
     packages_to_install=[
-        'pandas', 'numpy', 'scikit-learn', 'xgboost', 'joblib'
+        'pandas',
+        'numpy',
+        'scikit-learn',
+        'xgboost',
+        'joblib',
     ],
 )
 def train_xgboost_model(
@@ -112,12 +125,14 @@ def train_xgboost_model(
     """
     import joblib
     import pandas as pd
-    from sklearn.ensemble import RandomForestClassifier
     import xgboost as xgb
+    from sklearn.ensemble import RandomForestClassifier
 
-    print(f"Tracking tuning parameters: model_type={model_type}, "
-          f"n_estimators={n_estimators}, max_depth={max_depth}, "
-          f"learning_rate={learning_rate}")
+    print(
+        f'Tracking tuning parameters: model_type={model_type}, '
+        f'n_estimators={n_estimators}, max_depth={max_depth}, '
+        f'learning_rate={learning_rate}'
+    )
 
     train_df = pd.read_csv(dataset_train)
     X_train = train_df.drop(columns=['churn'])
@@ -149,14 +164,18 @@ train_xg_boost_model = train_xgboost_model
 @dsl.component(
     base_image='python:3.11',
     packages_to_install=[
-        'pandas', 'numpy', 'scikit-learn', 'xgboost', 'joblib'
+        'pandas',
+        'numpy',
+        'scikit-learn',
+        'xgboost',
+        'joblib',
     ],
 )
 def evaluate_and_validate(
-        dataset_test: dsl.InputPath(dsl.Dataset),
-        model_path: dsl.InputPath(dsl.Model),
-        metrics: dsl.Output[dsl.Metrics],
-        model_artifact: dsl.OutputPath(dsl.Model),
+    dataset_test: dsl.InputPath(dsl.Dataset),
+    model_path: dsl.InputPath(dsl.Model),
+    metrics: dsl.Output[dsl.Metrics],
+    model_artifact: dsl.OutputPath(dsl.Model),
 ):
     """Computes ROC-AUC, Precision, and Recall metrics, exporting them into
     native KFP Metrics artifact, and saves the serialized model.
@@ -169,9 +188,7 @@ def evaluate_and_validate(
     """
     import joblib
     import pandas as pd
-    from sklearn.metrics import precision_score
-    from sklearn.metrics import recall_score
-    from sklearn.metrics import roc_auc_score
+    from sklearn.metrics import precision_score, recall_score, roc_auc_score
 
     test_df = pd.read_csv(dataset_test)
     X_test = test_df.drop(columns=['churn'])
