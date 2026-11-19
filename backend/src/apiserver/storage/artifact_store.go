@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -755,16 +756,50 @@ func (s *ArtifactStore) GetArtifactsByIDs(artifactIDs []string) (map[string]*mod
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get artifacts by IDs: %v", err.Error())
 	}
-	defer r.Close()
 
 	artifacts, err := s.scanRows(r)
+	r.Close()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to scan artifacts by IDs: %v", err.Error())
 	}
 	for _, a := range artifacts {
 		artifactsByID[a.UUID] = a
 	}
+	if isColumnCaseInsensitive(s.db, s.dbDialect, artifactTableName) {
+		for _, reqID := range artifactIDs {
+			if reqID == "" {
+				continue
+			}
+			if _, exists := artifactsByID[reqID]; exists {
+				continue
+			}
+			for _, a := range artifacts {
+				if strings.EqualFold(a.UUID, reqID) {
+					artifactsByID[reqID] = a
+					break
+				}
+			}
+		}
+	}
 	return artifactsByID, nil
+}
+
+// isColumnCaseInsensitive checks if the UUID column on the given table has case-insensitive collation.
+// MySQL uses case-insensitive collation by default (e.g. utf8mb4_general_ci).
+// PostgreSQL uses case-sensitive collation.
+// SQLite uses case-sensitive collation by default, but case-insensitive if defined with COLLATE NOCASE.
+func isColumnCaseInsensitive(db *sql.DB, d dialect.DBDialect, tableName string) bool {
+	if d != nil && d.Name() == "mysql" {
+		return true
+	}
+	if d != nil && d.Name() == "sqlite" && db != nil {
+		var tableSQL string
+		row := db.QueryRow("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", tableName)
+		if err := row.Scan(&tableSQL); err == nil {
+			return strings.Contains(strings.ToUpper(tableSQL), "NOCASE")
+		}
+	}
+	return false
 }
 
 // GetArtifactsByURI returns artifacts matching Namespace and URI exactly.

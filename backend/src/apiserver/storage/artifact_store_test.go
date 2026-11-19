@@ -135,6 +135,69 @@ func TestGetArtifactsByIDs_Success(t *testing.T) {
 	assert.Empty(t, emptyBatch)
 }
 
+func TestGetArtifactsByIDs_CaseSensitivityAndNOCASE(t *testing.T) {
+	// 1. Standard SQLite: case-sensitive matching by default
+	dbStandard, storeStandard := initializeArtifactStore()
+	defer dbStandard.Close()
+
+	art, err := storeStandard.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:       strPTR("s3://bucket/test"),
+		Name:      "test-artifact",
+	})
+	require.NoError(t, err)
+
+	// Exact match succeeds
+	exactBatch, err := storeStandard.GetArtifactsByIDs([]string{art.UUID})
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(exactBatch))
+
+	// Mixed-case ID fails on exact-matching database
+	upperID := "A23E4567-E89B-12D3-A456-426655441011"
+	upperBatch, err := storeStandard.GetArtifactsByIDs([]string{upperID})
+	require.NoError(t, err)
+	assert.Empty(t, upperBatch, "expected no match for mixed-case ID on case-sensitive database")
+
+	// 2. Case-insensitive database: SQLite table defined with COLLATE NOCASE
+	dbNocase, testDialect := NewFakeDBOrFatal()
+	defer dbNocase.Close()
+	_, err = dbNocase.Exec("DROP TABLE IF EXISTS " + artifactTableName)
+	require.NoError(t, err)
+	_, err = dbNocase.Exec(`CREATE TABLE ` + artifactTableName + ` (
+		UUID VARCHAR(255) COLLATE NOCASE NOT NULL PRIMARY KEY,
+		Namespace VARCHAR(255),
+		Name VARCHAR(255),
+		Type INTEGER,
+		URI VARCHAR(255),
+		URIHash VARCHAR(64),
+		Description TEXT,
+		CreatedAtInSec BIGINT,
+		LastUpdateInSec BIGINT,
+		Metadata TEXT,
+		IdentityKey VARCHAR(255),
+		NumberValue DOUBLE PRECISION
+	)`)
+	require.NoError(t, err)
+
+	storeNocase := NewArtifactStore(dbNocase, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil), testDialect)
+	artNocase, err := storeNocase.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:       strPTR("s3://bucket/test-nocase"),
+		Name:      "test-artifact-nocase",
+	})
+	require.NoError(t, err)
+
+	// On case-insensitive database, mixed-case ID matches
+	upperNocaseID := "A23E4567-E89B-12D3-A456-426655441011"
+	nocaseBatch, err := storeNocase.GetArtifactsByIDs([]string{upperNocaseID})
+	require.NoError(t, err)
+	assert.NotEmpty(t, nocaseBatch, "expected mixed-case ID to match on case-insensitive database")
+	assert.NotNil(t, nocaseBatch[upperNocaseID])
+	assert.Equal(t, artNocase.UUID, nocaseBatch[upperNocaseID].UUID)
+}
+
 func TestGetArtifactsByURI_ExactNamespaceAndURIMatch(t *testing.T) {
 	db, store := initializeArtifactStore()
 	defer db.Close()

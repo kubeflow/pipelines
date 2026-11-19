@@ -17,6 +17,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 
@@ -1311,6 +1312,76 @@ func TestHydrateArtifactsForTasks_ClearsExistingSlicesAndOrdersByKey(t *testing.
 			assert.Equal(t, "z-key", hydratedTask.OutputArtifactsHydrated[1].Key)
 		}
 	}
+}
+
+func TestGetTasksByIDs_CaseSensitivityAndNOCASE(t *testing.T) {
+	// 1. Standard SQLite: case-sensitive matching by default
+	dbStandard, taskStoreStandard, _ := initializeTaskStore()
+	defer dbStandard.Close()
+
+	task, err := taskStoreStandard.CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   "run-1",
+		Name:      "test-task",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	// Exact match succeeds
+	exactBatch, err := taskStoreStandard.GetTasksByIDs([]string{task.UUID})
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(exactBatch))
+
+	// Mixed-case ID fails on exact-matching database
+	upperID := strings.ToUpper(task.UUID)
+	upperBatch, err := taskStoreStandard.GetTasksByIDs([]string{upperID})
+	require.NoError(t, err)
+	assert.Empty(t, upperBatch, "expected no match for mixed-case ID on case-sensitive database")
+
+	// 2. Case-insensitive database: SQLite table defined with COLLATE NOCASE
+	dbNocase, testDialect := NewFakeDBOrFatal()
+	defer dbNocase.Close()
+	var schema string
+	err = dbNocase.QueryRow("SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'").Scan(&schema)
+	require.NoError(t, err)
+	_, err = dbNocase.Exec("DROP TABLE tasks")
+	require.NoError(t, err)
+	schemaNocase := schema
+	for _, target := range []string{"`UUID` varchar(191)", "\"UUID\" varchar(191)", "UUID varchar(191)", "`UUID` text", "\"UUID\" text", "UUID text"} {
+		if strings.Contains(schemaNocase, target) {
+			schemaNocase = strings.Replace(schemaNocase, target, target+" COLLATE NOCASE", 1)
+			break
+		}
+	}
+	_, err = dbNocase.Exec(schemaNocase)
+	require.NoError(t, err)
+
+	runStoreNocase := NewRunStore(dbNocase, util.NewFakeTimeForEpoch(), testDialect)
+	_, err = runStoreNocase.CreateRun(&model.Run{
+		UUID:         "run-1",
+		K8SName:      "run1",
+		DisplayName:  "run1",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+	})
+	require.NoError(t, err)
+
+	taskStoreNocase := NewTaskStore(dbNocase, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil), testDialect)
+	taskNocase, err := taskStoreNocase.CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   "run-1",
+		Name:      "test-task-nocase",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	// On case-insensitive database, mixed-case ID matches
+	upperNocaseID := strings.ToUpper(taskNocase.UUID)
+	nocaseBatch, err := taskStoreNocase.GetTasksByIDs([]string{upperNocaseID})
+	require.NoError(t, err)
+	assert.NotEmpty(t, nocaseBatch, "expected mixed-case ID to match on case-insensitive database")
+	assert.NotNil(t, nocaseBatch[upperNocaseID])
+	assert.Equal(t, taskNocase.UUID, nocaseBatch[upperNocaseID].UUID)
 }
 
 func TestGetTaskCountsForRuns(t *testing.T) {

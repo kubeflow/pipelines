@@ -1668,3 +1668,258 @@ func TestArtifactServer_AuthorizeArtifactTaskAccess_BulkSuccessAndErrors(t *test
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Failed to get artifact for authorization")
 }
+
+type countingTaskStore struct {
+	storage.TaskStoreInterface
+	batchCalls  int
+	singleCalls int
+}
+
+func (c *countingTaskStore) GetTasksByIDs(taskIDs []string) (map[string]*model.Task, error) {
+	c.batchCalls++
+	return c.TaskStoreInterface.GetTasksByIDs(taskIDs)
+}
+
+func (c *countingTaskStore) GetTask(id string) (*model.Task, error) {
+	c.singleCalls++
+	return c.TaskStoreInterface.GetTask(id)
+}
+
+type countingArtifactStore struct {
+	storage.ArtifactStoreInterface
+	batchCalls  int
+	singleCalls int
+}
+
+func (c *countingArtifactStore) GetArtifactsByIDs(artifactIDs []string) (map[string]*model.Artifact, error) {
+	c.batchCalls++
+	return c.ArtifactStoreInterface.GetArtifactsByIDs(artifactIDs)
+}
+
+func (c *countingArtifactStore) GetArtifact(id string) (*model.Artifact, error) {
+	c.singleCalls++
+	return c.ArtifactStoreInterface.GetArtifact(id)
+}
+
+type countingRunStore struct {
+	storage.RunStoreInterface
+	getRunCalls int
+}
+
+func (c *countingRunStore) GetRun(id string, isNamespaceOptional bool) (*model.Run, error) {
+	c.getRunCalls++
+	return c.RunStoreInterface.GetRun(id, isNamespaceOptional)
+}
+
+type runSelectiveSubjectAccessReviewClient struct {
+	deniedRunK8SName string
+}
+
+func (c *runSelectiveSubjectAccessReviewClient) Create(_ context.Context, review *authzv1.SubjectAccessReview, _ metav1.CreateOptions) (*authzv1.SubjectAccessReview, error) {
+	allowed := true
+	if review.Spec.ResourceAttributes != nil && review.Spec.ResourceAttributes.Name == c.deniedRunK8SName {
+		allowed = false
+	}
+	return &authzv1.SubjectAccessReview{
+		Status: authzv1.SubjectAccessReviewStatus{
+			Allowed: allowed,
+		},
+	}, nil
+}
+
+func TestArtifactServer_ListArtifactTasks_BatchesTaskAndArtifactLookups(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	clientManager := resource.NewFakeClientManagerOrFatalV2()
+
+	// Runs
+	_, err := clientManager.RunStore().CreateRun(&model.Run{
+		UUID:         serverRunID1,
+		K8SName:      "r1",
+		DisplayName:  "r1",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			State:            model.RuntimeStateRunning,
+		},
+	})
+	require.NoError(t, err)
+
+	_, err = clientManager.RunStore().CreateRun(&model.Run{
+		UUID:         serverRunID2,
+		K8SName:      "r2",
+		DisplayName:  "r2",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
+			State:            model.RuntimeStateRunning,
+		},
+	})
+	require.NoError(t, err)
+
+	// Tasks
+	t1, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   serverRunID1,
+		Name:      "t1",
+		State:     1,
+	})
+	require.NoError(t, err)
+	t2, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   serverRunID2,
+		Name:      "t2",
+		State:     1,
+	})
+	require.NoError(t, err)
+	t3, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   serverRunID1,
+		Name:      "t3",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	// Artifacts
+	art1, err := clientManager.ArtifactStore().CreateArtifact(&model.Artifact{
+		Namespace:   "ns1",
+		Type:        model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:         strPTR("u1"),
+		Name:        "a1",
+		Description: "d1",
+	})
+	require.NoError(t, err)
+	art2, err := clientManager.ArtifactStore().CreateArtifact(&model.Artifact{
+		Namespace:   "ns1",
+		Type:        model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:         strPTR("u2"),
+		Name:        "a2",
+		Description: "d2",
+	})
+	require.NoError(t, err)
+	art3, err := clientManager.ArtifactStore().CreateArtifact(&model.Artifact{
+		Namespace:   "ns1",
+		Type:        model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:         strPTR("u3"),
+		Name:        "a3",
+		Description: "d3",
+	})
+	require.NoError(t, err)
+
+	// Wrap stores to count lookups
+	taskStoreWrapper := &countingTaskStore{TaskStoreInterface: clientManager.TaskStore()}
+	clientManager.SetTaskStore(taskStoreWrapper)
+
+	artifactStoreWrapper := &countingArtifactStore{ArtifactStoreInterface: clientManager.ArtifactStore()}
+	clientManager.SetArtifactStore(artifactStoreWrapper)
+
+	runStoreWrapper := &countingRunStore{RunStoreInterface: clientManager.RunStore()}
+	clientManager.SetRunStore(runStoreWrapper)
+
+	atsWrapper := &countingArtifactTaskStore{inner: clientManager.ArtifactTaskStore()}
+	clientManager.SetArtifactTaskStore(atsWrapper)
+
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	s := createArtifactServer(resourceManager)
+
+	resp, err := s.ListArtifactTasks(ctxWithUser(), &apiv2.ListArtifactTasksRequest{
+		TaskIds:     []string{t1.UUID, t2.UUID, t3.UUID},
+		ArtifactIds: []string{art1.UUID, art2.UUID, art3.UUID},
+		PageSize:    50,
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, resp)
+
+	// Assert: exactly 1 batch lookup and 0 per-ID lookups for tasks
+	assert.Equal(t, 1, taskStoreWrapper.batchCalls, "expected exactly 1 task batch lookup")
+	assert.Equal(t, 0, taskStoreWrapper.singleCalls, "expected 0 per-ID task lookups")
+
+	// Assert: exactly 1 batch lookup and 0 per-ID lookups for artifacts
+	assert.Equal(t, 1, artifactStoreWrapper.batchCalls, "expected exactly 1 artifact batch lookup")
+	assert.Equal(t, 0, artifactStoreWrapper.singleCalls, "expected 0 per-ID artifact lookups")
+
+	// Assert: run lookups counted separately
+	assert.GreaterOrEqual(t, runStoreWrapper.getRunCalls, 1, "run lookups counted separately")
+
+	// Assert: list query counted separately
+	assert.Equal(t, 1, atsWrapper.listCalls, "list query counted separately")
+}
+
+func TestArtifactServer_ListArtifactTasks_PartialDenialOnTasks(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	clientManager := resource.NewFakeClientManagerOrFatalV2()
+
+	// Seed two runs in the same namespace "ns1"
+	_, err := clientManager.RunStore().CreateRun(&model.Run{
+		UUID:         serverRunID1,
+		K8SName:      "r1",
+		DisplayName:  "r1",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			State:            model.RuntimeStateRunning,
+		},
+	})
+	require.NoError(t, err)
+
+	_, err = clientManager.RunStore().CreateRun(&model.Run{
+		UUID:         serverRunID2,
+		K8SName:      "r2",
+		DisplayName:  "r2",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
+			State:            model.RuntimeStateRunning,
+		},
+	})
+	require.NoError(t, err)
+
+	// Seed two tasks resolving to the two different runs
+	t1, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   serverRunID1,
+		Name:      "t1",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	t2, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   serverRunID2,
+		Name:      "t2",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	// Configure SubjectAccessReview to authorize r1 but deny r2
+	clientManager.SubjectAccessReviewClientFake = &runSelectiveSubjectAccessReviewClient{deniedRunK8SName: "r2"}
+
+	atsWrapper := &countingArtifactTaskStore{inner: clientManager.ArtifactTaskStore()}
+	clientManager.SetArtifactTaskStore(atsWrapper)
+
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	s := createArtifactServer(resourceManager)
+
+	// Exercise partial denial using two task IDs resolving to different runs in the same namespace
+	// with an empty explicit RunIds filter
+	resp, err := s.ListArtifactTasks(ctxWithUser(), &apiv2.ListArtifactTasksRequest{
+		TaskIds: []string{t1.UUID, t2.UUID},
+		RunIds:  []string{},
+	})
+
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.PermissionDenied), "expected PermissionDenied, got %v", err)
+	assert.Nil(t, resp, "expected no associations returned on denial")
+	assert.Equal(t, 0, atsWrapper.listCalls, "expected storage list query not to be executed on denial")
+}

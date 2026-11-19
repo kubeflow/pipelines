@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -1036,14 +1037,30 @@ func (s *TaskStore) GetTasksByIDs(taskIDs []string) (map[string]*model.Task, err
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get tasks by IDs: %v", err.Error())
 	}
-	defer rows.Close()
 
 	tasks, err := s.scanRows(rows)
+	rows.Close()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to scan tasks by IDs: %v", err.Error())
 	}
 	for _, task := range tasks {
 		tasksByID[task.UUID] = task
+	}
+	if isColumnCaseInsensitive(s.db, s.dbDialect, tableName) {
+		for _, reqID := range taskIDs {
+			if reqID == "" {
+				continue
+			}
+			if _, exists := tasksByID[reqID]; exists {
+				continue
+			}
+			for _, task := range tasks {
+				if strings.EqualFold(task.UUID, reqID) {
+					tasksByID[reqID] = task
+					break
+				}
+			}
+		}
 	}
 	return tasksByID, nil
 }
