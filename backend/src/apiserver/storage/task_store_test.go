@@ -1571,6 +1571,61 @@ func TestGetTasksByIDs_CaseSensitivityAndNOCASE(t *testing.T) {
 	assert.Equal(t, taskRtrim.UUID, rtrimBatch[rtrimReqID].UUID)
 }
 
+func TestGetTasksByIDs_MoreThan500IDs(t *testing.T) {
+	dbRtrim, testDialectRtrim := NewFakeDBOrFatal()
+	defer dbRtrim.Close()
+	var rtrimSchema string
+	err := dbRtrim.QueryRow("SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'").Scan(&rtrimSchema)
+	require.NoError(t, err)
+	_, err = dbRtrim.Exec("DROP TABLE tasks")
+	require.NoError(t, err)
+	for _, target := range []string{"`UUID` varchar(191)", "\"UUID\" varchar(191)", "UUID varchar(191)", "`UUID` text", "\"UUID\" text", "UUID text"} {
+		if strings.Contains(rtrimSchema, target) {
+			rtrimSchema = strings.Replace(rtrimSchema, target, target+" COLLATE RTRIM", 1)
+			break
+		}
+	}
+	_, err = dbRtrim.Exec(rtrimSchema)
+	require.NoError(t, err)
+
+	runStoreRtrim := NewRunStore(dbRtrim, util.NewFakeTimeForEpoch(), testDialectRtrim)
+	_, err = runStoreRtrim.CreateRun(&model.Run{
+		UUID:         "run-1",
+		K8SName:      "run1",
+		DisplayName:  "run1",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+	})
+	require.NoError(t, err)
+
+	taskStoreRtrim := NewTaskStore(dbRtrim, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil), testDialectRtrim)
+	taskRtrim, err := taskStoreRtrim.CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   "run-1",
+		Name:      "test-task-rtrim-501",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	// Construct at least 501 distinct IDs: 500 non-existent IDs, followed by the requested spelling past the 500th ID.
+	// On SQLite, compound SELECT without batching fails at 501 terms with "too many terms in compound SELECT".
+	requestedSpelling := taskRtrim.UUID + "   "
+	ids := make([]string, 505)
+	for i := 0; i < 500; i++ {
+		ids[i] = fmt.Sprintf("non-existent-task-%d", i)
+	}
+	ids[500] = requestedSpelling
+	for i := 501; i < 505; i++ {
+		ids[i] = fmt.Sprintf("non-existent-task-%d", i)
+	}
+
+	batch, err := taskStoreRtrim.GetTasksByIDs(ids)
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(batch))
+	assert.NotNil(t, batch[requestedSpelling])
+	assert.Equal(t, taskRtrim.UUID, batch[requestedSpelling].UUID)
+}
+
 func TestGetTaskCountsForRuns(t *testing.T) {
 	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()

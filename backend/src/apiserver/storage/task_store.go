@@ -1003,6 +1003,8 @@ func (s *TaskStore) FindLatestCachedTask(namespace, fingerprint string) (*model.
 // It joins the requested IDs to the stored UUIDs in SQL using the column's
 // own comparison semantics, returning the matching request spelling alongside
 // each row to preserve database collation and trailing whitespace behavior.
+// Requests with more than maxIDsPerQuery distinct IDs are partitioned into bounded
+// batches to stay within compound SELECT limits (such as SQLite's SQLITE_LIMIT_COMPOUND_SELECT).
 func (s *TaskStore) GetTasksByIDs(taskIDs []string) (map[string]*model.Task, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
@@ -1027,58 +1029,68 @@ func (s *TaskStore) GetTasksByIDs(taskIDs []string) (map[string]*model.Task, err
 		return tasksByID, nil
 	}
 
-	args := make([]interface{}, len(dedupedTaskIDs))
-	for i, id := range dedupedTaskIDs {
-		args[i] = id
-	}
-
 	selectCols := make([]string, 0, 1+len(taskColumns))
 	selectCols = append(selectCols, q("req")+"."+q("req_id"))
 	for _, col := range taskColumns {
 		selectCols = append(selectCols, q(tableName)+"."+q(col))
 	}
 
-	unionClause := "(SELECT ? AS " + q("req_id") + strings.Repeat(" UNION ALL SELECT ?", len(dedupedTaskIDs)-1) + ") " + q("req")
-	joinClause := unionClause + " ON " + q(tableName) + "." + q("UUID") + " = " + q("req") + "." + q("req_id")
-
-	queryBuilder := qb.
-		Select(selectCols...).
-		From(q(tableName)).
-		Join(joinClause, args...).
-		OrderBy(q(tableName)+"."+q("RunUUID")+" ASC", q(tableName)+"."+q("CreatedAtInSec")+" ASC", q(tableName)+"."+q("UUID")+" ASC")
-
-	var rowsSQL string
-	var rowsArgs []interface{}
-	var err error
-	if s.dbDialect != nil {
-		rowsSQL, rowsArgs, err = s.dbDialect.FinalizeSelect(queryBuilder)
-	} else {
-		rowsSQL, rowsArgs, err = queryBuilder.ToSql()
-	}
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create query to get tasks by IDs: %v", err.Error())
-	}
-
-	rows, err := s.db.Query(rowsSQL, rowsArgs...)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get tasks by IDs: %v", err.Error())
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var reqID string
-		scanner := &reqIDRowScanner{
-			reqID: &reqID,
-			inner: rows,
+	for i := 0; i < len(dedupedTaskIDs); i += maxIDsPerQuery {
+		end := i + maxIDsPerQuery
+		if end > len(dedupedTaskIDs) {
+			end = len(dedupedTaskIDs)
 		}
-		task, err := scanTaskRow(scanner)
+		chunk := dedupedTaskIDs[i:end]
+
+		args := make([]interface{}, len(chunk))
+		for j, id := range chunk {
+			args[j] = id
+		}
+
+		unionClause := "(SELECT ? AS " + q("req_id") + strings.Repeat(" UNION ALL SELECT ?", len(chunk)-1) + ") " + q("req")
+		joinClause := unionClause + " ON " + q(tableName) + "." + q("UUID") + " = " + q("req") + "." + q("req_id")
+
+		queryBuilder := qb.
+			Select(selectCols...).
+			From(q(tableName)).
+			Join(joinClause, args...).
+			OrderBy(q(tableName)+"."+q("RunUUID")+" ASC", q(tableName)+"."+q("CreatedAtInSec")+" ASC", q(tableName)+"."+q("UUID")+" ASC")
+
+		var rowsSQL string
+		var rowsArgs []interface{}
+		var err error
+		if s.dbDialect != nil {
+			rowsSQL, rowsArgs, err = s.dbDialect.FinalizeSelect(queryBuilder)
+		} else {
+			rowsSQL, rowsArgs, err = queryBuilder.ToSql()
+		}
 		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to scan tasks by IDs: %v", err.Error())
+			return nil, util.NewInternalServerError(err, "Failed to create query to get tasks by IDs: %v", err.Error())
 		}
-		tasksByID[reqID] = task
-	}
-	if err := rows.Err(); err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to iterate tasks by IDs: %v", err.Error())
+
+		rows, err := s.db.Query(rowsSQL, rowsArgs...)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to get tasks by IDs: %v", err.Error())
+		}
+
+		for rows.Next() {
+			var reqID string
+			scanner := &reqIDRowScanner{
+				reqID: &reqID,
+				inner: rows,
+			}
+			task, err := scanTaskRow(scanner)
+			if err != nil {
+				rows.Close()
+				return nil, util.NewInternalServerError(err, "Failed to scan tasks by IDs: %v", err.Error())
+			}
+			tasksByID[reqID] = task
+		}
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return nil, util.NewInternalServerError(err, "Failed to iterate tasks by IDs: %v", err.Error())
+		}
+		rows.Close()
 	}
 
 	return tasksByID, nil

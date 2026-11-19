@@ -364,6 +364,55 @@ func TestGetArtifactsByIDs_CaseSensitivityAndNOCASE(t *testing.T) {
 	assert.Equal(t, artRtrim.UUID, rtrimBatch[rtrimReqID].UUID)
 }
 
+func TestGetArtifactsByIDs_MoreThan500IDs(t *testing.T) {
+	dbRtrim, testDialectRtrim := NewFakeDBOrFatal()
+	defer dbRtrim.Close()
+	_, err := dbRtrim.Exec("DROP TABLE IF EXISTS " + artifactTableName)
+	require.NoError(t, err)
+	_, err = dbRtrim.Exec(`CREATE TABLE ` + artifactTableName + ` (
+		UUID VARCHAR(255) COLLATE RTRIM NOT NULL PRIMARY KEY,
+		Namespace VARCHAR(255),
+		Name VARCHAR(255),
+		Type INTEGER,
+		URI VARCHAR(255),
+		URIHash VARCHAR(64),
+		Description TEXT,
+		CreatedAtInSec BIGINT,
+		LastUpdateInSec BIGINT,
+		Metadata TEXT,
+		IdentityKey VARCHAR(255),
+		NumberValue DOUBLE PRECISION
+	)`)
+	require.NoError(t, err)
+
+	storeRtrim := NewArtifactStore(dbRtrim, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil), testDialectRtrim)
+	artRtrim, err := storeRtrim.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:       strPTR("s3://bucket/test-rtrim-501"),
+		Name:      "test-artifact-rtrim-501",
+	})
+	require.NoError(t, err)
+
+	// Construct at least 501 distinct IDs: 500 non-existent IDs, followed by the requested spelling past the 500th ID.
+	// On SQLite, compound SELECT without batching fails at 501 terms with "too many terms in compound SELECT".
+	requestedSpelling := artRtrim.UUID + "   "
+	ids := make([]string, 505)
+	for i := 0; i < 500; i++ {
+		ids[i] = fmt.Sprintf("non-existent-artifact-%d", i)
+	}
+	ids[500] = requestedSpelling
+	for i := 501; i < 505; i++ {
+		ids[i] = fmt.Sprintf("non-existent-artifact-%d", i)
+	}
+
+	batch, err := storeRtrim.GetArtifactsByIDs(ids)
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(batch))
+	assert.NotNil(t, batch[requestedSpelling])
+	assert.Equal(t, artRtrim.UUID, batch[requestedSpelling].UUID)
+}
+
 func TestGetArtifactsByURI_ExactNamespaceAndURIMatch(t *testing.T) {
 	db, store := initializeArtifactStore()
 	defer db.Close()

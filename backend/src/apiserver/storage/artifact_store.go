@@ -742,10 +742,18 @@ func (s *ArtifactStore) GetArtifact(id string) (*model.Artifact, error) {
 	return artifacts[0], nil
 }
 
+// maxIDsPerQuery defines the maximum number of ID terms in a single compound SELECT query.
+// SQLite enforces a default SQLITE_LIMIT_COMPOUND_SELECT of 500 terms. Chunking larger
+// requests into bounded batches of at most 500 terms prevents "too many terms in compound SELECT"
+// while keeping database-side comparison semantics intact across all dialects.
+const maxIDsPerQuery = 500
+
 // GetArtifactsByIDs fetches a batch of artifacts keyed by artifact UUID.
 // It joins the requested IDs to the stored UUIDs in SQL using the column's
 // own comparison semantics, returning the matching request spelling alongside
 // each row to preserve database collation and trailing whitespace behavior.
+// Requests with more than maxIDsPerQuery distinct IDs are partitioned into bounded
+// batches to stay within compound SELECT limits (such as SQLite's SQLITE_LIMIT_COMPOUND_SELECT).
 func (s *ArtifactStore) GetArtifactsByIDs(artifactIDs []string) (map[string]*model.Artifact, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
@@ -770,57 +778,67 @@ func (s *ArtifactStore) GetArtifactsByIDs(artifactIDs []string) (map[string]*mod
 		return artifactsByID, nil
 	}
 
-	args := make([]interface{}, len(dedupedIDs))
-	for i, id := range dedupedIDs {
-		args[i] = id
-	}
-
 	selectCols := make([]string, 0, 1+len(artifactColumns))
 	selectCols = append(selectCols, q("req")+"."+q("req_id"))
 	for _, col := range artifactColumns {
 		selectCols = append(selectCols, q(artifactTableName)+"."+q(col))
 	}
 
-	unionClause := "(SELECT ? AS " + q("req_id") + strings.Repeat(" UNION ALL SELECT ?", len(dedupedIDs)-1) + ") " + q("req")
-	joinClause := unionClause + " ON " + q(artifactTableName) + "." + q("UUID") + " = " + q("req") + "." + q("req_id")
-
-	queryBuilder := qb.
-		Select(selectCols...).
-		From(q(artifactTableName)).
-		Join(joinClause, args...)
-
-	var sqlStr string
-	var sqlArgs []interface{}
-	var err error
-	if s.dbDialect != nil {
-		sqlStr, sqlArgs, err = s.dbDialect.FinalizeSelect(queryBuilder)
-	} else {
-		sqlStr, sqlArgs, err = queryBuilder.ToSql()
-	}
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create query to get artifacts by IDs: %v", err.Error())
-	}
-
-	r, err := s.db.Query(sqlStr, sqlArgs...)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get artifacts by IDs: %v", err.Error())
-	}
-	defer r.Close()
-
-	for r.Next() {
-		var reqID string
-		scanner := &reqIDRowScanner{
-			reqID: &reqID,
-			inner: r,
+	for i := 0; i < len(dedupedIDs); i += maxIDsPerQuery {
+		end := i + maxIDsPerQuery
+		if end > len(dedupedIDs) {
+			end = len(dedupedIDs)
 		}
-		artifact, err := scanArtifactRow(scanner)
+		chunk := dedupedIDs[i:end]
+
+		args := make([]interface{}, len(chunk))
+		for j, id := range chunk {
+			args[j] = id
+		}
+
+		unionClause := "(SELECT ? AS " + q("req_id") + strings.Repeat(" UNION ALL SELECT ?", len(chunk)-1) + ") " + q("req")
+		joinClause := unionClause + " ON " + q(artifactTableName) + "." + q("UUID") + " = " + q("req") + "." + q("req_id")
+
+		queryBuilder := qb.
+			Select(selectCols...).
+			From(q(artifactTableName)).
+			Join(joinClause, args...)
+
+		var sqlStr string
+		var sqlArgs []interface{}
+		var err error
+		if s.dbDialect != nil {
+			sqlStr, sqlArgs, err = s.dbDialect.FinalizeSelect(queryBuilder)
+		} else {
+			sqlStr, sqlArgs, err = queryBuilder.ToSql()
+		}
 		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to scan artifacts by IDs: %v", err.Error())
+			return nil, util.NewInternalServerError(err, "Failed to create query to get artifacts by IDs: %v", err.Error())
 		}
-		artifactsByID[reqID] = artifact
-	}
-	if err := r.Err(); err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to iterate artifacts by IDs: %v", err.Error())
+
+		r, err := s.db.Query(sqlStr, sqlArgs...)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to get artifacts by IDs: %v", err.Error())
+		}
+
+		for r.Next() {
+			var reqID string
+			scanner := &reqIDRowScanner{
+				reqID: &reqID,
+				inner: r,
+			}
+			artifact, err := scanArtifactRow(scanner)
+			if err != nil {
+				r.Close()
+				return nil, util.NewInternalServerError(err, "Failed to scan artifacts by IDs: %v", err.Error())
+			}
+			artifactsByID[reqID] = artifact
+		}
+		if err := r.Err(); err != nil {
+			r.Close()
+			return nil, util.NewInternalServerError(err, "Failed to iterate artifacts by IDs: %v", err.Error())
+		}
+		r.Close()
 	}
 
 	return artifactsByID, nil
