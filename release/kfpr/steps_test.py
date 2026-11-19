@@ -135,6 +135,11 @@ class QualifiedPublicationTest(unittest.TestCase):
     """Isolate existing layout/notes tests from the separately tested gates."""
 
     def setUp(self):
+        review = mock.patch.object(
+            steps, 'review_release_notes', return_value=[]
+        )
+        review.start()
+        self.addCleanup(review.stop)
         for target in (
             'qualification.require_qualification',
             '_ensure_release_tag',
