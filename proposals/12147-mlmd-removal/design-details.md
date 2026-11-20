@@ -218,6 +218,7 @@ In the Driver, `getFingerPrintsAndID` will be updated to leverage `ListTasks` an
 **Migration Note**
 
 Caching needs special consideration for migration. Since the `tasks` table will be dropped and re-populated using data from MLMD, caching will need to be handled carefully. When converting a `ContainerExecution` to a `Runtime` task, we will need to only store the fingerprint if the execution has a `COMPLETE` status. This avoids storing fingerprints that may be present in an execution, but where an executor pod never ran to success.
+See [legacy fingerprint preservation and native backfill](database-migration-design.md#cache-fingerprints).
 
 ### Launcher changes
 
@@ -525,7 +526,7 @@ To accommodate the transition, the KFP release containing this change will provi
 * Drop the Tasks table and recreate it
 * Drop the Metrics table (it is not used at all)
 * Scan MLMD executions, converting them to their Task counterparts.
-  * When encountering ContainerExecutions with `cache_fingerprints`, the fingerprint should only be stored if the execution has a `COMPLETE` state.
+  * Apply the [migration fingerprint rules](database-migration-design.md#cache-fingerprints).
   * To detect exit handler dags, the execution name will need to be parsed for `exit-handler-*` prefixed, as there's no other declarative way to determine this type.
 * Scan all `Artifacts` and recreate in the KFP artifact table.
 * In the case of metrics, artifacts will need to be logged to the `Metrics` table instead of `Artifacts`.
