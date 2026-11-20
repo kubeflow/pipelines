@@ -1106,7 +1106,14 @@ def _single_binary_operation_to_cel_condition(
             if parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_INTEGER:
                 operand_value = f'int({operand_value})'
         elif isinstance(value_or_reference, str):
-            operand_value = f"'{value_or_reference}'"
+            # The local runner treats single-quoted compiler literals as the
+            # raw spelling used by older SDKs. Use CEL's double-quoted form for
+            # values that need escaping.
+            operand_value = (
+                json.dumps(value_or_reference, ensure_ascii=False) if any(
+                    char in "'\\" or ord(char) < 32
+                    for char in value_or_reference) else
+                f"'{value_or_reference}'")
             parameter_type = pipeline_spec_pb2.ParameterType.STRING
         elif isinstance(value_or_reference, bool):
             # Booleans need to be compared as 'true' or 'false' in CEL.
