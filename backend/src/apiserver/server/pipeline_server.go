@@ -17,6 +17,7 @@ package server
 import (
 	"context"
 	"errors"
+	"maps"
 	"net/http"
 	"net/url"
 	"path"
@@ -358,11 +359,52 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *apiv2.ListP
 		return nil, util.Wrapf(err, "Failed to list pipelines due invalid list options: pageToken: %v, pageSize: %v, sortBy: %v, filter: %v", pageToken, int(pageSize), sortBy, cleanedFilterSpec)
 	}
 
+	tagFilters, err = applyTagFiltersToListOptions(opts, pageToken, filterSpec, tagFilters)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to list pipelines due invalid list options")
+	}
+
 	pipelines, totalSize, nextPageToken, err := s.listPipelines(ctx, namespace, opts, tagFilters)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to list pipelines in namespace %s. Check error stack", namespace)
 	}
 	return &apiv2.ListPipelinesResponse{Pipelines: toAPIPipelines(pipelines), TotalSize: int32(totalSize), NextPageToken: nextPageToken}, nil
+}
+
+// applyTagFiltersToListOptions reconciles the tag filters a client supplied
+// with the ones recorded in its page token, and records the agreed set in opts
+// so the next page token carries it.
+//
+// Tag filters are stripped from the filter spec before validatedListOptions
+// sees it, because they are applied through tag-table subqueries rather than
+// mapped to columns. That leaves them out of opts.Filter, so the page-token
+// check in validatedListOptions cannot compare them and this function has to.
+//
+// filterSpec is the filter exactly as the client sent it, before tag predicates
+// were stripped. It distinguishes a client that omitted the filter, which the
+// page-token mismatch error tells clients to do, from one that supplied a
+// filter holding only tag predicates: both leave the cleaned spec empty, but
+// only the former may inherit the token's tag filters.
+func applyTagFiltersToListOptions(opts *list.Options, pageToken, filterSpec string, requested map[string]string) (map[string]string, error) {
+	// A token issued before TagFilters existed carries no tag metadata, so
+	// there is nothing to reconcile against. Resending the filter was the only
+	// way to paginate a tag-filtered query then, so honor what was requested.
+	if pageToken == "" || !opts.TagFiltersRecorded {
+		opts.TagFilters = requested
+		return requested, nil
+	}
+
+	// The client paginated with the token alone, so restore the stored filters.
+	if filterSpec == "" {
+		return opts.TagFilters, nil
+	}
+
+	// The client supplied a filter, so it must reproduce the complete predicate
+	// set. validatedListOptions already compared the non-tag predicates.
+	if !maps.Equal(requested, opts.TagFilters) {
+		return nil, util.NewInvalidInputError("page token does not match the supplied tag filtering criteria. Either specify the same criteria or leave the latter empty if page token is specified")
+	}
+	return opts.TagFilters, nil
 }
 
 // extractTagFiltersFromFilterSpec parses a filter spec string, extracts any predicates
@@ -709,6 +751,11 @@ func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *apiv
 	opts, err := validatedListOptions(&model.PipelineVersion{}, pageToken, int(pageSize), sortBy, cleanedFilterSpec)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to list pipeline versions due invalid list options: pageToken: %v, pageSize: %v, sortBy: %v, filter: %v", pageToken, int(pageSize), sortBy, cleanedFilterSpec)
+	}
+
+	tagFilters, err = applyTagFiltersToListOptions(opts, pageToken, filterSpec, tagFilters)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to list pipeline versions due invalid list options")
 	}
 
 	pipelineVersions, totalSize, nextPageToken, err := s.listPipelineVersions(ctx, pipelineId, opts, tagFilters)

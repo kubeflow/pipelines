@@ -121,13 +121,14 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				PageSize: 10, token: &token{SortByFieldName: "CreatedTimestamp", IsDesc: true},
 			},
 			want: &token{
-				SortByFieldName:   "CreatedTimestamp",
-				SortByFieldValue:  int64(1234),
-				SortByFieldPrefix: "",
-				KeyFieldName:      "PrimaryKey",
-				KeyFieldValue:     "uuid123",
-				KeyFieldPrefix:    "",
-				IsDesc:            true,
+				SortByFieldName:    "CreatedTimestamp",
+				SortByFieldValue:   int64(1234),
+				SortByFieldPrefix:  "",
+				KeyFieldName:       "PrimaryKey",
+				KeyFieldValue:      "uuid123",
+				KeyFieldPrefix:     "",
+				IsDesc:             true,
+				TagFiltersRecorded: true,
 			},
 		},
 		{
@@ -135,13 +136,14 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				PageSize: 10, token: &token{SortByFieldName: "PrimaryKey", IsDesc: true},
 			},
 			want: &token{
-				SortByFieldName:   "PrimaryKey",
-				SortByFieldValue:  "uuid123",
-				SortByFieldPrefix: "",
-				KeyFieldName:      "PrimaryKey",
-				KeyFieldValue:     "uuid123",
-				KeyFieldPrefix:    "",
-				IsDesc:            true,
+				SortByFieldName:    "PrimaryKey",
+				SortByFieldValue:   "uuid123",
+				SortByFieldPrefix:  "",
+				KeyFieldName:       "PrimaryKey",
+				KeyFieldValue:      "uuid123",
+				KeyFieldPrefix:     "",
+				IsDesc:             true,
+				TagFiltersRecorded: true,
 			},
 		},
 		{
@@ -149,13 +151,14 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				PageSize: 10, token: &token{SortByFieldName: "FakeName", IsDesc: false},
 			},
 			want: &token{
-				SortByFieldName:   "FakeName",
-				SortByFieldValue:  "Fake",
-				SortByFieldPrefix: "",
-				KeyFieldName:      "PrimaryKey",
-				KeyFieldValue:     "uuid123",
-				KeyFieldPrefix:    "",
-				IsDesc:            false,
+				SortByFieldName:    "FakeName",
+				SortByFieldValue:   "Fake",
+				SortByFieldPrefix:  "",
+				KeyFieldName:       "PrimaryKey",
+				KeyFieldValue:      "uuid123",
+				KeyFieldPrefix:     "",
+				IsDesc:             false,
+				TagFiltersRecorded: true,
 			},
 		},
 		{
@@ -167,14 +170,15 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				},
 			},
 			want: &token{
-				SortByFieldName:   "FakeName",
-				SortByFieldValue:  "Fake",
-				SortByFieldPrefix: "",
-				KeyFieldName:      "PrimaryKey",
-				KeyFieldValue:     "uuid123",
-				KeyFieldPrefix:    "",
-				IsDesc:            false,
-				Filter:            testFilter,
+				SortByFieldName:    "FakeName",
+				SortByFieldValue:   "Fake",
+				SortByFieldPrefix:  "",
+				KeyFieldName:       "PrimaryKey",
+				KeyFieldValue:      "uuid123",
+				KeyFieldPrefix:     "",
+				IsDesc:             false,
+				TagFiltersRecorded: true,
+				Filter:             testFilter,
 			},
 		},
 	}
@@ -1247,4 +1251,37 @@ func TestNewOptionsFromToken_RejectsRetiredMetricSort(t *testing.T) {
 	_, err = NewOptionsFromToken(encoded, 10)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "Metric sorting is no longer supported")
+}
+
+func TestNextPageToken_TagFilters(t *testing.T) {
+	l := &fakeListable{PrimaryKey: "uuid123", FakeName: "Fake", CreatedTimestamp: 1234}
+	decode := func(s string) map[string]interface{} {
+		b, err := base64.StdEncoding.DecodeString(s)
+		require.NoError(t, err)
+		m := map[string]interface{}{}
+		require.NoError(t, json.Unmarshal(b, &m))
+		return m
+	}
+
+	// Tag filters survive a token round trip.
+	opts, err := NewOptions(l, 10, "", nil)
+	require.NoError(t, err)
+	opts.TagFilters = map[string]string{"team": "ml", "env": "prod"}
+	s, err := opts.NextPageToken(l)
+	require.NoError(t, err)
+	got, err := NewOptionsFromToken(s, 10)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]string{"team": "ml", "env": "prod"}, got.TagFilters)
+
+	// Without tag filters the field is omitted, keeping the previous layout,
+	// and a token from before the field existed decodes with no tag filters.
+	for _, empty := range []map[string]string{nil, {}} {
+		opts.TagFilters = empty
+		s, err = opts.NextPageToken(l)
+		require.NoError(t, err)
+		assert.NotContains(t, decode(s), "TagFilters")
+		got, err = NewOptionsFromToken(s, 10)
+		require.NoError(t, err)
+		assert.Empty(t, got.TagFilters)
+	}
 }
