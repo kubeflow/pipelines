@@ -27,7 +27,10 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
@@ -37,22 +40,43 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/structpb"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-// Supply a pipeline root through the real metadata reader without a server.
+// Clone at the service boundary so failed writes cannot change persisted state.
 type finalizationMetadataStore struct {
 	pb.MetadataStoreServiceClient
+	executions              map[int64]*pb.Execution
+	publicationFailures     []error
+	dagLookupFailures       []error
+	ancestorUpdateFailures  []error
+	publicationResponseLost bool
+	publicationRequests     []*pb.PutExecutionRequest
+	taskPipelineReads       int
+	artifacts               []*pb.Artifact
+	artifactEvents          int
 }
 
-func (*finalizationMetadataStore) GetExecutionsByID(context.Context, *pb.GetExecutionsByIDRequest, ...grpc.CallOption) (*pb.GetExecutionsByIDResponse, error) {
-	return &pb.GetExecutionsByIDResponse{Executions: []*pb.Execution{{
-		Id: proto.Int64(10),
-		CustomProperties: map[string]*pb.Value{
-			"parent_dag_id": {Value: &pb.Value_IntValue{IntValue: 20}},
-		},
-	}}}, nil
+func nextFinalizationFailure(failures *[]error) error {
+	if len(*failures) == 0 {
+		return nil
+	}
+	failure := (*failures)[0]
+	*failures = (*failures)[1:]
+	return failure
+}
+
+func (store *finalizationMetadataStore) GetExecutionsByID(_ context.Context, request *pb.GetExecutionsByIDRequest, _ ...grpc.CallOption) (*pb.GetExecutionsByIDResponse, error) {
+	response := &pb.GetExecutionsByIDResponse{}
+	for _, identifier := range request.GetExecutionIds() {
+		if identifier == 20 {
+			if lookupError := nextFinalizationFailure(&store.dagLookupFailures); lookupError != nil {
+				return nil, lookupError
+			}
+		}
+		response.Executions = append(response.Executions, proto.Clone(store.executions[identifier]).(*pb.Execution))
+	}
+	return response, nil
 }
 
 func (*finalizationMetadataStore) GetContextType(_ context.Context, request *pb.GetContextTypeRequest, _ ...grpc.CallOption) (*pb.GetContextTypeResponse, error) {
@@ -63,175 +87,352 @@ func (*finalizationMetadataStore) GetContextType(_ context.Context, request *pb.
 	return &pb.GetContextTypeResponse{ContextType: &pb.ContextType{Id: &identifier}}, nil
 }
 
-func (*finalizationMetadataStore) GetContextsByExecution(context.Context, *pb.GetContextsByExecutionRequest, ...grpc.CallOption) (*pb.GetContextsByExecutionResponse, error) {
+func (store *finalizationMetadataStore) GetContextsByExecution(_ context.Context, request *pb.GetContextsByExecutionRequest, _ ...grpc.CallOption) (*pb.GetContextsByExecutionResponse, error) {
+	if request.GetExecutionId() == 10 {
+		store.taskPipelineReads++
+	}
 	return &pb.GetContextsByExecutionResponse{Contexts: []*pb.Context{
 		{Id: proto.Int64(1), TypeId: proto.Int64(1)},
 		{Id: proto.Int64(2), TypeId: proto.Int64(2), CustomProperties: map[string]*pb.Value{
-			"pipeline_root": {Value: &pb.Value_StringValue{StringValue: "mem://finalization-test/root"}},
+			"pipeline_root": metadata.StringValue("mem://finalization-test/root"),
 		}},
 	}}, nil
 }
 
-type finalizationMetadataClient struct {
-	metadata.ClientInterface
-	execution           *metadata.Execution
-	publicationError    error
-	dagLookupError      error
-	pipelineLookupError error
-	updateError         error
-	calls               []string
-	publishedState      pb.Execution_State
-}
-
-func (client *finalizationMetadataClient) GetExecution(context.Context, int64) (*metadata.Execution, error) {
-	return client.execution, nil
-}
-
-func (client *finalizationMetadataClient) PrePublishExecution(context.Context, *metadata.Execution, *metadata.ExecutionConfig) (*metadata.Execution, error) {
-	return client.execution, nil
-}
-
-func (client *finalizationMetadataClient) PublishExecution(_ context.Context, _ *metadata.Execution, _ map[string]*structpb.Value, _ []*metadata.OutputArtifact, state pb.Execution_State) error {
-	client.calls = append(client.calls, "publish")
-	client.publishedState = state
-	return client.publicationError
-}
-
-func (client *finalizationMetadataClient) GetDAG(context.Context, int64) (*metadata.DAG, error) {
-	client.calls = append(client.calls, "get DAG")
-	if client.dagLookupError != nil {
-		return nil, client.dagLookupError
+func (store *finalizationMetadataStore) GetExecutionsByContext(_ context.Context, request *pb.GetExecutionsByContextRequest, _ ...grpc.CallOption) (*pb.GetExecutionsByContextResponse, error) {
+	parentIdentifier, parseError := strconv.ParseInt(strings.TrimPrefix(request.GetOptions().GetFilterQuery(), "custom_properties.parent_dag_id.int_value = "), 10, 64)
+	if parseError != nil {
+		return nil, parseError
 	}
-	return &metadata.DAG{Execution: metadata.NewExecution(&pb.Execution{Id: proto.Int64(20)})}, nil
-}
-
-func (client *finalizationMetadataClient) GetPipelineFromExecution(context.Context, int64) (*metadata.Pipeline, error) {
-	client.calls = append(client.calls, "get pipeline")
-	if client.pipelineLookupError != nil {
-		return nil, client.pipelineLookupError
+	response := &pb.GetExecutionsByContextResponse{}
+	for _, execution := range store.executions {
+		if execution.GetCustomProperties()["parent_dag_id"].GetIntValue() == parentIdentifier {
+			response.Executions = append(response.Executions, proto.Clone(execution).(*pb.Execution))
+		}
 	}
-	return client.execution.GetPipeline(), nil
+	return response, nil
 }
 
-func (client *finalizationMetadataClient) UpdateDAGExecutionsState(ctx context.Context, dag *metadata.DAG, pipeline *metadata.Pipeline) error {
-	client.calls = append(client.calls, "update DAG")
-	if client.updateError != nil {
-		return client.updateError
+func (store *finalizationMetadataStore) PutExecution(_ context.Context, request *pb.PutExecutionRequest, _ ...grpc.CallOption) (*pb.PutExecutionResponse, error) {
+	execution := request.GetExecution()
+	var writeError error
+	if execution.GetId() == 10 && execution.GetLastKnownState() != pb.Execution_RUNNING {
+		store.publicationRequests = append(store.publicationRequests, proto.Clone(request).(*pb.PutExecutionRequest))
+		writeError = nextFinalizationFailure(&store.publicationFailures)
+	} else if execution.GetId() == 30 {
+		writeError = nextFinalizationFailure(&store.ancestorUpdateFailures)
 	}
-	// The real method skips root DAGs and reproduces the nil-DAG panic.
-	return metadata.NewTestClient(nil).UpdateDAGExecutionsState(ctx, dag, pipeline)
+	if writeError == nil || store.publicationResponseLost && execution.GetId() == 10 {
+		store.executions[execution.GetId()] = proto.Clone(execution).(*pb.Execution)
+		store.artifactEvents += len(request.GetArtifactEventPairs())
+	}
+	return &pb.PutExecutionResponse{ExecutionId: execution.Id}, writeError
 }
 
-func TestLauncherV2ExecuteFinalization(t *testing.T) {
+func (*finalizationMetadataStore) PutArtifactType(context.Context, *pb.PutArtifactTypeRequest, ...grpc.CallOption) (*pb.PutArtifactTypeResponse, error) {
+	return &pb.PutArtifactTypeResponse{TypeId: proto.Int64(1)}, nil
+}
+
+func (store *finalizationMetadataStore) PutArtifacts(_ context.Context, request *pb.PutArtifactsRequest, _ ...grpc.CallOption) (*pb.PutArtifactsResponse, error) {
+	response := &pb.PutArtifactsResponse{}
+	for _, artifact := range request.GetArtifacts() {
+		storedArtifact := proto.Clone(artifact).(*pb.Artifact)
+		storedArtifact.Id = proto.Int64(int64(len(store.artifacts) + 1))
+		store.artifacts = append(store.artifacts, storedArtifact)
+		response.ArtifactIds = append(response.ArtifactIds, storedArtifact.GetId())
+	}
+	return response, nil
+}
+
+func (store *finalizationMetadataStore) GetArtifactsByID(_ context.Context, request *pb.GetArtifactsByIDRequest, _ ...grpc.CallOption) (*pb.GetArtifactsByIDResponse, error) {
+	response := &pb.GetArtifactsByIDResponse{}
+	for _, identifier := range request.GetArtifactIds() {
+		response.Artifacts = append(response.Artifacts, proto.Clone(store.artifacts[identifier-1]).(*pb.Artifact))
+	}
+	return response, nil
+}
+
+func (store *finalizationMetadataStore) states() []pb.Execution_State {
+	return []pb.Execution_State{
+		store.executions[10].GetLastKnownState(),
+		store.executions[20].GetLastKnownState(),
+		store.executions[30].GetLastKnownState(),
+	}
+}
+
+type finalizationCache struct {
+	cacheutils.Client
+	store        *finalizationMetadataStore
+	tasks        []*api.Task
+	statesAtCall [][]pb.Execution_State
+	writeError   error
+	responseLost bool
+}
+
+func (cache *finalizationCache) CreateExecutionCache(_ context.Context, task *api.Task) error {
+	cache.statesAtCall = append(cache.statesAtCall, cache.store.states())
+	if cache.writeError == nil || cache.responseLost {
+		cache.tasks = append(cache.tasks, proto.Clone(task).(*api.Task))
+	}
+	return cache.writeError
+}
+
+type finalizationPlugin struct {
+	plugins.TaskPluginHandler
+	statuses []string
+}
+
+func (*finalizationPlugin) Name() string { return "finalization-test" }
+func (plugin *finalizationPlugin) OnTaskEnd(_ context.Context, information *plugins.TaskInfo) error {
+	plugin.statuses = append(plugin.statuses, information.RunStatus)
+	return nil
+}
+
+type finalizationPluginFactory struct {
+	plugin *finalizationPlugin
+}
+
+func (*finalizationPluginFactory) Name() string    { return "finalization-test" }
+func (*finalizationPluginFactory) IsEnabled() bool { return true }
+func (factory *finalizationPluginFactory) Create() (plugins.TaskPluginHandler, error) {
+	return factory.plugin, nil
+}
+
+type finalizationFixture struct {
+	store           *finalizationMetadataStore
+	cache           *finalizationCache
+	plugin          *finalizationPlugin
+	directory       string
+	invocationsPath string
+	includeArtifact bool
+}
+
+func newFinalizationFixture(testingContext *testing.T, cacheEnabled bool) *finalizationFixture {
+	testingContext.Helper()
+	store := &finalizationMetadataStore{executions: map[int64]*pb.Execution{}}
+	for _, identifier := range []int64{10, 20, 30, 40} {
+		properties := map[string]*pb.Value{"task_name": metadata.StringValue(strconv.FormatInt(identifier, 10))}
+		if identifier != 40 {
+			properties["parent_dag_id"] = &pb.Value{Value: &pb.Value_IntValue{IntValue: identifier + 10}}
+		}
+		if identifier == 20 || identifier == 30 {
+			properties["total_dag_tasks"] = &pb.Value{Value: &pb.Value_IntValue{IntValue: 1}}
+		}
+		store.executions[identifier] = &pb.Execution{Id: proto.Int64(identifier), LastKnownState: pb.Execution_RUNNING.Enum(), CustomProperties: properties}
+	}
+	if cacheEnabled {
+		store.executions[10].CustomProperties["cache_fingerprint"] = metadata.StringValue("finalization-fingerprint")
+	}
+	plugin := &finalizationPlugin{}
+	originalFactories := plugins.RegisteredFactories()
+	plugins.ResetRegistry()
+	plugins.RegisterHandlerFactory(&finalizationPluginFactory{plugin: plugin})
+	testingContext.Cleanup(func() {
+		plugins.ResetRegistry()
+		for _, factory := range originalFactories {
+			plugins.RegisterHandlerFactory(factory)
+		}
+	})
+	directory := testingContext.TempDir()
+	return &finalizationFixture{
+		store: store, cache: &finalizationCache{store: store}, plugin: plugin,
+		directory: directory, invocationsPath: filepath.Join(directory, "invocations"),
+	}
+}
+
+func (fixture *finalizationFixture) execute(testingContext *testing.T, applicationExitCode int) (string, error) {
+	testingContext.Helper()
+	outputPath := filepath.Join(fixture.directory, "executor-output.json")
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{}, Outputs: &pipelinespec.ExecutorInput_Outputs{OutputFile: outputPath},
+	}
+	artifactPath := filepath.Join(fixture.directory, "artifact")
+	if fixture.includeArtifact {
+		executorInput.Outputs.Artifacts = map[string]*pipelinespec.ArtifactList{
+			"result": {Artifacts: []*pipelinespec.RuntimeArtifact{{
+				Uri: "mem://finalization-test/root/result", CustomPath: &artifactPath,
+				Type: &pipelinespec.ArtifactTypeSchema{Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Artifact"}},
+			}}},
+		}
+	}
+	executorInputJSON, marshalError := protojson.Marshal(executorInput)
+	require.NoError(testingContext, marshalError)
+	launcher, creationError := component.NewLauncherV2(
+		context.Background(), 10, string(executorInputJSON), "{}",
+		[]string{"sh", "-c", `printf '{"parameterValues":{"result":"written"}}\n' > "$1"; printf 'executed\n' >> "$2"; printf 'artifact\n' > "$4"; exit "$3"`, "application", outputPath, fixture.invocationsPath, strconv.Itoa(applicationExitCode), artifactPath},
+		&component.LauncherV2Options{
+			Namespace: "test", PodName: "test-launcher", PodUID: "test-pod", PipelineName: "test-pipeline", RunID: "test-run",
+			MLMDServerAddress: "unused", MLMDServerPort: "8080", PublishLogs: "false",
+		},
+		client_manager.NewFakeClientManager(fake.NewSimpleClientset(), metadata.NewTestClient(fixture.store), fixture.cache),
+	)
+	require.NoError(testingContext, creationError)
+	originalStderr := os.Stderr
+	originalLogToStderr := flag.Lookup("logtostderr").Value.String()
+	require.NoError(testingContext, flag.Set("logtostderr", "true"))
+	logPath := filepath.Join(fixture.directory, "launcher.log")
+	logFile, openError := os.Create(logPath)
+	require.NoError(testingContext, openError)
+	os.Stderr = logFile
+	defer func() {
+		os.Stderr = originalStderr
+		_ = flag.Set("logtostderr", originalLogToStderr)
+		_ = logFile.Close()
+	}()
+	var executionResult error
+	require.NotPanics(testingContext, func() { executionResult = launcher.Execute(context.Background()) })
+	glog.Flush()
+	logs, readError := os.ReadFile(logPath)
+	require.NoError(testingContext, readError)
+	return string(logs), executionResult
+}
+
+func TestLauncherV2ExecuteFinalizationPreservesOutputs(testingContext *testing.T) {
+	for _, publicationResponseLost := range []bool{false, true} {
+		testingContext.Run("publication response lost="+strconv.FormatBool(publicationResponseLost), func(testingContext *testing.T) {
+			fixture := newFinalizationFixture(testingContext, true)
+			fixture.includeArtifact = true
+			finalizationFailure := errors.New("metadata unavailable")
+			if publicationResponseLost {
+				fixture.store.publicationFailures = []error{finalizationFailure}
+				fixture.store.publicationResponseLost = true
+			} else {
+				fixture.store.ancestorUpdateFailures = []error{finalizationFailure}
+			}
+			_, executionResult := fixture.execute(testingContext, 0)
+			require.ErrorIs(testingContext, executionResult, finalizationFailure)
+			assert.Equal(testingContext, []pb.Execution_State{pb.Execution_FAILED, pb.Execution_FAILED, pb.Execution_FAILED}, fixture.store.states())
+			require.Len(testingContext, fixture.store.publicationRequests, 2)
+			assert.Len(testingContext, fixture.store.publicationRequests[0].GetArtifactEventPairs(), 1)
+			assert.Empty(testingContext, fixture.store.publicationRequests[1].GetArtifactEventPairs(), "state reconciliation must not replay artifact events")
+			assert.Len(testingContext, fixture.store.artifacts, 1)
+			assert.Equal(testingContext, 1, fixture.store.artifactEvents)
+			assert.Equal(testingContext, "written", fixture.store.executions[10].GetCustomProperties()["outputs"].GetStructValue().GetFields()["result"].GetStringValue())
+			assert.Empty(testingContext, fixture.cache.tasks)
+		})
+	}
+}
+
+func TestLauncherV2ExecuteFinalization(testingContext *testing.T) {
 	publicationFailure := errors.New("publication unavailable")
-	dagLookupFailure := errors.New("DAG lookup unavailable")
-	pipelineLookupFailure := errors.New("pipeline lookup unavailable")
-	updateFailure := errors.New("DAG update unavailable")
+	lookupFailure := errors.New("DAG lookup unavailable")
+	updateFailure := errors.New("ancestor update unavailable")
+	reconciliationFailure := errors.New("reconciliation unavailable")
+	cacheFailure := errors.New("cache unavailable")
 
 	for _, scenario := range []struct {
-		name                string
-		applicationExitCode int
-		publicationError    error
-		dagLookupError      error
-		pipelineLookupError error
-		updateError         error
+		name                    string
+		applicationExitCode     int
+		publicationFailures     []error
+		dagLookupFailures       []error
+		ancestorUpdateFailures  []error
+		publicationResponseLost bool
+		cacheDisabled           bool
+		cacheFailure            error
+		cacheResponseLost       bool
+		expectedErrors          []error
+		expectedStates          []pb.Execution_State
 	}{
 		{name: "successful execution"},
+		{name: "cache disabled", cacheDisabled: true},
 		{name: "application failure", applicationExitCode: 7},
-		{name: "publication failure", publicationError: publicationFailure},
-		{name: "DAG lookup failure", dagLookupError: dagLookupFailure},
-		{name: "pipeline lookup failure", pipelineLookupError: pipelineLookupFailure},
-		{name: "DAG update failure", updateError: updateFailure},
-		{name: "application and publication failures", applicationExitCode: 7, publicationError: publicationFailure},
-		{name: "application publication and DAG lookup failures", applicationExitCode: 7, publicationError: publicationFailure, dagLookupError: dagLookupFailure},
-		{name: "application and pipeline lookup failures", applicationExitCode: 7, pipelineLookupError: pipelineLookupFailure},
-		{name: "application and DAG update failures", applicationExitCode: 7, updateError: updateFailure},
+		{name: "publication failure", publicationFailures: []error{publicationFailure}, expectedErrors: []error{publicationFailure}},
+		{name: "DAG lookup failure", dagLookupFailures: []error{lookupFailure}, expectedErrors: []error{lookupFailure}},
+		{name: "ancestor update failure", ancestorUpdateFailures: []error{updateFailure}, expectedErrors: []error{updateFailure}},
+		{name: "application and publication failures", applicationExitCode: 7, publicationFailures: []error{publicationFailure}, expectedErrors: []error{publicationFailure}},
+		{name: "application and DAG lookup failures", applicationExitCode: 7, dagLookupFailures: []error{lookupFailure}, expectedErrors: []error{lookupFailure}},
+		{name: "application and ancestor update failures", applicationExitCode: 7, ancestorUpdateFailures: []error{updateFailure}, expectedErrors: []error{updateFailure}},
+		{name: "publication response lost", publicationFailures: []error{publicationFailure}, publicationResponseLost: true, expectedErrors: []error{publicationFailure}},
+		{name: "failure publication unavailable", publicationFailures: []error{publicationFailure, reconciliationFailure}, expectedErrors: []error{publicationFailure, reconciliationFailure}, expectedStates: []pb.Execution_State{pb.Execution_RUNNING, pb.Execution_RUNNING, pb.Execution_RUNNING}},
+		{name: "DAG recovery unavailable", dagLookupFailures: []error{lookupFailure, reconciliationFailure}, expectedErrors: []error{lookupFailure, reconciliationFailure}, expectedStates: []pb.Execution_State{pb.Execution_FAILED, pb.Execution_RUNNING, pb.Execution_RUNNING}},
+		{name: "ancestor recovery unavailable", ancestorUpdateFailures: []error{updateFailure, reconciliationFailure}, expectedErrors: []error{updateFailure, reconciliationFailure}, expectedStates: []pb.Execution_State{pb.Execution_FAILED, pb.Execution_FAILED, pb.Execution_RUNNING}},
+		{name: "cache registration failure", cacheFailure: cacheFailure},
+		{name: "cache response lost", cacheFailure: cacheFailure, cacheResponseLost: true},
 	} {
-		t.Run(scenario.name, func(t *testing.T) {
-			ctx := context.Background()
-			execution, executionError := metadata.NewTestClient(&finalizationMetadataStore{}).GetExecution(ctx, 10)
-			require.NoError(t, executionError)
-			client := &finalizationMetadataClient{
-				execution:           execution,
-				publicationError:    scenario.publicationError,
-				dagLookupError:      scenario.dagLookupError,
-				pipelineLookupError: scenario.pipelineLookupError,
-				updateError:         scenario.updateError,
-			}
-			directory := t.TempDir()
-			outputPath := filepath.Join(directory, "executor-output.json")
-			invocationsPath := filepath.Join(directory, "invocations")
-			executorInput := &pipelinespec.ExecutorInput{
-				Inputs:  &pipelinespec.ExecutorInput_Inputs{},
-				Outputs: &pipelinespec.ExecutorInput_Outputs{OutputFile: outputPath},
-			}
-			executorInputJSON, marshalError := protojson.Marshal(executorInput)
-			require.NoError(t, marshalError)
-			launcher, creationError := component.NewLauncherV2(
-				ctx, 10, string(executorInputJSON), "{}",
-				[]string{"sh", "-c", `printf '{}\n' > "$1"; printf 'executed\n' >> "$2"; exit "$3"`, "application", outputPath, invocationsPath, strconv.Itoa(scenario.applicationExitCode)},
-				&component.LauncherV2Options{
-					Namespace: "test", PodName: "test-launcher", PodUID: "test-pod",
-					MLMDServerAddress: "unused", MLMDServerPort: "8080", PublishLogs: "false",
-				},
-				client_manager.NewFakeClientManager(fake.NewSimpleClientset(), client, nil),
-			)
-			require.NoError(t, creationError)
-
-			// Capture publication logging as well as the returned error.
-			originalStderr := os.Stderr
-			originalLogToStderr := flag.Lookup("logtostderr").Value.String()
-			require.NoError(t, flag.Set("logtostderr", "true"))
-			logPath := filepath.Join(directory, "launcher.log")
-			logFile, openError := os.Create(logPath)
-			require.NoError(t, openError)
-			os.Stderr = logFile
-			t.Cleanup(func() {
-				os.Stderr = originalStderr
-				_ = flag.Set("logtostderr", originalLogToStderr)
-				_ = logFile.Close()
-			})
-			var executionResult error
-			require.NotPanics(t, func() { executionResult = launcher.Execute(ctx) })
-			glog.Flush()
-			os.Stderr = originalStderr
-			logs, readError := os.ReadFile(logPath)
-			require.NoError(t, readError)
-			assert.Equal(t, scenario.publicationError == nil, strings.Contains(string(logs), "publish success."), string(logs))
-
-			expectedCalls := []string{"publish", "get DAG"}
-			if scenario.dagLookupError == nil {
-				expectedCalls = append(expectedCalls, "get pipeline")
-				if scenario.pipelineLookupError == nil {
-					expectedCalls = append(expectedCalls, "update DAG")
-				}
-			}
-			assert.Equal(t, expectedCalls, client.calls)
-			invocations, readError := os.ReadFile(invocationsPath)
-			require.NoError(t, readError)
-			assert.Equal(t, "executed\n", string(invocations))
-
-			expectedState := pb.Execution_COMPLETE
-			if scenario.applicationExitCode != 0 {
-				expectedState = pb.Execution_FAILED
-				var applicationError *exec.ExitError
-				if assert.ErrorAs(t, executionResult, &applicationError) {
-					assert.Equal(t, scenario.applicationExitCode, applicationError.ExitCode())
-				}
-			}
-			assert.Equal(t, expectedState, client.publishedState)
-			hasFailure := scenario.applicationExitCode != 0
-			for _, expectedError := range []error{scenario.publicationError, scenario.dagLookupError, scenario.pipelineLookupError, scenario.updateError} {
-				if expectedError != nil {
-					hasFailure = true
-					assert.ErrorIs(t, executionResult, expectedError)
-				}
-			}
-			if hasFailure {
-				assert.Error(t, executionResult)
+		testingContext.Run(scenario.name, func(testingContext *testing.T) {
+			fixture := newFinalizationFixture(testingContext, !scenario.cacheDisabled)
+			fixture.store.publicationFailures = append([]error(nil), scenario.publicationFailures...)
+			fixture.store.dagLookupFailures = append([]error(nil), scenario.dagLookupFailures...)
+			fixture.store.ancestorUpdateFailures = append([]error(nil), scenario.ancestorUpdateFailures...)
+			fixture.store.publicationResponseLost = scenario.publicationResponseLost
+			fixture.cache.writeError = scenario.cacheFailure
+			fixture.cache.responseLost = scenario.cacheResponseLost
+			logs, executionResult := fixture.execute(testingContext, scenario.applicationExitCode)
+			expectedStatus := pb.Execution_COMPLETE
+			if scenario.applicationExitCode != 0 || len(scenario.expectedErrors) != 0 {
+				expectedStatus = pb.Execution_FAILED
+				assert.Error(testingContext, executionResult)
 			} else {
-				assert.NoError(t, executionResult)
+				assert.NoError(testingContext, executionResult)
 			}
+			for _, expectedError := range scenario.expectedErrors {
+				assert.ErrorIs(testingContext, executionResult, expectedError)
+			}
+			if scenario.applicationExitCode != 0 {
+				var applicationError *exec.ExitError
+				if assert.ErrorAs(testingContext, executionResult, &applicationError) {
+					assert.Equal(testingContext, scenario.applicationExitCode, applicationError.ExitCode())
+				}
+			}
+			expectedStates := scenario.expectedStates
+			if expectedStates == nil {
+				expectedStates = []pb.Execution_State{expectedStatus, expectedStatus, expectedStatus}
+			}
+			assert.Equal(testingContext, expectedStates, fixture.store.states(), "task, parent DAG, ancestor DAG")
+			assert.Equal(testingContext, pb.Execution_RUNNING, fixture.store.executions[40].GetLastKnownState(), "root DAG remains owned by the workflow")
+			assert.Equal(testingContext, []string{expectedStatus.String()}, fixture.plugin.statuses)
+			assert.Equal(testingContext, 1, fixture.store.taskPipelineReads, "reuse the pipeline already loaded by GetExecution")
+			assert.Equal(testingContext, len(scenario.publicationFailures) == 0, strings.Contains(logs, "publish success."), logs)
+			invocations, readError := os.ReadFile(fixture.invocationsPath)
+			require.NoError(testingContext, readError)
+			assert.Equal(testingContext, "executed\n", string(invocations))
+			if expectedStatus == pb.Execution_FAILED || scenario.cacheDisabled {
+				assert.Empty(testingContext, fixture.cache.statesAtCall, "failed finalization must never register cache entries")
+			} else {
+				assert.Equal(testingContext, [][]pb.Execution_State{{pb.Execution_COMPLETE, pb.Execution_COMPLETE, pb.Execution_COMPLETE}}, fixture.cache.statesAtCall)
+			}
+			if expectedStatus == pb.Execution_COMPLETE && !scenario.cacheDisabled && (scenario.cacheFailure == nil || scenario.cacheResponseLost) {
+				require.Len(testingContext, fixture.cache.tasks, 1)
+				assert.Equal(testingContext, "10", fixture.cache.tasks[0].GetMlmdExecutionID())
+			} else {
+				assert.Empty(testingContext, fixture.cache.tasks)
+			}
+		})
+	}
+}
+
+func TestLauncherV2ExecuteFinalizationRetry(testingContext *testing.T) {
+	for _, scenario := range []struct {
+		name          string
+		exitCode      int
+		expectedState pb.Execution_State
+	}{
+		{name: "successful retry", expectedState: pb.Execution_COMPLETE},
+		{name: "failed retry", exitCode: 7, expectedState: pb.Execution_FAILED},
+	} {
+		testingContext.Run(scenario.name, func(testingContext *testing.T) {
+			fixture := newFinalizationFixture(testingContext, true)
+			updateFailure := errors.New("ancestor update unavailable")
+			fixture.store.ancestorUpdateFailures = []error{updateFailure}
+			_, firstResult := fixture.execute(testingContext, 0)
+			require.ErrorIs(testingContext, firstResult, updateFailure)
+			assert.Empty(testingContext, fixture.cache.tasks)
+			assert.Equal(testingContext, []pb.Execution_State{pb.Execution_FAILED, pb.Execution_FAILED, pb.Execution_FAILED}, fixture.store.states())
+
+			_, retryResult := fixture.execute(testingContext, scenario.exitCode)
+			if scenario.exitCode == 0 {
+				require.NoError(testingContext, retryResult)
+				require.Len(testingContext, fixture.cache.tasks, 1)
+				assert.Equal(testingContext, [][]pb.Execution_State{{pb.Execution_COMPLETE, pb.Execution_COMPLETE, pb.Execution_COMPLETE}}, fixture.cache.statesAtCall)
+			} else {
+				require.Error(testingContext, retryResult)
+				assert.Empty(testingContext, fixture.cache.tasks)
+			}
+			assert.Equal(testingContext, []pb.Execution_State{scenario.expectedState, scenario.expectedState, scenario.expectedState}, fixture.store.states())
+			assert.Equal(testingContext, []string{"FAILED", scenario.expectedState.String()}, fixture.plugin.statuses)
+			invocations, readError := os.ReadFile(fixture.invocationsPath)
+			require.NoError(testingContext, readError)
+			assert.Equal(testingContext, "executed\nexecuted\n", string(invocations), "one application invocation per workflow attempt")
 		})
 	}
 }

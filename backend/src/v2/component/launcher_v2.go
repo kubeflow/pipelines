@@ -190,16 +190,36 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	var outputArtifacts []*metadata.OutputArtifact
 	var dispatcher plugins.TaskPluginDispatcher
 	status := pb.Execution_FAILED
+	executionStartedTime := time.Now().Unix()
 	defer func() {
 		if execution == nil {
 			glog.Errorf("Skipping publish since execution is nil. Original err is: %v", err)
 			return
 		}
 
-		if publicationError := l.publish(ctx, execution, executorOutput, outputArtifacts, status); publicationError != nil {
-			err = errors.Join(err, publicationError)
-		} else {
+		finalizationError := l.publish(ctx, execution, executorOutput, outputArtifacts, status)
+		if finalizationError == nil {
 			glog.Infof("publish success.")
+			finalizationError = l.updateDAGState(ctx, execution)
+		}
+		if finalizationError != nil {
+			status = pb.Execution_FAILED
+			err = errors.Join(err, finalizationError)
+			// Correct the state without replaying output artifact events. Publication
+			// or ancestor propagation may have committed before returning an error.
+			if reconciliationError := l.clientManager.MetadataClient().PublishExecution(ctx, execution, nil, nil, status); reconciliationError != nil {
+				err = errors.Join(err, fmt.Errorf("failed to reconcile task state after finalization failure: %w", reconciliationError))
+			} else if reconciliationError := l.updateDAGState(ctx, execution); reconciliationError != nil {
+				err = errors.Join(err, fmt.Errorf("failed to reconcile DAG state after finalization failure: %w", reconciliationError))
+			}
+		}
+
+		if err == nil {
+			// Cache registration can commit before its response is lost. Keep a
+			// finalized task successful so retries cannot invalidate that entry.
+			if cacheError := l.createExecutionCache(ctx, execution, executionStartedTime); cacheError != nil {
+				glog.Warningf("Failed to register execution cache; retaining successful task state: %v", cacheError)
+			}
 		}
 
 		if dispatcher != nil {
@@ -213,24 +233,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 				glog.Errorf("failed to dispatch task end: %v", dispatchErr)
 			}
 		}
-
-		// At the end of the current task, we check the statuses of all tasks in
-		// the current DAG and update the DAG's status accordingly.
-		dag, lookupError := l.clientManager.MetadataClient().GetDAG(ctx, execution.GetExecution().CustomProperties["parent_dag_id"].GetIntValue())
-		if lookupError != nil {
-			err = errors.Join(err, fmt.Errorf("failed to get DAG for status update: %w", lookupError))
-			return
-		}
-		pipeline, lookupError := l.clientManager.MetadataClient().GetPipelineFromExecution(ctx, execution.GetID())
-		if lookupError != nil {
-			err = errors.Join(err, fmt.Errorf("failed to get pipeline for DAG status update: %w", lookupError))
-			return
-		}
-		if updateError := l.clientManager.MetadataClient().UpdateDAGExecutionsState(ctx, dag, pipeline); updateError != nil {
-			err = errors.Join(err, fmt.Errorf("failed to update DAG state: %w", updateError))
-		}
 	}()
-	executedStartedTime := time.Now().Unix()
 	execution, err = l.prePublish(ctx)
 	if err != nil {
 		return err
@@ -249,7 +252,6 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 			dispatcher.ApplyCustomProperties(pluginProps)
 		}
 	}
-	fingerPrint := execution.FingerPrint()
 	storeSessionInfo, err := objectstore.GetSessionInfoFromString(execution.GetPipeline().GetStoreSessionInfo())
 	if err != nil {
 		return err
@@ -301,26 +303,39 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 		return err
 	}
 	status = pb.Execution_COMPLETE
-	// if fingerPrint is not empty, it means this task enables cache but it does not hit cache, we need to create cache entry for this task
-	if fingerPrint != "" {
-		id := execution.GetID()
-		if id == 0 {
-			return fmt.Errorf("failed to get id from createdExecution")
-		}
-		task := &api.Task{
-			// TODO how to differentiate between shared pipeline and namespaced pipeline
-			PipelineName:    "pipeline/" + l.options.PipelineName,
-			Namespace:       l.options.Namespace,
-			RunId:           l.options.RunID,
-			MlmdExecutionID: strconv.FormatInt(id, 10),
-			CreatedAt:       timestamppb.New(time.Unix(executedStartedTime, 0)),
-			FinishedAt:      timestamppb.New(time.Unix(time.Now().Unix(), 0)),
-			Fingerprint:     fingerPrint,
-		}
-		return l.clientManager.CacheClient().CreateExecutionCache(ctx, task)
-	}
-
 	return nil
+}
+
+func (l *LauncherV2) updateDAGState(ctx context.Context, execution *metadata.Execution) error {
+	dag, lookupError := l.clientManager.MetadataClient().GetDAG(ctx, execution.GetExecution().GetCustomProperties()["parent_dag_id"].GetIntValue())
+	if lookupError != nil {
+		return fmt.Errorf("failed to get DAG for status update: %w", lookupError)
+	}
+	if updateError := l.clientManager.MetadataClient().UpdateDAGExecutionsState(ctx, dag, execution.GetPipeline()); updateError != nil {
+		return fmt.Errorf("failed to update DAG state: %w", updateError)
+	}
+	return nil
+}
+
+func (l *LauncherV2) createExecutionCache(ctx context.Context, execution *metadata.Execution, executionStartedTime int64) error {
+	fingerprint := execution.FingerPrint()
+	if fingerprint == "" {
+		return nil
+	}
+	executionIdentifier := execution.GetID()
+	if executionIdentifier == 0 {
+		return fmt.Errorf("cannot register execution cache without an execution identifier")
+	}
+	task := &api.Task{
+		PipelineName:    "pipeline/" + l.options.PipelineName,
+		Namespace:       l.options.Namespace,
+		RunId:           l.options.RunID,
+		MlmdExecutionID: strconv.FormatInt(executionIdentifier, 10),
+		CreatedAt:       timestamppb.New(time.Unix(executionStartedTime, 0)),
+		FinishedAt:      timestamppb.Now(),
+		Fingerprint:     fingerprint,
+	}
+	return l.clientManager.CacheClient().CreateExecutionCache(ctx, task)
 }
 
 func (l *LauncherV2) Info() string {
