@@ -71,43 +71,37 @@ class Executor:
         for name, artifacts in (
             self.executor_input.get('inputs', {}).get('artifacts', {}).items()
         ):
-            list_of_artifact_proto_structs = artifacts.get('artifacts')
-            if list_of_artifact_proto_structs:
-                annotation = self.func.__annotations__[name]
-                # InputPath has no attribute __origin__ and also should be handled as a single artifact
-                annotation = (
-                    type_annotations.maybe_strip_optional_from_annotation(
-                        annotation
-                    )
+            list_of_artifact_proto_structs = artifacts.get('artifacts') or []
+            annotation = self.func.__annotations__[name]
+            # InputPath has no attribute __origin__ and also should be handled as a single artifact
+            annotation = type_annotations.maybe_strip_optional_from_annotation(
+                annotation
+            )
+            is_list_of_artifacts = (
+                type_annotations.is_Input_Output_artifact_annotation(annotation)
+                and type_annotations.is_list_of_artifacts(annotation.__origin__)
+            ) or type_annotations.is_list_of_artifacts(annotation)
+            if is_list_of_artifacts:
+                inner_annotation = self._resolve_list_artifact_inner_type(
+                    input_name=name, list_annotation=annotation
                 )
-                is_list_of_artifacts = (
-                    type_annotations.is_Input_Output_artifact_annotation(
-                        annotation
-                    )
-                    and type_annotations.is_list_of_artifacts(
-                        annotation.__origin__
-                    )
-                ) or type_annotations.is_list_of_artifacts(annotation)
-                if is_list_of_artifacts:
-                    inner_annotation = self._resolve_list_artifact_inner_type(
-                        input_name=name, list_annotation=annotation
-                    )
 
-                    self.input_artifacts[name] = [
-                        self.make_artifact(
-                            msg,
-                            name,
-                            self.func,
-                            annotation=inner_annotation,
-                        )
-                        for msg in list_of_artifact_proto_structs
-                    ]
-                else:
-                    self.input_artifacts[name] = self.make_artifact(
-                        list_of_artifact_proto_structs[0],
+                # Preserve empty collected artifact inputs as an empty list.
+                self.input_artifacts[name] = [
+                    self.make_artifact(
+                        msg,
                         name,
                         self.func,
+                        annotation=inner_annotation,
                     )
+                    for msg in list_of_artifact_proto_structs
+                ]
+            elif list_of_artifact_proto_structs:
+                self.input_artifacts[name] = self.make_artifact(
+                    list_of_artifact_proto_structs[0],
+                    name,
+                    self.func,
+                )
 
         for name, artifacts in (
             self.executor_input.get('outputs', {}).get('artifacts', {}).items()
