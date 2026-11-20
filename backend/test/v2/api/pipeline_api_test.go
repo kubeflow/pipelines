@@ -1700,7 +1700,7 @@ var _ = Describe("Get Pipeline Version API Tests >", Label(constants.POSITIVE, c
 			Expect(retrievedVersion.Tags).To(Equal(versionTags), "Tags should match what was set during creation")
 		})
 
-		It("Returns version even when pipeline ID in URL does not match the version's pipeline", func() {
+		It("Returns not found when pipeline ID in URL does not match the version's pipeline", func() {
 			pipelineDir := "valid"
 			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
 
@@ -1717,14 +1717,51 @@ var _ = Describe("Get Pipeline Version API Tests >", Label(constants.POSITIVE, c
 			Expect(err).NotTo(HaveOccurred(), "Failed to list pipeline versions for pipeline1")
 			Expect(versionsList).Should(HaveLen(1))
 
-			// NOTE: The server does not validate that the version belongs to the specified pipeline.
-			retrievedVersion, err := pipelineClient.GetPipelineVersion(&pipeline_params.PipelineServiceGetPipelineVersionParams{
+			// The version belongs to pipeline1, so it is not found under pipeline2.
+			_, err = pipelineClient.GetPipelineVersion(&pipeline_params.PipelineServiceGetPipelineVersionParams{
 				PipelineID:        pipeline2.PipelineID,
+				PipelineVersionID: versionsList[0].PipelineVersionID,
+			})
+			Expect(err).To(HaveOccurred())
+
+			retrievedVersion, err := pipelineClient.GetPipelineVersion(&pipeline_params.PipelineServiceGetPipelineVersionParams{
+				PipelineID:        pipeline1.PipelineID,
 				PipelineVersionID: versionsList[0].PipelineVersionID,
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(retrievedVersion.PipelineID).To(Equal(pipeline1.PipelineID))
-			_ = pipeline2
+		})
+
+		It("Rejects a create whose body names a different pipeline than the URL", func() {
+			pipelineDir := "valid"
+			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
+			name1 := testContext.Pipeline.PipelineGeneratedName + "-1"
+			pipeline1 := uploadPipelineAndVerify(pipelineSpecFilePath, &name1, nil)
+			name2 := testContext.Pipeline.PipelineGeneratedName + "-2"
+			pipeline2 := uploadPipelineAndVerify(pipelineSpecFilePath, &name2, nil)
+
+			// The parent check runs before the package URL is fetched, so the URL
+			// does not need to be reachable from the API server.
+			_, err := pipelineClient.CreatePipelineVersion(&pipeline_params.PipelineServiceCreatePipelineVersionParams{
+				PipelineID: pipeline1.PipelineID,
+				PipelineVersion: &pipeline_model.V2PipelineVersion{
+					DisplayName: "mismatched-parent",
+					PipelineID:  pipeline2.PipelineID,
+					PackageURL:  &pipeline_model.V2URL{PipelineURL: "https://example.com/pipeline.yaml"},
+				},
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("does not match"))
+			Expect(err.Error()).To(ContainSubstring("(code: 3)"), "a conflicting parent is InvalidArgument")
+
+			// Neither pipeline gained a version.
+			for _, pipelineID := range []string{pipeline1.PipelineID, pipeline2.PipelineID} {
+				versions, _, _, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+					PipelineID: pipelineID,
+				})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(versions).Should(HaveLen(1))
+			}
 		})
 	})
 
@@ -1968,7 +2005,7 @@ var _ = Describe("Delete Pipeline API Tests >", Label(constants.POSITIVE, consta
 			Expect(versionsAfterDelete).Should(HaveLen(0))
 		})
 
-		It("Deletes version even when pipeline ID in URL does not match the version's pipeline", func() {
+		It("Does not delete a version when pipeline ID in URL does not match the version's pipeline", func() {
 			pipelineDir := "valid"
 			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
 
@@ -1985,19 +2022,19 @@ var _ = Describe("Delete Pipeline API Tests >", Label(constants.POSITIVE, consta
 			Expect(err).NotTo(HaveOccurred(), "Failed to list pipeline versions for pipeline1")
 			Expect(versionsList).Should(HaveLen(1))
 
-			// NOTE: The server does not validate that the version belongs to the specified pipeline during deletion.
+			// The version belongs to pipeline1, so deleting it under pipeline2 fails.
 			err = pipelineClient.DeletePipelineVersion(&pipeline_params.PipelineServiceDeletePipelineVersionParams{
 				PipelineID:        pipeline2.PipelineID,
 				PipelineVersionID: versionsList[0].PipelineVersionID,
 			})
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(HaveOccurred())
 
-			// Verify version is actually deleted by trying to get it
+			// The version is still there under its own pipeline.
 			_, err = pipelineClient.GetPipelineVersion(&pipeline_params.PipelineServiceGetPipelineVersionParams{
 				PipelineID:        pipeline1.PipelineID,
 				PipelineVersionID: versionsList[0].PipelineVersionID,
 			})
-			Expect(err).To(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 })
@@ -2129,10 +2166,6 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", constants
 			Expect(err).To(HaveOccurred())
 		})
 
-		It("By valid version ID but with the pipeline ID that does not contain this version should ideally fail", func() {
-			Skip("Server does not currently validate pipeline ownership for GetPipelineVersion")
-		})
-
 		if *config.KubeflowMode {
 			It("In a namespace you don't have access to", func() {
 				Skip("Requires multi-user environment with restricted namespace")
@@ -2185,10 +2218,6 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", constants
 				PipelineVersionID: "00000000-0000-0000-0000-000000000000",
 			})
 			Expect(err).To(HaveOccurred())
-		})
-
-		It("Delete pipeline version by ID with wrong pipeline ID should ideally fail", func() {
-			Skip("Server does not currently validate pipeline ownership for DeletePipelineVersion")
 		})
 
 		It("Delete by ID containing ASCII characters", func() {

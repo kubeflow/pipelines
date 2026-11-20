@@ -154,3 +154,102 @@ func TestGetPipelineByName_MultiUser_UnauthorizedNamespaceIsDenied(t *testing.T)
 	require.Error(t, err)
 	assert.Equal(t, codes.PermissionDenied, err.(*util.UserError).ExternalStatusCode())
 }
+
+const (
+	k8sParentPipelineA = "00000000-0000-0000-0000-0000000000a1"
+	k8sParentPipelineB = "00000000-0000-0000-0000-0000000000b1"
+	k8sParentVersionB  = "00000000-0000-0000-0000-0000000000b2"
+)
+
+// parentCheckPipelineServer serves two pipelines, A and B, in one namespace from
+// the Kubernetes pipeline store, with one version owned by B. The store reads a
+// version's parent from its owner reference, not from a database column.
+func parentCheckPipelineServer(t *testing.T, authorized bool) (*PipelineServer, func()) {
+	t.Helper()
+	initEnvVars()
+	scheme := runtime.NewScheme()
+	require.NoError(t, v2beta1.AddToScheme(scheme))
+
+	pipelineA := &v2beta1.Pipeline{ObjectMeta: metav1.ObjectMeta{UID: k8sParentPipelineA, Name: "pipeline-a", Namespace: "tenant-a"}}
+	pipelineB := &v2beta1.Pipeline{ObjectMeta: metav1.ObjectMeta{UID: k8sParentPipelineB, Name: "pipeline-b", Namespace: "tenant-a"}}
+	versionB := &v2beta1.PipelineVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			UID:       k8sParentVersionB,
+			Name:      "pipeline-b-v1",
+			Namespace: "tenant-a",
+			Labels:    map[string]string{"pipelines.kubeflow.org/pipeline-id": k8sParentPipelineB},
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: v2beta1.GroupVersion.String(),
+				Kind:       "Pipeline",
+				Name:       "pipeline-b",
+				UID:        k8sParentPipelineB,
+			}},
+		},
+		Spec: v2beta1.PipelineVersionSpec{
+			PipelineName: "pipeline-b",
+			PipelineSpec: v2beta1.IRSpec{Value: map[string]interface{}{
+				"pipelineInfo":  map[string]interface{}{"name": "pipeline-b"},
+				"root":          map[string]interface{}{"dag": map[string]interface{}{"tasks": map[string]interface{}{}}},
+				"schemaVersion": "2.1.0",
+				"sdkVersion":    "kfp-2.13.0",
+			}},
+		},
+	}
+	k8sClient := ctrlfake.NewClientBuilder().WithScheme(scheme).WithObjects(pipelineA, pipelineB, versionB).Build()
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	if !authorized {
+		clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	}
+	clientManager.SetPipelineStore(storage.NewPipelineStoreKubernetes(k8sClient, k8sClient))
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	return createPipelineServer(resourceManager, nil), func() { clientManager.Close() }
+}
+
+func TestPipelineVersionParent_KubernetesStore_MismatchIsNotFound(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	pipelineServer, cleanup := parentCheckPipelineServer(t, true)
+	defer cleanup()
+	ctx := userContext()
+
+	_, err := pipelineServer.GetPipelineVersion(ctx, &apiv2.GetPipelineVersionRequest{PipelineId: k8sParentPipelineA, PipelineVersionId: k8sParentVersionB})
+	require.Error(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+
+	_, err = pipelineServer.UpdatePipelineVersion(ctx, &apiv2.UpdatePipelineVersionRequest{PipelineVersion: &apiv2.PipelineVersion{PipelineId: k8sParentPipelineA, PipelineVersionId: k8sParentVersionB, DisplayName: "renamed"}})
+	require.Error(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+
+	_, err = pipelineServer.DeletePipelineVersion(ctx, &apiv2.DeletePipelineVersionRequest{PipelineId: k8sParentPipelineA, PipelineVersionId: k8sParentVersionB})
+	require.Error(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+
+	version, err := pipelineServer.GetPipelineVersion(ctx, &apiv2.GetPipelineVersionRequest{PipelineId: k8sParentPipelineB, PipelineVersionId: k8sParentVersionB})
+	require.NoError(t, err, "the version must still exist under its own pipeline")
+	assert.Equal(t, k8sParentVersionB, version.GetPipelineVersionId())
+	assert.NotEqual(t, "renamed", version.GetDisplayName())
+}
+
+// Authorization runs on the version's own namespace before the parent check, so
+// a caller without access gets PermissionDenied and learns nothing about which
+// pipeline the version belongs to.
+func TestPipelineVersionParent_UnauthorizedCallerIsDeniedBeforeParentCheck(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	pipelineServer, cleanup := parentCheckPipelineServer(t, false)
+	defer cleanup()
+	ctx := userContext()
+
+	for _, pipelineID := range []string{k8sParentPipelineA, k8sParentPipelineB} {
+		_, err := pipelineServer.GetPipelineVersion(ctx, &apiv2.GetPipelineVersionRequest{PipelineId: pipelineID, PipelineVersionId: k8sParentVersionB})
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, err.(*util.UserError).ExternalStatusCode(), "pipeline %s", pipelineID)
+
+		_, err = pipelineServer.DeletePipelineVersion(ctx, &apiv2.DeletePipelineVersionRequest{PipelineId: pipelineID, PipelineVersionId: k8sParentVersionB})
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, err.(*util.UserError).ExternalStatusCode(), "pipeline %s", pipelineID)
+	}
+}
