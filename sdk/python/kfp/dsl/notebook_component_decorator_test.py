@@ -12,6 +12,7 @@ import tarfile
 import tempfile
 import unittest
 import warnings
+from typing import List
 
 from kfp import dsl
 from kfp.dsl import component_factory
@@ -44,8 +45,9 @@ class TestNotebookComponentDecorator(unittest.TestCase):
             'nbformat': 4,
             'nbformat_minor': 5,
         }
-        tmpdir = tempfile.mkdtemp()
-        nb_path = os.path.join(tmpdir, 'tmp.ipynb')
+        temporary_directory = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        nb_path = os.path.join(temporary_directory.name, 'tmp.ipynb')
         with open(nb_path, 'w', encoding='utf-8') as f:
             json.dump(nb, f)
         return nb_path
@@ -65,6 +67,27 @@ class TestNotebookComponentDecorator(unittest.TestCase):
         self.assertIn('ipykernel>=6', command)
         self.assertIn('jupyter_client>=7,<9', command)
         self.assertNotIn('fastjsonschema<2.22', command)
+
+    def test_notebook_component_command_is_same_when_notebook_mtime_changes(
+        self,
+    ):
+        # Regression for #14852: a fresh clone gives a new mtime to an
+        # unchanged notebook, and the command is part of the cache key.
+        nb_path = self._make_temp_notebook('pass\n')
+
+        def compile_notebook_component() -> List[str]:
+            @dsl.notebook_component(notebook_path=nb_path)
+            def my_nb():
+                dsl.run_notebook()
+
+            return my_nb.component_spec.implementation.container.command
+
+        os.utime(nb_path, (1_600_000_000, 1_600_000_000))
+        first_command = compile_notebook_component()
+        os.utime(nb_path, (1_700_000_000, 1_700_000_000))
+        second_command = compile_notebook_component()
+
+        self.assertEqual(first_command, second_command)
 
     def test_notebook_component_no_extra_packages_when_empty_list(self):
         nb_path = self._make_temp_notebook('pass\n')
