@@ -1885,7 +1885,13 @@ def build_spec_by_group(
                 subgroup_component_name
             )
 
-        # Add task spec
+        # Add task spec. Never overwrite an entry: tasks and groups share the
+        # map, and replacing one would silently drop it from the pipeline.
+        if subgroup.name in group_component_spec.dag.tasks:
+            raise ValueError(
+                f'Duplicate task or group name "{subgroup.name}" in a DAG. '
+                'Task and group names must be unique within a pipeline.'
+            )
         group_component_spec.dag.tasks[subgroup.name].CopyFrom(
             subgroup_task_spec
         )
