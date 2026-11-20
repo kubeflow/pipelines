@@ -154,6 +154,49 @@ class TestTaskAndControlFlowGroupCollision(unittest.TestCase):
         self.assertIn('condition-branches-1', root_tasks)
         self.assertIn('condition-branches-1-2', root_tasks)
 
+    def test_duplicate_sibling_task_names_raise_instead_of_overwriting(
+        self,
+    ) -> None:
+        """The DAG builder fails loudly rather than silently dropping a task.
+
+        Name allocation prevents duplicates in normal use, so force one by
+        renaming the second task. ``build_spec_by_group`` must reject it
+        instead of overwriting the first task's spec.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            r"Duplicate task or control-flow group name 'work' in DAG\.",
+        ):
+
+            @dsl.pipeline
+            def pipe() -> None:
+                first = work(msg='first')
+                second = work(msg='second')
+                second._task_spec.name = first.name
+
+            self._compile_to_dict(pipe)
+
+    def test_group_named_like_sibling_task_raises_instead_of_overwriting(
+        self,
+    ) -> None:
+        """A forced task/group name clash is also rejected, not overwritten."""
+
+        with self.assertRaisesRegex(
+            ValueError,
+            r"Duplicate task or control-flow group name 'work' in DAG\.",
+        ):
+
+            @dsl.pipeline
+            def pipe() -> None:
+                task = work(msg='task')
+                c = condition()
+                with dsl.If(c.output == 1) as if_group:
+                    work(msg='inside')
+                if_group.name = task.name
+
+            self._compile_to_dict(pipe)
+
 
 if __name__ == '__main__':
     unittest.main()
