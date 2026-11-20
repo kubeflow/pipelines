@@ -16,6 +16,9 @@ inputs:
   ready-state:
     description: Validated state from this workflow's shared image readiness job
     default: ''
+  image-artifact-id:
+    description: Same-run verified application image bundle from readiness
+    default: ''
   state:
     description: Pin one producer run and attempt across runtime and branch downloads
     default: ${{ runner.temp }}/kfp-shared-images.json
@@ -59,6 +62,7 @@ runs:
           --architecture "$IMAGE_ARCHITECTURE" --kind "$IMAGE_KIND" \
           --state "$PRODUCER_STATE" --output "$GITHUB_OUTPUT"
     - name: Download exact shared image artifacts
+      if: ${{ !inputs.image-artifact-id || (inputs.kind != 'images' && inputs.kind != 'all') }}
       uses: ./.github/actions/download-artifact-with-retry
       with:
         artifact-ids: ${{ steps.resolve.outputs.artifact-ids }}
@@ -68,6 +72,25 @@ runs:
         path: ${{ inputs.path }}
         merge-multiple: 'true'
         required-files: ${{ steps.resolve.outputs.required-files }}
+    - name: Download verified application images from this workflow run
+      if: ${{ inputs.image-artifact-id && (inputs.kind == 'images' || inputs.kind == 'all') }}
+      uses: ./.github/actions/download-artifact-with-retry
+      with:
+        artifact-ids: ${{ inputs.image-artifact-id }}
+        path: ${{ inputs.path }}
+        merge-multiple: 'true'
+        required-files: ${{ steps.resolve.outputs.images-required-files }}
+    - name: Download runtime images from the pinned producer
+      if: ${{ inputs.image-artifact-id && inputs.kind == 'all' }}
+      uses: ./.github/actions/download-artifact-with-retry
+      with:
+        artifact-ids: ${{ steps.resolve.outputs.runtime-artifact-ids }}
+        repository: ${{ steps.resolve.outputs.repository }}
+        run-id: ${{ steps.resolve.outputs.run-id }}
+        github-token: ${{ github.token }}
+        path: ${{ inputs.path }}
+        merge-multiple: 'true'
+        required-files: ${{ steps.resolve.outputs.runtime-required-files }}
     - name: Verify source, attempt, and archive checksums
       shell: bash
       env:
@@ -75,8 +98,13 @@ runs:
         PRODUCER_STATE: ${{ inputs.state }}
         IMAGE_DIRECTORY: ${{ inputs.path }}
         IMAGE_LAYOUT: ${{ inputs.layout }}
+        IMAGE_ARTIFACT_ID: ${{ inputs.image-artifact-id }}
         IMAGE_KIND: ${{ inputs.kind }}
       run: |
+        options=()
+        if [[ -n "$IMAGE_ARTIFACT_ID" ]]; then
+          options+=(--require-pinned-images)
+        fi
         python3 .github/resources/scripts/shared_ci_images.py verify \
           --state "$PRODUCER_STATE" --directory "$IMAGE_DIRECTORY" \
-          --layout "$IMAGE_LAYOUT" --kind "$IMAGE_KIND"
+          --layout "$IMAGE_LAYOUT" --kind "$IMAGE_KIND" "${options[@]}"

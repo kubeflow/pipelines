@@ -90,6 +90,20 @@ class CombinedVerificationTests(unittest.TestCase):
         self.assertIn('artifact-ids=' + expected, output.read_text())
         self.assertIn('runtime-base-images.tar', output.read_text())
         self.assertIn('frontend.tar', output.read_text())
+        lines = output.read_text().splitlines()
+        for kind, records in state['sets'].items():
+            start = lines.index(f'{kind}-required-files<<SHARED_CI_FILES') + 1
+            actual = lines[start : lines.index('SHARED_CI_FILES', start)]
+            self.assertCountEqual(
+                actual,
+                [
+                    name
+                    for record in records
+                    for name in (*record['files'], record['provenance'])
+                ],
+            )
+        runtime_id = state['sets']['runtime'][0]['artifact_id']
+        self.assertIn(f'runtime-artifact-ids={runtime_id}', lines)
 
     def test_corrupt_runtime_prevents_all_remote_reads_and_rearrangement(self):
         (self.directory / 'runtime-base-images.tar').write_text('corrupt')

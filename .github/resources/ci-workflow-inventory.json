@@ -1267,7 +1267,7 @@
     {
       "path": ".github/workflows/shared-ci-images-ready.yml",
       "name": "Shared CI image readiness",
-      "header_sha256": "ad09515b81f40bb0f8737acbba3973b44556160f26fbb269c14c1b9f70e99968",
+      "header_sha256": "2be9fbf47c652eae8e14e26df02db3aac62000a693580747158844cc6d251ccd",
       "pull_request": null,
       "merge_group": null
     },

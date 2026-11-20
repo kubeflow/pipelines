@@ -114,6 +114,8 @@ jobs:
       actions: read
       contents: read
     uses: ./.github/workflows/shared-ci-images-ready.yml
+    with:
+      relay-images: true
 
   end-to-end-scenario-tests:
     needs: image-artifacts-ready
@@ -240,6 +242,7 @@ jobs:
         id: deploy
         with:
           image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
+          image_artifact_id: ${{ needs.image-artifacts-ready.outputs.image-artifact-id }}
           proxy: ${{ matrix.proxy }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
@@ -346,6 +349,7 @@ jobs:
         uses: ./.github/actions/deploy
         with:
           image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
+          image_artifact_id: ${{ needs.image-artifacts-ready.outputs.image-artifact-id }}
           cache_enabled: "false"
           argo_version: "v4.1.6"
           image_path: images_${{ github.run_id }}
@@ -405,6 +409,7 @@ jobs:
         id: deploy
         with:
           image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
+          image_artifact_id: ${{ needs.image-artifacts-ready.outputs.image-artifact-id }}
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: "true"
           # The cache-enabled multi-user variant is the artifact-proxy
@@ -540,6 +545,7 @@ jobs:
         id: deploy
         with:
           image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
+          image_artifact_id: ${{ needs.image-artifacts-ready.outputs.image-artifact-id }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}

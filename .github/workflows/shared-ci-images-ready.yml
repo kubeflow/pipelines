@@ -7,11 +7,18 @@ on:
         description: Native image architecture
         type: string
         default: amd64
+      relay-images:
+        description: Verify application images once and publish them for same-run downloads
+        type: boolean
+        default: false
       include_tensorboard:
         description: Also resolve the optional viewer image before cluster setup
         type: boolean
         default: false
     outputs:
+      image-artifact-id:
+        description: Immutable ID of the verified same-run application image bundle
+        value: ${{ jobs.ready.outputs.image-artifact-id }}
       state:
         description: Exact source and producer attempt with immutable artifact IDs
         value: ${{ jobs.ready.outputs.state }}
@@ -23,9 +30,10 @@ permissions:
 jobs:
   ready:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: ${{ inputs.relay-images && 65 || 45 }}
     outputs:
-      state: ${{ steps.resolve.outputs.state }}
+      state: ${{ steps.relay.outputs.state || steps.resolve.outputs.state }}
+      image-artifact-id: ${{ steps.upload.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -44,3 +52,35 @@ jobs:
           python3 .github/resources/scripts/shared_ci_images.py prepare "${extra[@]}" \
             --architecture "$IMAGE_ARCHITECTURE" \
             --state "$RUNNER_TEMP/kfp-shared-images.json" --output "$GITHUB_OUTPUT"
+      - name: Download and verify producer application images
+        if: ${{ inputs.relay-images }}
+        uses: ./.github/actions/shared-ci-images
+        with:
+          architecture: ${{ inputs.architecture }}
+          ready-state: ${{ steps.resolve.outputs.state }}
+          kind: images
+          layout: flat
+          path: ${{ runner.temp }}/kfp-image-relay
+          state: ${{ runner.temp }}/kfp-shared-images.json
+      - name: Select verified files and pin their producer checksums
+        id: relay
+        if: ${{ inputs.relay-images }}
+        run: |
+          state="$RUNNER_TEMP/kfp-shared-images.json"
+          {
+            jq -cr '"state=" + tojson' "$state"
+            echo 'paths<<IMAGE_PATHS'
+            jq -r --arg dir "$RUNNER_TEMP/kfp-image-relay/" \
+              '.sets.images[] | (.files | keys[]), .provenance | $dir + .' "$state"
+            echo 'IMAGE_PATHS'
+          } >> "$GITHUB_OUTPUT"
+      - name: Publish application images for same-run workers
+        id: upload
+        if: ${{ inputs.relay-images }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: e2e-ci-images-${{ inputs.architecture }}-attempt-${{ github.run_attempt }}
+          path: ${{ steps.relay.outputs.paths }}
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 1

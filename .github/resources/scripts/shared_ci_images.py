@@ -1148,36 +1148,42 @@ def selected_kinds(kind):
 
 
 def emit_outputs(path, state, kind):
-    records = [
-        record
-        for selected in selected_kinds(kind)
-        for record in state['sets'][selected]
-    ]
-    names = [
-        name
-        for record in records
-        for name in (*record['files'], record['provenance'])
-    ]
+    def write_selection(stream, records, prefix=''):
+        ids = dict.fromkeys(str(record['artifact_id']) for record in records)
+        names = [
+            name
+            for record in records
+            for name in (*record['files'], record['provenance'])
+        ]
+        stream.write(f'{prefix}artifact-ids=' + ','.join(ids) + '\n')
+        stream.write(
+            f'{prefix}required-files<<SHARED_CI_FILES\n'
+            + '\n'.join(names)
+            + '\nSHARED_CI_FILES\n'
+        )
+
     with path.open('a') as stream:
         stream.write(
             f'run-id={state["identity"]["run_id"]}\nrepository={state["identity"]["repository"]}\n'
             f'run-attempt={state["identity"]["run_attempt"]}\n'
         )
-        stream.write(
-            'artifact-ids='
-            + ','.join(
-                dict.fromkeys(str(record['artifact_id']) for record in records)
-            )
-            + '\n'
+        kinds = selected_kinds(kind)
+        write_selection(
+            stream, [r for selected in kinds for r in state['sets'][selected]]
         )
-        stream.write(
-            'required-files<<SHARED_CI_FILES\n'
-            + '\n'.join(names)
-            + '\nSHARED_CI_FILES\n'
-        )
+        for selected in kinds:
+            write_selection(stream, state['sets'][selected], selected + '-')
 
 
-def verify(api, state, consumer, directory, layout, kind=None):
+def verify(
+    api,
+    state,
+    consumer,
+    directory,
+    layout,
+    kind=None,
+    require_pinned_images=False,
+):
     kind = kind or state['last_kind']
     identity, architecture = state['identity'], state['architecture']
     require(state['consumer'] == consumer, 'State consumer changed')
@@ -1231,6 +1237,16 @@ def verify(api, state, consumer, directory, layout, kind=None):
         enriched = dict(record, files=document['files'])
         validate_record(enriched, identity, architecture, record['image'])
         for name, expected in enriched['files'].items():
+            pinned = record['files'][name]
+            if require_pinned_images and record['image'] in IMAGES:
+                require(
+                    pinned is not None,
+                    f'Missing pinned producer checksum: {name}',
+                )
+            require(
+                pinned is None or pinned == expected,
+                f'Pinned producer checksum mismatch: {name}',
+            )
             require(
                 expected is not None and checksum(directory / name) == expected,
                 f'Checksum mismatch: {name}',
@@ -1360,6 +1376,7 @@ def main():
     verifier.add_argument('--directory', required=True, type=Path)
     verifier.add_argument('--layout', required=True, choices=('nested', 'flat'))
     verifier.add_argument('--kind', choices=(*IMAGE_SETS, 'all'))
+    verifier.add_argument('--require-pinned-images', action='store_true')
     args = parser.parse_args()
     accounting = RequestAccounting()
     try:
@@ -1422,7 +1439,15 @@ def main():
             architecture = json.loads(args.state.read_text())['architecture']
             state = load_state(args.state, identity, architecture)
             require(state is not None, 'Missing resolver state')
-            verify(api, state, identity, args.directory, args.layout, args.kind)
+            verify(
+                api,
+                state,
+                identity,
+                args.directory,
+                args.layout,
+                args.kind,
+                args.require_pinned_images,
+            )
             write_json(args.state, state)
     except (
         InvalidEvidence,

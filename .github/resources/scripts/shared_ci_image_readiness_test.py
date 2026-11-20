@@ -402,6 +402,9 @@ class ReadinessWorkflowTest(unittest.TestCase):
             consuming = {
                 name: steps for name, steps in consuming.items() if steps
             }
+            if path.name == 'shared-ci-images-ready.yml':
+                # The reusable readiness job stages the producer bundle itself.
+                continue
             if not consuming:
                 continue
             callers += 1
@@ -412,6 +415,10 @@ class ReadinessWorkflowTest(unittest.TestCase):
             ]
             self.assertEqual(ready_jobs, ['image-artifacts-ready'], path.name)
             ready = jobs['image-artifacts-ready']
+            if path.name != 'e2e-test.yml':
+                self.assertFalse(
+                    ready.get('with', {}).get('relay-images', False)
+                )
             self.assertNotIn('strategy', ready)
             self.assertNotIn('continue-on-error', ready)
             for name, steps in consuming.items():
@@ -442,6 +449,62 @@ class ReadinessWorkflowTest(unittest.TestCase):
         self.assertEqual(callers, 9)
         self.assertEqual(consumers, 15)
 
+    def test_e2e_alone_stages_application_archives_before_matrix_fanout(self):
+        workflows = ROOT / '.github/workflows'
+        reusable = yaml.safe_load(
+            (workflows / 'shared-ci-images-ready.yml').read_text()
+        )
+        ready = reusable['jobs']['ready']
+        uploads = [
+            step
+            for step in ready['steps']
+            if step.get('uses', '').startswith('actions/upload-artifact@')
+        ]
+        self.assertEqual(len(uploads), 1, 'stage the application bundle once')
+        upload = uploads[0]
+        self.assertIn('github.run_attempt', upload['with']['name'])
+        self.assertNotIn('continue-on-error', upload)
+        self.assertEqual(upload['with']['if-no-files-found'], 'error')
+        self.assertEqual(upload['if'], '${{ inputs.relay-images }}')
+        verified = next(
+            step
+            for step in ready['steps']
+            if step.get('uses') == './.github/actions/shared-ci-images'
+        )
+        self.assertLess(
+            ready['steps'].index(verified), ready['steps'].index(upload)
+        )
+        self.assertEqual(verified['with']['kind'], 'images')
+        self.assertEqual(verified['if'], upload['if'])
+        self.assertNotIn('continue-on-error', verified)
+        events = reusable.get('on', reusable.get(True))
+        call = events['workflow_call']
+        self.assertIs(call['inputs']['relay-images']['default'], False)
+        self.assertEqual(
+            ready['outputs']['image-artifact-id'],
+            '${{ steps.' + upload['id'] + '.outputs.artifact-id }}',
+        )
+        self.assertEqual(
+            call['outputs']['image-artifact-id']['value'],
+            '${{ jobs.ready.outputs.image-artifact-id }}',
+        )
+        e2e = yaml.safe_load((workflows / 'e2e-test.yml').read_text())['jobs']
+        self.assertIs(
+            e2e['image-artifacts-ready']['with']['relay-images'], True
+        )
+        deploys = [
+            step
+            for job in e2e.values()
+            for step in job.get('steps', [])
+            if step.get('uses') == './.github/actions/deploy'
+        ]
+        self.assertTrue(deploys)
+        for step in deploys:
+            self.assertEqual(
+                step['with']['image_artifact_id'],
+                '${{ needs.image-artifacts-ready.outputs.image-artifact-id }}',
+            )
+
     def test_readiness_propagates_failure_and_consumers_keep_safe_default(self):
         workflow = yaml.safe_load(
             (ROOT / '.github/workflows/shared-ci-images-ready.yml').read_text()
@@ -455,7 +518,8 @@ class ReadinessWorkflowTest(unittest.TestCase):
         self.assertNotIn('continue-on-error', resolve)
         self.assertIn('shared_ci_images.py prepare', resolve['run'])
         self.assertEqual(
-            ready['outputs']['state'], '${{ steps.resolve.outputs.state }}'
+            ready['outputs']['state'],
+            '${{ steps.relay.outputs.state || steps.resolve.outputs.state }}',
         )
         deploy = yaml.safe_load(
             (ROOT / '.github/actions/deploy/action.yml').read_text()
@@ -463,6 +527,13 @@ class ReadinessWorkflowTest(unittest.TestCase):
         self.assertEqual(deploy['inputs']['image_ready_state']['default'], '')
         for step in deploy['runs']['steps']:
             if step.get('uses') == './.github/actions/shared-ci-images':
+                if step['with']['kind'] == 'tensorboard':
+                    self.assertNotIn('image-artifact-id', step['with'])
+                else:
+                    self.assertEqual(
+                        step['with']['image-artifact-id'],
+                        '${{ inputs.image_artifact_id }}',
+                    )
                 self.assertEqual(
                     step['with']['ready-state'],
                     '${{ inputs.image_ready_state }}',
