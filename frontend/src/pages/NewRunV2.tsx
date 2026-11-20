@@ -95,6 +95,7 @@ interface RunV2Props {
   handlePipelineVersionIdChange: (pipelineVersionId: string) => void;
   templateString?: string;
   chosenExperiment?: V2beta1Experiment;
+  isExperimentResolved?: boolean;
 }
 
 type NewRunV2Props = RunV2Props & PageProps;
@@ -250,6 +251,7 @@ function NewRunV2(props: NewRunV2Props) {
     handlePipelineVersionIdChange,
     templateString,
     chosenExperiment,
+    isExperimentResolved = true,
   } = props;
   const cloneOrigin = getCloneOrigin(existingRun, existingRecurringRun);
   const urlParser = new URLParser(props);
@@ -360,7 +362,11 @@ function NewRunV2(props: NewRunV2Props) {
     isTemplatePullSuccess,
   );
   const isStartButtonEnabled =
-    !!templateString && !validationErrorMessage && isParameterValid && isMaxConcurrentRunValid;
+    !!templateString &&
+    !validationErrorMessage &&
+    isParameterValid &&
+    isMaxConcurrentRunValid &&
+    isExperimentResolved;
 
   const titleVerb = cloneOrigin.isClone ? 'Clone' : 'Start';
   const titleAdjective = cloneOrigin.isClone ? '' : 'new';

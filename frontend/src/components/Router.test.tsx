@@ -17,10 +17,12 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Router as ReactRouter } from '../lib/Router';
 import { HashRouter, MemoryRouter } from 'react-router';
+import { NavigationErrorBoundary } from 'src/atoms/NavigationErrorBoundary';
 import { createMemoryHistory } from 'history';
 import Router, { getSafeReturnPath, RouteConfig, RoutePage } from './Router';
 import { Page } from '../pages/Page';
 import { ToolbarProps } from './Toolbar';
+import { Apis } from 'src/lib/Apis';
 
 describe('Router', () => {
   it('initial render', () => {
@@ -105,7 +107,9 @@ describe('Router', () => {
     window.history.replaceState(null, '', '/#/form/first');
     const view = render(
       <HashRouter>
-        <Router configs={[{ path: '/form/:id', Component: FormPage }]} />
+        <NavigationErrorBoundary>
+          <Router configs={[{ path: '/form/:id', Component: FormPage }]} />
+        </NavigationErrorBoundary>
       </HashRouter>,
     );
     fireEvent.change(screen.getByLabelText('draft name'), { target: { value: 'Unsaved run' } });
@@ -127,5 +131,36 @@ describe('Router', () => {
     expect(getSafeReturnPath('https://example.com')).toBeUndefined();
     expect(getSafeReturnPath('//example.com')).toBeUndefined();
     expect(getSafeReturnPath(null)).toBeUndefined();
+  });
+
+  it('resets the upload target when the Pipeline Versions breadcrumb clears it', async () => {
+    const getPipeline = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline').mockResolvedValue({
+      pipeline_id: 'pipeline-a',
+      display_name: 'Pipeline A',
+    });
+    window.history.replaceState(
+      null,
+      '',
+      `/#${RoutePage.NEW_PIPELINE_VERSION}?pipelineId=pipeline-a`,
+    );
+    const view = render(
+      <HashRouter>
+        <NavigationErrorBoundary>
+          <Router />
+        </NavigationErrorBoundary>
+      </HashRouter>,
+    );
+    try {
+      expect(await screen.findByDisplayValue('Pipeline A')).toBeVisible();
+      fireEvent.click(screen.getByRole('link', { name: 'Pipeline Versions' }));
+      expect(
+        screen.getByRole('radio', { name: 'Create a new pipeline', exact: true }),
+      ).toBeChecked();
+      expect(screen.queryByDisplayValue('Pipeline A')).not.toBeInTheDocument();
+    } finally {
+      view.unmount();
+      window.history.replaceState(null, '', '/');
+      getPipeline.mockRestore();
+    }
   });
 });
