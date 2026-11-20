@@ -606,6 +606,9 @@ var launcherResources = k8score.ResourceRequirements{
 
 const (
 	tmplEntrypoint = "entrypoint"
+	// tmplExitHookNoOp completes immediately without scheduling a pod. It
+	// carries the dependency expressions that gate a multi-upstream exit task.
+	tmplExitHookNoOp = "system-exit-hook-no-op"
 )
 
 // Here is the collection of all special dummy images that the backend recognizes.
