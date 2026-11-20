@@ -884,24 +884,35 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		PipelineVersionID: run.PipelineSpec.PipelineVersionId, //nolint:staticcheck // QF1008
 		PluginsInput:      (*string)(run.PluginsInputString),
 	}
-	if err := r.pluginDispatcher.OnBeforeRunCreation(ctx, pendingRun, executionSpec); err != nil {
-		return nil, err
-	}
-	// Copy plugin output back to the model.
+	runPersisted := false
+	workflowCreated := false
+
+	// Registered before OnBeforeRunCreation so plugin resources created before a
+	// failure in that call are cleaned up too.
+	defer func() {
+		if runPersisted || run.PluginsOutputString == nil {
+			return
+		}
+		if !workflowCreated {
+			if err := r.pluginDispatcher.OnRunCreationRejected(ctx, pendingRun); err != nil {
+				glog.Warningf("Failed to clean up rejected creation for run %q: %v", run.UUID, err)
+			}
+			return
+		}
+		if pr, prErr := apiserverPlugins.ModelToPersistedRun(run, k8sNamespace); prErr == nil {
+			r.pluginDispatcher.OnRunEnd(ctx, pr)
+		}
+	}()
+
+	pluginErr := r.pluginDispatcher.OnBeforeRunCreation(ctx, pendingRun, executionSpec)
+	// Copy plugin output back to the model, also on failure, so cleanup sees it.
 	if pendingRun.PluginsOutput != nil {
 		lt := model.LargeText(*pendingRun.PluginsOutput)
 		run.PluginsOutputString = &lt
 	}
-
-	runPersisted := false
-
-	defer func() {
-		if !runPersisted {
-			if pr, prErr := apiserverPlugins.ModelToPersistedRun(run, k8sNamespace); prErr == nil {
-				r.pluginDispatcher.OnRunEnd(ctx, pr)
-			}
-		}
-	}()
+	if pluginErr != nil {
+		return nil, pluginErr
+	}
 
 	if r.pluginDispatcher.PluginsRegistered() {
 		if err := r.authorizeExecutionServiceAccounts(ctx, executionSpec, allowCompilerPodSpecPatch, k8sNamespace, "create_run_after_plugins"); err != nil {
@@ -935,6 +946,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		}
 		return existing, nil
 	}
+	workflowCreated = true
 	// Update the run with the new scheduled workflow
 	run.Namespace = k8sNamespace
 	run.K8SName = newExecSpec.ExecutionName()

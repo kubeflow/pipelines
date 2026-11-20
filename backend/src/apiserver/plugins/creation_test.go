@@ -104,3 +104,40 @@ func TestOnRunCreationDiscardedPreservesWinningParentsAndOutput(t *testing.T) {
 		})
 	}
 }
+
+func TestOnRunCreationRejectedFinalizesParentsWithoutPersisting(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		output     *apiv2.PluginOutput
+		wantCalls  int
+		wantError  bool
+		cleanupErr bool
+	}{
+		{name: "created parent", output: creationPluginOutput("parent-1"), wantCalls: 1},
+		{name: "no parent", output: &apiv2.PluginOutput{StateMessage: "config resolution failed"}},
+		{name: "cleanup failure", output: creationPluginOutput("parent-1"), wantCalls: 1, wantError: true, cleanupErr: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			handler := &discardedCreationHandler{fakeHandler: fakeHandler{
+				name: "test", pluginConfig: &PluginConfig{}, endBool: test.cleanupErr,
+			}}
+			store := &fakeRunPluginOutputStoreWithError{}
+			dispatcher, err := NewRunPluginDispatcherImpl([]RunPluginHandler{handler}, &fakeKubeClientProvider{}, store)
+			require.NoError(t, err)
+			run := &PendingRun{RunID: "run-1", Namespace: "ns1"}
+			require.NoError(t, SetPendingRunPluginOutput(run, "test", test.output))
+			err = dispatcher.OnRunCreationRejected(context.Background(), run)
+			if test.wantError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			require.Len(t, handler.ended, test.wantCalls)
+			if test.wantCalls > 0 {
+				require.Equal(t, string(model.RuntimeStateFailed), handler.ended[0].State)
+				require.Equal(t, "parent-1", GetParentRunID(handler.ended[0].PluginsOutput["test"]))
+			}
+			require.Zero(t, store.callCount, "cleanup must never persist the rejected request's output")
+		})
+	}
+}
