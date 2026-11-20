@@ -321,6 +321,8 @@ It preserves existing keys, including operator-provided keys, and concurrent
 initializers use Kubernetes resource versions to avoid overwriting each other.
 The Job can only get and update this named Secret; the UI receives no additional
 Secret permissions. UI pods wait for the required Secret field before starting.
+The Job has no deadline, so a slow image pull delays initialization instead of
+failing it; if the Job stays pending, check its pod events for pull errors.
 If initialization fails, check the Job status, its get/update permissions, and
 whether an existing key is valid UTF-8 of at least 32 bytes with no NUL characters.
 An invalid existing key is never replaced automatically. After correcting a failed
