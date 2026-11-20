@@ -64,6 +64,13 @@ so enabling an old schedule does not replay its missed intervals automatically.
 Single-user installations with runtime plugins require catalog-backed schedules;
 recreate inline-only schedules against a saved pipeline definition before export.
 
+In multi-user mode, shared pipelines (pipelines without a namespace, such as the
+samples) are not part of a namespace's catalog and are not copied. Completed runs
+and version-pinned schedules created from a shared pipeline are exported with their
+inline definition and without the link to the shared pipeline. A schedule that
+follows the latest version of a shared pipeline cannot be exported: pin it to a
+version, or recreate it from a pipeline in your namespace, before export.
+
 Completed runs remain history. They can be viewed, archived and deleted; attempts
 to retry, terminate, recreate their imported ID, or report runtime changes are
 rejected. Submit a new run to execute the pipeline in the destination. Imported
