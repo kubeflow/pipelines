@@ -3,7 +3,10 @@
 exports[`Banner > defaults to error mode 1`] = `
 <DocumentFragment>
   <div
+    aria-atomic="true"
+    aria-live="polite"
     class="flex_f16jawj4 banner_forn49x mode_fo01qrq"
+    role="status"
   >
     <div
       class="message_fddsvlq"
@@ -31,7 +34,10 @@ exports[`Banner > defaults to error mode 1`] = `
 exports[`Banner > shows "Details" button and has dialog when there is additional info 1`] = `
 <DocumentFragment>
   <div
+    aria-atomic="true"
+    aria-live="polite"
     class="flex_f16jawj4 banner_forn49x mode_fo01qrq"
+    role="status"
   >
     <div
       class="message_fddsvlq"
@@ -70,7 +76,10 @@ exports[`Banner > shows "Details" button and has dialog when there is additional
 exports[`Banner > shows "Refresh" button when passed a refresh function 1`] = `
 <DocumentFragment>
   <div
+    aria-atomic="true"
+    aria-live="polite"
     class="flex_f16jawj4 banner_forn49x mode_fo01qrq"
+    role="status"
   >
     <div
       class="message_fddsvlq"
@@ -109,7 +118,10 @@ exports[`Banner > shows "Refresh" button when passed a refresh function 1`] = `
 exports[`Banner > uses error mode when instructed 1`] = `
 <DocumentFragment>
   <div
+    aria-atomic="true"
+    aria-live="polite"
     class="flex_f16jawj4 banner_forn49x mode_fo01qrq"
+    role="status"
   >
     <div
       class="message_fddsvlq"
@@ -137,7 +149,10 @@ exports[`Banner > uses error mode when instructed 1`] = `
 exports[`Banner > uses info mode when instructed 1`] = `
 <DocumentFragment>
   <div
+    aria-atomic="true"
+    aria-live="polite"
     class="flex_f16jawj4 banner_forn49x mode_f77nw2b"
+    role="status"
   >
     <div
       class="message_fddsvlq"
@@ -165,7 +180,10 @@ exports[`Banner > uses info mode when instructed 1`] = `
 exports[`Banner > uses warning mode when instructed 1`] = `
 <DocumentFragment>
   <div
+    aria-atomic="true"
+    aria-live="polite"
     class="flex_f16jawj4 banner_forn49x mode_fdjkr5s"
+    role="status"
   >
     <div
       class="message_fddsvlq"
