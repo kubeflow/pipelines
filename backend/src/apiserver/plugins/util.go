@@ -15,8 +15,11 @@
 package plugins
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 	"time"
@@ -25,6 +28,7 @@ import (
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"google.golang.org/protobuf/encoding/protojson"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 type PluginsOutputEnvelope struct {
@@ -222,4 +226,26 @@ func GetStringEntry(output *apiv2.PluginOutput, key string) string {
 
 func GetParentRunID(output *apiv2.PluginOutput) string {
 	return GetStringEntry(output, EntryRootRunID)
+}
+
+// isTransientError reports whether err is a short-lived failure that is worth
+// retrying, such as a brief kube-apiserver outage, throttling, or a timeout.
+func isTransientError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if apierrors.IsServiceUnavailable(err) ||
+		apierrors.IsServerTimeout(err) ||
+		apierrors.IsTimeout(err) ||
+		apierrors.IsTooManyRequests(err) {
+		return true
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	return false
 }

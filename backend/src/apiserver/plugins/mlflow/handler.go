@@ -62,7 +62,7 @@ func (h *Handler) ResolveRunPluginConfig(ctx context.Context, clientSet kubernet
 	var runCfg interface{}
 	var err error
 	if runCfg, err = ResolveMLflowRequestConfig(ctx, clientSet, launcherNamespaceCfg, namespace); err != nil {
-		return nil, fmt.Errorf("MLflow run canceled due to error resolving run-level plugin config")
+		return nil, fmt.Errorf("failed to resolve MLflow run-level plugin config: %w", err)
 	}
 	return runCfg, nil
 }
