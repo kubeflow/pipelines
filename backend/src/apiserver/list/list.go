@@ -86,8 +86,17 @@ type token struct {
 	// TagFilters holds tag EQUALS predicates. Callers strip them from Filter
 	// because they are applied through tag-table subqueries, so they are
 	// carried here to survive token-only pagination. omitempty keeps tokens
-	// without tag filters byte-identical to the previous layout.
+	// for unfiltered queries from carrying an empty object.
 	TagFilters map[string]string `json:",omitempty"`
+
+	// TagFiltersRecorded is true on every token issued since TagFilters began
+	// traveling in the token. Without it, a token for a query that had no tag
+	// filters is indistinguishable from a legacy token that predates the field,
+	// and both would have to accept tag filters supplied on a later page. The
+	// former must reject them, because they would change the result set; the
+	// latter must accept them, because resending the filter was the only way to
+	// paginate a tag-filtered query before.
+	TagFiltersRecorded bool `json:",omitempty"`
 }
 
 // identifierPattern matches valid SQL identifier names: start with a letter,
@@ -595,6 +604,7 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 		IsDesc:              o.IsDesc,
 		Filter:              o.Filter,
 		TagFilters:          o.TagFilters,
+		TagFiltersRecorded:  true,
 		ModelName:           o.ModelName,
 	}, nil
 }

@@ -317,6 +317,7 @@ func stripTagFilters(t *testing.T) func(string) string {
 		m := map[string]interface{}{}
 		require.NoError(t, json.Unmarshal(b, &m))
 		delete(m, "TagFilters")
+		delete(m, "TagFiltersRecorded")
 		b, err = json.Marshal(m)
 		require.NoError(t, err)
 		return base64.StdEncoding.EncodeToString(b)
@@ -329,6 +330,41 @@ func TestListWithTagFilter_LegacyTokenWithRepeatedFilter(t *testing.T) {
 			f := filterSpec(tagEquals("team", "ml"))
 			_, pages := walk(t, get, 2, f, f, stripTagFilters(t))
 			assertAllMatch(t, pages, map[string]string{"team": "ml"}, 6)
+		})
+	}
+}
+
+func TestListWithoutTagFilter_TokenRejectsAddedTagFilter(t *testing.T) {
+	for name, get := range pagers(t) {
+		t.Run(name, func(t *testing.T) {
+			// Page one is unfiltered, so its token records an unfiltered query.
+			// Adding a tag filter on page two changes the result set and must be
+			// rejected rather than silently applied.
+			pg, err := get("", 5, "")
+			require.NoError(t, err)
+			require.NotEmpty(t, pg.next)
+			require.Equal(t, int32(seedRows), pg.totalSize)
+
+			_, err = get(pg.next, 5, filterSpec(tagEquals("team", "ml")))
+			require.Error(t, err, "a tag filter added to an unfiltered page token must be rejected")
+			assert.Contains(t, err.Error(), "page token does not match")
+		})
+	}
+}
+
+func TestListWithTagFilter_TokenRejectsDroppedTagPredicate(t *testing.T) {
+	for name, get := range pagers(t) {
+		t.Run(name, func(t *testing.T) {
+			// Page one filters on a name predicate and a tag predicate. Resending
+			// only the name predicate supplies an incomplete predicate set, which
+			// must be rejected instead of silently restoring the dropped tag.
+			pg, err := get("", 2, filterSpec(nameNotEquals("nope"), tagEquals("team", "ml")))
+			require.NoError(t, err)
+			require.NotEmpty(t, pg.next)
+
+			_, err = get(pg.next, 2, filterSpec(nameNotEquals("nope")))
+			require.Error(t, err, "a filter that drops the page token's tag predicate must be rejected")
+			assert.Contains(t, err.Error(), "page token does not match")
 		})
 	}
 }
