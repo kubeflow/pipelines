@@ -96,6 +96,12 @@ jobs:
     - name: Download Go modules
       run: bash .github/resources/scripts/download-go-modules.sh
 
+    - name: Set up migration fixture tests
+      run: |
+        python3 -m venv "$RUNNER_TEMP/mlmd-fixture-python"
+        "$RUNNER_TEMP/mlmd-fixture-python/bin/python" -m pip install -r backend/src/apiserver/migration/mlmd/fixturetools/requirements.txt
+        echo "$RUNNER_TEMP/mlmd-fixture-python/bin" >> "$GITHUB_PATH"
+
     - name: Run Backend Tests
       env:
         KFP_HISTORY_MYSQL_TEST_DSN: root:kfp_test@tcp(127.0.0.1:${{ job.services.mysql.ports['3306'] }})/?parseTime=true
@@ -104,6 +110,7 @@ jobs:
         KFP_RECURRING_POSTGRES_TEST_DSN: postgres://kfp_test:kfp_test@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/kfp_native_test?sslmode=disable
         KFP_MIGRATION_MYSQL_TEST_DSN: root:kfp_test@tcp(127.0.0.1:${{ job.services.mysql.ports['3306'] }})/?parseTime=true
         KFP_NATIVE_POSTGRES_TEST_DSN: postgres://kfp_test:kfp_test@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/kfp_native_test?sslmode=disable
+        KFP_MLMD_MYSQL_TEST_DSN: root:kfp_test@tcp(127.0.0.1:${{ job.services.mysql.ports['3306'] }})/?parseTime=true
         GIT_BRANCH: ${{ (github.event.merge_group.head_sha || (startsWith(github.ref, 'refs/heads/gh-readonly-queue/') && github.sha)) || github.head_ref || github.ref_name }}
         GIT_REPO: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
       run: |

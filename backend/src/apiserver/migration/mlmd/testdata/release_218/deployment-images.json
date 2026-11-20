@@ -1,0 +1,128 @@
+[
+  {
+    "name": "cache-deployer-deployment",
+    "containers": [
+      {
+        "name": "main",
+        "image": "ghcr.io/kubeflow/kfp-cache-deployer:2.18.0"
+      }
+    ]
+  },
+  {
+    "name": "cache-server",
+    "containers": [
+      {
+        "name": "server",
+        "image": "ghcr.io/kubeflow/kfp-cache-server:2.18.0"
+      }
+    ]
+  },
+  {
+    "name": "metadata-envoy-deployment",
+    "containers": [
+      {
+        "name": "container",
+        "image": "ghcr.io/kubeflow/kfp-metadata-envoy:2.18.0"
+      }
+    ]
+  },
+  {
+    "name": "metadata-grpc-deployment",
+    "containers": [
+      {
+        "name": "container",
+        "image": "gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0"
+      }
+    ]
+  },
+  {
+    "name": "metadata-writer",
+    "containers": [
+      {
+        "name": "main",
+        "image": "ghcr.io/kubeflow/kfp-metadata-writer:2.18.0"
+      }
+    ]
+  },
+  {
+    "name": "ml-pipeline",
+    "containers": [
+      {
+        "name": "ml-pipeline-api-server",
+        "image": "ghcr.io/kubeflow/kfp-api-server:2.18.0"
+      }
+    ]
+  },
+  {
+    "name": "ml-pipeline-persistenceagent",
+    "containers": [
+      {
+        "name": "ml-pipeline-persistenceagent",
+        "image": "ghcr.io/kubeflow/kfp-persistence-agent:2.18.0"
+      }
+    ]
+  },
+  {
+    "name": "ml-pipeline-scheduledworkflow",
+    "containers": [
+      {
+        "name": "ml-pipeline-scheduledworkflow",
+        "image": "ghcr.io/kubeflow/kfp-scheduled-workflow-controller:2.18.0"
+      }
+    ]
+  },
+  {
+    "name": "ml-pipeline-ui",
+    "containers": [
+      {
+        "name": "ml-pipeline-ui",
+        "image": "ghcr.io/kubeflow/kfp-frontend:2.18.0"
+      }
+    ]
+  },
+  {
+    "name": "ml-pipeline-viewer-crd",
+    "containers": [
+      {
+        "name": "ml-pipeline-viewer-crd",
+        "image": "ghcr.io/kubeflow/kfp-viewer-crd-controller:2.18.0"
+      }
+    ]
+  },
+  {
+    "name": "ml-pipeline-visualizationserver",
+    "containers": [
+      {
+        "name": "ml-pipeline-visualizationserver",
+        "image": "ghcr.io/kubeflow/kfp-visualization-server:2.18.0"
+      }
+    ]
+  },
+  {
+    "name": "mysql",
+    "containers": [
+      {
+        "name": "mysql",
+        "image": "mysql:8.4"
+      }
+    ]
+  },
+  {
+    "name": "seaweedfs",
+    "containers": [
+      {
+        "name": "seaweedfs",
+        "image": "ghcr.io/chrislusf/seaweedfs:4.51@sha256:f7a49e3f3972ebed5be2ed4befa4a0c68eb7bdddba6e692d42729ceb545134b8"
+      }
+    ]
+  },
+  {
+    "name": "workflow-controller",
+    "containers": [
+      {
+        "name": "workflow-controller",
+        "image": "quay.io/argoproj/workflow-controller:v4.1.6"
+      }
+    ]
+  }
+]

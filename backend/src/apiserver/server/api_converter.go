@@ -1772,6 +1772,7 @@ func toModelTask(apiTask *apiv2.PipelineTask) (*model.Task, error) {
 		Name:           apiTask.GetName(),
 		DisplayName:    apiTask.GetDisplayName(),
 		Fingerprint:    apiTask.GetCacheFingerprint(),
+		CachedTaskUUID: apiTask.CachedTaskId,
 	}
 
 	// Convert timestamps
@@ -1887,6 +1888,7 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2.Pipeline
 		Name:             modelTask.Name,
 		DisplayName:      modelTask.DisplayName,
 		CacheFingerprint: modelTask.Fingerprint,
+		CachedTaskId:     modelTask.CachedTaskUUID,
 		Inputs:           &apiv2.PipelineTask_InputOutputs{},
 		Outputs:          &apiv2.PipelineTask_InputOutputs{},
 	}

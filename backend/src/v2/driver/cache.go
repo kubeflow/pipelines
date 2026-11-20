@@ -53,10 +53,6 @@ func getFingerPrint(opts common.Options, executorInput *pipelinespec.ExecutorInp
 	userCmdArgs := make([]string, 0, len(opts.Container.Command)+len(opts.Container.Args))
 	userCmdArgs = append(userCmdArgs, opts.Container.Command...)
 	userCmdArgs = append(userCmdArgs, opts.Container.Args...)
-	// Fold pipeline identity into the fingerprint so namespace-wide cache lookups
-	// do not accidentally reuse results across different pipelines.
-	userCmdArgs = append(userCmdArgs, fmt.Sprintf("__kfp_pipeline_name=%s", opts.PipelineName))
-
 	// Deduplicate PVC names and sort them to ensure consistent fingerprint generation.
 	pvcNamesMap := map[string]struct{}{}
 	for _, pvcName := range pvcNames {
@@ -71,7 +67,7 @@ func getFingerPrint(opts common.Options, executorInput *pipelinespec.ExecutorInp
 
 	// Env is passed in its original order and is not deduplicated, because a
 	// $(VAR) reference expands from the entries defined before it.
-	cacheKey, err := cacheutils.GenerateCacheKey(
+	return cacheutils.GenerateNativeFingerprint(
 		executorInput.GetInputs(),
 		executorInput.GetOutputs(),
 		outputParametersTypeMap,
@@ -79,12 +75,8 @@ func getFingerPrint(opts common.Options, executorInput *pipelinespec.ExecutorInp
 		opts.Container.Image,
 		sortedPVCNames,
 		opts.Container.GetEnv(),
+		opts.PipelineName,
 	)
-	if err != nil {
-		return "", fmt.Errorf("failure while generating CacheKey: %w", err)
-	}
-	fingerPrint, err := cacheutils.GenerateFingerPrint(cacheKey)
-	return fingerPrint, err
 }
 
 // getFingerPrintsAndID computes the cache fingerprint for the current task and,

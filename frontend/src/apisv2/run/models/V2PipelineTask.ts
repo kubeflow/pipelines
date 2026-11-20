@@ -202,6 +202,12 @@ export interface V2PipelineTask {
    * @memberof V2PipelineTask
    */
   lifecycle_category?: string;
+  /**
+   * ID of the source task whose result this task reused.
+   * @type {string}
+   * @memberof V2PipelineTask
+   */
+  cached_task_id?: string;
 }
 
 /**
@@ -259,6 +265,7 @@ export function V2PipelineTaskFromJSONTyped(
     scope_path: json['scope_path'] == null ? undefined : json['scope_path'],
     lifecycle_message: json['lifecycle_message'] == null ? undefined : json['lifecycle_message'],
     lifecycle_category: json['lifecycle_category'] == null ? undefined : json['lifecycle_category'],
+    cached_task_id: json['cached_task_id'] == null ? undefined : json['cached_task_id'],
   };
 }
 
@@ -305,5 +312,6 @@ export function V2PipelineTaskToJSONTyped(
     scope_path: value['scope_path'],
     lifecycle_message: value['lifecycle_message'],
     lifecycle_category: value['lifecycle_category'],
+    cached_task_id: value['cached_task_id'],
   };
 }
