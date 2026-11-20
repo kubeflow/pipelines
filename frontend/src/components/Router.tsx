@@ -249,7 +249,15 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
               key={i}
               exact={!route.notExact}
               path={path}
-              render={(props) => <RoutedPage key={props.location.pathname} route={route} />}
+              render={({ location }) => {
+                const { pathname, search } = location;
+                // The upload form reads its pipeline target only on mount.
+                const pageKey =
+                  path === RoutePage.NEW_PIPELINE_VERSION
+                    ? `${pathname}?${new URLSearchParams(search).get(QUERY_PARAMS.pipelineId) ?? ''}`
+                    : pathname;
+                return <RoutedPage key={pageKey} route={route} />;
+              }}
             />
           );
         })}

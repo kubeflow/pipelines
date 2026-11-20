@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as JsYaml from 'js-yaml';
 import * as features from 'src/features';
 import { CommonTestWrapper } from 'src/TestWrapper';
@@ -22,6 +22,7 @@ import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
+import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { Apis } from 'src/lib/Apis';
 import NewRunSwitcher from 'src/pages/NewRunSwitcher';
 import { PageProps } from 'src/pages/Page';
@@ -93,6 +94,67 @@ describe('NewRunSwitcher', () => {
   });
 
   describe('routing to V1 or V2 new run page', () => {
+    it('keeps the draft while loading an uncached experiment selected in the form', async () => {
+      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+      );
+      vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline').mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion').mockResolvedValue(
+        ORIGINAL_TEST_PIPELINE_VERSION,
+      );
+      let resolveExperiment!: (value: V2beta1Experiment) => void;
+      const experimentFetch = new Promise<V2beta1Experiment>((resolve) => {
+        resolveExperiment = resolve;
+      });
+      const getExperiment = vi
+        .spyOn(Apis.experimentServiceApiV2, 'getExperiment')
+        .mockReturnValue(experimentFetch);
+      const createRun = vi
+        .spyOn(Apis.runServiceApiV2, 'createRun')
+        .mockResolvedValue({ run_id: 'created-run' });
+
+      const props = generatePropsNewRun();
+      const view = render(
+        <CommonTestWrapper>
+          <NewRunSwitcher {...props} />
+        </CommonTestWrapper>,
+      );
+      const description = await screen.findByRole('textbox', { name: 'Description' });
+      expect(screen.getByText('Pipeline Root')).toBeInTheDocument();
+      fireEvent.change(description, { target: { value: 'Unsaved description' } });
+      expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled();
+
+      // Selecting an experiment updates the route while retaining the same run form.
+      const search = new URLSearchParams(props.location.search);
+      search.set(QUERY_PARAMS.experimentId, NEW_EXPERIMENT.experiment_id!);
+      view.rerender(
+        <CommonTestWrapper>
+          <NewRunSwitcher {...props} location={{ ...props.location, search: `?${search}` }} />
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => expect(getExperiment).toHaveBeenCalledWith(NEW_EXPERIMENT.experiment_id));
+      expect(await screen.findByText('Loading experiment information')).toBeVisible();
+      expect(screen.getByRole('textbox', { name: 'Description' })).toBe(description);
+      expect(description).toHaveValue('Unsaved description');
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Start' })).toBeDisabled());
+
+      resolveExperiment(NEW_EXPERIMENT);
+      expect(await screen.findByDisplayValue(NEW_EXPERIMENT.display_name!)).toBeVisible();
+      expect(description).toHaveValue('Unsaved description');
+      const start = screen.getByRole('button', { name: 'Start' });
+      await waitFor(() => expect(start).toBeEnabled());
+      fireEvent.click(start);
+      await waitFor(() =>
+        expect(createRun).toHaveBeenCalledWith(
+          expect.objectContaining({
+            description: 'Unsaved description',
+            experiment_id: NEW_EXPERIMENT.experiment_id,
+          }),
+        ),
+      );
+    });
+
     it('directs to new run v2 if no pipeline is selected (enter from run list)', () => {
       render(
         <CommonTestWrapper>
