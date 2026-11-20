@@ -116,9 +116,7 @@ def wait_gcp_resources(
           )
         else:
           error_util.exit_with_internal_error(
-              'Request failed after %s retries.'.format(
-                  _CONNECTION_ERROR_RETRY_LIMIT
-              )
+              f'Request failed after {_CONNECTION_ERROR_RETRY_LIMIT} retries.'
           )
 
       job_state = job.get('currentState', None)  # pyrefly: ignore[unbound-name]
