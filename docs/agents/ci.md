@@ -111,7 +111,9 @@ invalidates consumers pinned to its previous attempt. Manual consumers can reuse
 a push/manual producer only at the exact same source/ref; dispatch
 `ci-images.yml` at that ref first when no eligible producer exists. Discovery is
 bounded to 40 minutes; a completed producer missing artifacts gets a 60-second
-publication grace period. Revision-specific concurrency prevents a newer
+publication grace period. When the PR head is unchanged but its merge SHA changes,
+readiness keeps looking for the exact checkout within the discovery deadline.
+It skips verified unrelated run attempts on subsequent polls. Revision-specific concurrency prevents a newer
 revision from cancelling images still needed by older consumers.
 
 Artifact readiness is polled once per consumer workflow every ten seconds,
