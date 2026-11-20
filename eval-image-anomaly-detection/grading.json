@@ -1,0 +1,25 @@
+{
+  "assertion_results": [
+    {
+      "text": "Pipeline file exists on disk",
+      "passed": true,
+      "evidence": "Found pipeline file at eval-image-anomaly-detection/pipeline.py"
+    },
+    {
+      "text": "Pipeline compiles successfully into a valid KFP v2 YAML workflow",
+      "passed": true,
+      "evidence": ""
+    },
+    {
+      "text": "Compiled YAML artifact generated successfully",
+      "passed": true,
+      "evidence": "Found artifact eval-image-anomaly-detection/pipeline.py.yaml (16314 bytes)"
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 0,
+    "total": 3,
+    "pass_rate": 1.0
+  }
+}
