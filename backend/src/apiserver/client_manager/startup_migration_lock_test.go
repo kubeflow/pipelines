@@ -315,8 +315,10 @@ func TestStartupMigrationLock_ConcurrentRestartWithCurrentSchema(t *testing.T) {
 	})
 }
 
-// A replica that stops partway through the migrations releases the lock, and
-// the next replicas finish them with the same result as an uninterrupted run.
+// On the non-legacy path, a replica that stops partway through the migrations
+// releases the lock, and the next replicas finish them with the same result as
+// an uninterrupted run. For the legacy upgrade, see
+// TestStartupMigrationLock_LegacyUpgradeStoppedBeforePipelineUUIDShrink.
 func TestStartupMigrationLock_NextReplicaFinishesInterruptedMigration(t *testing.T) {
 	forEachMigrationLockEngine(t, func(t *testing.T, database migrationLockDatabase) {
 		stopped := errors.New("replica stopped")
