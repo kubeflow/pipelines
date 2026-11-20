@@ -4453,6 +4453,51 @@ func nodeParent(id string, nodes map[string]util.NodeStatus) (string, bool) {
 	return node.BoundaryID, true
 }
 
+// loopIterationSuffix matches the "(index:item)" Argo adds to each expansion of a withSequence task.
+var loopIterationSuffix = regexp.MustCompile(`^\(\d+:[^()]*\)$`)
+
+// matchesScopeName reports whether an Argo Retry node's display name stands for the enclosing task
+// scopeName. A ParallelFor body runs as "<loop>-iterations(<index>:<item>)", which is the logical
+// loop task's iteration, so it counts as that task.
+func matchesScopeName(displayName, scopeName string) bool {
+	if displayName == scopeName {
+		return true
+	}
+	rest, ok := strings.CutPrefix(displayName, scopeName+"-iterations")
+	return ok && loopIterationSuffix.MatchString(rest)
+}
+
+// isCompilerWrapperNode reports whether the Retry node is one of the compiler's two reserved
+// wrappers, by position as nodeInScope does: the outermost Retry with no parent, or the one exactly
+// two hops below it. Neither is ever a real task.
+func isCompilerWrapperNode(id string, nodes map[string]util.NodeStatus, tasksByUUID map[string]*model.Task) bool {
+	// The inner compiler wrapper ("root") sits exactly two hops below the outermost
+	// parentless Retry. Structure alone is not enough: a real task nested one level
+	// inside a top-level task has the same hop count. The tiebreaker is the parentless
+	// ancestor's DisplayName: the compiler's outermost wrapper carries the run name,
+	// which never matches a task name, while a real top-level task does.
+	hop1, ok := nodeParent(id, nodes)
+	if !ok {
+		return false
+	}
+	hop2, ok := nodeParent(hop1, nodes)
+	if !ok {
+		return false
+	}
+	if _, hasHop3 := nodeParent(hop2, nodes); hasHop3 {
+		return false
+	}
+	// hop2 is the parentless Retry at the absolute top. If its DisplayName matches
+	// any task in the run, it is a real task (not the compiler's wrapper).
+	topName := nodes[hop2].DisplayName
+	for _, task := range tasksByUUID {
+		if task.Name == topName {
+			return false
+		}
+	}
+	return true
+}
+
 // nodeInScope reports whether the nearest Retry ancestors of the node are the enclosing tasks in
 // scope, nearest first, and nothing more. Once scope is exhausted (including the empty, top-level
 // case), any further Retry ancestor before the root means the node is nested deeper than the task
@@ -4479,7 +4524,7 @@ func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bo
 		seen[parentID] = true
 		current = parentID
 		if node := nodes[parentID]; node.Type == "Retry" {
-			if node.DisplayName != scope[next] {
+			if !matchesScopeName(node.DisplayName, scope[next]) {
 				return false
 			}
 			next++
@@ -4514,57 +4559,15 @@ func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bo
 	}
 }
 
-// isStrictDescendant reports whether id is nested somewhere below ancestorID, climbing through
-// plain containment (nodeParent) rather than nodeInScope's wrapper-skipping climb: this is used to
-// tell the compiler's reserved wrapper apart from a real task of the same name, which is exactly
-// the distinction nodeInScope's own skip exists to not have to make.
-func isStrictDescendant(id, ancestorID string, nodes map[string]util.NodeStatus) bool {
-	seen := map[string]bool{id: true}
-	current := id
-	for {
-		parentID, ok := nodeParent(current, nodes)
-		if !ok || seen[parentID] {
-			return false
-		}
-		if parentID == ancestorID {
-			return true
-		}
-		seen[parentID] = true
-		current = parentID
-	}
-}
-
-// theDescendantOf returns whichever candidate is a strict descendant of every other candidate, or
-// "" if no single one has that relationship to all the rest.
-func theDescendantOf(candidates []string, nodes map[string]util.NodeStatus) string {
-	for _, candidate := range candidates {
-		isDescendantOfRest := true
-		for _, other := range candidates {
-			if other != candidate && !isStrictDescendant(candidate, other, nodes) {
-				isDescendantOfRest = false
-				break
-			}
-		}
-		if isDescendantOfRest {
-			return candidate
-		}
-	}
-	return ""
-}
-
 // findScopedTaskNode finds the Retry node that represents task by name and enclosing scope.
 // lifecycleMessageForTaskNode and executorFailureForTaskViaNode both need this same match, just
 // different evidence off the node once it's found, so they share it instead of each re-walking
 // nodes with their own copy of the loop. It reports false when the task's own name or parent chain
 // can't be resolved, or when the match is not unique, rather than guessing.
 //
-// More than one same-named, same-scope Retry node can turn up when one of them is the compiler's
-// own reserved "root" wrapper: "root" is also a name a user's own task can legitimately have (see
-// nodeInScope's doc comment), and the wrapper always sits as a structural ancestor of the
-// pipeline's real top-level tasks, so it ties with a real task of that name at the same scope. The
-// wrapper itself is never the task being matched, so among multiple candidates, whichever one is a
-// strict descendant of every other candidate is preferred; candidates that are otherwise unrelated
-// are a genuine, unresolvable ambiguity and stay unmatched.
+// The compiler's reserved wrapper Retry nodes are left out before counting, since "root" is also a
+// name a user's own task can have. More than one remaining match is a genuine ambiguity and stays
+// unmatched.
 func findScopedTaskNode(task *model.Task, nodes map[string]util.NodeStatus, tasksByUUID map[string]*model.Task) (nodeID string, ok bool) {
 	if task.Name == "" {
 		return "", false
@@ -4578,23 +4581,20 @@ func findScopedTaskNode(task *model.Task, nodes map[string]util.NodeStatus, task
 		if node.Type != "Retry" || node.DisplayName != task.Name {
 			continue
 		}
+		// A compiler wrapper is never a task. Counting it would match a task named "root" that
+		// has no node of its own (for example, one Argo omitted) to the wrapper's failure.
+		if isCompilerWrapperNode(id, nodes, tasksByUUID) {
+			continue
+		}
 		if !nodeInScope(id, scope, nodes) {
 			continue
 		}
 		candidates = append(candidates, id)
 	}
-	switch len(candidates) {
-	case 0:
+	if len(candidates) != 1 {
 		return "", false
-	case 1:
-		return candidates[0], true
-	default:
-		descendant := theDescendantOf(candidates, nodes)
-		if descendant == "" {
-			return "", false
-		}
-		return descendant, true
 	}
+	return candidates[0], true
 }
 
 // persistTaskLifecycleMessages resolves pod lifecycle messages from the workflow and writes them

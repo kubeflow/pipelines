@@ -9294,6 +9294,79 @@ func TestFindScopedTaskNode_UserTaskNamedRootIsNotMistakenForTheCompilerWrapper(
 	assert.Equal(t, "user-root", nodeID)
 }
 
+// A user task named "root" that Argo omitted has no Retry node of its own. The compiler's reserved
+// "root" wrapper has that name too, and it fails when a sibling fails, so it must not be matched
+// as the omitted task's node.
+func TestFindScopedTaskNode_OmittedUserTaskNamedRootIsNotMatchedToTheCompilerWrapper(t *testing.T) {
+	nodes := map[string]util.NodeStatus{
+		"workflow":     {ID: "workflow", DisplayName: "my-pipeline-run", Type: "Retry", State: "Failed", Children: []string{"workflow0"}},
+		"workflow0":    {ID: "workflow0", DisplayName: "my-pipeline-run(0)", Type: "DAG", State: "Failed", Children: []string{"root"}},
+		"root":         {ID: "root", DisplayName: "root", Type: "Retry", State: "Failed", Children: []string{"root0"}, BoundaryID: "workflow0"},
+		"root0":        {ID: "root0", DisplayName: "root(0)", Type: "DAG", State: "Failed", Children: []string{"sibling", "omitted-root"}, BoundaryID: "workflow0"},
+		"sibling":      {ID: "sibling", DisplayName: "sibling", Type: "Retry", State: "Failed", Children: []string{"sibling-pod"}, BoundaryID: "root0", Message: "main: OOMKilled (exit code 137)"},
+		"sibling-pod":  {ID: "sibling-pod", DisplayName: "sibling(0)", Type: "Pod", State: "Failed", Message: "main: OOMKilled (exit code 137)", BoundaryID: "root0"},
+		"omitted-root": {ID: "omitted-root", DisplayName: "root", Type: "Skipped", State: "Omitted", BoundaryID: "root0"},
+	}
+	tasks := map[string]*model.Task{
+		"wf-root":   {UUID: "wf-root", Name: "wf-root"},
+		"user-root": scopedTask(t, "user-root", "root", "wf-root"),
+	}
+	tasks["user-root"].State = model.TaskStatus(apiv2.PipelineTask_RUNNING)
+	tasks["user-root"].Type = model.TaskType(apiv2.PipelineTask_RUNTIME)
+	_, ok := findScopedTaskNode(tasks["user-root"], nodes, tasks)
+	assert.False(t, ok, "a task with no node of its own must not take the compiler wrapper's failure")
+
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	_, failed := executorFailureForTask(tasks["user-root"], nodes, resolved, tasks)
+	assert.False(t, failed)
+}
+
+// parallelForBodyNodes models a ParallelFor whose body is a sub-DAG with one task. Argo expands the
+// loop body as "<loop>-iterations(<index>:<item>)", a Retry node inside the loop's own Retry node.
+// The stored tasks are the iteration DAG and the loop task, both named after the loop.
+func parallelForBodyNodes() map[string]util.NodeStatus {
+	return map[string]util.NodeStatus{
+		"workflow":  {ID: "workflow", DisplayName: "my-pipeline-run", Type: "Retry", State: "Running", Children: []string{"workflow0"}},
+		"workflow0": {ID: "workflow0", DisplayName: "my-pipeline-run(0)", Type: "DAG", State: "Running", Children: []string{"root"}},
+		"root":      {ID: "root", DisplayName: "root", Type: "Retry", State: "Running", Children: []string{"root0"}, BoundaryID: "workflow0"},
+		"root0":     {ID: "root0", DisplayName: "root(0)", Type: "DAG", State: "Running", Children: []string{"loop"}, BoundaryID: "workflow0"},
+		"loop":      {ID: "loop", DisplayName: "for-loop-1", Type: "Retry", State: "Running", Children: []string{"loop0"}, BoundaryID: "root0"},
+		"loop0":     {ID: "loop0", DisplayName: "for-loop-1(0)", Type: "DAG", State: "Running", Children: []string{"iter"}, BoundaryID: "root0"},
+		"iter":      {ID: "iter", DisplayName: "for-loop-1-iterations(0:0)", Type: "Retry", State: "Running", Children: []string{"iter0"}, BoundaryID: "loop0"},
+		"iter0":     {ID: "iter0", DisplayName: "for-loop-1-iterations(0:0)(0)", Type: "DAG", State: "Running", Children: []string{"train"}, BoundaryID: "loop0"},
+		"train":     {ID: "train", DisplayName: "train", Type: "Retry", State: "Failed", Children: []string{"train-pod"}, BoundaryID: "iter0"},
+		"train-pod": {ID: "train-pod", DisplayName: "train(0)", Type: "Pod", State: "Failed", Message: "main: OOMKilled (exit code 137)", BoundaryID: "iter0"},
+	}
+}
+
+func TestFindScopedTaskNode_TaskInsideParallelForBodyMatchesItsNode(t *testing.T) {
+	nodes := parallelForBodyNodes()
+	tasks := map[string]*model.Task{
+		"wf-root":   {UUID: "wf-root", Name: "wf-root"},
+		"loop-task": scopedTask(t, "loop-task", "for-loop-1", "wf-root"),
+		"iter-task": scopedTask(t, "iter-task", "for-loop-1", "loop-task"),
+		"train":     scopedTask(t, "train", "train", "iter-task"),
+	}
+	tasks["train"].State = model.TaskStatus(apiv2.PipelineTask_RUNNING)
+	tasks["train"].Type = model.TaskType(apiv2.PipelineTask_RUNTIME)
+	nodeID, ok := findScopedTaskNode(tasks["train"], nodes, tasks)
+	require.True(t, ok, "the iteration wrapper must count as the logical loop task in the scope")
+	assert.Equal(t, "train", nodeID)
+
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	failure, failed := executorFailureForTask(tasks["train"], nodes, resolved, tasks)
+	require.True(t, failed, "a failed task inside a loop body must be reconcilable from its node")
+	assert.Equal(t, "main: OOMKilled (exit code 137)", failure.message)
+}
+
+// A task in a different loop must not match through the iteration naming.
+func TestFindScopedTaskNode_ParallelForIterationNameIsNotAPrefixMatch(t *testing.T) {
+	assert.True(t, matchesScopeName("for-loop-1-iterations(2:2)", "for-loop-1"))
+	assert.False(t, matchesScopeName("for-loop-10-iterations(0:0)", "for-loop-1"))
+	assert.False(t, matchesScopeName("for-loop-1-iterations(0)", "for-loop-1"))
+	assert.False(t, matchesScopeName("for-loop-1-iterationsx(0:0)", "for-loop-1"))
+}
+
 // loopIterationNodes models a top-level loop task compiled via Argo's withSequence (see
 // argocompiler/dag.go's iterationItemTask): each iteration is its own sibling Retry node directly
 // under root0, Display-named "<loop-task>-iterations(<index>)". That shape syntactically matches
