@@ -269,9 +269,10 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
     }
 
     return (
-      <div
+      <nav
         id='sideNav'
         data-testid='sideNav'
+        aria-label='Main'
         className={classes(
           css.root,
           commonCss.flexColumn,
@@ -334,7 +335,12 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             disableHoverListener={!collapsed}
             disableTouchListener={!collapsed}
           >
-            <Link id='pipelinesBtn' to={RoutePage.PIPELINES} className={commonCss.unstyled}>
+            <Link
+              id='pipelinesBtn'
+              to={RoutePage.PIPELINES}
+              className={commonCss.unstyled}
+              aria-current={this._highlightPipelinesButton(page) ? 'page' : undefined}
+            >
               <SideNavButton
                 collapsed={collapsed}
                 className={this._highlightPipelinesButton(page) ? css.active : undefined}
@@ -368,7 +374,12 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             disableHoverListener={!collapsed}
             disableTouchListener={!collapsed}
           >
-            <Link id='experimentsBtn' to={RoutePage.EXPERIMENTS} className={commonCss.unstyled}>
+            <Link
+              id='experimentsBtn'
+              to={RoutePage.EXPERIMENTS}
+              className={commonCss.unstyled}
+              aria-current={this._highlightExperimentsButton(page) ? 'page' : undefined}
+            >
               <SideNavButton
                 collapsed={collapsed}
                 className={this._highlightExperimentsButton(page) ? css.active : undefined}
@@ -404,7 +415,12 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             disableHoverListener={!collapsed}
             disableTouchListener={!collapsed}
           >
-            <Link id='runsBtn' to={RoutePage.RUNS} className={commonCss.unstyled}>
+            <Link
+              id='runsBtn'
+              to={RoutePage.RUNS}
+              className={commonCss.unstyled}
+              aria-current={this._highlightRunsButton(page) ? 'page' : undefined}
+            >
               <SideNavButton
                 collapsed={collapsed}
                 className={this._highlightRunsButton(page) ? css.active : undefined}
@@ -434,6 +450,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
               id='recurringRunsBtn'
               to={RoutePage.RECURRING_RUNS}
               className={commonCss.unstyled}
+              aria-current={this._highlightRecurringRunsButton(page) ? 'page' : undefined}
             >
               <SideNavButton
                 collapsed={collapsed}
@@ -462,7 +479,12 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             disableHoverListener={!collapsed}
             disableTouchListener={!collapsed}
           >
-            <Link id='artifactsBtn' to={RoutePage.ARTIFACTS} className={commonCss.unstyled}>
+            <Link
+              id='artifactsBtn'
+              to={RoutePage.ARTIFACTS}
+              className={commonCss.unstyled}
+              aria-current={this._highlightArtifactsButton(page) ? 'page' : undefined}
+            >
               <SideNavButton
                 collapsed={collapsed}
                 className={this._highlightArtifactsButton(page) ? css.active : undefined}
@@ -582,7 +604,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             </div>
           </Tooltip>
         </div>
-      </div>
+      </nav>
     );
   }
 
