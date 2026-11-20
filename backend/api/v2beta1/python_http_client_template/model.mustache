@@ -60,6 +60,13 @@ class {{classname}}(object):
 
     def __init__(self{{#vars}}, {{name}}={{#defaultValue}}{{{defaultValue}}}{{/defaultValue}}{{^defaultValue}}None{{/defaultValue}}{{/vars}}, local_vars_configuration=None):  # noqa: E501
         """{{classname}} - a model defined in OpenAPI"""  # noqa: E501
+{{#vendorExtensions.x-kfp-legacy-positional-configuration}}
+        # Before name fields were added, Configuration was the third positional argument.
+        if (isinstance(pipeline_name, Configuration) and
+                pipeline_version_name is None and local_vars_configuration is None):
+            local_vars_configuration = pipeline_name
+            pipeline_name = None
+{{/vendorExtensions.x-kfp-legacy-positional-configuration}}
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
         self.local_vars_configuration = local_vars_configuration

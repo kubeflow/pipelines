@@ -1053,6 +1053,33 @@ class TestLoadConfigKubeConfigFallback(parameterized.TestCase):
                     self._load_config()
 
 
+class TestPipelineVersionReferenceCompatibility(unittest.TestCase):
+
+    def test_legacy_positional_configuration(self):
+        configuration = kfp_server_api.Configuration()
+        reference = kfp_server_api.V2beta1PipelineVersionReference(
+            'pipeline-id', 'version-id', configuration)
+
+        self.assertIs(reference.local_vars_configuration, configuration)
+        self.assertEqual(
+            kfp_server_api.ApiClient().sanitize_for_serialization(reference), {
+                'pipeline_id': 'pipeline-id',
+                'pipeline_version_id': 'version-id',
+            })
+
+    def test_positional_name_fields(self):
+        configuration = kfp_server_api.Configuration()
+        reference = kfp_server_api.V2beta1PipelineVersionReference(
+            None, None, 'pipeline-name', 'version-name', configuration)
+
+        self.assertIs(reference.local_vars_configuration, configuration)
+        self.assertEqual(
+            kfp_server_api.ApiClient().sanitize_for_serialization(reference), {
+                'pipeline_name': 'pipeline-name',
+                'pipeline_version_name': 'version-name',
+            })
+
+
 class TestCreateJobConfigPipelineVersionReference(parameterized.TestCase):
     """`version_id` is optional; the server resolves the default version."""
 
