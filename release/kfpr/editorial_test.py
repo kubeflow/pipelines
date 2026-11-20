@@ -2,7 +2,11 @@
 
 import unittest
 
-from kfpr.editorial import editorial_scaffold, validate_notes
+from kfpr.editorial import (
+    editorial_scaffold,
+    publication_blockers,
+    validate_notes,
+)
 
 
 class EditorialScaffoldTest(unittest.TestCase):
@@ -66,6 +70,23 @@ class ValidateNotesTest(unittest.TestCase):
         self.assertEqual(len(warnings), 3)
         self.assertTrue(all('placeholder' in warning for warning in warnings))
         self.assertEqual(validate_notes('The todo-list API was removed.'), [])
+
+    def test_inline_code_placeholders_do_not_block_publication(self):
+        text = (
+            'Fixed parsing of `TODO` comments and ``use `FIXME` here``.\n'
+            'Examples include `multiline\nTBD` markers.\n'
+        )
+        self.assertEqual(publication_blockers(text), [])
+        self.assertEqual(validate_notes(text), [])
+        for unfinished in (
+            '<!-- TODO: finish -->',
+            'FIXME: describe this fix after mentioning `TODO`.',
+            'TODO after an unmatched ` delimiter',
+        ):
+            with self.subTest(unfinished=unfinished):
+                self.assertEqual(
+                    len(publication_blockers(text + '\n' + unfinished)), 1
+                )
 
     def test_duplicate_bullets_ignore_spacing_case_and_marker(self):
         warnings = validate_notes(

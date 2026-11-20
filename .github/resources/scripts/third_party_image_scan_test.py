@@ -45,7 +45,15 @@ class ThirdPartyInventoryTest(unittest.TestCase):
                         'target': 'mysql',
                         'scope': 'standard',
                         'profiles': [],
-                    }
+                    },
+                    {
+                        'image': 'docker.io/alpine/k8s:1.37.2'
+                        if source.name == 'main'
+                        else 'ghcr.io/kubeflow/kfp-profile-controller:2.18.1',
+                        'target': 'profile-controller',
+                        'scope': 'standard',
+                        'profiles': [],
+                    },
                 ]
             }
 
@@ -79,6 +87,8 @@ class ThirdPartyInventoryTest(unittest.TestCase):
             api.call_args_list,
         )
         rows = {row['image']: row for row in inventory['images']}
+        self.assertIn('docker.io/alpine/k8s:1.37.2', rows)
+        self.assertNotIn('ghcr.io/kubeflow/kfp-profile-controller:2.18.1', rows)
         self.assertEqual(
             rows['mysql:8.0']['candidate_key'], rows['mysql:8.4']['key']
         )

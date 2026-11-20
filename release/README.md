@@ -630,6 +630,32 @@ alter the release CLI's existing image-tag and branch-selection behavior.
 
 ## Review release notes before publishing
 
+### Review the backend and SDK notes together
+
+From the release checkout, run the following command with the checkpoint used for
+publication. It creates missing editable drafts beside the checkpoint, preserves
+existing edits, and displays the notes for every selected product.
+
+```sh
+kfpr review-notes --state-file release-state.json
+```
+
+The review fetches **published** GitHub repository advisories for this release.
+The backend page covers the release as a whole. The SDK page covers affected SDK
+packages. Link each applicable advisory in the relevant notes, explain who needs
+to upgrade, and remove unfinished editorial prompts. Resolve reported gaps and
+repeat the command. When a product has already been published and checkpointed,
+the review checks its GitHub release body; if coverage is missing there, update
+the published notes before continuing. The preview command never publishes a
+release or marks a checkpoint complete.
+
+Both GitHub publication steps show gaps in the initial drafts and pause for edits.
+After confirmation, they recheck the final Markdown and block publication if gaps
+remain, including when resuming. Use the offline editorial inventory below
+to prepare the prose before the live review. For examples of highlights, security
+improvements, and operator actions, see the [2.18.0 backend notes](https://github.com/kubeflow/pipelines/releases/tag/2.18.0)
+and [2.18.0 SDK notes](https://github.com/kubeflow/pipelines/releases/tag/sdk-2.18.0).
+
 ### Build a release-wide editorial inventory
 
 Before selecting highlights, create a local evidence bundle from the actual release
@@ -844,9 +870,10 @@ unfinished editorial prompts, empty editorial sections, duplicate bullet entries
 breaking/deprecation entries without explanatory guidance or migration links,
 multiple version-history headings, and excessive prose. With `--product`, it also
 checks for missing Bug fixes, Contributors, and Assets release sections.
-These checks are heuristics, not a substitute for review. Editorial warnings are
-advisory and return success; unreadable input fails. Existing empty-note, stale
-range, qualification, and merge-conflict gates still block publication. Resolve
+The standalone linter reports editorial warnings and returns success for readable
+files. During GitHub publication, unfinished placeholders and missing published
+advisory links block the release alongside empty notes, stale ranges, failed
+qualification, and merge conflicts. Resolve
 warnings and review the actual file before accepting the publication prompt.
 Removing or completing the scaffold is preserved by preview regeneration.
 

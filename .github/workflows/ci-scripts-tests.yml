@@ -63,6 +63,8 @@ on:
       - '.github/scripts/*.py'
       # The observability shell scripts are covered by Python-driven tests.
       - '.github/resources/scripts/*.sh'
+      # deploy_kfp_certmanager_test.py pins the install-cert-manager waits.
+      - 'backend/Makefile'
       - '.github/resources/scripts/kfp-readiness/**'
       - '.github/actions/junit-summary/**'
       - '.github/workflows/ci-checks.yml'

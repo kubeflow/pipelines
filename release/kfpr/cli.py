@@ -536,6 +536,43 @@ def validate_notes_command(
 
 
 @app.command(
+    'review-notes', context_settings={'help_option_names': HELP_OPTION_NAMES}
+)
+def review_notes_command(
+    state_file: Path = typer.Option(
+        Path(STATE_FILE),
+        exists=True,
+        dir_okay=False,
+        help='Existing release checkpoint.',
+    ),
+) -> None:
+    """Preview all selected release pages and check public advisory
+    coverage."""
+    from .steps import review_release_notes
+
+    try:
+        context = _context(
+            state_file,
+            dry_run=False,
+            release_type=None,
+            version=None,
+            fork_remote=None,
+            patch_prs=None,
+            include_backend=None,
+            include_sdk=None,
+            save_state=False,
+        )
+        issues = review_release_notes(context)
+    except (ValueError, OSError, subprocess.CalledProcessError) as error:
+        typer.echo(f'Unable to review release notes: {error}', err=True)
+        raise typer.Exit(1) from error
+    if issues:
+        for issue in issues:
+            typer.echo(issue, err=True)
+        raise typer.Exit(1)
+
+
+@app.command(
     'regenerate-notes',
     context_settings={'help_option_names': HELP_OPTION_NAMES},
 )
