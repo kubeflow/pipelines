@@ -200,6 +200,21 @@ func (f *FakeClientManager) ArtifactTaskStore() storage.ArtifactTaskStoreInterfa
 	return f.artifactTaskStore
 }
 
+// SetRunStore replaces the run store. Intended for tests that count lookups.
+func (f *FakeClientManager) SetRunStore(store storage.RunStoreInterface) {
+	f.runStore = store
+}
+
+// SetTaskStore replaces the task store. Intended for tests that count lookups.
+func (f *FakeClientManager) SetTaskStore(store storage.TaskStoreInterface) {
+	f.taskStore = store
+}
+
+// SetArtifactStore replaces the artifact store. Intended for tests that count lookups.
+func (f *FakeClientManager) SetArtifactStore(store storage.ArtifactStoreInterface) {
+	f.artifactStore = store
+}
+
 // SetArtifactTaskStore replaces the artifact-task store. Intended for tests that
 // need to assert storage is not reached.
 func (f *FakeClientManager) SetArtifactTaskStore(store storage.ArtifactTaskStoreInterface) {
