@@ -17,6 +17,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Router as ReactRouter } from '../lib/Router';
 import { HashRouter, MemoryRouter } from 'react-router';
+import { NavigationErrorBoundary } from 'src/atoms/NavigationErrorBoundary';
 import { createMemoryHistory } from 'history';
 import Router, { getSafeReturnPath, RouteConfig, RoutePage } from './Router';
 import { Page } from '../pages/Page';
@@ -105,7 +106,9 @@ describe('Router', () => {
     window.history.replaceState(null, '', '/#/form/first');
     const view = render(
       <HashRouter>
-        <Router configs={[{ path: '/form/:id', Component: FormPage }]} />
+        <NavigationErrorBoundary>
+          <Router configs={[{ path: '/form/:id', Component: FormPage }]} />
+        </NavigationErrorBoundary>
       </HashRouter>,
     );
     fireEvent.change(screen.getByLabelText('draft name'), { target: { value: 'Unsaved run' } });

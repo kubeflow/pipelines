@@ -49,14 +49,55 @@ describe('ErrorBoundary', () => {
     consoleSpy.mockRestore();
   });
 
-  it('recovers when the key prop changes (simulates navigation)', () => {
+  it('preserves healthy child state when the navigation reset key changes', () => {
+    function StatefulChild() {
+      const [selection, setSelection] = useState('initial');
+      return <button onClick={() => setSelection('selected')}>{selection}</button>;
+    }
+
+    const view = render(
+      <ErrorBoundary resetKey='page-a'>
+        <StatefulChild />
+      </ErrorBoundary>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'initial' }));
+
+    view.rerender(
+      <ErrorBoundary resetKey='page-b'>
+        <StatefulChild />
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByRole('button', { name: 'selected' })).toBeInTheDocument();
+  });
+
+  it('retains a captured error until the navigation reset key changes', () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const view = render(
+      <ErrorBoundary resetKey='page-a'>
+        <ThrowingChild />
+      </ErrorBoundary>,
+    );
+
+    view.rerender(
+      <ErrorBoundary resetKey='page-a'>
+        <div>recovered content</div>
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
+    expect(screen.queryByText('recovered content')).not.toBeInTheDocument();
+    consoleSpy.mockRestore();
+  });
+
+  it('recovers when the navigation reset key changes', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     function Harness() {
       const [locationKey, setLocationKey] = useState('page-a');
       return (
         <>
-          <ErrorBoundary key={locationKey}>
+          <ErrorBoundary resetKey={locationKey}>
             {locationKey === 'page-a' ? <ThrowingChild /> : <div>recovered content</div>}
           </ErrorBoundary>
           <button onClick={() => setLocationKey('page-b')}>navigate</button>
