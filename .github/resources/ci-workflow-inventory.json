@@ -320,7 +320,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "2636b7f34dfc5a4c6dbb7dfcae235b12eb75c5e317e43879c86a7266ea60396e",
+      "header_sha256": "b97271ad830c8fb7ad0a6824bfac4513015a3710e2834e22ee7dd3aad1b3ad3d",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -354,6 +354,7 @@
           ".github/workflows/**",
           ".github/scripts/*.py",
           ".github/resources/scripts/*.sh",
+          "backend/Makefile",
           ".github/resources/scripts/kfp-readiness/**",
           ".github/actions/junit-summary/**",
           ".github/workflows/ci-checks.yml",
