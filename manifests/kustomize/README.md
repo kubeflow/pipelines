@@ -311,18 +311,14 @@ server's object-store environment, so custom stores must also be listed in
 `AWS_S3_ENDPOINT` directly may put the port in that value or set
 `AWS_S3_PORT`; if both specify a port, they must agree.
 
-Archived pod logs retrieved from workflow status also require an exact match
-with a configured MinIO or AWS origin, or an entry in `ALLOWED_ARTIFACT_ENDPOINTS`.
-For a Kubernetes service configured through `MINIO_HOST` and `MINIO_NAMESPACE`,
-the server also trusts the exact `.svc` and `CLUSTER_DOMAIN` hostnames generated
-by the Argo controller and profile repositories, using `MINIO_SSL` and
-`MINIO_PORT`. This preserves stock archived logs without extra allowlist entries.
-Custom profile-controller `OBJECT_STORE_HOST` and `CLUSTER_DOMAIN` settings must
-match the frontend's `MINIO_HOST` and `CLUSTER_DOMAIN`, or their origins must be
-listed explicitly. External hostnames do not receive generated service aliases.
-The server rejects other workflow-supplied endpoints before selecting credentials
-or contacting storage. If configured, the operator's archive bucket remains
-available as the final log-retrieval fallback.
+Authenticated archived-log reads use the operator-selected archive store and
+bucket after API `readLog` authorization. Workflow endpoint hints must match that
+store or its exact configured Kubernetes service aliases (`.svc` and
+`CLUSTER_DOMAIN`, using `MINIO_SSL` and `MINIO_PORT`). General
+`ALLOWED_ARTIFACT_ENDPOINTS` entries do not authorize another log store or bucket.
+Configure the selected store itself for custom storage. Native namespace/workflow
+path validation also applies; see [pod-log configuration](../../frontend/README.md#pod-log-access).
+Standalone artifact/log endpoint handling otherwise retains its existing behavior.
 
 ### Upgrade example: custom S3 storage
 
@@ -392,17 +388,17 @@ updated rollout to complete before testing a custom artifact preview or download
 Standalone installations only need the UI restart. Preserve these settings in the
 manifests used for future upgrades.
 
-Archived logs have a separate credential constraint: for runs outside the UI
-server's namespace, the shared UI uses its own `MINIO_ACCESS_KEY` and
-`MINIO_SECRET_KEY`, rather than reading the workflow's tenant Secret. An allowed
-log endpoint must accept those credentials and permit reads of the archived log
-objects. Alternatively, configure the operator-owned archive fallback. Enabling
-artifact proxies does not change this shared-UI pod-log credential behavior; do
-not grant the shared UI broad access to tenant Secrets to work around it.
+Authenticated archived logs use the operator-selected UI storage credentials,
+not a Workflow-supplied tenant Secret. Keep `ARGO_ARCHIVE_LOGS=true`, the archive
+bucket, and `KFP_LOG_ARCHIVE_KEY_FORMAT` consistent with the configured store and
+the actual namespace/workflow-partitioned objects. The shipped layout is supported
+without moving old logs. Enabling artifact proxies does not change this shared-UI
+log credential behavior; do not grant broad access to tenant Secrets as a workaround.
 
 Validate both an artifact read and an archived-log read after migration. An
-unlisted artifact endpoint returns HTTP 400; an unlisted workflow log endpoint
-returns HTTP 500 if no configured archive fallback succeeds. Both errors identify
-`ALLOWED_ARTIFACT_ENDPOINTS`. Live Kubernetes pod logs may still succeed, so verify
-an archived log after the original pod is gone. Keep the exact-origin, TLS, and
-namespace restrictions enabled during this verification.
+unlisted artifact endpoint returns HTTP 400. An unauthorized archived-log
+location returns HTTP 403 without an unchecked storage fallback; namespace
+Viewer access or endpoint allowlisting alone cannot authorize it. Verify an
+archived native run after its Pod is gone, as live logs do not exercise this path.
+See [pod-log configuration](../../frontend/README.md#pod-log-access) for imported
+histories, custom layouts, and the coordinated UI/API rollout.
