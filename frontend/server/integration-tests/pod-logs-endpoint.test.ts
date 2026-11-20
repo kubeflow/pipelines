@@ -42,6 +42,8 @@ vi.mock('../k8s-helper.js', () => ({
 }));
 
 const podName = 'workflow-1-system-container-impl-12345';
+const operatorManagedRejection =
+  'ALLOWED_ARTIFACT_ENDPOINTS is an operator-managed cluster setting.';
 const logContent = 'archived pod logs\n';
 const getObject = vi.fn();
 
@@ -159,7 +161,11 @@ describe('/k8s/pod/logs workflow artifact endpoints', () => {
         .query({ podname: podName, ...(namespace ? { podnamespace: namespace } : {}) })
         .expect(500);
 
-      expect(response.text).toContain('Artifact store endpoint is not allowed');
+      expect(response.text).toContain(
+        'Artifact store endpoint is not allowed: "https://untrusted.example.com". ' +
+          operatorManagedRejection,
+      );
+      expect(response.text).toContain('ask your cluster operator to allow it');
       expect(getPodLogs).toHaveBeenCalledWith(podName, namespace, 'main');
       expect(getArgoWorkflow).toHaveBeenCalledWith('workflow-1', namespace);
       expect(getK8sSecret).not.toHaveBeenCalled();
@@ -185,7 +191,7 @@ describe('/k8s/pod/logs workflow artifact endpoints', () => {
         .query({ podname: podName, podnamespace: 'kubeflow' })
         .expect(500);
 
-      expect(response.text).toContain('Artifact store endpoint is not allowed');
+      expect(response.text).toContain(operatorManagedRejection);
       expect(getK8sSecret).not.toHaveBeenCalled();
       expect(MockS3Client).not.toHaveBeenCalled();
       expect(getObject).not.toHaveBeenCalled();
@@ -384,7 +390,7 @@ describe('/k8s/pod/logs workflow artifact endpoints', () => {
         .query({ podname: podName, podnamespace: 'tenant' })
         .expect(500);
 
-      expect(response.text).toContain('Artifact store endpoint is not allowed');
+      expect(response.text).toContain(operatorManagedRejection);
       expect(getK8sSecret).not.toHaveBeenCalled();
       expect(MockS3Client).not.toHaveBeenCalled();
       expect(getObject).not.toHaveBeenCalled();

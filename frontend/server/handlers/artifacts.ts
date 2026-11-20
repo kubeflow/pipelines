@@ -55,7 +55,11 @@ import {
 } from '../gcs-helper.js';
 import type { GCSClient } from '../gcs-helper.js';
 
-import { isAllowedDomain, isTrustedArtifactEndpoint } from './domain-checker.js';
+import {
+  formatArtifactEndpointNotAllowedMessage,
+  isAllowedDomain,
+  isTrustedArtifactEndpoint,
+} from './domain-checker.js';
 import { getK8sSecret } from '../k8s-helper.js';
 import { CredentialBody } from 'google-auth-library';
 import { AuthorizeFn } from '../helpers/auth.js';
@@ -671,8 +675,15 @@ export function getArtifactsHandler({
       ) &&
       !isTrustedArtifactEndpoint(endpoint.origin, trustedEndpoints)
     ) {
+      if (endpoint.requestedOrigin !== endpoint.origin) {
+        // The user sees only the origin they asked for; tell the operator which
+        // rewritten origin was checked against the allowlist.
+        console.warn(
+          `[artifacts] rejected artifact store origin ${endpoint.origin}, rewritten from ${endpoint.requestedOrigin}`,
+        );
+      }
       throw new ArtifactStoreConfigurationError(
-        'Artifact store endpoint is not allowed; add its exact origin to ALLOWED_ARTIFACT_ENDPOINTS',
+        formatArtifactEndpointNotAllowedMessage(endpoint.requestedOrigin),
       );
     }
   };

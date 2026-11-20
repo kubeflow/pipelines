@@ -88,7 +88,12 @@ export interface ArtifactStoreEndpoint {
 export class ArtifactStoreConfigurationError extends Error {}
 
 export type ArtifactStoreEndpointPolicy = (
-  endpoint: ArtifactStoreEndpoint & { providerType: string; hasEndpointOverride: boolean },
+  endpoint: ArtifactStoreEndpoint & {
+    providerType: string;
+    hasEndpointOverride: boolean;
+    /** The origin before MINIO_ENDPOINT_REWRITE, as the request asked for it. */
+    requestedOrigin: string | undefined;
+  },
 ) => void;
 
 /** Captures the operator's effective destination using the same rewrite as client creation. */
@@ -366,6 +371,7 @@ async function createS3ArtifactStoreWithProviderInfo(
       anonymous = parseGoBoolean(providerInfo.Params.anonymous, 'anonymous');
     }
     if (providerInfo) config = applyS3ProviderOptions(config, providerInfo);
+    const requestedOrigin = authorizeEndpoint ? getArtifactStoreOrigin(config) : undefined;
     config = applyEndpointRewrite(config);
     if (authorizeEndpoint) {
       const origin = getArtifactStoreOrigin(config);
@@ -374,6 +380,7 @@ async function createS3ArtifactStoreWithProviderInfo(
       authorizeEndpoint({
         providerType,
         hasEndpointOverride: !!providerInfo?.Params.endpoint,
+        requestedOrigin,
         endPoint: config.endPoint,
         port: config.port,
         useSSL: config.useSSL !== false,

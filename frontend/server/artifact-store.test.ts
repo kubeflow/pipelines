@@ -288,6 +288,7 @@ describe('artifact-store', () => {
             origin: 'https://untrusted.example',
             providerType: 's3',
             hasEndpointOverride: true,
+            requestedOrigin: 'https://untrusted.example',
           }),
         );
         expect(customProvider).not.toHaveBeenCalled();
@@ -329,6 +330,7 @@ describe('artifact-store', () => {
           origin: 'http://proxy.example:9000',
           useSSL: false,
           port: 9000,
+          requestedOrigin: 'https://native.example:9443',
         }),
       );
       await resolveS3TestCredentials();
