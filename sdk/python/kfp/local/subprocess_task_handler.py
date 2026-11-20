@@ -148,9 +148,7 @@ def run_local_subprocess(
 def replace_python_executable(
     full_command: List[str], new_executable: str
 ) -> List[str]:
-    """Replaces the 'python3' string in each element of the full_command with
-    the new_executable. It does not replace the python executable in the user
-    code.
+    """Replaces Python executables in command strings, not arguments.
 
     Args:
         full_command: Commands and args.
@@ -163,17 +161,36 @@ def replace_python_executable(
     new_full_command = []
 
     for i, el in enumerate(full_command):
+        is_shell_command = (
+            '"$program_path/ephemeral_component.py"' in el and '"$@"' in el
+        )
+        next_is_python_command = i + 1 < len(full_command) and full_command[
+            i + 1
+        ].startswith('python3 ')
+
         if (
             user_code_index is None
-            and '"$program_path/ephemeral_component.py"' in el
-            and '"$@"' in el
+            and is_shell_command
+            and not next_is_python_command
         ):
             user_code_index = i + 1
 
-        if i != user_code_index:
-            new_full_command.append(el.replace('python3', f'{new_executable}'))
+        is_command_string = (
+            el.startswith('python3 ')
+            or el.startswith(('bash -c ', 'bash -ec ', 'sh -c ', 'sh -ec '))
+            or (i > 0 and full_command[i - 1] in ('-c', '-ec'))
+        )
+
+        if i != user_code_index and is_command_string:
+            if el.startswith('python3 '):
+                new_full_command.append(
+                    f'{new_executable}{el[len("python3") :]}'
+                )
+            else:
+                new_full_command.append(
+                    el.replace('python3 -m ', f'{new_executable} -m ')
+                )
         else:
-            # It's important to skip the user code so we don't errantly replace the Jupyter Notebook kernel name.
             new_full_command.append(el)
 
     return new_full_command
