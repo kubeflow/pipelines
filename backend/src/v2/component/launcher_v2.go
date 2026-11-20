@@ -196,14 +196,11 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 			return
 		}
 
-		if perr := l.publish(ctx, execution, executorOutput, outputArtifacts, status); perr != nil {
-			if err != nil {
-				err = fmt.Errorf("failed to publish execution with error %s after execution failed: %s", perr.Error(), err.Error())
-			} else {
-				err = perr
-			}
+		if publicationError := l.publish(ctx, execution, executorOutput, outputArtifacts, status); publicationError != nil {
+			err = errors.Join(err, publicationError)
+		} else {
+			glog.Infof("publish success.")
 		}
-		glog.Infof("publish success.")
 
 		if dispatcher != nil {
 			taskPluginInfo := &plugins.TaskInfo{
@@ -219,14 +216,18 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 
 		// At the end of the current task, we check the statuses of all tasks in
 		// the current DAG and update the DAG's status accordingly.
-		dag, err := l.clientManager.MetadataClient().GetDAG(ctx, execution.GetExecution().CustomProperties["parent_dag_id"].GetIntValue())
-		if err != nil {
-			glog.Errorf("DAG Status Update: failed to get DAG: %s", err.Error())
+		dag, lookupError := l.clientManager.MetadataClient().GetDAG(ctx, execution.GetExecution().CustomProperties["parent_dag_id"].GetIntValue())
+		if lookupError != nil {
+			err = errors.Join(err, fmt.Errorf("failed to get DAG for status update: %w", lookupError))
+			return
 		}
-		pipeline, _ := l.clientManager.MetadataClient().GetPipelineFromExecution(ctx, execution.GetID())
-		err = l.clientManager.MetadataClient().UpdateDAGExecutionsState(ctx, dag, pipeline)
-		if err != nil {
-			glog.Errorf("failed to update DAG state: %s", err.Error())
+		pipeline, lookupError := l.clientManager.MetadataClient().GetPipelineFromExecution(ctx, execution.GetID())
+		if lookupError != nil {
+			err = errors.Join(err, fmt.Errorf("failed to get pipeline for DAG status update: %w", lookupError))
+			return
+		}
+		if updateError := l.clientManager.MetadataClient().UpdateDAGExecutionsState(ctx, dag, pipeline); updateError != nil {
+			err = errors.Join(err, fmt.Errorf("failed to update DAG state: %w", updateError))
 		}
 	}()
 	executedStartedTime := time.Now().Unix()
