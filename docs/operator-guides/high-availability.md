@@ -30,14 +30,19 @@ wait up to 30 seconds, then find the schema current and start. A replica still
 waiting after 30 seconds exits with an error that names the lock, and Kubernetes
 restarts it, so a long migration can show restarts on the waiting replicas.
 
-API server versions without this lock do not take it. During an upgrade from such a
-version, or a rollback to one, an old replica that restarts migrates without the
-lock. For those upgrades, avoid starting several API server replicas at the same
-time against a schema that needs changes:
+The lock is a database session lock, so it holds only while every migration
+statement reaches the same database session. Connect the API server to the database
+directly or through a session-mode connection pooler; transaction-mode pooling, such
+as PgBouncer's transaction mode, is not supported.
 
-- Run the API server with one replica until it is ready, then scale it up.
-- Or use a rollout that starts one new Pod at a time, such as a `RollingUpdate`
-  strategy with `maxSurge: 1` and `maxUnavailable: 0`.
+API server releases without this lock do not take it, and an old replica that
+restarts during an upgrade or rollback migrates without it. For those releases:
+
+- Fresh install: start the API server with one replica, wait until it is ready, then
+  scale it up.
+- Upgrade from, or rollback to, such a release: scale `ml-pipeline` to zero, apply
+  the target version, then scale it back up. The API is unavailable until a
+  replica of that version is ready.
 
 During a rolling upgrade, old and new API server replicas run at the same time. For
 the steps that keep recurring runs consistent, see
@@ -69,9 +74,13 @@ variables, leader election stays off unless you add `LEADER_ELECT` and `POD_NAME
 
 The following overlay sets two replicas for each component that supports it, spreads
 them across nodes, and adds a PDB for each. Replace `<version>` with your Kubeflow
-Pipelines release (2.18.0 or later for the profile controller, and a release that
+Pipelines release (2.18.0 or later for the profile controller, a release that
 includes [kubeflow/pipelines#15043](https://github.com/kubeflow/pipelines/pull/15043)
-for the scheduled workflow controller), and the base with the environment you install.
+for the scheduled workflow controller, and a release that includes
+[kubeflow/pipelines#15241](https://github.com/kubeflow/pipelines/pull/15241) for the
+API server; with an older release, follow
+[API server installs and upgrades](#api-server-installs-and-upgrades) for the API
+server), and the base with the environment you install.
 
 ```yaml
 # kustomization.yaml

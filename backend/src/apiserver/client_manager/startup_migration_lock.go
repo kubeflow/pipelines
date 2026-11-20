@@ -35,6 +35,10 @@ const startupMigrationLockRetryPeriod = time.Second
 // that budget for them.
 const startupMigrationLockWaitTimeout = 30 * time.Second
 
+// startupMigrationLockQueryTimeout bounds one acquire or release query, so a
+// stalled database cannot hold startup past the wait.
+const startupMigrationLockQueryTimeout = 5 * time.Second
+
 // startupMigrationLockStatements are scoped to the current database (MySQL) or
 // database and schema (PostgreSQL), so installations sharing a server do not
 // wait on each other. The key differs from the retention index lock.
@@ -110,7 +114,10 @@ func acquireStartupMigrationLock(connection *sql.Conn, statements startupMigrati
 	for {
 		// MySQL returns NULL from GET_LOCK on an error; a nil result is not acquired.
 		var acquired sql.NullBool
-		if queryError := connection.QueryRowContext(context.Background(), statements.tryAcquire).Scan(&acquired); queryError != nil {
+		queryContext, cancelQuery := context.WithTimeout(context.Background(), startupMigrationLockQueryTimeout)
+		queryError := connection.QueryRowContext(queryContext, statements.tryAcquire).Scan(&acquired)
+		cancelQuery()
+		if queryError != nil {
 			return fmt.Errorf("startup migration lock: acquire: %w", queryError)
 		}
 		if acquired.Valid && acquired.Bool {
@@ -136,7 +143,9 @@ func acquireStartupMigrationLock(connection *sql.Conn, statements startupMigrati
 // the pool. Closing the session releases the lock.
 func releaseStartupMigrationLock(connection *sql.Conn, statements startupMigrationLockStatements) {
 	var released sql.NullBool
-	releaseError := connection.QueryRowContext(context.Background(), statements.release).Scan(&released)
+	queryContext, cancelQuery := context.WithTimeout(context.Background(), startupMigrationLockQueryTimeout)
+	defer cancelQuery()
+	releaseError := connection.QueryRowContext(queryContext, statements.release).Scan(&released)
 	if releaseError == nil && released.Valid && released.Bool {
 		return
 	}
