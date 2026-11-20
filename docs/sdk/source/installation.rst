@@ -24,7 +24,7 @@ Deploying Kubeflow Pipelines
 
       export PIPELINE_VERSION={{% pipelines/latest-version %}}
       kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$PIPELINE_VERSION"
-      kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+      kubectl wait --for condition=established --timeout=60s crd/workflows.argoproj.io
       kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$PIPELINE_VERSION"
 
    The Kubeflow Pipelines deployment takes approximately 3 minutes to complete. During this time, it is normal for pods to crash in the `kubeflow` namespace until the deployment completes.
@@ -38,4 +38,3 @@ Deploying Kubeflow Pipelines
 3. Open the following URL in your browser to access the UI:
 
    `http://localhost:8080 <http://localhost:8080>`_
-

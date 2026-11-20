@@ -14,6 +14,11 @@ Starting with 3.0, the GCP and development overlays no longer install the GCP
 inverse-proxy agent. See [replacement access and cleanup guidance](gcp-inverse-proxy-removal.md)
 if you use that integration. Existing 2.x releases are unchanged.
 
+Master also retires the legacy Application controller and stops installing the
+shared Application CRD. Before upgrading, follow the
+[retirement guide](application-controller-retirement.md) to preserve existing
+shared CRDs against pruning. This change is not backported to 2.18.1.
+
 > **Note:** Replace `2.17.0` with the Kubeflow Pipelines release you want to
 > install. See the [releases page](https://github.com/kubeflow/pipelines/releases)
 > for available versions.
@@ -25,7 +30,7 @@ if you use that integration. Existing 2.x releases are unchanged.
 ```bash
 export PIPELINE_VERSION=2.17.0
 kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$PIPELINE_VERSION"
-kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+kubectl wait --for condition=established --timeout=60s crd/workflows.argoproj.io
 kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$PIPELINE_VERSION"
 ```
 
@@ -44,7 +49,7 @@ Kubeflow Pipelines can be deployed in Kubernetes native API mode, which stores p
 ```bash
 export PIPELINE_VERSION=2.17.0
 kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$PIPELINE_VERSION"
-kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+kubectl wait --for condition=established --timeout=60s crd/workflows.argoproj.io
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.18.2/cert-manager.yaml
 kubectl wait --for=condition=Ready pod -l app.kubernetes.io/instance=cert-manager -n cert-manager --timeout=300s
 kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/cert-manager/platform-agnostic-k8s-native?ref=$PIPELINE_VERSION"
