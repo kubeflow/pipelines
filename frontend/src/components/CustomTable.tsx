@@ -606,16 +606,17 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       return;
     }
 
+    let tokenList = this.state.tokenList;
     if (newPageToken) {
       // If we're using the greatest yet known page, then the pageToken will be new.
-      if (newCurrentPage + 1 === this.state.tokenList.length) {
-        this.state.tokenList.push(newPageToken);
+      if (newCurrentPage + 1 === tokenList.length) {
+        tokenList = [...tokenList, newPageToken];
       }
     } else {
       maxPageIndex = newCurrentPage;
     }
 
-    this.setStateSafe({ currentPage: newCurrentPage, maxPageIndex });
+    this.setStateSafe({ currentPage: newCurrentPage, maxPageIndex, tokenList });
   }
 
   private async _requestRowsPerPage(
