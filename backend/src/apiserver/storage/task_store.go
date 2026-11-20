@@ -1099,17 +1099,31 @@ type TaskAttemptGuard struct {
 	State model.TaskStatus
 	// ExecutorPod is the name of the executor pod that must still be the latest one recorded on
 	// the stored task. A retry reset clears the pods, and a newer attempt records a different pod,
-	// so a stale snapshot of an older attempt no longer matches.
+	// so a stale snapshot of an older attempt no longer matches. Mutually exclusive with
+	// RequireNoExecutorPod: set exactly one of the two.
 	ExecutorPod string
+	// RequireNoExecutorPod guards that the stored task still has no executor pod recorded, for a
+	// writer with no pod identity of its own (e.g. reconciling a task whose launcher died before
+	// registering its pod). If a pod is recorded by the time the write runs, the guard fails like
+	// any stale attempt. Mutually exclusive with ExecutorPod.
+	RequireNoExecutorPod bool
+	// RetryGeneration is the run retry generation of the evidence behind the write. The write is
+	// rejected if the run's live generation is newer: a retry has since reset this task, and a
+	// reset task has no pod, so the pod checks alone cannot tell old evidence from the new attempt.
+	RetryGeneration int64
 }
 
 // UpdateTaskIfAttempt updates a task like UpdateTask, but only while the stored task is in the
-// guard's state and its latest executor pod is the guard's pod. It is for writers that infer an
-// outcome from outside evidence and must not overwrite a report that arrived first, or a retry
-// that started after the evidence was read. applied is false, with no error, when the guard fails.
+// guard's state and its latest executor pod matches the guard: either the named ExecutorPod, or,
+// with RequireNoExecutorPod, no executor pod at all. It is for writers that infer an outcome from
+// outside evidence and must not overwrite a report that arrived first, or a retry that started
+// after the evidence was read. applied is false, with no error, when the guard fails.
 func (s *TaskStore) UpdateTaskIfAttempt(guard TaskAttemptGuard, new *model.Task) (*model.Task, bool, error) {
-	if guard.ExecutorPod == "" {
-		return nil, false, util.NewInvalidInputError("Failed to update task: the guard needs an executor pod")
+	if guard.ExecutorPod == "" && !guard.RequireNoExecutorPod {
+		return nil, false, util.NewInvalidInputError("Failed to update task: the guard needs an executor pod or RequireNoExecutorPod")
+	}
+	if guard.ExecutorPod != "" && guard.RequireNoExecutorPod {
+		return nil, false, util.NewInvalidInputError("Failed to update task: the guard cannot set both ExecutorPod and RequireNoExecutorPod")
 	}
 	updated, err := s.updateTask(new, &guard)
 	if errors.Is(err, errTaskAttemptMismatch) {
@@ -1119,6 +1133,29 @@ func (s *TaskStore) UpdateTaskIfAttempt(guard TaskAttemptGuard, new *model.Task)
 		return nil, false, err
 	}
 	return updated, true, nil
+}
+
+// runRetryGenerationExceeds reports whether the run's stored retry generation is newer than
+// generation. A missing run is not stale.
+func runRetryGenerationExceeds(tx *sql.Tx, d dialect.DBDialect, runUUID string, generation int64) (bool, error) {
+	q := d.QuoteIdentifier
+	sqlStr, args, err := d.QueryBuilder().
+		Select(q("RetryGeneration")).
+		From(q("run_details")).
+		Where(sq.Eq{q("UUID"): runUUID}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return false, util.NewInternalServerError(err, "Failed to create query to read the retry generation of run %s", runUUID)
+	}
+	var live sql.NullInt64
+	if err := tx.QueryRow(sqlStr, args...).Scan(&live); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, util.NewInternalServerError(err, "Failed to read the retry generation of run %s", runUUID)
+	}
+	return live.Int64 > generation, nil
 }
 
 // latestExecutorPodName returns the name of the last executor pod recorded in pods, or "".
@@ -1174,7 +1211,20 @@ func (s *TaskStore) updateTask(new *model.Task, guard *TaskAttemptGuard) (*model
 		if err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to read pods of task %s", new.UUID)
 		}
-		if latestPod != guard.ExecutorPod {
+		if guard.RequireNoExecutorPod {
+			if latestPod != "" {
+				return nil, errTaskAttemptMismatch
+			}
+		} else if latestPod != guard.ExecutorPod {
+			return nil, errTaskAttemptMismatch
+		}
+		// ClaimRunForRetry bumps the run's generation before ResetTasksForRetry runs, so once
+		// the reset is visible here, so is the newer generation.
+		stale, err := runRetryGenerationExceeds(tx, s.dbDialect, lockedOld.RunUUID, guard.RetryGeneration)
+		if err != nil {
+			return nil, err
+		}
+		if stale {
 			return nil, errTaskAttemptMismatch
 		}
 	}

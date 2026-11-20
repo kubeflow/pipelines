@@ -2085,3 +2085,47 @@ func TestUpdateTaskIfAttempt_RequiresAnExecutorPod(t *testing.T) {
 	assert.Error(t, err)
 	assert.False(t, applied)
 }
+
+func TestUpdateTaskIfAttempt_SkipsWhenTheRunRetriedAfterTheEvidenceWasRead(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+	created := createRunningTaskForStateTest(t, taskStore)
+
+	// A retry claimed the run after the evidence (generation 0) was read.
+	_, err := db.Exec(`UPDATE run_details SET RetryGeneration = 1 WHERE UUID = ?`, created.RunUUID)
+	require.NoError(t, err)
+
+	guard := runningOnPod1
+	_, applied, err := taskStore.UpdateTaskIfAttempt(guard, &model.Task{
+		UUID:  created.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_FAILED),
+	})
+	require.NoError(t, err)
+	assert.False(t, applied, "evidence from before the retry must not fail the task")
+
+	guard.RetryGeneration = 1
+	_, applied, err = taskStore.UpdateTaskIfAttempt(guard, &model.Task{
+		UUID:  created.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_FAILED),
+	})
+	require.NoError(t, err)
+	assert.True(t, applied, "evidence from the current generation may")
+}
+
+func TestUpdateTaskIfAttempt_NoPodGuardSkipsWhenTheRunRetriedAfterTheEvidenceWasRead(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+	created := createRunningTaskForStateTest(t, taskStore)
+
+	// Model ResetTasksForRetry after a claim: the new attempt is RUNNING with no pods.
+	_, err := db.Exec(`UPDATE run_details SET RetryGeneration = 1 WHERE UUID = ?`, created.RunUUID)
+	require.NoError(t, err)
+	require.NoError(t, taskStore.ResetTasksForRetry([]string{created.UUID}))
+
+	_, applied, err := taskStore.UpdateTaskIfAttempt(
+		TaskAttemptGuard{State: model.TaskStatus(apiv2.PipelineTask_RUNNING), RequireNoExecutorPod: true, RetryGeneration: 0},
+		&model.Task{UUID: created.UUID, State: model.TaskStatus(apiv2.PipelineTask_FAILED)},
+	)
+	require.NoError(t, err)
+	assert.False(t, applied, "a pre-retry report must not fail the freshly reset attempt")
+}

@@ -160,7 +160,7 @@ func TestExecutorFailureForTask(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, ok := executorFailureForTask(tc.task, tc.nodes, tc.resolved)
+			got, ok := executorFailureForTask(tc.task, tc.nodes, tc.resolved, nil)
 			assert.Equal(t, tc.want, ok)
 			if ok {
 				assert.NotEmpty(t, got.message)
@@ -173,7 +173,7 @@ func TestExecutorFailureForTask(t *testing.T) {
 func TestExecutorFailureForTask_UsesResolvedMessageAndFinishTime(t *testing.T) {
 	task := reconcileTestTask(t, apiv2.PipelineTask_RUNNING, apiv2.PipelineTask_RUNTIME, executorPod("p1"))
 	nodes := retryNodes("Failed", util.NodeStatus{ID: "p1", State: "Failed", CreateTime: 10, FinishTime: 99})
-	got, ok := executorFailureForTask(task, nodes, map[string]string{"attempt-0": "main: OOMKilled (exit code 137)"})
+	got, ok := executorFailureForTask(task, nodes, map[string]string{"attempt-0": "main: OOMKilled (exit code 137)"}, nil)
 	require.True(t, ok)
 	assert.Equal(t, "main: OOMKilled (exit code 137)", got.message)
 	assert.Equal(t, int64(99), got.finishedAt)
@@ -187,9 +187,121 @@ func TestExecutorFailureForTask_UnfinishedNodeFallsBackToNow(t *testing.T) {
 		"p1": {ID: "p1", Type: "Pod", State: "Error", CreateTime: 10, FinishTime: time.Time{}.Unix()},
 	}
 	before := time.Now().Unix()
-	got, ok := executorFailureForTask(task, nodes, nil)
+	got, ok := executorFailureForTask(task, nodes, nil, nil)
 	require.True(t, ok)
 	assert.GreaterOrEqual(t, got.finishedAt, before)
+}
+
+// taskRetryNodes builds the full Argo layout of one top-level task that has no registered
+// executor pod on the model.Task itself: task Retry -> task DAG -> executor Retry -> executor Pod.
+// This is the shape executorFailureForTaskViaNode matches against when the launcher never got to
+// register a pod (for example, an API outage blocked both the registration write and every
+// fallback write before the launcher exited).
+func taskRetryNodes(taskName, taskState, executorState string, pod util.NodeStatus) map[string]util.NodeStatus {
+	pod.Type = "Pod"
+	pod.BoundaryID = "task0"
+	// Real Argo pods carry their Retry group's attempt-display-name convention
+	// ("executor(0)"), which nodeParent relies on to recognize the pod as executor's own
+	// attempt rather than something directly contained by task0.
+	pod.DisplayName = "executor(0)"
+	return map[string]util.NodeStatus{
+		"task":     {ID: "task", DisplayName: taskName, Type: "Retry", State: taskState, Children: []string{"task0"}},
+		"task0":    {ID: "task0", DisplayName: taskName + "(0)", Type: "DAG", State: taskState, Children: []string{"executor"}},
+		"executor": {ID: "executor", DisplayName: "executor", Type: "Retry", State: executorState, Children: []string{pod.ID}, BoundaryID: "task0"},
+		pod.ID:     pod,
+	}
+}
+
+func TestExecutorFailureForTaskViaNode(t *testing.T) {
+	running := apiv2.PipelineTask_RUNNING
+	oomMsg := "main: OOMKilled (exit code 137)"
+
+	t.Run("matches the task's own Retry node when no executor pod is registered", func(t *testing.T) {
+		task := reconcileTestTask(t, running, apiv2.PipelineTask_RUNTIME) // no pods at all
+		nodes := taskRetryNodes("oom", "Failed", "Failed",
+			util.NodeStatus{ID: "oom-pod", State: "Failed", CreateTime: 10, FinishTime: 99, Message: oomMsg})
+		got, ok := executorFailureForTask(task, nodes, util.ResolveNodeLifecycleMessages(nodes), nil)
+		require.True(t, ok)
+		assert.True(t, got.viaNode, "evidence must be flagged as coming from the node, not a pod")
+		assert.Empty(t, got.podName, "there is no pod identity to fence on")
+		assert.Equal(t, oomMsg, got.message)
+		assert.Equal(t, int64(99), got.finishedAt)
+	})
+
+	t.Run("task's node still running is not evidence", func(t *testing.T) {
+		task := reconcileTestTask(t, running, apiv2.PipelineTask_RUNTIME)
+		nodes := taskRetryNodes("oom", "Running", "Running",
+			util.NodeStatus{ID: "oom-pod", State: "Running", CreateTime: 10})
+		_, ok := executorFailureForTask(task, nodes, util.ResolveNodeLifecycleMessages(nodes), nil)
+		assert.False(t, ok)
+	})
+
+	t.Run("ambiguous task name with two top-level Retry nodes is left unmatched", func(t *testing.T) {
+		task := reconcileTestTask(t, running, apiv2.PipelineTask_RUNTIME)
+		nodes := taskRetryNodes("oom", "Failed", "Failed",
+			util.NodeStatus{ID: "oom-pod", State: "Failed", CreateTime: 10, FinishTime: 99, Message: oomMsg})
+		// A second, unrelated top-level Retry node that happens to share the task's name.
+		nodes["other-oom"] = util.NodeStatus{ID: "other-oom", DisplayName: "oom", Type: "Retry", State: "Running"}
+		_, ok := executorFailureForTask(task, nodes, util.ResolveNodeLifecycleMessages(nodes), nil)
+		assert.False(t, ok, "an ambiguous name must not be guessed")
+	})
+
+	t.Run("no matching node in the workflow at all stays silent", func(t *testing.T) {
+		task := reconcileTestTask(t, running, apiv2.PipelineTask_RUNTIME)
+		_, ok := executorFailureForTask(task, map[string]util.NodeStatus{}, nil, nil)
+		assert.False(t, ok)
+	})
+
+	t.Run("respects scope: a same-named node outside the task's own sub-DAG is not matched", func(t *testing.T) {
+		// "leaf" exists both as a real nested node under "branch" and, deliberately, nowhere at
+		// top level: a top-level task also named "leaf" but with no node of its own must not pick
+		// up the nested one's failure. Includes both compiler-inserted wrapper levels
+		// (workflow/workflow0, root/root0) so "branch", the top-level node, carries the same
+		// BoundaryID: "root0" every other fixture in this file gives a top-level node -- without
+		// them "branch" looks indistinguishable from the compiler's own outermost wrapper.
+		nodes := map[string]util.NodeStatus{
+			"workflow":  {ID: "workflow", DisplayName: "my-pipeline-run", Type: "Retry", State: "Failed", Children: []string{"workflow0"}},
+			"workflow0": {ID: "workflow0", DisplayName: "my-pipeline-run(0)", Type: "DAG", State: "Failed", Children: []string{"root"}},
+			"root":      {ID: "root", DisplayName: "root", Type: "Retry", State: "Failed", Children: []string{"root0"}, BoundaryID: "workflow0"},
+			"root0":     {ID: "root0", DisplayName: "root(0)", Type: "DAG", State: "Failed", Children: []string{"branch"}, BoundaryID: "workflow0"},
+			"branch":    {ID: "branch", DisplayName: "branch", Type: "Retry", State: "Failed", Children: []string{"branch0"}, BoundaryID: "root0"},
+			"branch0":   {ID: "branch0", DisplayName: "branch(0)", Type: "DAG", State: "Failed", Children: []string{"leaf"}, BoundaryID: "root0"},
+			"leaf":      {ID: "leaf", DisplayName: "leaf", Type: "Retry", State: "Failed", Children: []string{"leaf0"}, BoundaryID: "branch0"},
+			"leaf0":     {ID: "leaf0", DisplayName: "leaf(0)", Type: "DAG", State: "Failed", Children: []string{"executor"}, BoundaryID: "branch0"},
+			"executor":  {ID: "executor", DisplayName: "executor", Type: "Retry", State: "Failed", Children: []string{"leaf-pod"}, BoundaryID: "leaf0"},
+			"leaf-pod":  {ID: "leaf-pod", DisplayName: "executor(0)", Type: "Pod", State: "Failed", Message: oomMsg, BoundaryID: "leaf0"},
+		}
+		resolved := util.ResolveNodeLifecycleMessages(nodes)
+
+		wfRoot := &model.Task{UUID: "wf-root", Name: "wf-root"}
+		topLevelLeaf := reconcileTestTask(t, running, apiv2.PipelineTask_RUNTIME)
+		topLevelLeaf.Name = "leaf"
+		topLevelLeaf.UUID = "leaf-toplevel"
+		parentUUID := "wf-root"
+		topLevelLeaf.ParentTaskUUID = &parentUUID
+		tasksByUUID := map[string]*model.Task{"wf-root": wfRoot, "leaf-toplevel": topLevelLeaf}
+
+		_, ok := executorFailureForTask(topLevelLeaf, nodes, resolved, tasksByUUID)
+		assert.False(t, ok, "a node nested elsewhere must not be mistaken for this task's own node")
+	})
+}
+
+// TestNodeFinishTime_DoesNotBorrowADependentSiblingsFinishTime is CodeRabbit's regression: task
+// "a"'s own DAG attempt (a0) lists "b" among its Children, but that edge records dependency
+// ordering (b depends on a, so a's last attempt points at b's Retry node per Argo convention), not
+// containment -- b's own BoundaryID is root0, the same as a's, so b is a's sibling, not its
+// descendant. Neither "a" nor "a0" ever gets a FinishTime of their own in this scenario, so a blind
+// walk down Children would reach b's terminal pod and wrongly report its finish time as a's.
+func TestNodeFinishTime_DoesNotBorrowADependentSiblingsFinishTime(t *testing.T) {
+	nodes := map[string]util.NodeStatus{
+		"root0":    {ID: "root0", DisplayName: "root(0)", Type: "DAG", State: "Running", Children: []string{"a", "b"}, BoundaryID: "workflow0"},
+		"a":        {ID: "a", DisplayName: "a", Type: "Retry", State: "Succeeded", Children: []string{"a0"}, BoundaryID: "root0"},
+		"a0":       {ID: "a0", DisplayName: "a(0)", Type: "DAG", State: "Succeeded", Children: []string{"b"}, BoundaryID: "root0"},
+		"b":        {ID: "b", DisplayName: "b", Type: "Retry", State: "Failed", Children: []string{"wf-pod-b"}, BoundaryID: "root0", FinishTime: 555},
+		"wf-pod-b": {ID: "wf-pod-b", DisplayName: "b(0)", Type: "Pod", State: "Failed", FinishTime: 555, BoundaryID: "root0"},
+	}
+	assert.Equal(t, int64(0), nodeFinishTime("a", nodes, map[string]bool{}),
+		"a dependency edge to a downstream sibling must not be followed as if it were a's own descendant")
 }
 
 func reconcileTestWorkflow(runName, runUUID string, nodes map[string]v1alpha1.NodeStatus) *util.Workflow {
@@ -251,6 +363,147 @@ func TestReportWorkflowResource_ReconcilesRunningTaskWhenPodDied(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "main: OOMKilled (exit code 137)", meta.GetMessage())
 	require.NotNil(t, got.LifecycleMessage, "lifecycle diagnostics stay attached to the failed attempt")
+}
+
+// unregisteredOomWorkflowNodes models an outage that blocked both the launcher's required
+// executor-pod registration write and every fallback/finalization write: the launcher exits having
+// never reported anything, so the task has no executor pod in task.Pods, but the workflow node
+// tree (task Retry -> task DAG -> executor Retry -> executor Pod) shows it failed all the same.
+func unregisteredOomWorkflowNodes() map[string]v1alpha1.NodeStatus {
+	started := v1.NewTime(time.Unix(1000, 0))
+	finished := v1.NewTime(time.Unix(1060, 0))
+	return map[string]v1alpha1.NodeStatus{
+		"oom": {
+			ID: "oom", Name: "oom", DisplayName: "oom", Type: v1alpha1.NodeTypeRetry,
+			Phase: v1alpha1.NodeFailed, Children: []string{"oom0"},
+			StartedAt: started, FinishedAt: finished,
+		},
+		"oom0": {
+			ID: "oom0", Name: "oom0", DisplayName: "oom(0)", Type: v1alpha1.NodeTypeDAG,
+			Phase: v1alpha1.NodeFailed, Children: []string{"oom-retry"},
+			StartedAt: started, FinishedAt: finished,
+		},
+		"oom-retry": {
+			ID: "oom-retry", Name: "oom-retry", DisplayName: "executor", Type: v1alpha1.NodeTypeRetry,
+			Phase: v1alpha1.NodeFailed, Children: []string{"oom-pod"}, BoundaryID: "oom0",
+			StartedAt: started, FinishedAt: finished,
+		},
+		"oom-pod": {
+			ID: "oom-pod", Name: "oom-pod", DisplayName: "executor(0)", Type: v1alpha1.NodeTypePod,
+			Phase: v1alpha1.NodeFailed, Message: "main: OOMKilled (exit code 137)",
+			StartedAt: started, FinishedAt: finished, BoundaryID: "oom0",
+		},
+	}
+}
+
+// TestReportWorkflowResource_ReconcilesTaskWithNoRegisteredPod is the regression Jeff and
+// CodeRabbit asked for on the registration-outage follow-up: the launcher dies during an outage
+// that blocked registration and every fallback write, leaving the task with no executor pod
+// recorded at all, and a later workflow report must still move it to FAILED instead of leaving it
+// stuck RUNNING forever with no path to recovery.
+func TestReportWorkflowResource_ReconcilesTaskWithNoRegisteredPod(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1", RunUUID: run.UUID, Name: "oom", DisplayName: "oom",
+		Type: model.TaskType(apiv2.PipelineTask_RUNTIME), State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-oom-unregistered", Pods: model.JSONSlice{}, TypeAttrs: model.JSONData{},
+		StateHistory: model.JSONSlice{}, InputParameters: model.JSONSlice{}, OutputParameters: model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	workflow := reconcileTestWorkflow(run.K8SName, run.UUID, unregisteredOomWorkflowNodes())
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	require.NoError(t, err)
+
+	got, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), got.State,
+		"a task with no registered pod must still be recoverable from its own Argo node")
+	assert.Equal(t, int64(1060), got.FinishedInSec)
+	meta, err := model.JSONDataToProtoMessage(got.StatusMetadata, func() *apiv2.PipelineTask_StatusMetadata {
+		return &apiv2.PipelineTask_StatusMetadata{}
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "main: OOMKilled (exit code 137)", meta.GetMessage())
+}
+
+// An aged-out retry claim whose workflow was never applied leaves the reset tasks RUNNING with no
+// pod. The old terminal report is accepted as current evidence, so those tasks must still move to
+// FAILED instead of being skipped as stale.
+func TestReportWorkflowResource_ReconcilesTaskAfterAbandonedRetryClaim(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	failed := reconcileTestWorkflow(run.K8SName, run.UUID, nil)
+	failed.Status.Phase = v1alpha1.WorkflowFailed
+	syncWorkflowReportWithFakeCluster(t, store, failed)
+	_, err := manager.ReportWorkflowResource(context.Background(), failed)
+	require.NoError(t, err)
+
+	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
+	require.NoError(t, claimErr)
+	require.Equal(t, int64(1), claimGeneration)
+	_, err = store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, run.UUID)
+	require.NoError(t, err)
+
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1", RunUUID: run.UUID, Name: "oom", DisplayName: "oom",
+		Type: model.TaskType(apiv2.PipelineTask_RUNTIME), State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-oom-abandoned", Pods: model.JSONSlice{}, TypeAttrs: model.JSONData{},
+		StateHistory: model.JSONSlice{}, InputParameters: model.JSONSlice{}, OutputParameters: model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	report := reconcileTestWorkflow(run.K8SName, run.UUID, unregisteredOomWorkflowNodes())
+	report.Status.Phase = v1alpha1.WorkflowFailed
+	syncWorkflowReportWithFakeCluster(t, store, report)
+	_, err = manager.ReportWorkflowResource(context.Background(), report)
+	require.NoError(t, err)
+
+	got, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), got.State,
+		"a task reset by an abandoned retry claim must still be reconciled from the accepted report")
+}
+
+// TestReconcileTaskFailure_NodeRecoveryDoesNotOverwriteARegisteredAttempt locks in the new
+// RequireNoExecutorPod guard: the evidence is read from a stale "no pod yet" snapshot, but by the
+// time the guarded write runs, the launcher's delayed registration (or a retry) has recorded a
+// real executor pod. Node-based recovery must back off instead of overwriting that newer attempt,
+// the same protection TaskAttemptGuard already gives the pod-based path.
+func TestReconcileTaskFailure_NodeRecoveryDoesNotOverwriteARegisteredAttempt(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1", RunUUID: run.UUID, Name: "oom", DisplayName: "oom",
+		Type: model.TaskType(apiv2.PipelineTask_RUNTIME), State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-oom-race", Pods: model.JSONSlice{}, TypeAttrs: model.JSONData{},
+		StateHistory: model.JSONSlice{}, InputParameters: model.JSONSlice{}, OutputParameters: model.JSONSlice{},
+	})
+	require.NoError(t, err)
+	staleSnapshot, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+
+	// The launcher's registration write, delayed by the outage, lands after the stale snapshot was
+	// read but before the reconciliation write below.
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{executorPod("oom-pod-retry")})
+	require.NoError(t, err)
+	_, err = store.TaskStore().UpdateTask(&model.Task{UUID: task.UUID, Pods: pods})
+	require.NoError(t, err)
+
+	nodes := reconcileTestWorkflow(run.K8SName, run.UUID, unregisteredOomWorkflowNodes()).ExecutionStatus().NodeStatuses()
+	applied, err := manager.reconcileTaskFailure(staleSnapshot, nodes, util.ResolveNodeLifecycleMessages(nodes), nil, 0)
+	require.NoError(t, err)
+	assert.False(t, applied)
+
+	got, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), got.State,
+		"a task that has since recorded a pod must not be failed by node-based recovery")
 }
 
 // failingUpdateIfAttemptTaskStore wraps a real TaskStoreInterface and injects an error from
@@ -361,7 +614,7 @@ func TestReconcileTaskFailure_DoesNotFailARetryThatResetTheTask(t *testing.T) {
 	require.NoError(t, store.TaskStore().ResetTasksForRetry([]string{task.UUID}))
 
 	nodes := reconcileTestWorkflow(run.K8SName, run.UUID, oomedWorkflowNodes()).ExecutionStatus().NodeStatuses()
-	applied, err := manager.reconcileTaskFailure(staleSnapshot, nodes, util.ResolveNodeLifecycleMessages(nodes))
+	applied, err := manager.reconcileTaskFailure(staleSnapshot, nodes, util.ResolveNodeLifecycleMessages(nodes), nil, 0)
 	require.NoError(t, err)
 	assert.False(t, applied)
 
@@ -387,7 +640,7 @@ func TestReconcileTaskFailure_DoesNotFailANewerAttemptOnAnotherPod(t *testing.T)
 	require.NoError(t, err)
 
 	nodes := reconcileTestWorkflow(run.K8SName, run.UUID, oomedWorkflowNodes()).ExecutionStatus().NodeStatuses()
-	applied, err := manager.reconcileTaskFailure(staleSnapshot, nodes, util.ResolveNodeLifecycleMessages(nodes))
+	applied, err := manager.reconcileTaskFailure(staleSnapshot, nodes, util.ResolveNodeLifecycleMessages(nodes), nil, 0)
 	require.NoError(t, err)
 	assert.False(t, applied)
 
