@@ -1886,6 +1886,10 @@ def build_spec_by_group(
             )
 
         # Add task spec
+        if subgroup.name in group_component_spec.dag.tasks:
+            raise ValueError(
+                f'Duplicate task or control-flow group name {subgroup.name!r} in DAG.'
+            )
         group_component_spec.dag.tasks[subgroup.name].CopyFrom(
             subgroup_task_spec
         )

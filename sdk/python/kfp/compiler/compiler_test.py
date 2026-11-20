@@ -2475,21 +2475,40 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
         def exit_handler_1():
             pass
 
+        @dsl.pipeline(
+            name='pipeline-after-exit-handler-group-with-ambiguous-name'
+        )
+        def my_pipeline():
+            exit_handler_1()
+            exit_task = print_op(message='Exit task.')
+
+            with dsl.ExitHandler(exit_task) as exit_group:
+                print_op(message='Inside exit handler.')
+
+            print_op(message='After exit handler.').after(exit_group)
+
+        after_task = my_pipeline.pipeline_spec.root.dag.tasks['print-op-3']
+        self.assertEqual(list(after_task.dependent_tasks), ['exit-handler-2'])
+
         with self.assertRaisesRegex(
             ValueError, r'Ambiguous dependency name "exit-handler-1"\.'
         ):
 
             @dsl.pipeline(
-                name='pipeline-after-exit-handler-group-with-ambiguous-name'
+                name='pipeline-after-exit-handler-group-with-forced-ambiguous-name'
             )
-            def my_pipeline():
+            def forced_collision_pipeline():
                 exit_handler_1()
                 exit_task = print_op(message='Exit task.')
 
                 with dsl.ExitHandler(exit_task) as exit_group:
                     print_op(message='Inside exit handler.')
 
-                print_op(message='After exit handler.').after(exit_group)
+                exit_group.name = 'exit-handler-1'
+                downstream = print_op(message='After exit handler.')
+                downstream._task_spec.dependent_tasks.append('exit-handler-1')
+
+            forced_collision_pipeline.pipeline_spec
 
     def test_nested_unsupported(self):
 

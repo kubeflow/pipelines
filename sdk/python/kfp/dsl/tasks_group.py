@@ -83,14 +83,18 @@ class TasksGroup:
 
     def _make_name_unique(self):
         """Generates a unique TasksGroup name in the pipeline."""
-        if not pipeline_context.Pipeline.get_default_pipeline():
+        pipeline = pipeline_context.Pipeline.get_default_pipeline()
+        if not pipeline:
             raise ValueError('Default pipeline not defined.')
 
-        group_id = (
-            pipeline_context.Pipeline.get_default_pipeline().get_next_group_id()
-        )
-        self.name = f'{self.group_type.value}-{group_id}'
-        self.name = self.name.replace('_', '-')
+        used_names = set(pipeline.tasks.keys()) | pipeline.group_names
+        while True:
+            group_id = pipeline.get_next_group_id()
+            candidate = f'{self.group_type.value}-{group_id}'.replace('_', '-')
+            if candidate not in used_names:
+                self.name = candidate
+                pipeline.group_names.add(self.name)
+                break
 
     def remove_task_recursive(self, task: pipeline_task.PipelineTask):
         """Removes a task from the group recursively."""
@@ -406,8 +410,21 @@ def maybe_make_and_insert_conditional_branches_group(
     def swap_group_ids(parent: TasksGroup, cond: TasksGroup):
         parent_name, parent_id = parent.name.rsplit('-', 1)
         cond_name, cond_id = cond.name.split('-')
-        cond.name = f'{cond_name}-{parent_id}'
-        parent.name = f'{parent_name}-{cond_id}'
+        new_cond_name = f'{cond_name}-{parent_id}'
+        new_parent_name = f'{parent_name}-{cond_id}'
+        existing_names = set(pipeline.tasks.keys()) | (
+            pipeline.group_names - {parent.name, cond.name}
+        )
+        if (
+            new_cond_name not in existing_names
+            and new_parent_name not in existing_names
+        ):
+            pipeline.group_names.discard(parent.name)
+            pipeline.group_names.discard(cond.name)
+            cond.name = new_cond_name
+            parent.name = new_parent_name
+            pipeline.group_names.add(cond.name)
+            pipeline.group_names.add(parent.name)
 
     # replace last pushed group (If or Elif) with condition group
     last_pushed_group = pipeline.groups[-1].groups.pop()
