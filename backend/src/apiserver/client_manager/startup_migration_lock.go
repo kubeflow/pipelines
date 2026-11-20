@@ -35,8 +35,9 @@ const startupMigrationLockRetryPeriod = time.Second
 // that budget for them.
 const startupMigrationLockWaitTimeout = 30 * time.Second
 
-// startupMigrationLockQueryTimeout bounds one acquire or release query, so a
-// stalled database cannot hold startup past the wait.
+// startupMigrationLockQueryTimeout bounds getting the lock's connection and each
+// acquire or release query, so a stalled database cannot hold startup. Acquire
+// queries after the first also finish by the end of the wait.
 const startupMigrationLockQueryTimeout = 5 * time.Second
 
 // startupMigrationLockStatements are scoped to the current database (MySQL) or
@@ -89,7 +90,9 @@ func withStartupMigrationLock(
 	if poolError != nil {
 		return fmt.Errorf("startup migration lock: get the database connection pool: %w", poolError)
 	}
-	connection, connectionError := connectionPool.Conn(context.Background())
+	connectContext, cancelConnect := context.WithTimeout(context.Background(), startupMigrationLockQueryTimeout)
+	connection, connectionError := connectionPool.Conn(connectContext)
+	cancelConnect()
 	if connectionError != nil {
 		return fmt.Errorf("startup migration lock: open a database connection: %w", connectionError)
 	}
@@ -108,13 +111,17 @@ func withStartupMigrationLock(
 	return migrate(lockedSession)
 }
 
+// acquireStartupMigrationLock tries to take the lock until lockWaitTimeout ends.
+// The first attempt always runs, so a zero wait makes one attempt; later
+// attempts and the sleeps between them end by the deadline.
 func acquireStartupMigrationLock(connection *sql.Conn, statements startupMigrationLockStatements, lockWaitTimeout time.Duration) error {
 	deadline := time.Now().Add(lockWaitTimeout)
+	queryTimeout := startupMigrationLockQueryTimeout
 	loggedWait := false
 	for {
 		// MySQL returns NULL from GET_LOCK on an error; a nil result is not acquired.
 		var acquired sql.NullBool
-		queryContext, cancelQuery := context.WithTimeout(context.Background(), startupMigrationLockQueryTimeout)
+		queryContext, cancelQuery := context.WithTimeout(context.Background(), queryTimeout)
 		queryError := connection.QueryRowContext(queryContext, statements.tryAcquire).Scan(&acquired)
 		cancelQuery()
 		if queryError != nil {
@@ -126,16 +133,25 @@ func acquireStartupMigrationLock(connection *sql.Conn, statements startupMigrati
 			}
 			return nil
 		}
-		if !time.Now().Before(deadline) {
-			return fmt.Errorf("startup migration lock: another API server held the lock for longer than %v: "+
-				"wait for its database migration to finish, or check for a stuck API server Pod, then restart this Pod", lockWaitTimeout)
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return startupMigrationLockTimeoutError(lockWaitTimeout)
 		}
 		if !loggedWait {
 			glog.Infof("Waiting up to %v for another API server to finish database migrations", lockWaitTimeout)
 			loggedWait = true
 		}
-		time.Sleep(startupMigrationLockRetryPeriod)
+		time.Sleep(min(startupMigrationLockRetryPeriod, remaining))
+		queryTimeout = min(startupMigrationLockQueryTimeout, time.Until(deadline))
+		if queryTimeout <= 0 {
+			return startupMigrationLockTimeoutError(lockWaitTimeout)
+		}
 	}
+}
+
+func startupMigrationLockTimeoutError(lockWaitTimeout time.Duration) error {
+	return fmt.Errorf("startup migration lock: another API server held the lock for longer than %v: "+
+		"wait for its database migration to finish, or check for a stuck API server Pod, then restart this Pod", lockWaitTimeout)
 }
 
 // releaseStartupMigrationLock discards the connection if the lock cannot be

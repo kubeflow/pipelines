@@ -484,6 +484,43 @@ func TestStartupMigrationLock_TimesOutWhileHeld(t *testing.T) {
 	})
 }
 
+// A replica gives up at the end of its wait, not after the next retry.
+func TestStartupMigrationLock_GivesUpAtDeadline(t *testing.T) {
+	forEachMigrationLockEngine(t, func(t *testing.T, database migrationLockDatabase) {
+		holdStartupMigrationLock(t, database)
+		const lockWaitTimeout = 1500 * time.Millisecond
+		started := time.Now()
+		lockError := withStartupMigrationLock(database.open(t), database.dialect, lockWaitTimeout, func(*gorm.DB) error { return nil })
+		elapsed := time.Since(started)
+		assert.ErrorContains(t, lockError, "another API server held the lock")
+		assert.GreaterOrEqual(t, elapsed, lockWaitTimeout)
+		// Without the cap, the replica sleeps a full retry period past the deadline.
+		assert.Less(t, elapsed, lockWaitTimeout+300*time.Millisecond, "the wait overran its deadline")
+	})
+}
+
+// A stalled acquire query is canceled instead of holding startup.
+func TestStartupMigrationLock_StalledQueryIsCancelled(t *testing.T) {
+	stalledQueries := map[string]string{
+		"mysql": "SELECT SLEEP(10) = 1",
+		"pgx":   "SELECT pg_sleep(10) IS NULL",
+	}
+	forEachMigrationLockEngine(t, func(t *testing.T, database migrationLockDatabase) {
+		pool, poolError := database.open(t).DB()
+		require.NoError(t, poolError)
+		connection, connectionError := pool.Conn(context.Background())
+		require.NoError(t, connectionError)
+		t.Cleanup(func() { connection.Close() })
+		statements := startupMigrationLockStatements{tryAcquire: stalledQueries[database.dialect.Name()]}
+
+		started := time.Now()
+		acquireError := acquireStartupMigrationLock(connection, statements, 0)
+		elapsed := time.Since(started)
+		assert.Error(t, acquireError)
+		assert.Less(t, elapsed, startupMigrationLockQueryTimeout+2*time.Second, "the stalled query was not canceled")
+	})
+}
+
 // A crashed or disconnected holder's session ends, which releases the lock.
 func TestStartupMigrationLock_AcquiredAfterHolderConnectionCloses(t *testing.T) {
 	forEachMigrationLockEngine(t, func(t *testing.T, database migrationLockDatabase) {

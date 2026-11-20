@@ -40,11 +40,15 @@ restarts during an upgrade or rollback migrates without it. For those releases:
 
 - Fresh install: start the API server with one replica, wait until it is ready, then
   scale it up.
-- Upgrade from such a release: scale `ml-pipeline` to zero, then apply the new
-  version. Its replicas coordinate through the lock. The API is unavailable until a
-  replica is ready.
-- Rollback to such a release: scale `ml-pipeline` to zero, apply the target version
-  with one API server replica, wait until it is ready, then scale it up.
+- Upgrade from such a release: scale `ml-pipeline` to zero, wait until its Pods have
+  terminated, then apply the new version. Its replicas coordinate through the lock.
+  The API is unavailable until a replica is ready.
+- Rollback to such a release: scale `ml-pipeline` to zero, wait until its Pods have
+  terminated, apply the target version with one API server replica, wait until it is
+  ready, then scale it up.
+
+To wait for the Pods, run
+`kubectl wait --for=delete pod -l app=ml-pipeline -n kubeflow --timeout=5m`.
 
 During a rolling upgrade, old and new API server replicas run at the same time. For
 the steps that keep recurring runs consistent, see
