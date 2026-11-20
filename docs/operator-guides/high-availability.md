@@ -40,9 +40,11 @@ restarts during an upgrade or rollback migrates without it. For those releases:
 
 - Fresh install: start the API server with one replica, wait until it is ready, then
   scale it up.
-- Upgrade from, or rollback to, such a release: scale `ml-pipeline` to zero, apply
-  the target version, then scale it back up. The API is unavailable until a
-  replica of that version is ready.
+- Upgrade from such a release: scale `ml-pipeline` to zero, then apply the new
+  version. Its replicas coordinate through the lock. The API is unavailable until a
+  replica is ready.
+- Rollback to such a release: scale `ml-pipeline` to zero, apply the target version
+  with one API server replica, wait until it is ready, then scale it up.
 
 During a rolling upgrade, old and new API server replicas run at the same time. For
 the steps that keep recurring runs consistent, see
