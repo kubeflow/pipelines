@@ -163,7 +163,8 @@ test('each profile can use its retained dataset after upgrade', async t => {
       await t.test('follow both lineage edges to the original execution', async () => {
         producerId = await checkLineage(page, dataset);
         await page.goto('/#/executions');
-        await page.locator('a[href$="/executions/' + producerId + '"]').waitFor();
+        const executionName = page.getByRole('link', { name: 'component1', exact: true });
+        await page.locator('a[href$="/executions/' + producerId + '"]').and(executionName).waitFor();
       });
       const otherPage = await openPage(browser, gateway, t, other);
       await t.test('exclude the first profile from the second profile catalog', async t => {

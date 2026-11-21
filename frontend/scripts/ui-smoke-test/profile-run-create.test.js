@@ -21,8 +21,8 @@ async function submit(page, path, button) {
 
 async function uploadPipeline(page, namespace, name, file) {
   await page.goto('/#/pipeline_versions/new');
-  // The selector renders before the page's asynchronous build info settles.
-  // Make the choice explicitly so the form receives its namespace-scoped value.
+  // The page can mount before build info loads. Select Private explicitly so
+  // the upload form receives the selected value even if the radio looks checked.
   await page.locator('#createNewSharedPipelineBtn input').check();
   await page.locator('#createNewPrivatePipelineBtn input').check();
   await page.getByRole('radio', { name: 'Upload a file', exact: true }).check();
