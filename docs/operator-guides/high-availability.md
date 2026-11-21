@@ -25,16 +25,30 @@ this guide doesn't change the default manifests.
 ### API server installs and upgrades
 
 Every API server replica checks and migrates the database schema when it starts.
-These startup migrations are [not coordinated across replicas](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/backend/src/apiserver/client_manager/client_manager.go#L1358-L1364),
-so avoid starting several API server replicas at the same time against a schema
-that needs changes:
+Replicas take a database lock for this, so only one migrates at a time. The others
+wait up to 30 seconds, then find the schema current and start. A replica still
+waiting after 30 seconds exits with an error that names the lock, and Kubernetes
+restarts it, so a long migration can show restarts on the waiting replicas.
 
-- For a fresh install or an upgrade that changes the schema, run the API server with
-  one replica until it is ready, then scale it up.
-- If you keep several replicas during an upgrade, use a rollout that starts one new
-  Pod at a time, such as a `RollingUpdate` strategy with `maxSurge: 1` and
-  `maxUnavailable: 0`. The default strategy (`maxSurge` and `maxUnavailable` of 25%)
-  only does this for up to three replicas.
+The lock is a database session lock, so it holds only while every migration
+statement reaches the same database session. Connect the API server to the database
+directly or through a session-mode connection pooler; transaction-mode pooling, such
+as PgBouncer's transaction mode, is not supported.
+
+API server releases without this lock do not take it, and an old replica that
+restarts during an upgrade or rollback migrates without it. For those releases:
+
+- Fresh install: start the API server with one replica, wait until it is ready, then
+  scale it up.
+- Upgrade from such a release: scale `ml-pipeline` to zero, wait until its Pods have
+  terminated, then apply the new version. Its replicas coordinate through the lock.
+  The API is unavailable until a replica is ready.
+- Rollback to such a release: scale `ml-pipeline` to zero, wait until its Pods have
+  terminated, apply the target version with one API server replica, wait until it is
+  ready, then scale it up.
+
+To wait for the Pods, run
+`kubectl wait --for=delete pod -l app=ml-pipeline -n kubeflow --timeout=5m`.
 
 During a rolling upgrade, old and new API server replicas run at the same time. For
 the steps that keep recurring runs consistent, see
@@ -66,9 +80,13 @@ variables, leader election stays off unless you add `LEADER_ELECT` and `POD_NAME
 
 The following overlay sets two replicas for each component that supports it, spreads
 them across nodes, and adds a PDB for each. Replace `<version>` with your Kubeflow
-Pipelines release (2.18.0 or later for the profile controller, and a release that
+Pipelines release (2.18.0 or later for the profile controller, a release that
 includes [kubeflow/pipelines#15043](https://github.com/kubeflow/pipelines/pull/15043)
-for the scheduled workflow controller), and the base with the environment you install.
+for the scheduled workflow controller, and a release that includes
+[kubeflow/pipelines#15241](https://github.com/kubeflow/pipelines/pull/15241) for the
+API server; with an older release, follow
+[API server installs and upgrades](#api-server-installs-and-upgrades) for the API
+server), and the base with the environment you install.
 
 ```yaml
 # kustomization.yaml
