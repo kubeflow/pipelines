@@ -27,18 +27,18 @@ trap 'rm -rf "$stage"' EXIT
 git archive "$ref" manifests .github/resources test_data third_party/argo | tar -x -C "$stage"
 cd "$stage"
 overlay=.github/resources/manifests/multiuser/cache-disabled
-kubectl kustomize --load-restrictor LoadRestrictionsNone "$overlay" > rendered.yaml
 
-# The CI overlay also embeds images in ConfigMap templates and launcher/driver
-# environment variables, which the standard Kustomize image transformer skips.
-python3 - "$digest_root" "$source_version" "$overlay/resources.yaml" <<'PY'
+# Rewrite the frontend override before rendering so Kustomize uses the
+# actual image in the immutable signing-key Job's ConfigMap hash. After
+# rendering, resolve the remaining images, including images in env values.
+python3 - "$digest_root" "$source_version" "$overlay" <<'PY'
 import os
 from pathlib import Path
 import re
+import subprocess
 import sys
 
-root, version, output = sys.argv[1:]
-manifest = Path("rendered.yaml").read_text()
+root, version, overlay = sys.argv[1:]
 aliases = {
     "apiserver": "api-server",
     "scheduledworkflow": "scheduled-workflow-controller",
@@ -47,9 +47,7 @@ aliases = {
 pattern = re.compile(r"kind-registry:5000/([a-z0-9-]+):(?:ci|latest)\b|ghcr\.io/kubeflow/kfp-(frontend):dummy\b")
 refs = {}
 
-def resolve(match):
-    alias = match.group(1) or match.group(2)
-    name = "kfp-" + aliases.get(alias, alias)
+def image(name):
     if name not in refs:
         if root:
             files = list((Path(root) / f"digests-{name}-amd64").iterdir())
@@ -62,12 +60,38 @@ def resolve(match):
         print(refs[name])
     return refs[name]
 
+frontend = image("kfp-frontend")
+if "@" in frontend:
+    image_name, selector = frontend.split("@", 1)
+    override = f"    newName: {image_name}\n    digest: {selector}"
+else:
+    image_name, selector = frontend.rsplit(":", 1)
+    override = f"    newName: {image_name}\n    newTag: {selector}"
+config = Path(overlay) / "kustomization.yaml"
+text, count = re.subn(
+    r"(?<=  - name: ghcr\.io/kubeflow/kfp-frontend\n)"
+    r"    newName: kind-registry:5000/frontend\n    newTag: latest",
+    lambda _: override,
+    config.read_text(),
+)
+if count != 1:
+    raise ValueError("Expected one frontend image override in the multi-user CI overlay")
+config.write_text(text)
+
+manifest = subprocess.check_output(
+    ["kubectl", "kustomize", "--load-restrictor", "LoadRestrictionsNone", overlay],
+    text=True,
+)
+def resolve(match):
+    alias = match.group(1) or match.group(2)
+    return image("kfp-" + aliases.get(alias, alias))
+
 manifest = pattern.sub(resolve, manifest)
 if "kind-registry:" in manifest or ":dummy" in manifest:
     raise ValueError("Unresolved test image in rendered multi-user overlay")
 if not {"kfp-driver", "kfp-launcher", "kfp-api-server", "kfp-frontend"} <= refs.keys():
     raise ValueError("Missing required KFP image in multi-user overlay")
-Path(output).write_text(manifest)
+(Path(overlay) / "resources.yaml").write_text(manifest)
 PY
 
 # Reuse the release's own install and readiness sequence on the same cluster.

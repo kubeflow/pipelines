@@ -63,6 +63,11 @@ runs:
       env:
         PROFILE_RELEASE_DIGESTS: ${{ inputs.release-digests }}
       run: bash .github/resources/scripts/deploy-profile-upgrade-source.sh --candidate "$PROFILE_RELEASE_DIGESTS"
+    - name: Wait for the candidate API and frontend rollouts
+      shell: bash
+      run: |
+        kubectl -n kubeflow rollout status deployment/ml-pipeline --timeout=240s
+        kubectl -n kubeflow rollout status deployment/ml-pipeline-ui --timeout=240s
     - name: Set up Node
       uses: actions/setup-node@v7.1.0
       with:
