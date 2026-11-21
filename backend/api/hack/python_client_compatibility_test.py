@@ -22,6 +22,7 @@ from pathlib import Path
 import threading
 import unittest
 
+import kfp_server_api
 from kfp_server_api import Configuration
 from kfp_server_api.rest import ApiException
 from kfp_server_api.rest import RESTClientObject
@@ -114,6 +115,36 @@ class PythonClientCompatibilityTest(unittest.TestCase):
                 client.pool_manager.clear()
                 server.shutdown()
                 worker.join(timeout=5)
+
+
+@unittest.skipUnless(
+    Path(os.environ.get('CLIENT_ROOT', '')).parent.name == 'v2beta1',
+    'Positional configuration applies to the v2beta1 client.')
+class TestPipelineVersionReferenceCompatibility(unittest.TestCase):
+
+    def test_legacy_positional_configuration(self):
+        configuration = Configuration()
+        reference = kfp_server_api.V2beta1PipelineVersionReference(
+            'pipeline-id', 'version-id', configuration)
+
+        self.assertIs(reference.local_vars_configuration, configuration)
+        self.assertEqual(
+            kfp_server_api.ApiClient().sanitize_for_serialization(reference), {
+                'pipeline_id': 'pipeline-id',
+                'pipeline_version_id': 'version-id',
+            })
+
+    def test_positional_name_fields(self):
+        configuration = Configuration()
+        reference = kfp_server_api.V2beta1PipelineVersionReference(
+            None, None, 'pipeline-name', 'version-name', configuration)
+
+        self.assertIs(reference.local_vars_configuration, configuration)
+        self.assertEqual(
+            kfp_server_api.ApiClient().sanitize_for_serialization(reference), {
+                'pipeline_name': 'pipeline-name',
+                'pipeline_version_name': 'version-name',
+            })
 
 
 if __name__ == '__main__':
