@@ -22,6 +22,7 @@ async function submit(page, path, button) {
 async function uploadPipeline(page, namespace, name, file) {
   await page.goto('/#/pipeline_versions/new');
   await page.locator('#createNewPrivatePipelineBtn input').check();
+  await page.getByRole('radio', { name: 'Upload a file', exact: true }).check();
   await page.locator('input[type="file"]').setInputFiles(file);
   await page.locator('#newPipelineName').fill(name);
   const pipeline = await submit(page, '/apis/v2beta1/pipelines/upload', page.locator('#createNewPipelineOrVersionBtn'));
@@ -54,6 +55,7 @@ async function createRun(page, pipeline, experimentId, name, score) {
   await page.locator('input#score').fill(String(score));
   const run = await submit(page, '/apis/v2beta1/runs', page.locator('#startNewRunBtn'));
   assert.ok(run.run_id, 'Start returned no run ID');
+  await page.waitForURL(url => url.hash === '#/runs/details/' + run.run_id);
   return run.run_id;
 }
 
@@ -110,6 +112,12 @@ test('each browser user uploads a private pipeline and completes two runs', asyn
       route.fulfill({ status: 200, contentType: 'application/javascript', body: '' }),
     );
     const page = await context.newPage();
+    page.on('requestfailed', request => {
+      const url = new URL(request.url());
+      if (url.origin === gateway.url && url.pathname.startsWith('/apis/')) {
+        t.diagnostic(request.method() + ' ' + url.pathname + ': ' + request.failure()?.errorText);
+      }
+    });
     await gateway.signIn(page, profile.identity);
     const name = 'profile-upgrade-' + randomUUID();
     const pipeline = await uploadPipeline(page, profile.namespace, name, PROFILE_PIPELINE_FILE);
