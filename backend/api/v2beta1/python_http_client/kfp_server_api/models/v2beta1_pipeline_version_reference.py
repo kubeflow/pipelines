@@ -48,6 +48,11 @@ class V2beta1PipelineVersionReference(object):
 
     def __init__(self, pipeline_id=None, pipeline_version_id=None, pipeline_name=None, pipeline_version_name=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1PipelineVersionReference - a model defined in OpenAPI"""  # noqa: E501
+        # Before name fields were added, Configuration was the third positional argument.
+        if (isinstance(pipeline_name, Configuration) and
+                pipeline_version_name is None and local_vars_configuration is None):
+            local_vars_configuration = pipeline_name
+            pipeline_name = None
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
         self.local_vars_configuration = local_vars_configuration
