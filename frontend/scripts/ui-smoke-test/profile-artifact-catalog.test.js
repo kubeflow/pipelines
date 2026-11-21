@@ -144,12 +144,20 @@ test('each profile can use its retained dataset after upgrade', async t => {
         await page.getByTitle('output_gcs', { exact: true }).getByTestId('artifact-icon-live').waitFor();
         await page.getByTitle('component1', { exact: true }).getByRole('button').click();
         await page.getByRole('button', { name: 'Input/Output', exact: true }).click();
-        const link = page.locator('a[download]').filter({ hasText: profile.runId }).filter({ hasText: /\/output_gcs$/ });
+        // The run graph can render before its namespace is available. Only
+        // click the download link once it represents the selected profile.
+        const namespace = encodeURIComponent(profile.namespace);
+        const link = page.locator('a[download][href*="namespace=' + namespace + '&"]')
+          .filter({ hasText: profile.runId }).filter({ hasText: /\/output_gcs$/ });
         const url = new URL(await link.getAttribute('href'), page.url());
         assert.equal(url.origin, new URL(gateway.url).origin);
         const startDownload = async () => {
           const [download] = await Promise.all([page.waitForEvent('download'), link.click()]);
-          assert.equal(download.url(), url.href);
+          const target = new URL(download.url());
+          assert.equal(target.origin, url.origin);
+          assert.equal(target.pathname, url.pathname);
+          assert.equal(target.searchParams.get('namespace'), profile.namespace);
+          assert.equal(target.searchParams.get('key'), url.searchParams.get('key'));
           return download;
         };
         let download = await startDownload();
