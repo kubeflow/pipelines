@@ -14,14 +14,18 @@
  * limitations under the License.
  */
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { createMemoryHistory } from 'history';
+import { NavigationErrorBoundary } from 'src/atoms/NavigationErrorBoundary';
+import { Router as HistoryRouter } from 'src/lib/Router';
 import * as JsYaml from 'js-yaml';
 import * as features from 'src/features';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
-import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
+import Router, { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { Apis } from 'src/lib/Apis';
 import NewRunSwitcher from 'src/pages/NewRunSwitcher';
@@ -150,6 +154,76 @@ describe('NewRunSwitcher', () => {
           expect.objectContaining({
             description: 'Unsaved description',
             experiment_id: NEW_EXPERIMENT.experiment_id,
+          }),
+        ),
+      );
+    });
+
+    it('returns to the run draft and its selected version after creating an experiment inline', async () => {
+      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+      );
+      vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline').mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion').mockResolvedValue(
+        ORIGINAL_TEST_PIPELINE_VERSION,
+      );
+      const listVersions = vi
+        .spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions')
+        .mockResolvedValue({
+          pipeline_versions: [{ pipeline_version_id: 'newer-version' }],
+        });
+      vi.spyOn(Apis.experimentServiceApiV2, 'listExperiments').mockResolvedValue({});
+      vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockResolvedValue(NEW_EXPERIMENT);
+      const createExperiment = vi
+        .spyOn(Apis.experimentServiceApiV2, 'createExperiment')
+        .mockResolvedValue(NEW_EXPERIMENT);
+      const createRun = vi.spyOn(Apis.runServiceApiV2, 'createRun').mockResolvedValue({});
+
+      const history = createMemoryHistory({
+        initialEntries: [
+          RoutePage.NEW_RUN + generatePropsNewRun().location.search + '&returnTo=/runs',
+        ],
+      });
+      render(
+        <QueryClientProvider client={new QueryClient()}>
+          <HistoryRouter history={history}>
+            <NavigationErrorBoundary>
+              <Router configs={[{ path: RoutePage.NEW_RUN, Component: NewRunSwitcher }]} />
+            </NavigationErrorBoundary>
+          </HistoryRouter>
+        </QueryClientProvider>,
+      );
+      fireEvent.change(await screen.findByRole('textbox', { name: 'Description' }), {
+        target: { value: 'Draft for the selected version' },
+      });
+      fireEvent.click(document.getElementById('chooseExperimentBtn')!);
+      const dialog = await screen.findByRole('dialog');
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Create new experiment' }));
+      fireEvent.change(within(dialog).getByLabelText(/Experiment name/), {
+        target: { value: NEW_EXPERIMENT.display_name },
+      });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Next' }));
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(screen.getByTestId('page-title')).toHaveTextContent('Start a new run');
+      expect(screen.getByDisplayValue('Draft for the selected version')).toBeVisible();
+      expect(await screen.findByDisplayValue(NEW_EXPERIMENT.display_name!)).toBeVisible();
+      expect(createExperiment).toHaveBeenCalledTimes(1);
+      expect(listVersions).not.toHaveBeenCalled();
+      const search = new URLSearchParams(history.location.search);
+      expect(search.get(QUERY_PARAMS.pipelineVersionId)).toBe(ORIGINAL_TEST_PIPELINE_VERSION_ID);
+      expect(search.get(QUERY_PARAMS.experimentId)).toBe(NEW_EXPERIMENT.experiment_id);
+      expect(search.get(QUERY_PARAMS.returnTo)).toBe('/runs');
+      fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+      await waitFor(() =>
+        expect(createRun).toHaveBeenCalledWith(
+          expect.objectContaining({
+            experiment_id: NEW_EXPERIMENT.experiment_id,
+            description: 'Draft for the selected version',
+            pipeline_version_reference: {
+              pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
+              pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
+            },
           }),
         ),
       );
