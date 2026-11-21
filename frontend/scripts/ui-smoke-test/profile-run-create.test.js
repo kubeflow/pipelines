@@ -21,12 +21,15 @@ async function submit(page, path, button) {
 
 async function uploadPipeline(page, namespace, name, file) {
   await page.goto('/#/pipeline_versions/new');
+  // The selector renders before the page's asynchronous build info settles.
+  // Make the choice explicitly so the form receives its namespace-scoped value.
+  await page.locator('#createNewSharedPipelineBtn input').check();
   await page.locator('#createNewPrivatePipelineBtn input').check();
   await page.getByRole('radio', { name: 'Upload a file', exact: true }).check();
   await page.locator('input[type="file"]').setInputFiles(file);
   await page.locator('#newPipelineName').fill(name);
   const pipeline = await submit(page, '/apis/v2beta1/pipelines/upload', page.locator('#createNewPipelineOrVersionBtn'));
-  assert.equal(pipeline.namespace, namespace);
+  assert.equal(pipeline.namespace, namespace, 'Pipeline upload was not scoped to the selected profile');
   assert.ok(pipeline.pipeline_id, 'Upload returned no pipeline ID');
   await page.waitForURL(url => url.hash.startsWith('#/pipelines/details/' + pipeline.pipeline_id + '/version/'));
   const versionId = new URL(page.url()).hash.split('/version/')[1].split('?')[0];
