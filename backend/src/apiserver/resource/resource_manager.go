@@ -1628,13 +1628,17 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 		return util.NewBadRequestError(err, "Failed to read logs for run %v due to run fetching error", runId)
 	}
 	if run.ImportedFrom != nil {
-		if r.logArchive == nil {
-			return util.NewFailedPreconditionError(errors.New("imported runs have no local pods"), "Cannot read live logs for imported historical run %s; configure access to its archived logs", runId)
+		// The source execution is historical: even a matching local Pod must
+		// never be read. Only the configured, authorized archive partition applies.
+		identity, err := r.runLogArchiveContext(run)
+		if err != nil {
+			return err
 		}
-		if err := r.readRunLogFromArchive(ctx, string(run.WorkflowRuntimeManifest), nodeId, dst); err != nil {
-			return util.NewBadRequestError(err, "Failed to read archived logs for imported historical run %v", runId)
+		if r.logArchive == nil || r.objectStore == nil {
+			return util.NewFailedPreconditionError(errors.New("archive storage is not configured"),
+				"Imported run logs require configured shared archive storage")
 		}
-		return nil
+		return r.readRunLogFromArchive(ctx, string(run.WorkflowRuntimeManifest), nodeId, dst, identity)
 	}
 	namespace, err := r.getNamespaceFromRunId(runId)
 	if err != nil {
@@ -1642,7 +1646,14 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 	}
 	err = r.readRunLogFromPod(ctx, runId, namespace, nodeId, follow, dst)
 	if err != nil && r.logArchive != nil {
-		err = r.readRunLogFromArchive(ctx, string(run.WorkflowRuntimeManifest), nodeId, dst)
+		var identity *RunLogArchiveContext
+		if common.IsMultiUserMode() {
+			identity, err = r.runLogArchiveContext(run)
+			if err != nil {
+				return err
+			}
+		}
+		err = r.readRunLogFromArchive(ctx, string(run.WorkflowRuntimeManifest), nodeId, dst, identity)
 		if err != nil {
 			return util.NewBadRequestError(err, "Failed to read logs for run %v", runId)
 		}
@@ -1693,7 +1704,14 @@ func (r *ResourceManager) readRunLogFromPod(ctx context.Context, runID string, n
 }
 
 // Fetches execution logs from a archived pod logs.
-func (r *ResourceManager) readRunLogFromArchive(ctx context.Context, workflowManifest string, nodeID string, dst io.Writer) error {
+func (r *ResourceManager) readRunLogFromArchive(ctx context.Context, workflowManifest string, nodeID string, dst io.Writer, identities ...*RunLogArchiveContext) error {
+	var identity *RunLogArchiveContext
+	if len(identities) == 1 {
+		identity = identities[0]
+	}
+	if common.IsMultiUserMode() && identity == nil {
+		return util.NewFailedPreconditionError(errors.New("run identity is required"), "Archived logs require an authorized run")
+	}
 	if workflowManifest == "" {
 		return util.NewInternalServerError(util.NewInvalidInputError("Runtime workflow manifest cannot empty"), "Failed to read logs from archive %v due to empty runtime workflow manifest", nodeID)
 	}
@@ -1709,6 +1727,12 @@ func (r *ResourceManager) readRunLogFromArchive(ctx context.Context, workflowMan
 			return err
 		}
 		return util.NewInternalServerError(err, "Failed to read logs from archive %v", nodeID)
+	}
+
+	if identity != nil {
+		if err := authorizeArchiveKey(logPath, nodeID, identity); err != nil {
+			return err
+		}
 	}
 
 	logReader, err := r.objectStore.GetFileReader(ctx, logPath)

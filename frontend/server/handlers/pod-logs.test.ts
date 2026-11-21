@@ -29,7 +29,7 @@ vi.mock('../workflow-helper.js', () => ({
 
 import { getPodLogsHandler } from './pod-logs.js';
 
-function makeHandler() {
+function makeHandler(authEnabled = false) {
   return getPodLogsHandler(
     {
       archiveArtifactory: 'minio',
@@ -44,7 +44,7 @@ function makeHandler() {
     },
     'main',
     vi.fn() as unknown as AuthorizeFn,
-    false,
+    authEnabled,
   );
 }
 
@@ -67,6 +67,30 @@ function makeResponse() {
 describe('getPodLogsHandler stream failures', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('rejects direct multi-user reads before Kubernetes or archive access', async () => {
+    const response = makeResponse();
+    const request = makeRequest();
+    request.query.podnamespace = 'tenant-a';
+    const logs = new PassThrough();
+    getPodLogsStream.mockResolvedValue(logs);
+    await makeHandler(true)(request, response, vi.fn());
+    expect(response.status).toHaveBeenCalledWith(503);
+    expect(response.send).toHaveBeenCalledWith(
+      expect.stringContaining('Run log authorization is not configured'),
+    );
+    expect(getPodLogsStream).not.toHaveBeenCalled();
+    logs.destroy();
+  });
+
+  it('requires API context for standalone run-specific requests instead of falling back', async () => {
+    const req = makeRequest();
+    req.query.runid = 'imported-run';
+    const response = makeResponse();
+    await makeHandler(false)(req, response, vi.fn());
+    expect(response.status).toHaveBeenCalledWith(503);
+    expect(getPodLogsStream).not.toHaveBeenCalled();
   });
 
   it('serves pod logs as a plain-text attachment with MIME sniffing disabled', async () => {

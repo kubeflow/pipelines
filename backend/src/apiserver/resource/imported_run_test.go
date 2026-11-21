@@ -140,37 +140,24 @@ func TestDeleteImportedRunPreservesLocalWorkflow(t *testing.T) {
 
 func TestReadImportedRunLogsSkipsLocalPods(t *testing.T) {
 	for _, archived := range []bool{false, true} {
-		name := "without archive"
-		if archived {
-			name = "with archive"
-		}
-		t.Run(name, func(t *testing.T) {
+		t.Run(map[bool]string{false: "without archive", true: "with archive"}[archived], func(t *testing.T) {
 			store, manager, run := initWithOneTimeFailedRun(t)
 			defer store.Close()
-			_, err := store.DB().Exec(`UPDATE run_details SET ImportedFrom = ?, WorkflowRuntimeManifest = ? WHERE UUID = ?`, "source-cluster", testWorkflow.ToStringForStore(), run.UUID)
+			_, err := store.DB().Exec(`UPDATE run_details SET ImportedFrom = ?, WorkflowRuntimeManifest = ? WHERE UUID = ?`, "source-cluster", foreignLogManifest, run.UUID)
 			require.NoError(t, err)
 			manager.k8sCoreClient = nil
 			manager.logArchive = nil
+			objects := &readerOnlyObjectStore{files: map[string][]byte{"tenant-b/private/main.log": []byte("SYNTHETIC_FOREIGN_LOG\n")}}
+			manager.objectStore = objects
 			if archived {
 				manager.logArchive = archive.NewLogArchive("/logs", "main.log")
-				execSpec, err := util.NewExecutionSpecJSON(util.CurrentExecutionType(), []byte(testWorkflow.ToStringForStore()))
-				require.NoError(t, err)
-				logPath, err := manager.logArchive.GetLogObjectKey(execSpec, "node-id")
-				require.NoError(t, err)
-				manager.objectStore = &readerOnlyObjectStore{files: map[string][]byte{logPath: []byte("source cluster log\n")}}
 			}
-
 			var dst bytes.Buffer
 			err = manager.ReadLog(context.Background(), run.UUID, "node-id", true, &dst)
-			if archived {
-				require.NoError(t, err)
-				assert.Equal(t, "source cluster log\n", dst.String())
-			} else {
-				require.Error(t, err)
-				assert.Equal(t, codes.FailedPrecondition, err.(*util.UserError).ExternalStatusCode())
-				assert.Contains(t, err.Error(), "configure access to its archived logs")
-				assert.Empty(t, dst.String())
-			}
+			require.Error(t, err)
+			assert.True(t, util.IsUserErrorCodeMatch(err, codes.FailedPrecondition), "%v", err)
+			assert.Empty(t, dst.String())
+			assert.Empty(t, objects.getFileReaderPaths)
 		})
 	}
 }

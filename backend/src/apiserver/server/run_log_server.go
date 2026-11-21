@@ -66,6 +66,20 @@ func (s *RunLogServer) ReadRunLogV1(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.URL.Query().Get("archive_context") == "true" {
+		identity, err := s.resourceManager.GetRunLogArchiveContext(runId, nodeId)
+		if err != nil {
+			s.writeErrorToResponse(w, http.StatusForbidden, err)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		if err := json.NewEncoder(w).Encode(identity); err != nil {
+			glog.Errorf("Failed to write archive context: %v", err)
+		}
+		return
+	}
+
 	// Set the success headers without committing a status code: the first
 	// streamed log write sends 200 implicitly, while a validation failure
 	// inside ReadLog can still produce a non-2xx JSON response.

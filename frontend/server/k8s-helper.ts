@@ -301,6 +301,19 @@ export interface K8sError {
   message: string;
   additionalInfo?: any;
 }
+/** Preserve Kubernetes status codes so log fallback is limited to genuine 404s. */
+export function getPodForLogAuthorization(podName: string, namespace: string) {
+  return k8sV1Client.readNamespacedPod({ name: podName, namespace });
+}
+
+export function getAuthorizedPodLogs(
+  podName: string,
+  namespace: string,
+  container: string,
+): Promise<string> {
+  return k8sV1Client.readNamespacedPodLog({ name: podName, namespace, container });
+}
+
 export async function getPod(
   podName: string,
   podNamespace: string,

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { randomBytes } from 'crypto';
+import { DEFAULT_LOG_ARCHIVE_KEY_FORMAT } from './helpers/log-archive-policy.js';
 import * as path from 'path';
 import { getArtifactStoreOrigin, parseArtifactStoreEndpoint } from './minio-helper.js';
 import { loadJSON } from './utils.js';
@@ -231,6 +232,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     ARGO_ARCHIVE_LOGS = 'false',
     /** Use minio or s3 client to retrieve archives. */
     ARGO_ARCHIVE_ARTIFACTORY = 'minio',
+    KFP_LOG_ARCHIVE_KEY_FORMAT = DEFAULT_LOG_ARCHIVE_KEY_FORMAT,
     /** Bucket to retrive logs from */
     ARGO_ARCHIVE_BUCKETNAME = 'mlpipeline',
     /** This should match the keyFormat specified in the Argo workflow-controller-configmap.
@@ -308,6 +310,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       archiveBucketName: ARGO_ARCHIVE_BUCKETNAME,
       archiveLogs: asBool(ARGO_ARCHIVE_LOGS),
       keyFormat: ARGO_KEYFORMAT,
+      logArchiveKeyFormat: KFP_LOG_ARCHIVE_KEY_FORMAT,
       artifactRepositoriesLookup: asBool(ARGO_ARTIFACT_REPOSITORIES_LOOKUP),
       artifactRepositoryEndpoints: getArgoArtifactRepositoryEndpoints(
         MINIO_HOST,
@@ -459,6 +462,8 @@ export interface MetadataConfigs {
   };
 }
 export interface ArgoConfigs {
+  /** Operator-owned namespace/workflow-partitioned archive layout. */
+  logArchiveKeyFormat?: string;
   archiveLogs: boolean;
   archiveArtifactory: string;
   archiveBucketName: string;
