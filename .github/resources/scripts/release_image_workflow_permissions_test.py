@@ -66,7 +66,32 @@ class ReleaseImageWorkflowPermissionsTest(unittest.TestCase):
                 self.assertNotIn('secrets', caller)
 
         self.assertEqual(build['with']['push'], '${{ !inputs.dry_run }}')
-        self.assertEqual(manifest['if'], '${{ !inputs.dry_run }}')
+        self.assertIn('!inputs.dry_run', manifest['if'])
+
+    def test_profile_qualification_gates_release_tag_publication(self):
+        release_jobs = jobs('image-builds-release.yml')
+        release_check = release_jobs['qualify-profile-upgrade']
+        manifest = release_jobs['create-manifests']
+        build = release_jobs['build-images-for-release']
+        self.assertIn('qualify-profile-upgrade', manifest['needs'])
+        self.assertIn("needs.qualify-profile-upgrade.result == 'success'", manifest['if'])
+        self.assertIn("!startsWith(inputs.target_tag, '2.18.')", manifest['if'])
+        self.assertEqual(
+            build['with']['src_branch'], '${{ needs.resolve-candidate.outputs.sha }}')
+        self.assertEqual(
+            release_check['steps'][0]['with']['ref'],
+            build['with']['src_branch'])
+        self.assertEqual(release_check['steps'][1]['with']['pattern'], 'digests-*-amd64')
+        self.assertEqual(release_check['steps'][2]['uses'], './.github/actions/profile-upgrade')
+        self.assertEqual(release_check['steps'][2]['with']['release-digests'],
+                         release_check['steps'][1]['with']['path'])
+
+    def test_pr_and_release_use_the_same_upgrade_harness(self):
+        profile = jobs('upgrade-test.yml')['profile-upgrade']
+        self.assertIn('build', profile['needs'])
+        self.assertEqual(profile['steps'][1]['uses'], './.github/actions/profile-upgrade')
+        self.assertNotIn('continue-on-error', profile)
+
 
 
 if __name__ == '__main__':

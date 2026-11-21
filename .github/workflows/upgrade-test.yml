@@ -32,6 +32,11 @@ on:
         required: false
         type: string
         default: ''
+      profile_upgrade_only:
+        description: Run only the two-profile upgrade acceptance job
+        type: boolean
+        required: false
+        default: false
       run_readiness_reporting:
         description: 'Run isolated populated workflow-report recovery acceptance'
         type: boolean
@@ -59,6 +64,9 @@ on:
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
+      - '.github/actions/profile-upgrade/**'
+      - 'frontend/**'
+      - 'test/frontend-integration-test/**'
       - '.github/actions/test-and-report/**'
       - '.github/resources/**'
       - 'tools/upgrade-readiness/**'
@@ -96,7 +104,22 @@ jobs:
       contents: read
     uses: ./.github/workflows/image-builds.yml
 
+  profile-upgrade:
+    name: Two-profile upgrade acceptance
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/profile-upgrade
+        with:
+          image-artifacts-ready: ${{ needs.build.outputs.IMAGE_ARTIFACTS_READY }}
+
   upgrade-test:
+    if: ${{ !inputs.profile_upgrade_only }}
     needs: build
     runs-on: ubuntu-latest
     permissions:

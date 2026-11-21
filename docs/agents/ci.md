@@ -137,6 +137,13 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   upload only explicit sanitized report files, and delete its isolated cluster.
   Raw manifests, token files and restoration inputs are not acceptance artifacts.
 
+- `upgrade-test.yml` runs the two-profile upgrade job for changes to the UI,
+  API, deployment manifests, and acceptance tests. It seeds and captures
+  runs on the previous release, applies the candidate to the same Kind cluster,
+  and checks historical data and authorization through the Run API and Chromium.
+  The 2.18 image promotion workflow calls the same harness with the release
+  build's AMD64 digests before tagging images.
+
 - `upgrade-test.yml` has a manual, default-off `run_custom_roles` input. Its
   isolated `kind-kfp-custom-roles` cluster runs candidate API/UI images against
   namespaced custom-role users: private/shared upload and version inheritance,

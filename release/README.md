@@ -131,6 +131,18 @@ kfpr run --state-file release-state.json
 
 Use the exact step ID from `kfpr steps` or the list below.
 
+## Multi-user upgrade gate for 2.18
+
+The release image workflow must pass **Two-profile release upgrade acceptance**
+before publishing the 2.18 release image tags. The job seeds real runs on the
+previous published release, then upgrades in place and checks the same runs
+and artifacts under both profile identities. The AMD64 images under test are
+the digests produced by the release build and used to assemble the release
+manifests. The check also validates owner access and cross-profile denials.
+
+If the gate fails, fix the candidate and rerun the release workflow. The dry
+run builds images without promotion or release upgrade qualification.
+
 ## TensorBoard image publication gate for 2.18
 
 Before announcing any 2.18 release candidate or final release:
