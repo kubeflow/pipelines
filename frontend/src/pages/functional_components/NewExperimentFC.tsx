@@ -42,6 +42,7 @@ const css = stylesheet({
 interface ExperimentProps {
   namespace?: string;
   onCancel?: () => void;
+  onCreated?: (experiment: V2beta1Experiment) => void;
 }
 
 type NewExperimentFCProps = ExperimentProps & PageProps;
@@ -54,15 +55,15 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
   const [isbeingCreated, setIsBeingCreated] = useState<boolean>(false);
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
 
+  const isInline = !!props.onCreated;
   useEffect(() => {
+    if (isInline) return;
     updateToolbar({
       actions: {},
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: 'New experiment',
     });
-    // Initialize toolbar only once during the first render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isInline, updateToolbar]);
 
   const newExperimentMutation = useMutation({
     mutationFn: (experiment: V2beta1Experiment) => {
@@ -80,22 +81,26 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
 
     newExperimentMutation.mutate(newExperiment, {
       onSuccess: async (response) => {
-        const latestVersion = pipelineId ? await getLatestVersion(pipelineId) : undefined;
-        const searchString = pipelineId
-          ? new URLParser(props).build({
-              [QUERY_PARAMS.experimentId]: response.experiment_id || '',
-              [QUERY_PARAMS.pipelineId]: pipelineId,
-              [QUERY_PARAMS.pipelineVersionId]: latestVersion?.pipeline_version_id || '',
-              [QUERY_PARAMS.firstRunInExperiment]: '1',
-            })
-          : new URLParser(props).build({
-              [QUERY_PARAMS.experimentId]: response.experiment_id || '',
-              [QUERY_PARAMS.firstRunInExperiment]: '1',
-            });
+        if (props.onCreated) {
+          props.onCreated(response);
+        } else {
+          const latestVersion = pipelineId ? await getLatestVersion(pipelineId) : undefined;
+          const searchString = pipelineId
+            ? new URLParser(props).build({
+                [QUERY_PARAMS.experimentId]: response.experiment_id || '',
+                [QUERY_PARAMS.pipelineId]: pipelineId,
+                [QUERY_PARAMS.pipelineVersionId]: latestVersion?.pipeline_version_id || '',
+                [QUERY_PARAMS.firstRunInExperiment]: '1',
+              })
+            : new URLParser(props).build({
+                [QUERY_PARAMS.experimentId]: response.experiment_id || '',
+                [QUERY_PARAMS.firstRunInExperiment]: '1',
+              });
+
+          props.history.push(RoutePage.NEW_RUN + searchString);
+        }
 
         setIsBeingCreated(false);
-        props.history.push(RoutePage.NEW_RUN + searchString);
-
         updateSnackbar({
           autoHideDuration: 10000,
           message: `Successfully created new Experiment: ${response.display_name}`,
