@@ -513,11 +513,23 @@ func TestStartupMigrationLock_StalledQueryIsCancelled(t *testing.T) {
 		t.Cleanup(func() { connection.Close() })
 		statements := startupMigrationLockStatements{tryAcquire: stalledQueries[database.dialect.Name()]}
 
+		// A zero wait makes one attempt, bounded by the query timeout.
 		started := time.Now()
 		acquireError := acquireStartupMigrationLock(connection, statements, 0)
 		elapsed := time.Since(started)
 		assert.Error(t, acquireError)
 		assert.Less(t, elapsed, startupMigrationLockQueryTimeout+2*time.Second, "the stalled query was not canceled")
+
+		// A positive wait shorter than the query timeout also bounds the first attempt.
+		const lockWaitTimeout = 1500 * time.Millisecond
+		retryConnection, retryConnectionError := pool.Conn(context.Background())
+		require.NoError(t, retryConnectionError)
+		t.Cleanup(func() { retryConnection.Close() })
+		started = time.Now()
+		acquireError = acquireStartupMigrationLock(retryConnection, statements, lockWaitTimeout)
+		elapsed = time.Since(started)
+		assert.Error(t, acquireError)
+		assert.Less(t, elapsed, lockWaitTimeout+500*time.Millisecond, "the first attempt outlasted the wait")
 	})
 }
 

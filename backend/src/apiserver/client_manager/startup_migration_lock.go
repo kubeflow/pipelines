@@ -37,7 +37,7 @@ const startupMigrationLockWaitTimeout = 30 * time.Second
 
 // startupMigrationLockQueryTimeout bounds getting the lock's connection and each
 // acquire or release query, so a stalled database cannot hold startup. Acquire
-// queries after the first also finish by the end of the wait.
+// queries also finish by the end of the wait.
 const startupMigrationLockQueryTimeout = 5 * time.Second
 
 // startupMigrationLockStatements are scoped to the current database (MySQL) or
@@ -112,11 +112,14 @@ func withStartupMigrationLock(
 }
 
 // acquireStartupMigrationLock tries to take the lock until lockWaitTimeout ends.
-// The first attempt always runs, so a zero wait makes one attempt; later
-// attempts and the sleeps between them end by the deadline.
+// Every attempt, and the sleeps between them, ends by the deadline. A zero wait
+// still makes one attempt, bounded by startupMigrationLockQueryTimeout.
 func acquireStartupMigrationLock(connection *sql.Conn, statements startupMigrationLockStatements, lockWaitTimeout time.Duration) error {
 	deadline := time.Now().Add(lockWaitTimeout)
 	queryTimeout := startupMigrationLockQueryTimeout
+	if lockWaitTimeout > 0 {
+		queryTimeout = min(queryTimeout, lockWaitTimeout)
+	}
 	loggedWait := false
 	for {
 		// MySQL returns NULL from GET_LOCK on an error; a nil result is not acquired.
