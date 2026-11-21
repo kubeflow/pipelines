@@ -155,6 +155,8 @@ jobs:
       - uses: ./.github/actions/profile-upgrade
         with:
           release-digests: ${{ runner.temp }}/profile-release-digests
+          # The release containing the deliberate #15844 revert.
+          metadata-isolation: ${{ inputs.target_tag == '2.18.2' && 'report' || 'enforce' }}
 
   create-manifests:
     needs: [build-images-for-release, qualify-profile-upgrade]

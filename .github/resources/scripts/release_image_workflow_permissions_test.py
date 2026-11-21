@@ -85,6 +85,9 @@ class ReleaseImageWorkflowPermissionsTest(unittest.TestCase):
         self.assertEqual(release_check['steps'][2]['uses'], './.github/actions/profile-upgrade')
         self.assertEqual(release_check['steps'][2]['with']['release-digests'],
                          release_check['steps'][1]['with']['path'])
+        self.assertEqual(
+            release_check['steps'][2]['with']['metadata-isolation'],
+            "${{ inputs.target_tag == '2.18.2' && 'report' || 'enforce' }}")
 
     def test_pr_and_release_use_the_same_upgrade_harness(self):
         profile = jobs('upgrade-test.yml')['profile-upgrade']

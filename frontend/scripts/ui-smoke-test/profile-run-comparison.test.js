@@ -4,6 +4,7 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { chromium } = require('playwright');
+const { startFixtureGateway } = require('./profile-auth-gateway');
 
 test('each profile can compare the metrics recorded before upgrade', async t => {
   const profiles = [
@@ -29,13 +30,17 @@ test('each profile can compare the metrics recorded before upgrade', async t => 
     assert.notEqual(profile.runs[0], profile.runs[1]);
   }
 
+  const gateway = await startFixtureGateway(
+    process.env.PROFILE_UI_URL || 'http://127.0.0.1:3000',
+    profiles.map(profile => profile.identity),
+  );
+  t.after(() => gateway.close());
   const browser = await chromium.launch();
   t.after(() => browser.close());
   for (const profile of profiles) {
     await t.test(profile.namespace, async t => {
       const context = await browser.newContext({
-        baseURL: process.env.PROFILE_UI_URL || 'http://127.0.0.1:3000',
-        extraHTTPHeaders: { 'kubeflow-userid': profile.identity },
+        baseURL: gateway.url,
       });
       t.after(() => context.close());
       await context.addInitScript(namespace => {
@@ -51,8 +56,14 @@ test('each profile can compare the metrics recorded before upgrade', async t => 
       }, profile.namespace);
 
       const page = await context.newPage();
-      const query = new URLSearchParams({ runlist: profile.runs.join(',') });
-      await page.goto('/#/compare?' + query);
+      await gateway.signIn(page, profile.identity);
+      await page.goto('/#/runs');
+      for (const runId of profile.runs) {
+        const row = page.locator('[data-row-id="' + runId + '"]');
+        await row.getByRole('checkbox').check();
+      }
+      await page.getByRole('button', { name: 'Compare runs', exact: true }).click();
+      await page.waitForURL(url => url.hash.startsWith('#/compare?'));
       const metric = page.getByRole('row').filter({
         has: page.getByRole('cell', { name: 'profile_upgrade_score', exact: true }),
       });

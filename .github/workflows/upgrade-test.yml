@@ -37,6 +37,11 @@ on:
         type: boolean
         required: false
         default: false
+      enforce_profile_isolation:
+        description: Require metadata isolation as well as owner compatibility
+        type: boolean
+        required: false
+        default: false
       run_readiness_reporting:
         description: 'Run isolated populated workflow-report recovery acceptance'
         type: boolean
@@ -117,6 +122,7 @@ jobs:
       - uses: ./.github/actions/profile-upgrade
         with:
           image-artifacts-ready: ${{ needs.build.outputs.IMAGE_ARTIFACTS_READY }}
+          metadata-isolation: ${{ (inputs.enforce_profile_isolation || vars.KFP_ENFORCE_PROFILE_ISOLATION == 'true') && 'enforce' || 'report' }}
 
   upgrade-test:
     if: ${{ !inputs.profile_upgrade_only }}

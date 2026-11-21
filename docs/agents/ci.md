@@ -138,11 +138,15 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   Raw manifests, token files and restoration inputs are not acceptance artifacts.
 
 - `upgrade-test.yml` runs the two-profile upgrade job for changes to the UI,
-  API, deployment manifests, and acceptance tests. It seeds and captures
-  runs on the previous release, applies the candidate to the same Kind cluster,
-  and checks historical data and authorization through the Run API and Chromium.
-  The 2.18 image promotion workflow calls the same harness with the release
-  build's AMD64 digests before tagging images.
+  API, deployment manifests, and acceptance tests. Chromium signs in through a
+  disposable loopback authentication gateway and uploads and runs the fixture
+  pipeline in each profile. The job applies the candidate in place, checks
+  historical data and authorization through the Run API and browser, and starts
+  new browser runs. The release workflow uses the same harness with its AMD64
+  release digests. During the 2.18.2 compatibility exception, PR checks report
+  observed metadata visibility gaps. Owners, normal Run API denials, and
+  unexpected test errors still block. Dispatch with `enforce_profile_isolation`
+  to require the full security contract while preparing the isolation fix.
 
 - `upgrade-test.yml` has a manual, default-off `run_custom_roles` input. Its
   isolated `kind-kfp-custom-roles` cluster runs candidate API/UI images against

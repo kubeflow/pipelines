@@ -7,6 +7,9 @@ inputs:
   release-digests:
     description: Absolute path to the candidate release's AMD64 digest artifacts, when qualifying a release
     default: ''
+  metadata-isolation:
+    description: Enforce metadata isolation or report confirmed failures during the revert window
+    default: enforce
 runs:
   using: composite
   steps:
@@ -18,11 +21,23 @@ runs:
     - name: Deploy previous release
       shell: bash
       run: bash .github/resources/scripts/deploy-profile-upgrade-source.sh
-    - name: Capture pre-upgrade runs
+    - name: Set up Node
+      uses: actions/setup-node@v7.1.0
+      with:
+        node-version-file: frontend/.nvmrc
+    - name: Install browser test dependencies
+      shell: bash
+      working-directory: frontend/scripts/ui-smoke-test
+      run: |
+        npm ci
+        npx playwright install --with-deps --only-shell chromium
+    - name: Sign in, upload pipelines and create pre-upgrade runs
       id: history
       shell: bash
       env:
         PROFILE_UI_URL: http://127.0.0.1:3000
+        PROFILE_PIPELINE_FILE: ${{ runner.temp }}/profile-pipeline.yaml
+        PROFILE_RUN_OUTPUT: ${{ runner.temp }}/profile-source-runs.env
       run: |
         set -euo pipefail
         kubectl -n kubeflow port-forward service/ml-pipeline-ui 3000:80 > "$RUNNER_TEMP/profile-source-forward.log" 2>&1 &
@@ -38,11 +53,13 @@ runs:
         done
         fixture_output=$(mktemp)
         GITHUB_OUTPUT="$fixture_output" bash test/frontend-integration-test/prepare-profile-run.sh
-        cat "$fixture_output" >> "$GITHUB_OUTPUT"
         source "$fixture_output"
+        export PROFILE_OWNER="$owner" PROFILE_FOREIGN="$foreign"
+        export PROFILE_OWNER_NAMESPACE="$owner_namespace" PROFILE_FOREIGN_NAMESPACE="$foreign_namespace"
+        node --test frontend/scripts/ui-smoke-test/profile-run-create.test.js
+        cat "$fixture_output" "$PROFILE_RUN_OUTPUT" >> "$GITHUB_OUTPUT"
+        source "$PROFILE_RUN_OUTPUT"
         PROFILE_RUN_ID="$run_id" PROFILE_FOREIGN_RUN_ID="$foreign_run_id" \
-          PROFILE_OWNER="$owner" PROFILE_FOREIGN="$foreign" \
-          PROFILE_OWNER_NAMESPACE="$owner_namespace" PROFILE_FOREIGN_NAMESPACE="$foreign_namespace" \
           bash test/frontend-integration-test/check-profile-upgrade-history.sh capture "$RUNNER_TEMP/profile-history.json"
     - name: Upgrade to the CI candidate
       if: inputs.release-digests == ''
@@ -68,14 +85,13 @@ runs:
       run: |
         kubectl -n kubeflow rollout status deployment/ml-pipeline --timeout=240s
         kubectl -n kubeflow rollout status deployment/ml-pipeline-ui --timeout=240s
-    - name: Set up Node
-      uses: actions/setup-node@v7.1.0
-      with:
-        node-version-file: frontend/.nvmrc
-    - name: Verify historical access in Chromium
+    - name: Verify historical browser journeys and submit new runs
       shell: bash
       env:
         PROFILE_UI_URL: http://127.0.0.1:3000
+        PROFILE_PIPELINE_FILE: ${{ runner.temp }}/profile-pipeline.yaml
+        PROFILE_RUN_OUTPUT: ${{ runner.temp }}/profile-candidate-runs.env
+        PROFILE_ISOLATION_MODE: ${{ inputs.metadata-isolation }}
         PROFILE_RUN_ID: ${{ steps.history.outputs.run_id }}
         PROFILE_RUN_NAME: ${{ steps.history.outputs.run_name }}
         PROFILE_COMPARISON_RUN_ID: ${{ steps.history.outputs.comparison_run_id }}
@@ -102,11 +118,10 @@ runs:
           sleep 2
         done
         bash test/frontend-integration-test/check-profile-upgrade-history.sh verify "$RUNNER_TEMP/profile-history.json"
-        bash test/frontend-integration-test/prepare-profile-run.sh --verify-writes
-        cd frontend/scripts/ui-smoke-test
-        npm ci
-        npx playwright install --with-deps --only-shell chromium
-        node --test profile-artifact-catalog.test.js profile-run-comparison.test.js
+        bash test/frontend-integration-test/prepare-profile-run.sh --restore-fixture-network
+        node --test frontend/scripts/ui-smoke-test/profile-artifact-catalog.test.js \
+          frontend/scripts/ui-smoke-test/profile-run-comparison.test.js
+        node --test frontend/scripts/ui-smoke-test/profile-run-create.test.js
     - name: Collect upgrade diagnostics
       if: failure()
       shell: bash
@@ -125,4 +140,6 @@ runs:
         path: |
           ${{ runner.temp }}/profile-candidate-sha.txt
           ${{ runner.temp }}/profile-history.json
+          ${{ runner.temp }}/profile-source-runs.env
+          ${{ runner.temp }}/profile-candidate-runs.env
         if-no-files-found: error
