@@ -1,4 +1,4 @@
-FROM python:3.13-slim as base
+FROM python:3.15-slim as base
 
 USER 0
 
