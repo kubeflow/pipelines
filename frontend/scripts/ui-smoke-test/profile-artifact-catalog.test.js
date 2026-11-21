@@ -135,7 +135,7 @@ test('each profile can use its retained dataset after upgrade', async t => {
       assert.equal(record.state, 'SUCCEEDED');
       assert.ok(record.display_name);
 
-      await t.test('read the exact original bytes from the run download link', async () => {
+      await t.test('read the exact original bytes from the run download link', async t => {
         await page.goto('/#/runs');
         const runLink = page.getByTestId('run-name-link').filter({ hasText: record.display_name });
         const runPath = '/runs/details/' + encodeURIComponent(profile.runId);
@@ -147,8 +147,19 @@ test('each profile can use its retained dataset after upgrade', async t => {
         const link = page.locator('a[download]').filter({ hasText: profile.runId }).filter({ hasText: /\/output_gcs$/ });
         const url = new URL(await link.getAttribute('href'), page.url());
         assert.equal(url.origin, new URL(gateway.url).origin);
-        const [download] = await Promise.all([page.waitForEvent('download'), link.click()]);
-        assert.equal(await download.failure(), null);
+        const startDownload = async () => {
+          const [download] = await Promise.all([page.waitForEvent('download'), link.click()]);
+          assert.equal(download.url(), url.href);
+          return download;
+        };
+        let download = await startDownload();
+        let failure = await download.failure();
+        if (failure === 'canceled') {
+          t.diagnostic('Chromium canceled the download. Retrying the same link once.');
+          download = await startDownload();
+          failure = await download.failure();
+        }
+        assert.equal(failure, null, 'Browser download did not complete');
         assert.deepEqual(await readFile(await download.path()), Buffer.from('value\n' + record.display_name + '\n'));
       });
 
