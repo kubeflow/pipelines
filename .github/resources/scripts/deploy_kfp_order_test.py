@@ -13,13 +13,49 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from pathlib import Path
+import subprocess
+import tempfile
 import unittest
 
 SCRIPT = Path(__file__).with_name('deploy-kfp.sh')
 
 
 class DeployKfpOrderTest(unittest.TestCase):
+
+    def test_istio_upgrade_waits_for_replacement_pods(self):
+        with tempfile.TemporaryDirectory() as directory:
+            kubectl = Path(directory) / 'kubectl'
+            kubectl.write_text(
+                """#!/bin/sh
+case "$*" in
+  *"wait --for=condition=Ready pods"*)
+    echo 'Error from server (NotFound): pod deleted during rollout' >&2
+    exit 1 ;;
+  *"rollout status deployment/istiod deployment/istio-ingressgateway"*)
+    echo 'Istio replacement deployments available' ;;
+  *"apply -f manifests/kustomize/third-party/metacontroller/base/crd.yaml"*)
+    exit 42 ;;  # Stop after the readiness gate.
+esac
+""",
+                encoding='utf-8')
+            kubectl.chmod(0o755)
+            result = subprocess.run(
+                ['bash', str(SCRIPT.resolve()), '--multi-user'],
+                cwd=directory,
+                env={
+                    **os.environ,
+                    'PATH':
+                        directory + os.pathsep + os.environ['PATH'],
+                },
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 42,
+                             result.stdout + result.stderr)
+            self.assertIn('Istio replacement deployments available',
+                          result.stdout)
 
     def test_profile_controller_readiness_overlaps_kfp_rollout(self):
         script = SCRIPT.read_text(encoding='utf-8')
@@ -28,7 +64,7 @@ class DeployKfpOrderTest(unittest.TestCase):
         kfp_apply = script.index('echo "Deploying ${TEST_MANIFESTS}..."')
         kfp_ready = script.index('wait_for_pods || EXIT_CODE=$?')
         profile_ready = script.index(
-            'wait_for_pods_ready kubeflow '
+            'wait_for_readiness kubeflow '
             '"app.kubernetes.io/name=profile-controller"')
         iam_ready = script.index('"${C_DIR}/wait-for-seaweedfs-iam.sh"')
 

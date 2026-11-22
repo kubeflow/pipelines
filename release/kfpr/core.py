@@ -733,6 +733,8 @@ def watch_latest_workflow_run(
     workflow: str,
     branch: str,
     fresh_only: bool = True,
+    *,
+    require_success: bool = True,
 ) -> None:
     """Watch the latest workflow run for a given workflow and branch.
 
@@ -740,6 +742,7 @@ def watch_latest_workflow_run(
       runner: CommandRunner instance for executing gh commands.
       workflow: Workflow filename to watch.
       branch: Branch name to filter runs by.
+      require_success: Fail when the watched workflow concludes unsuccessfully.
     """
     if runner.dry_run:
         print(
@@ -779,7 +782,10 @@ def watch_latest_workflow_run(
             f'Could not find workflow run for {workflow} on {branch}.')
     run_id, run_url, _ = run_info.split('\t', 2)
     print(underline_links(f'Workflow run: {run_url}'))
-    runner.run(['gh', 'run', 'watch', run_id, '--exit-status'])
+    watch_command = ['gh', 'run', 'watch', run_id]
+    if require_success:
+        watch_command.append('--exit-status')
+    runner.run(watch_command)
 
 
 def prompt_choice(question: str,

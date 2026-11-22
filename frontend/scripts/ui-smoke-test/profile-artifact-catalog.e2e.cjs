@@ -8,6 +8,7 @@ const { readFile } = require('node:fs/promises');
 const { test } = require('node:test');
 const { chromium } = require('playwright');
 const { startFixtureGateway } = require('./profile-auth-gateway');
+const { lookupReturnedRecord, scanCatalog } = require('./profile-catalog-assertions.cjs');
 
 const baseURL = process.env.PROFILE_UI_URL || 'http://127.0.0.1:3000';
 
@@ -47,20 +48,10 @@ async function openPage(browser, gateway, t, { identity, namespace }) {
 }
 
 async function openDataset(page, profile) {
-  await page.goto('/#/artifacts');
-  const rows = page.getByTestId('table-row');
-  const row = rows.filter({ hasText: profile.runId }).filter({
+  const row = page.getByTestId('table-row').filter({ hasText: profile.runId }).filter({
     has: page.getByRole('link', { name: 'output_gcs', exact: true }),
   });
-  const errorBanner = page.getByRole('link', { name: 'Troubleshooting guide' });
-  const empty = page.getByText('No artifacts found.', { exact: true });
-  await row.or(errorBanner).first().waitFor({ timeout: 60000 }).catch(async error => {
-    if (await empty.isVisible()) throw new Error(profile.namespace + ' catalog returned no artifacts for ' + profile.runId);
-    throw error;
-  });
-  if (await errorBanner.isVisible()) {
-    throw new Error(profile.namespace + ' catalog error: ' + await errorBanner.locator('../..').innerText());
-  }
+  assert.ok(await scanCatalog(page, () => row.count()), profile.namespace + ' catalog is missing ' + profile.runId);
 
   const uri = await row.getByText(/^(?:s3|minio|gs):\/\//).innerText();
   const { pathname } = new URL(uri);
@@ -107,14 +98,14 @@ function checkIsolation(t, exposed, description) {
   assert.equal(exposed, false, description);
 }
 
-async function detailExposesDataset(page, kind, id, uri) {
-  await page.goto('/#/' + kind + 's/' + id);
-  const denied = page.getByText(new RegExp(
-    'No ' + kind + ' identified by id: ' + id + '\\b|permission.denied|forbidden|HTTP (403|404)\\b|Code: (5|7)\\b', 'i',
-  )).first();
-  const exposed = page.getByText(uri, { exact: true }).first();
-  await denied.or(exposed).first().waitFor();
-  return exposed.isVisible();
+async function detailExposesRecord(page, kind, id) {
+  const method = kind === 'artifact' ? 'GetArtifactsByID' : 'GetExecutionsByID';
+  const [response] = await Promise.all([
+    page.waitForResponse(response => response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/ml_metadata.MetadataStoreService/' + method),
+    page.goto('/#/' + kind + 's/' + id),
+  ]);
+  return lookupReturnedRecord(response);
 }
 
 test('each profile can use its retained dataset after upgrade', async t => {
@@ -187,22 +178,25 @@ test('each profile can use its retained dataset after upgrade', async t => {
       });
       const otherPage = await openPage(browser, gateway, t, other);
       await t.test('exclude the first profile from the second profile catalog', async t => {
-        await otherPage.goto('/#/artifacts');
         const rows = otherPage.getByTestId('table-row');
-        await rows.filter({ hasText: other.runId }).first().waitFor();
-        checkIsolation(
-          t, await rows.filter({ hasText: profile.runId }).count() > 0,
-          'catalog includes a dataset from another profile',
-        );
+        let ownVisible = false;
+        let foreignVisible = false;
+        await scanCatalog(otherPage, async () => {
+          ownVisible = ownVisible || (await rows.filter({ hasText: other.runId }).count()) > 0;
+          foreignVisible = foreignVisible || (await rows.filter({ hasText: profile.runId }).count()) > 0;
+          return false;
+        });
+        assert.ok(ownVisible, 'Expected the second profile to see its own dataset');
+        checkIsolation(t, foreignVisible, 'catalog includes a dataset from another profile');
       });
       await t.test('deny artifact details to the second profile', async t => {
-        checkIsolation(t, await detailExposesDataset(otherPage, 'artifact', dataset.artifactId, dataset.uri),
-          'artifact details expose a dataset to another profile');
+        checkIsolation(t, await detailExposesRecord(otherPage, 'artifact', dataset.artifactId),
+          'artifact lookup returns a record to another profile');
       });
       if (producerId) {
         await t.test('deny execution details to the second profile', async t => {
-          checkIsolation(t, await detailExposesDataset(otherPage, 'execution', producerId, dataset.uri),
-            'execution details expose a dataset to another profile');
+          checkIsolation(t, await detailExposesRecord(otherPage, 'execution', producerId),
+            'execution lookup returns a record to another profile');
         });
       }
     });
