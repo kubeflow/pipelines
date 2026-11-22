@@ -1358,7 +1358,7 @@
     {
       "path": ".github/workflows/upgrade-test.yml",
       "name": "KFP upgrade tests",
-      "header_sha256": "5fa3e53d3ff36ba15b3b80152d8c097733a8c91f96d0ec6545d20faa04ed86b3",
+      "header_sha256": "cfe1081941a20ecc641929fda838ce0d7ff1c54682f4d739fb23b135f8a686e1",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -1377,7 +1377,9 @@
           "backend/api/v2beta1/**",
           "backend/src/**",
           "backend/test/v2/api/**",
+          "frontend/**",
           "manifests/kustomize/**",
+          "test/frontend-integration-test/**",
           "test_data/sdk_compiled_pipelines/**",
           "!**/*.md",
           "!**/OWNERS"
