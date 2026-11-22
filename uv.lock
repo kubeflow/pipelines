@@ -2065,7 +2065,7 @@ requires-dist = [
     { name = "sphinx-click", marker = "extra == 'docs'" },
     { name = "sphinx-copybutton", marker = "extra == 'docs'", specifier = ">=0.5.2,<1.0.0" },
     { name = "sphinx-design", marker = "extra == 'docs'", specifier = ">=0.8.0,<1.0.0" },
-    { name = "sphinx-immaterial", marker = "extra == 'docs'", specifier = ">=0.13.11,<1" },
+    { name = "sphinx-immaterial", marker = "extra == 'docs'", specifier = ">=0.13.12,<1" },
     { name = "sphinx-rtd-theme", marker = "extra == 'docs'" },
     { name = "sphinxcontrib-mermaid", marker = "extra == 'docs'", specifier = ">=2.1.1,<3.0.0" },
     { name = "twine", marker = "extra == 'ci'" },
@@ -3837,7 +3837,7 @@ wheels = [
 
 [[package]]
 name = "sphinx-immaterial"
-version = "0.13.11"
+version = "0.13.12"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "appdirs" },
@@ -3849,7 +3849,7 @@ dependencies = [
     { name = "typing-extensions" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/16/96/92e3008865c03b13d3c863fee20d0455cd23227e880d8db4a2e2c664f69e/sphinx_immaterial-0.13.11-py3-none-any.whl", hash = "sha256:b9ec122533f62d55230600e5598ba020c4074993435fb6a5ff6fca7422945b11", size = 13745023, upload-time = "2026-11-08T02:28:02.542Z" },
+    { url = "https://files.pythonhosted.org/packages/61/e3/fb0e2fd85fdb9a8632362333e8161ce903f69302745c4d574c59de5f434b/sphinx_immaterial-0.13.12-py3-none-any.whl", hash = "sha256:9f72067941222b06b67ccef8ac3eadc8b54d5339d7329f790de40d572c11cbcd", size = 13745279, upload-time = "2026-11-16T23:31:51.477Z" },
 ]
 
 [[package]]
