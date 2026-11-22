@@ -4453,18 +4453,21 @@ func nodeParent(id string, nodes map[string]util.NodeStatus) (string, bool) {
 	return node.BoundaryID, true
 }
 
-// loopIterationSuffix matches the "(index:item)" Argo adds to each expansion of a withSequence task.
-var loopIterationSuffix = regexp.MustCompile(`^\(\d+:[^()]*\)$`)
+// loopIterationSuffix matches the "(index:item)" Argo adds to each expansion of a ParallelFor.
+var loopIterationSuffix = regexp.MustCompile(`-iterations\(\d+:[^()]*\)$`)
 
-// matchesScopeName reports whether an Argo Retry node's display name stands for the enclosing task
-// scopeName. A ParallelFor body runs as "<loop>-iterations(<index>:<item>)", which is the logical
-// loop task's iteration, so it counts as that task.
+// isLoopIterationNode reports whether a Retry node is a ParallelFor iteration wrapper. Argo names
+// these "<body-component>-iterations(<index>:<item>)". They sit between the loop Retry and the
+// body task Retry in the Argo node tree, but KFP's task DB has no corresponding task record
+// (the body tasks are direct children of the loop task). The scope walk must skip them.
+func isLoopIterationNode(displayName string) bool {
+	return loopIterationSuffix.MatchString(displayName)
+}
+
+// matchesScopeName reports whether an Argo Retry node's display name matches the enclosing task
+// scopeName by exact string equality.
 func matchesScopeName(displayName, scopeName string) bool {
-	if displayName == scopeName {
-		return true
-	}
-	rest, ok := strings.CutPrefix(displayName, scopeName+"-iterations")
-	return ok && loopIterationSuffix.MatchString(rest)
+	return displayName == scopeName
 }
 
 // isCompilerWrapperNode reports whether the Retry node is one of the compiler's two reserved
@@ -4503,6 +4506,11 @@ func isCompilerWrapperNode(id string, nodes map[string]util.NodeStatus, tasksByU
 // case), any further Retry ancestor before the root means the node is nested deeper than the task
 // actually is, so it is rejected rather than treated as a match.
 //
+// ParallelFor iteration wrappers are skipped entirely. Argo expands each loop iteration as a Retry
+// node named "<body-component>-iterations(<index>:<item>)", but KFP's task DB records the body
+// tasks as direct children of the loop task with no intermediate iteration task. These wrappers
+// are detected by isLoopIterationNode and treated as transparent to scope matching.
+//
 // Two compiler-inserted wrappers are the exception. KFP's neutralizeDAGRetries gives every DAG
 // template a zero-limit retry strategy, and the compiler always wraps the entrypoint DAG in its
 // own Retry node, which itself invokes a second, reserved "root" task (compiler.RootComponentName)
@@ -4524,6 +4532,11 @@ func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bo
 		seen[parentID] = true
 		current = parentID
 		if node := nodes[parentID]; node.Type == "Retry" {
+			// ParallelFor iteration wrappers have no corresponding task in the
+			// DB, so they are invisible to scope matching. Skip them.
+			if isLoopIterationNode(node.DisplayName) {
+				continue
+			}
 			if !matchesScopeName(node.DisplayName, scope[next]) {
 				return false
 			}
@@ -4541,6 +4554,10 @@ func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bo
 		seen[parentID] = true
 		current = parentID
 		if nodes[parentID].Type == "Retry" {
+			// Loop iteration wrappers are invisible (no task in DB).
+			if isLoopIterationNode(nodes[parentID].DisplayName) {
+				continue
+			}
 			hop1, hasHop1 := nodeParent(parentID, nodes)
 			if !hasHop1 {
 				// No parent of its own: this is the outermost compiler wrapper, structurally
@@ -4591,10 +4608,60 @@ func findScopedTaskNode(task *model.Task, nodes map[string]util.NodeStatus, task
 		}
 		candidates = append(candidates, id)
 	}
+	// Each loop iteration has its own same-named node and task; the iteration index tells them apart.
+	if len(candidates) > 1 {
+		if want, found := taskLoopIterationIndex(task); found {
+			var matched []string
+			for _, id := range candidates {
+				if got, ok := nodeLoopIterationIndex(id, nodes); ok && got == want {
+					matched = append(matched, id)
+				}
+			}
+			candidates = matched
+		}
+	}
 	if len(candidates) != 1 {
 		return "", false
 	}
 	return candidates[0], true
+}
+
+// taskLoopIterationIndex reads the ParallelFor iteration index stored in the task's TypeAttrs.
+func taskLoopIterationIndex(task *model.Task) (int64, bool) {
+	switch v := task.TypeAttrs["iterationIndex"].(type) {
+	case string:
+		n, err := strconv.ParseInt(v, 10, 64)
+		return n, err == nil
+	case float64:
+		return int64(v), true
+	case int64:
+		return v, true
+	case int:
+		return int64(v), true
+	}
+	return 0, false
+}
+
+// loopIterationIndexRE captures the index from "<body>-iterations(<index>:<item>)".
+var loopIterationIndexRE = regexp.MustCompile(`-iterations\((\d+):[^()]*\)$`)
+
+// nodeLoopIterationIndex returns the index of the nearest enclosing ParallelFor iteration node.
+func nodeLoopIterationIndex(id string, nodes map[string]util.NodeStatus) (int64, bool) {
+	seen := map[string]bool{id: true}
+	for current := id; ; {
+		parentID, ok := nodeParent(current, nodes)
+		if !ok || seen[parentID] {
+			return 0, false
+		}
+		seen[parentID] = true
+		current = parentID
+		if node := nodes[parentID]; node.Type == "Retry" {
+			if m := loopIterationIndexRE.FindStringSubmatch(node.DisplayName); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				return n, err == nil
+			}
+		}
+	}
 }
 
 // persistTaskLifecycleMessages resolves pod lifecycle messages from the workflow and writes them

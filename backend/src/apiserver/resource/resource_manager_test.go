@@ -9321,9 +9321,10 @@ func TestFindScopedTaskNode_OmittedUserTaskNamedRootIsNotMatchedToTheCompilerWra
 	assert.False(t, failed)
 }
 
-// parallelForBodyNodes models a ParallelFor whose body is a sub-DAG with one task. Argo expands the
-// loop body as "<loop>-iterations(<index>:<item>)", a Retry node inside the loop's own Retry node.
-// The stored tasks are the iteration DAG and the loop task, both named after the loop.
+// parallelForBodyNodes models a ParallelFor whose body is a sub-DAG with one task. The compiler
+// names the iteration body component independently of the loop task (e.g. "iteration"), so Argo
+// expands each iteration as "<body>-iterations(<index>:<item>)" -- not "<loop>-iterations(...)".
+// KFP's task DB records no intermediate iteration task: body tasks are direct children of the loop.
 func parallelForBodyNodes() map[string]util.NodeStatus {
 	return map[string]util.NodeStatus{
 		"workflow":  {ID: "workflow", DisplayName: "my-pipeline-run", Type: "Retry", State: "Running", Children: []string{"workflow0"}},
@@ -9332,8 +9333,8 @@ func parallelForBodyNodes() map[string]util.NodeStatus {
 		"root0":     {ID: "root0", DisplayName: "root(0)", Type: "DAG", State: "Running", Children: []string{"loop"}, BoundaryID: "workflow0"},
 		"loop":      {ID: "loop", DisplayName: "for-loop-1", Type: "Retry", State: "Running", Children: []string{"loop0"}, BoundaryID: "root0"},
 		"loop0":     {ID: "loop0", DisplayName: "for-loop-1(0)", Type: "DAG", State: "Running", Children: []string{"iter"}, BoundaryID: "root0"},
-		"iter":      {ID: "iter", DisplayName: "for-loop-1-iterations(0:0)", Type: "Retry", State: "Running", Children: []string{"iter0"}, BoundaryID: "loop0"},
-		"iter0":     {ID: "iter0", DisplayName: "for-loop-1-iterations(0:0)(0)", Type: "DAG", State: "Running", Children: []string{"train"}, BoundaryID: "loop0"},
+		"iter":      {ID: "iter", DisplayName: "iteration-iterations(0:0)", Type: "Retry", State: "Running", Children: []string{"iter0"}, BoundaryID: "loop0"},
+		"iter0":     {ID: "iter0", DisplayName: "iteration-iterations(0:0)(0)", Type: "DAG", State: "Running", Children: []string{"train"}, BoundaryID: "loop0"},
 		"train":     {ID: "train", DisplayName: "train", Type: "Retry", State: "Failed", Children: []string{"train-pod"}, BoundaryID: "iter0"},
 		"train-pod": {ID: "train-pod", DisplayName: "train(0)", Type: "Pod", State: "Failed", Message: "main: OOMKilled (exit code 137)", BoundaryID: "iter0"},
 	}
@@ -9341,16 +9342,16 @@ func parallelForBodyNodes() map[string]util.NodeStatus {
 
 func TestFindScopedTaskNode_TaskInsideParallelForBodyMatchesItsNode(t *testing.T) {
 	nodes := parallelForBodyNodes()
+	// KFP records no intermediate iteration task: body tasks are direct children of the loop.
 	tasks := map[string]*model.Task{
 		"wf-root":   {UUID: "wf-root", Name: "wf-root"},
 		"loop-task": scopedTask(t, "loop-task", "for-loop-1", "wf-root"),
-		"iter-task": scopedTask(t, "iter-task", "for-loop-1", "loop-task"),
-		"train":     scopedTask(t, "train", "train", "iter-task"),
+		"train":     scopedTask(t, "train", "train", "loop-task"),
 	}
 	tasks["train"].State = model.TaskStatus(apiv2.PipelineTask_RUNNING)
 	tasks["train"].Type = model.TaskType(apiv2.PipelineTask_RUNTIME)
 	nodeID, ok := findScopedTaskNode(tasks["train"], nodes, tasks)
-	require.True(t, ok, "the iteration wrapper must count as the logical loop task in the scope")
+	require.True(t, ok, "the iteration wrapper must be skipped so the body task matches through the loop scope")
 	assert.Equal(t, "train", nodeID)
 
 	resolved := util.ResolveNodeLifecycleMessages(nodes)
@@ -9359,12 +9360,54 @@ func TestFindScopedTaskNode_TaskInsideParallelForBodyMatchesItsNode(t *testing.T
 	assert.Equal(t, "main: OOMKilled (exit code 137)", failure.message)
 }
 
-// A task in a different loop must not match through the iteration naming.
-func TestFindScopedTaskNode_ParallelForIterationNameIsNotAPrefixMatch(t *testing.T) {
-	assert.True(t, matchesScopeName("for-loop-1-iterations(2:2)", "for-loop-1"))
-	assert.False(t, matchesScopeName("for-loop-10-iterations(0:0)", "for-loop-1"))
-	assert.False(t, matchesScopeName("for-loop-1-iterations(0)", "for-loop-1"))
-	assert.False(t, matchesScopeName("for-loop-1-iterationsx(0:0)", "for-loop-1"))
+// Two iterations run the same-named task under the same loop task; each must match only its own node.
+func TestFindScopedTaskNode_ParallelForIterationsDisambiguatedByIndex(t *testing.T) {
+	nodes := parallelForBodyNodes()
+	nodes["loop0"] = util.NodeStatus{ID: "loop0", DisplayName: "for-loop-1(0)", Type: "DAG", State: "Running", Children: []string{"iter", "iter1"}, BoundaryID: "root0"}
+	nodes["iter1"] = util.NodeStatus{ID: "iter1", DisplayName: "iteration-iterations(1:1)", Type: "Retry", State: "Running", Children: []string{"iter1-0"}, BoundaryID: "loop0"}
+	nodes["iter1-0"] = util.NodeStatus{ID: "iter1-0", DisplayName: "iteration-iterations(1:1)(0)", Type: "DAG", State: "Running", Children: []string{"train1"}, BoundaryID: "loop0"}
+	nodes["train1"] = util.NodeStatus{ID: "train1", DisplayName: "train", Type: "Retry", State: "Running", Children: []string{"train1-pod"}, BoundaryID: "iter1-0"}
+	nodes["train1-pod"] = util.NodeStatus{ID: "train1-pod", DisplayName: "train(0)", Type: "Pod", State: "Running", BoundaryID: "iter1-0"}
+	tasks := map[string]*model.Task{
+		"wf-root":   {UUID: "wf-root", Name: "wf-root"},
+		"loop-task": scopedTask(t, "loop-task", "for-loop-1", "wf-root"),
+		"train-0":   scopedTask(t, "train-0", "train", "loop-task"),
+		"train-1":   scopedTask(t, "train-1", "train", "loop-task"),
+	}
+	// The task store persists iterationIndex as a string, e.g. {"iterationIndex": "0"}.
+	tasks["train-0"].TypeAttrs = model.JSONData{"iterationIndex": "0"}
+	tasks["train-1"].TypeAttrs = model.JSONData{"iterationIndex": "1"}
+
+	id0, ok := findScopedTaskNode(tasks["train-0"], nodes, tasks)
+	require.True(t, ok)
+	assert.Equal(t, "train", id0)
+	id1, ok := findScopedTaskNode(tasks["train-1"], nodes, tasks)
+	require.True(t, ok)
+	assert.Equal(t, "train1", id1)
+
+	// Without an index the two nodes stay ambiguous.
+	tasks["train-0"].TypeAttrs = nil
+	_, ok = findScopedTaskNode(tasks["train-0"], nodes, tasks)
+	assert.False(t, ok)
+}
+
+// isLoopIterationNode must detect ParallelFor iteration wrappers and reject non-iterations.
+func TestIsLoopIterationNode(t *testing.T) {
+	assert.True(t, isLoopIterationNode("iteration-iterations(0:0)"))
+	assert.True(t, isLoopIterationNode("for-loop-1-iterations(2:2)"))
+	assert.True(t, isLoopIterationNode("body-iterations(0:abc)"))
+	assert.False(t, isLoopIterationNode("for-loop-1"))
+	assert.False(t, isLoopIterationNode("train"))
+	assert.False(t, isLoopIterationNode("root"))
+	// withSequence iterations use "(index)" not "(index:item)", so they are not skipped.
+	assert.False(t, isLoopIterationNode("loop-iterations(0)"))
+}
+
+// matchesScopeName is now exact equality.
+func TestMatchesScopeName(t *testing.T) {
+	assert.True(t, matchesScopeName("for-loop-1", "for-loop-1"))
+	assert.False(t, matchesScopeName("for-loop-1-iterations(0:0)", "for-loop-1"))
+	assert.False(t, matchesScopeName("for-loop-10", "for-loop-1"))
 }
 
 // loopIterationNodes models a top-level loop task compiled via Argo's withSequence (see
@@ -9689,4 +9732,51 @@ func TestCreateDefaultExperiment_AdoptsExperimentCreatedConcurrently(t *testing.
 	got, err := manager.CreateDefaultExperiment(multiUserContext(), "ns1")
 	require.NoError(t, err, "a concurrent create must not fail an otherwise valid request")
 	assert.Equal(t, winner.UUID, got, "the loser must adopt the winner's experiment")
+}
+
+// realParallelForNodes mirrors the Argo shape dumped from a live ParallelFor run with a stuck pod.
+func realParallelForNodes() map[string]util.NodeStatus {
+	nodes := map[string]util.NodeStatus{
+		"top":   {ID: "top", DisplayName: "loop-run", Type: "Retry", State: "Running", Children: []string{"top0"}},
+		"top0":  {ID: "top0", DisplayName: "loop-run(0)", Type: "DAG", State: "Running", Children: []string{"root"}},
+		"root":  {ID: "root", DisplayName: "root", Type: "Retry", State: "Running", Children: []string{"root0"}, BoundaryID: "top0"},
+		"root0": {ID: "root0", DisplayName: "root(0)", Type: "DAG", State: "Running", Children: []string{"loop"}, BoundaryID: "top0"},
+		"loop":  {ID: "loop", DisplayName: "for-loop-2", Type: "Retry", State: "Running", Children: []string{"loop0"}, BoundaryID: "root0"},
+		"loop0": {ID: "loop0", DisplayName: "for-loop-2(0)", Type: "DAG", State: "Running", Children: []string{"tg", "iter-0", "iter-1"}, BoundaryID: "root0"},
+		"tg":    {ID: "tg", DisplayName: "iteration-iterations", Type: "TaskGroup", State: "Running", Children: []string{"iter-0", "iter-1"}, BoundaryID: "loop0"},
+	}
+	for i, name := range []string{"0:1", "1:2"} {
+		idx := string(rune('0' + i))
+		iter := "iter-" + idx
+		bad := "bad-" + idx
+		exec := "exec-" + idx
+		nodes[iter] = util.NodeStatus{ID: iter, DisplayName: "iteration-iterations(" + name + ")", Type: "Retry", State: "Running", Children: []string{iter + "-0"}, BoundaryID: "loop0"}
+		nodes[iter+"-0"] = util.NodeStatus{ID: iter + "-0", DisplayName: "iteration-iterations(" + name + ")(0)", Type: "DAG", State: "Running", Children: []string{bad}, BoundaryID: "loop0"}
+		nodes[bad] = util.NodeStatus{ID: bad, DisplayName: "bad-in-loop", Type: "Retry", State: "Running", Children: []string{bad + "-0"}, BoundaryID: iter + "-0"}
+		nodes[bad+"-0"] = util.NodeStatus{ID: bad + "-0", DisplayName: "bad-in-loop(0)", Type: "DAG", State: "Running", Children: []string{exec}, BoundaryID: iter + "-0"}
+		nodes[exec] = util.NodeStatus{ID: exec, DisplayName: "executor", Type: "Retry", State: "Running", Children: []string{"pod-" + idx}, BoundaryID: bad + "-0"}
+		nodes["pod-"+idx] = util.NodeStatus{ID: "pod-" + idx, DisplayName: "executor(0)", Type: "Pod", State: "Pending", Message: imagePullMsg, BoundaryID: bad + "-0"}
+	}
+	return nodes
+}
+
+func TestLifecycleMessageForTask_RealParallelForTopology(t *testing.T) {
+	nodes := realParallelForNodes()
+	tasks := map[string]*model.Task{
+		"run-root":  {UUID: "run-root", Name: "ROOT"},
+		"loop-task": scopedTask(t, "loop-task", "for-loop-2", "run-root"),
+		"task-0":    scopedTask(t, "task-0", "bad-in-loop", "loop-task"),
+		"task-1":    scopedTask(t, "task-1", "bad-in-loop", "loop-task"),
+	}
+	tasks["task-0"].TypeAttrs = model.JSONData{"iterationIndex": "0"}
+	tasks["task-1"].TypeAttrs = model.JSONData{"iterationIndex": "1"}
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	for id, want := range map[string]string{"task-0": "bad-0", "task-1": "bad-1"} {
+		got, ok := findScopedTaskNode(tasks[id], nodes, tasks)
+		require.True(t, ok, "task %s must match a node", id)
+		assert.Equal(t, want, got)
+		msg, _, matched := lifecycleMessageForTask(tasks[id], nodes, resolved, tasks)
+		require.True(t, matched, "task %s must get a lifecycle match", id)
+		assert.Equal(t, imagePullMsg, msg)
+	}
 }
