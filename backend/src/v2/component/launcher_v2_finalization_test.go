@@ -21,6 +21,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -54,7 +55,9 @@ type finalizationMetadataStore struct {
 	publicationRequests     []*pb.PutExecutionRequest
 	taskPipelineReads       int
 	artifacts               []*pb.Artifact
-	artifactEvents          int
+	artifactEvents          []*pb.Event
+	reverseResults          bool
+	panicRecordingArtifact  bool
 }
 
 func nextFinalizationFailure(failures *[]error) error {
@@ -124,7 +127,9 @@ func (store *finalizationMetadataStore) PutExecution(_ context.Context, request 
 	}
 	if writeError == nil || store.publicationResponseLost && execution.GetId() == 10 {
 		store.executions[execution.GetId()] = proto.Clone(execution).(*pb.Execution)
-		store.artifactEvents += len(request.GetArtifactEventPairs())
+		for _, pair := range request.GetArtifactEventPairs() {
+			store.artifactEvents = append(store.artifactEvents, proto.Clone(pair.GetEvent()).(*pb.Event))
+		}
 	}
 	return &pb.PutExecutionResponse{ExecutionId: execution.Id}, writeError
 }
@@ -134,6 +139,9 @@ func (*finalizationMetadataStore) PutArtifactType(context.Context, *pb.PutArtifa
 }
 
 func (store *finalizationMetadataStore) PutArtifacts(_ context.Context, request *pb.PutArtifactsRequest, _ ...grpc.CallOption) (*pb.PutArtifactsResponse, error) {
+	if store.panicRecordingArtifact {
+		panic("record artifact")
+	}
 	response := &pb.PutArtifactsResponse{}
 	for _, artifact := range request.GetArtifacts() {
 		storedArtifact := proto.Clone(artifact).(*pb.Artifact)
@@ -149,7 +157,18 @@ func (store *finalizationMetadataStore) GetArtifactsByID(_ context.Context, requ
 	for _, identifier := range request.GetArtifactIds() {
 		response.Artifacts = append(response.Artifacts, proto.Clone(store.artifacts[identifier-1]).(*pb.Artifact))
 	}
+	if store.reverseResults {
+		slices.Reverse(response.Artifacts)
+	}
 	return response, nil
+}
+
+func (store *finalizationMetadataStore) GetEventsByExecutionIDs(context.Context, *pb.GetEventsByExecutionIDsRequest, ...grpc.CallOption) (*pb.GetEventsByExecutionIDsResponse, error) {
+	events := slices.Clone(store.artifactEvents)
+	if store.reverseResults {
+		slices.Reverse(events)
+	}
+	return &pb.GetEventsByExecutionIDsResponse{Events: events}, nil
 }
 
 func (store *finalizationMetadataStore) states() []pb.Execution_State {
@@ -199,12 +218,13 @@ func (factory *finalizationPluginFactory) Create() (plugins.TaskPluginHandler, e
 }
 
 type finalizationFixture struct {
+	attempt         int
 	store           *finalizationMetadataStore
 	cache           *finalizationCache
 	plugin          *finalizationPlugin
 	directory       string
 	invocationsPath string
-	includeArtifact bool
+	artifactURI     string
 }
 
 func newFinalizationFixture(testingContext *testing.T, cacheEnabled bool) *finalizationFixture {
@@ -242,15 +262,17 @@ func newFinalizationFixture(testingContext *testing.T, cacheEnabled bool) *final
 
 func (fixture *finalizationFixture) execute(testingContext *testing.T, applicationExitCode int) (string, error) {
 	testingContext.Helper()
+	fixture.attempt++
+	podUID := "test-pod-" + strconv.Itoa(fixture.attempt)
 	outputPath := filepath.Join(fixture.directory, "executor-output.json")
 	executorInput := &pipelinespec.ExecutorInput{
 		Inputs: &pipelinespec.ExecutorInput_Inputs{}, Outputs: &pipelinespec.ExecutorInput_Outputs{OutputFile: outputPath},
 	}
 	artifactPath := filepath.Join(fixture.directory, "artifact")
-	if fixture.includeArtifact {
+	if fixture.artifactURI != "" {
 		executorInput.Outputs.Artifacts = map[string]*pipelinespec.ArtifactList{
 			"result": {Artifacts: []*pipelinespec.RuntimeArtifact{{
-				Uri: "mem://finalization-test/root/result", CustomPath: &artifactPath,
+				Uri: fixture.artifactURI, CustomPath: &artifactPath,
 				Type: &pipelinespec.ArtifactTypeSchema{Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Artifact"}},
 			}}},
 		}
@@ -261,7 +283,7 @@ func (fixture *finalizationFixture) execute(testingContext *testing.T, applicati
 		context.Background(), 10, string(executorInputJSON), "{}",
 		[]string{"sh", "-c", `printf '{"parameterValues":{"result":"written"}}\n' > "$1"; printf 'executed\n' >> "$2"; printf 'artifact\n' > "$4"; exit "$3"`, "application", outputPath, fixture.invocationsPath, strconv.Itoa(applicationExitCode), artifactPath},
 		&component.LauncherV2Options{
-			Namespace: "test", PodName: "test-launcher", PodUID: "test-pod", PipelineName: "test-pipeline", RunID: "test-run",
+			Namespace: "test", PodName: "test-launcher", PodUID: podUID, PipelineName: "test-pipeline", RunID: "test-run",
 			MLMDServerAddress: "unused", MLMDServerPort: "8080", PublishLogs: "false",
 		},
 		client_manager.NewFakeClientManager(fake.NewSimpleClientset(), metadata.NewTestClient(fixture.store), fixture.cache),
@@ -279,19 +301,27 @@ func (fixture *finalizationFixture) execute(testingContext *testing.T, applicati
 		_ = flag.Set("logtostderr", originalLogToStderr)
 		_ = logFile.Close()
 	}()
-	var executionResult error
-	require.NotPanics(testingContext, func() { executionResult = launcher.Execute(context.Background()) })
+	executionResult := launcher.Execute(context.Background())
 	glog.Flush()
 	logs, readError := os.ReadFile(logPath)
 	require.NoError(testingContext, readError)
 	return string(logs), executionResult
 }
 
+func TestLauncherV2ExecuteFinalizationPanicSkipsCache(t *testing.T) {
+	fixture := newFinalizationFixture(t, true)
+	fixture.artifactURI = "mem://finalization-test/root/result"
+	fixture.store.panicRecordingArtifact = true
+	require.PanicsWithValue(t, "record artifact", func() { fixture.execute(t, 0) })
+	assert.Equal(t, []pb.Execution_State{pb.Execution_FAILED, pb.Execution_FAILED, pb.Execution_FAILED}, fixture.store.states())
+	assert.Empty(t, fixture.cache.statesAtCall)
+}
+
 func TestLauncherV2ExecuteFinalizationPreservesOutputs(testingContext *testing.T) {
 	for _, publicationResponseLost := range []bool{false, true} {
 		testingContext.Run("publication response lost="+strconv.FormatBool(publicationResponseLost), func(testingContext *testing.T) {
 			fixture := newFinalizationFixture(testingContext, true)
-			fixture.includeArtifact = true
+			fixture.artifactURI = "mem://finalization-test/root/result"
 			finalizationFailure := errors.New("metadata unavailable")
 			if publicationResponseLost {
 				fixture.store.publicationFailures = []error{finalizationFailure}
@@ -306,7 +336,7 @@ func TestLauncherV2ExecuteFinalizationPreservesOutputs(testingContext *testing.T
 			assert.Len(testingContext, fixture.store.publicationRequests[0].GetArtifactEventPairs(), 1)
 			assert.Empty(testingContext, fixture.store.publicationRequests[1].GetArtifactEventPairs(), "state reconciliation must not replay artifact events")
 			assert.Len(testingContext, fixture.store.artifacts, 1)
-			assert.Equal(testingContext, 1, fixture.store.artifactEvents)
+			assert.Len(testingContext, fixture.store.artifactEvents, 1)
 			assert.Equal(testingContext, "written", fixture.store.executions[10].GetCustomProperties()["outputs"].GetStructValue().GetFields()["result"].GetStringValue())
 			assert.Empty(testingContext, fixture.cache.tasks)
 		})
@@ -343,6 +373,7 @@ func TestLauncherV2ExecuteFinalization(testingContext *testing.T) {
 		{name: "application and DAG lookup failures", applicationExitCode: 7, dagLookupFailures: []error{lookupFailure}, expectedErrors: []error{lookupFailure}},
 		{name: "application and ancestor update failures", applicationExitCode: 7, ancestorUpdateFailures: []error{updateFailure}, expectedErrors: []error{updateFailure}},
 		{name: "publication response lost", publicationFailures: []error{publicationFailure}, publicationResponseLost: true, expectedErrors: []error{publicationFailure}},
+		{name: "failed repair response lost", publicationFailures: []error{nil, reconciliationFailure}, publicationResponseLost: true, ancestorUpdateFailures: []error{updateFailure}, expectedErrors: []error{updateFailure, reconciliationFailure}},
 		{name: "failure publication unavailable", publicationFailures: []error{publicationFailure, reconciliationFailure}, expectedErrors: []error{publicationFailure, reconciliationFailure}, expectedStates: []pb.Execution_State{pb.Execution_RUNNING, pb.Execution_RUNNING, pb.Execution_RUNNING}},
 		{name: "DAG recovery unavailable", dagLookupFailures: []error{lookupFailure, reconciliationFailure}, expectedErrors: []error{lookupFailure, reconciliationFailure}, expectedStates: []pb.Execution_State{pb.Execution_FAILED, pb.Execution_RUNNING, pb.Execution_RUNNING}},
 		{name: "ancestor recovery unavailable", ancestorUpdateFailures: []error{updateFailure, reconciliationFailure}, expectedErrors: []error{updateFailure, reconciliationFailure}, expectedStates: []pb.Execution_State{pb.Execution_FAILED, pb.Execution_FAILED, pb.Execution_RUNNING}},
@@ -382,7 +413,7 @@ func TestLauncherV2ExecuteFinalization(testingContext *testing.T) {
 			assert.Equal(testingContext, pb.Execution_RUNNING, fixture.store.executions[40].GetLastKnownState(), "root DAG remains owned by the workflow")
 			assert.Equal(testingContext, []string{expectedStatus.String()}, fixture.plugin.statuses)
 			assert.Equal(testingContext, 1, fixture.store.taskPipelineReads, "reuse the pipeline already loaded by GetExecution")
-			assert.Equal(testingContext, len(scenario.publicationFailures) == 0, strings.Contains(logs, "publish success."), logs)
+			assert.Equal(testingContext, (len(scenario.publicationFailures) == 0 || scenario.publicationFailures[0] == nil), strings.Contains(logs, "publish success."), logs)
 			invocations, readError := os.ReadFile(fixture.invocationsPath)
 			require.NoError(testingContext, readError)
 			assert.Equal(testingContext, "executed\n", string(invocations))
@@ -414,15 +445,25 @@ func TestLauncherV2ExecuteFinalizationRetry(testingContext *testing.T) {
 			fixture := newFinalizationFixture(testingContext, true)
 			updateFailure := errors.New("ancestor update unavailable")
 			fixture.store.ancestorUpdateFailures = []error{updateFailure}
+			fixture.artifactURI = "mem://finalization-test/root/first"
 			_, firstResult := fixture.execute(testingContext, 0)
 			require.ErrorIs(testingContext, firstResult, updateFailure)
 			assert.Empty(testingContext, fixture.cache.tasks)
 			assert.Equal(testingContext, []pb.Execution_State{pb.Execution_FAILED, pb.Execution_FAILED, pb.Execution_FAILED}, fixture.store.states())
 
+			fixture.artifactURI = "mem://finalization-test/root/retry"
 			_, retryResult := fixture.execute(testingContext, scenario.exitCode)
 			if scenario.exitCode == 0 {
 				require.NoError(testingContext, retryResult)
 				require.Len(testingContext, fixture.cache.tasks, 1)
+				require.Len(testingContext, fixture.store.artifactEvents, 2)
+				for _, reverse := range []bool{false, true} {
+					fixture.store.reverseResults = reverse
+					outputs, readErr := metadata.NewTestClient(fixture.store).GetOutputArtifactsByExecutionId(context.Background(), 10)
+					require.NoError(testingContext, readErr)
+					require.Contains(testingContext, outputs, "result")
+					assert.Equal(testingContext, fixture.artifactURI, outputs["result"].Artifact.GetUri())
+				}
 				assert.Equal(testingContext, [][]pb.Execution_State{{pb.Execution_COMPLETE, pb.Execution_COMPLETE, pb.Execution_COMPLETE}}, fixture.cache.statesAtCall)
 			} else {
 				require.Error(testingContext, retryResult)

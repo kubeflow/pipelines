@@ -583,6 +583,16 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 		Contexts:  contexts,
 	}
 
+	// Launcher retries reuse the execution and append events. Record the pod
+	// UID with its successful outputs in the same MLMD transaction. Unlike
+	// numeric artifact IDs, this marker survives transfer to another store.
+	var outputAttempt string
+	if state == pb.Execution_COMPLETE && outputArtifacts != nil {
+		outputAttempt = e.GetCustomProperties()[keyPodUID].GetStringValue()
+		if outputAttempt != "" {
+			e.CustomProperties[keyOutputAttempt] = StringValue(outputAttempt)
+		}
+	}
 	for _, oa := range outputArtifacts {
 		aePair := &pb.PutExecutionRequest_ArtifactAndEvent{}
 		if oa.Artifact.GetId() == 0 {
@@ -602,6 +612,11 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 					ArtifactId: oa.Artifact.Id,
 				},
 			}
+		}
+		if outputAttempt != "" {
+			aePair.Event.Path.Steps = append(aePair.Event.Path.Steps, &pb.Event_Path_Step{
+				Value: &pb.Event_Path_Step_Key{Key: outputAttempt},
+			})
 		}
 		req.ArtifactEventPairs = append(req.ArtifactEventPairs, aePair)
 	}
@@ -627,6 +642,7 @@ const (
 	keyOutputs               = "outputs"
 	keyParameterProducerTask = "parameter_producer_task"
 	keyOutputArtifacts       = "output_artifacts"
+	keyOutputAttempt         = "output_artifact_pod_uid"
 	keyArtifactProducerTask  = "artifact_producer_task"
 	keyParentDagID           = "parent_dag_id" // Parent DAG Execution ID.
 	keyIterationIndex        = "iteration_index"
@@ -816,49 +832,33 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 		return nil
 	}
 
-	tasks, err := c.GetExecutionsInDAG(ctx, dag, pipeline, true)
+	state, err := c.dagStateFromTasks(ctx, dag, pipeline, expectedTaskCount)
 	if err != nil {
 		return err
 	}
-
-	glog.V(4).Infof("tasks: %v", tasks)
-	glog.V(4).Infof("Checking Tasks' State")
-	completedTasks := 0
-	failedTasks := 0
-	for _, task := range tasks {
-		taskState := task.GetExecution().LastKnownState.String()
-		glog.V(4).Infof("task: %s", task.TaskName())
-		glog.V(4).Infof("task state: %s", taskState)
-		switch taskState {
-		case "FAILED":
-			failedTasks++
-		case "COMPLETE":
-			completedTasks++
-		case "CACHED":
-			completedTasks++
-		case "CANCELED":
-			completedTasks++
-		}
-	}
-	glog.V(4).Infof("completedTasks: %d", completedTasks)
-	glog.V(4).Infof("failedTasks: %d", failedTasks)
-	glog.V(4).Infof("expectedTaskCount: %d", expectedTaskCount)
-
-	glog.Infof("Attempting to update DAG state for execution %d", dag.Execution.GetID())
-
-	var newState pb.Execution_State
-	switch {
-	case completedTasks == int(expectedTaskCount):
-		newState = pb.Execution_COMPLETE
-	case failedTasks > 0:
-		newState = pb.Execution_FAILED
-	default:
-		glog.V(4).Infof("DAG is still running")
+	previous := dag.Execution.GetExecution().GetLastKnownState()
+	if state == pb.Execution_RUNNING && previous != pb.Execution_COMPLETE && previous != pb.Execution_FAILED {
 		return nil
 	}
 
-	if err := c.PutDAGExecutionState(ctx, dag.Execution.GetID(), newState); err != nil {
-		return err
+	// Child enumeration and the DAG write are separate MLMD transactions.
+	// A sibling may have reconciled a child and its ancestors after our read.
+	// Recheck after each write so a delayed writer repairs its own stale state.
+	for writes := 1; ; writes++ {
+		if err := c.PutDAGExecutionState(ctx, dag.Execution.GetID(), state); err != nil {
+			return err
+		}
+		current, err := c.dagStateFromTasks(ctx, dag, pipeline, expectedTaskCount)
+		if err != nil {
+			return err
+		}
+		if current == state {
+			break
+		}
+		if writes == 3 {
+			return fmt.Errorf("DAG %d child states changed during %d consecutive state updates", dag.Execution.GetID(), writes)
+		}
+		state = current
 	}
 
 	// Propagate upward to parent DAG if this is not the root.
@@ -875,6 +875,32 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 	}
 
 	return c.UpdateDAGExecutionsState(ctx, parentDAG, pipeline)
+}
+
+func (c *Client) dagStateFromTasks(ctx context.Context, dag *DAG, pipeline *Pipeline, expectedTaskCount int64) (pb.Execution_State, error) {
+	tasks, err := c.GetExecutionsInDAG(ctx, dag, pipeline, true)
+	if err != nil {
+		return pb.Execution_UNKNOWN, err
+	}
+
+	var completed int64
+	failed := false
+	for _, task := range tasks {
+		switch task.GetExecution().GetLastKnownState() {
+		case pb.Execution_FAILED:
+			failed = true
+		case pb.Execution_COMPLETE, pb.Execution_CACHED, pb.Execution_CANCELED:
+			completed++
+		}
+	}
+	switch {
+	case completed == expectedTaskCount:
+		return pb.Execution_COMPLETE, nil
+	case failed:
+		return pb.Execution_FAILED, nil
+	default:
+		return pb.Execution_RUNNING, nil
+	}
 }
 
 // PutDAGExecutionState updates the given DAG Id to the state provided.
@@ -1132,6 +1158,23 @@ func (c *Client) GetArtifacts(ctx context.Context, ids []int64) ([]*pb.Artifact,
 // GetOutputArtifactsByExecutionId ...
 // TODO: Support multiple artifacts someday, probably through the v2 engine.
 func (c *Client) GetOutputArtifactsByExecutionId(ctx context.Context, executionId int64) (map[string]*OutputArtifact, error) {
+	executions, err := c.GetExecutions(ctx, []int64{executionId})
+	if err != nil {
+		return nil, fmt.Errorf("get execution %d for output artifacts: %w", executionId, err)
+	}
+	var outputAttempt string
+	var selectAttempt bool
+	if len(executions) == 1 && executions[0].GetLastKnownState() == pb.Execution_COMPLETE {
+		props := executions[0].GetCustomProperties()
+		// An older launcher can finish a retry during a rollback. Its pod UID
+		// changes, but it preserves the previous attempt's custom property.
+		outputAttempt = props[keyOutputAttempt].GetStringValue()
+		selectAttempt = outputAttempt != ""
+		if outputAttempt != props[keyPodUID].GetStringValue() {
+			outputAttempt = ""
+		}
+	}
+
 	getEventsByExecutionIDsReq := &pb.GetEventsByExecutionIDsRequest{ExecutionIds: []int64{executionId}}
 	getEventsByExecutionIDsRes, err := c.svc.GetEventsByExecutionIDs(ctx, getEventsByExecutionIDsReq)
 	if err != nil {
@@ -1141,6 +1184,15 @@ func (c *Client) GetOutputArtifactsByExecutionId(ctx context.Context, executionI
 	outputArtifactNamesById := make(map[int64]string)
 	for _, event := range getEventsByExecutionIDsRes.Events {
 		if *event.Type == pb.Event_OUTPUT {
+			// Older publications have no marker and retain their event lookup.
+			steps := event.GetPath().GetSteps()
+			var eventAttempt string
+			if len(steps) > 1 {
+				eventAttempt = steps[1].GetKey()
+			}
+			if selectAttempt && eventAttempt != outputAttempt {
+				continue
+			}
 			outputArtifactsIDs = append(outputArtifactsIDs, event.GetArtifactId())
 			artifactName, err := getArtifactName(event.Path)
 			if err != nil {

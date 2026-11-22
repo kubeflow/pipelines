@@ -204,17 +204,10 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 		}
 		if finalizationError != nil {
 			status = pb.Execution_FAILED
-			err = errors.Join(err, finalizationError)
-			// Correct the state without replaying output artifact events. Publication
-			// or ancestor propagation may have committed before returning an error.
-			if reconciliationError := l.clientManager.MetadataClient().PublishExecution(ctx, execution, nil, nil, status); reconciliationError != nil {
-				err = errors.Join(err, fmt.Errorf("failed to reconcile task state after finalization failure: %w", reconciliationError))
-			} else if reconciliationError := l.updateDAGState(ctx, execution); reconciliationError != nil {
-				err = errors.Join(err, fmt.Errorf("failed to reconcile DAG state after finalization failure: %w", reconciliationError))
-			}
+			err = errors.Join(err, finalizationError, l.reconcileFailedExecution(ctx, execution))
 		}
 
-		if err == nil {
+		if status == pb.Execution_COMPLETE && err == nil {
 			// Cache registration can commit before its response is lost. Keep a
 			// finalized task successful so retries cannot invalidate that entry.
 			if cacheError := l.createExecutionCache(ctx, execution, executionStartedTime); cacheError != nil {
@@ -304,6 +297,28 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	}
 	status = pb.Execution_COMPLETE
 	return nil
+}
+
+// Reconcile only the state; the original publication may already have recorded output events.
+func (l *LauncherV2) reconcileFailedExecution(ctx context.Context, execution *metadata.Execution) error {
+	client := l.clientManager.MetadataClient()
+	var repairErr error
+	if err := client.PublishExecution(ctx, execution, nil, nil, pb.Execution_FAILED); err != nil {
+		repairErr = fmt.Errorf("failed to reconcile task state after finalization failure: %w", err)
+		// A lost response can follow a committed write. Read the stored state
+		// before deciding whether to propagate the failure to the parent DAG.
+		stored, readErr := client.GetExecutions(ctx, []int64{execution.GetID()})
+		if readErr != nil {
+			return errors.Join(repairErr, fmt.Errorf("failed to verify reconciled task state: %w", readErr))
+		}
+		if len(stored) != 1 || stored[0].GetLastKnownState() != pb.Execution_FAILED {
+			return repairErr
+		}
+	}
+	if err := l.updateDAGState(ctx, execution); err != nil {
+		return errors.Join(repairErr, fmt.Errorf("failed to reconcile DAG state after finalization failure: %w", err))
+	}
+	return repairErr
 }
 
 func (l *LauncherV2) updateDAGState(ctx context.Context, execution *metadata.Execution) error {
