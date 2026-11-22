@@ -12,7 +12,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^5.18.0",
     "@mui/material": "^5.18.0",
-    "@tanstack/react-query": "^5.107.1",
+    "@tanstack/react-query": "^5.108.0",
     "@xyflow/react": "^12.12.1",
     "ace-builds": "^1.45.2",
     "d3-dsv": "^3.0.2",
