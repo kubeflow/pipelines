@@ -56,7 +56,7 @@ runs:
         source "$fixture_output"
         export PROFILE_OWNER="$owner" PROFILE_FOREIGN="$foreign"
         export PROFILE_OWNER_NAMESPACE="$owner_namespace" PROFILE_FOREIGN_NAMESPACE="$foreign_namespace"
-        node --test frontend/scripts/ui-smoke-test/profile-run-create.test.js
+        node --test frontend/scripts/ui-smoke-test/profile-run-create.e2e.cjs
         cat "$fixture_output" "$PROFILE_RUN_OUTPUT" >> "$GITHUB_OUTPUT"
         source "$PROFILE_RUN_OUTPUT"
         PROFILE_RUN_ID="$run_id" PROFILE_FOREIGN_RUN_ID="$foreign_run_id" \
@@ -120,9 +120,9 @@ runs:
         bash test/frontend-integration-test/check-profile-upgrade-history.sh verify "$RUNNER_TEMP/profile-history.json"
         bash test/frontend-integration-test/prepare-profile-run.sh --restore-fixture-network
         journey_status=0
-        node --test frontend/scripts/ui-smoke-test/profile-artifact-catalog.test.js \
-          frontend/scripts/ui-smoke-test/profile-run-comparison.test.js || journey_status=$?
-        node --test frontend/scripts/ui-smoke-test/profile-run-create.test.js || journey_status=$?
+        node --test frontend/scripts/ui-smoke-test/profile-artifact-catalog.e2e.cjs \
+          frontend/scripts/ui-smoke-test/profile-run-comparison.e2e.cjs || journey_status=$?
+        node --test frontend/scripts/ui-smoke-test/profile-run-create.e2e.cjs || journey_status=$?
         exit "$journey_status"
     - name: Collect upgrade diagnostics
       if: failure()
