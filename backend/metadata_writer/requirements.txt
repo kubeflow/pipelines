@@ -37,7 +37,7 @@ idna==3.18
     # via
     #   requests
     #   yarl
-kubernetes==37.0.2
+kubernetes==37.0.3
     # via -r requirements.in
 lru-dict==1.4.1
     # via -r requirements.in
