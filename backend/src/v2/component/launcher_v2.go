@@ -190,20 +190,30 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	var outputArtifacts []*metadata.OutputArtifact
 	var dispatcher plugins.TaskPluginDispatcher
 	status := pb.Execution_FAILED
+	executionStartedTime := time.Now().Unix()
 	defer func() {
 		if execution == nil {
 			glog.Errorf("Skipping publish since execution is nil. Original err is: %v", err)
 			return
 		}
 
-		if perr := l.publish(ctx, execution, executorOutput, outputArtifacts, status); perr != nil {
-			if err != nil {
-				err = fmt.Errorf("failed to publish execution with error %s after execution failed: %s", perr.Error(), err.Error())
-			} else {
-				err = perr
+		finalizationError := l.publish(ctx, execution, executorOutput, outputArtifacts, status)
+		if finalizationError == nil {
+			glog.Infof("publish success.")
+			finalizationError = l.updateDAGState(ctx, execution)
+		}
+		if finalizationError != nil {
+			status = pb.Execution_FAILED
+			err = errors.Join(err, finalizationError, l.reconcileFailedExecution(ctx, execution))
+		}
+
+		if status == pb.Execution_COMPLETE && err == nil {
+			// Cache registration can commit before its response is lost. Keep a
+			// finalized task successful so retries cannot invalidate that entry.
+			if cacheError := l.createExecutionCache(ctx, execution, executionStartedTime); cacheError != nil {
+				glog.Warningf("Failed to register execution cache; retaining successful task state: %v", cacheError)
 			}
 		}
-		glog.Infof("publish success.")
 
 		if dispatcher != nil {
 			taskPluginInfo := &plugins.TaskInfo{
@@ -216,20 +226,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 				glog.Errorf("failed to dispatch task end: %v", dispatchErr)
 			}
 		}
-
-		// At the end of the current task, we check the statuses of all tasks in
-		// the current DAG and update the DAG's status accordingly.
-		dag, err := l.clientManager.MetadataClient().GetDAG(ctx, execution.GetExecution().CustomProperties["parent_dag_id"].GetIntValue())
-		if err != nil {
-			glog.Errorf("DAG Status Update: failed to get DAG: %s", err.Error())
-		}
-		pipeline, _ := l.clientManager.MetadataClient().GetPipelineFromExecution(ctx, execution.GetID())
-		err = l.clientManager.MetadataClient().UpdateDAGExecutionsState(ctx, dag, pipeline)
-		if err != nil {
-			glog.Errorf("failed to update DAG state: %s", err.Error())
-		}
 	}()
-	executedStartedTime := time.Now().Unix()
 	execution, err = l.prePublish(ctx)
 	if err != nil {
 		return err
@@ -248,7 +245,6 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 			dispatcher.ApplyCustomProperties(pluginProps)
 		}
 	}
-	fingerPrint := execution.FingerPrint()
 	storeSessionInfo, err := objectstore.GetSessionInfoFromString(execution.GetPipeline().GetStoreSessionInfo())
 	if err != nil {
 		return err
@@ -300,26 +296,61 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 		return err
 	}
 	status = pb.Execution_COMPLETE
-	// if fingerPrint is not empty, it means this task enables cache but it does not hit cache, we need to create cache entry for this task
-	if fingerPrint != "" {
-		id := execution.GetID()
-		if id == 0 {
-			return fmt.Errorf("failed to get id from createdExecution")
-		}
-		task := &api.Task{
-			// TODO how to differentiate between shared pipeline and namespaced pipeline
-			PipelineName:    "pipeline/" + l.options.PipelineName,
-			Namespace:       l.options.Namespace,
-			RunId:           l.options.RunID,
-			MlmdExecutionID: strconv.FormatInt(id, 10),
-			CreatedAt:       timestamppb.New(time.Unix(executedStartedTime, 0)),
-			FinishedAt:      timestamppb.New(time.Unix(time.Now().Unix(), 0)),
-			Fingerprint:     fingerPrint,
-		}
-		return l.clientManager.CacheClient().CreateExecutionCache(ctx, task)
-	}
-
 	return nil
+}
+
+// Reconcile only the state; the original publication may already have recorded output events.
+func (l *LauncherV2) reconcileFailedExecution(ctx context.Context, execution *metadata.Execution) error {
+	client := l.clientManager.MetadataClient()
+	var repairErr error
+	if err := client.PublishExecution(ctx, execution, nil, nil, pb.Execution_FAILED); err != nil {
+		repairErr = fmt.Errorf("failed to reconcile task state after finalization failure: %w", err)
+		// A lost response can follow a committed write. Read the stored state
+		// before deciding whether to propagate the failure to the parent DAG.
+		stored, readErr := client.GetExecutions(ctx, []int64{execution.GetID()})
+		if readErr != nil {
+			return errors.Join(repairErr, fmt.Errorf("failed to verify reconciled task state: %w", readErr))
+		}
+		if len(stored) != 1 || stored[0].GetLastKnownState() != pb.Execution_FAILED {
+			return repairErr
+		}
+	}
+	if err := l.updateDAGState(ctx, execution); err != nil {
+		return errors.Join(repairErr, fmt.Errorf("failed to reconcile DAG state after finalization failure: %w", err))
+	}
+	return repairErr
+}
+
+func (l *LauncherV2) updateDAGState(ctx context.Context, execution *metadata.Execution) error {
+	dag, lookupError := l.clientManager.MetadataClient().GetDAG(ctx, execution.GetExecution().GetCustomProperties()["parent_dag_id"].GetIntValue())
+	if lookupError != nil {
+		return fmt.Errorf("failed to get DAG for status update: %w", lookupError)
+	}
+	if updateError := l.clientManager.MetadataClient().UpdateDAGExecutionsState(ctx, dag, execution.GetPipeline()); updateError != nil {
+		return fmt.Errorf("failed to update DAG state: %w", updateError)
+	}
+	return nil
+}
+
+func (l *LauncherV2) createExecutionCache(ctx context.Context, execution *metadata.Execution, executionStartedTime int64) error {
+	fingerprint := execution.FingerPrint()
+	if fingerprint == "" {
+		return nil
+	}
+	executionIdentifier := execution.GetID()
+	if executionIdentifier == 0 {
+		return fmt.Errorf("cannot register execution cache without an execution identifier")
+	}
+	task := &api.Task{
+		PipelineName:    "pipeline/" + l.options.PipelineName,
+		Namespace:       l.options.Namespace,
+		RunId:           l.options.RunID,
+		MlmdExecutionID: strconv.FormatInt(executionIdentifier, 10),
+		CreatedAt:       timestamppb.New(time.Unix(executionStartedTime, 0)),
+		FinishedAt:      timestamppb.Now(),
+		Fingerprint:     fingerprint,
+	}
+	return l.clientManager.CacheClient().CreateExecutionCache(ctx, task)
 }
 
 func (l *LauncherV2) Info() string {
