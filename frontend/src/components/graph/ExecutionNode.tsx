@@ -39,15 +39,21 @@ export interface ExecutionNodeProps {
 }
 
 function ExecutionNode({ id, data, selected }: ExecutionNodeProps) {
-  // A lifecycle message is a warning, not a failure: the node only turns red once the
-  // task itself is FAILED, so the failed icon takes precedence over the warning.
-  const showWarning = !!data.lifecycleMessage && data.state !== PipelineTaskTaskState.FAILED;
+  // A lifecycle message is a status, not a failure: the node only turns red once the task
+  // itself is FAILED, so the failed icon takes precedence over the lifecycle status.
+  const hasLifecycleStatus = !!data.lifecycleMessage && data.state !== PipelineTaskTaskState.FAILED;
+  const lifecycleTooltip = useLifecycleTooltip();
   // Pause barrier is an overlay on the task's real state (still RUNNING
   // while parked) - render it instead of the state icon.
   let icon = data.debugPauseBarrier
     ? getDebugPauseIcon()
     : data.lifecycleMessage
-      ? getLifecycleStatusIcon(data.lifecycleMessage, data.lifecycleCategory, data.state)
+      ? getLifecycleStatusIcon(
+          data.lifecycleMessage,
+          data.lifecycleCategory,
+          data.state,
+          lifecycleTooltip,
+        )
       : getIcon(data.state);
   let executionIcon = getExecutionIcon(data.state);
 
@@ -58,8 +64,11 @@ function ExecutionNode({ id, data, selected }: ExecutionNodeProps) {
       <div className='container'>
         <button
           aria-label={
-            showWarning ? getLifecycleWarningLabel(data.label, data.lifecycleCategory) : undefined
+            hasLifecycleStatus
+              ? getLifecycleStatusLabel(data.label, data.lifecycleCategory)
+              : undefined
           }
+          {...lifecycleTooltip.focusProps}
           className={classes(
             'focus:ring flex items-stretch border-0 transform h-12 hover:scale-105 transition relative overflow:hidden bg-white shadow-lg rounded-lg',
             fullWidth,
@@ -128,9 +137,9 @@ export function getIcon(state: PipelineTaskTaskState | undefined) {
   }
 }
 
-// The amber icon is hidden from screen readers, so the warning goes into the name of the
-// focusable node instead.
-export function getLifecycleWarningLabel(label: string, category?: string) {
+// The status icon is hidden from screen readers, so the lifecycle status goes into the name
+// of the focusable node instead.
+export function getLifecycleStatusLabel(label: string, category?: string) {
   return `${label}, pod lifecycle ${isUnclassifiedLifecycle(category) ? 'status' : 'warning'}`;
 }
 
@@ -151,12 +160,38 @@ export function getLifecycleCategoryLabel(category?: string) {
   return (category && LIFECYCLE_CATEGORY_LABELS[category]) || 'Pod lifecycle warning';
 }
 
-// Status icon for a task with a lifecycle message. Hovering it shows the category and the
-// message, clamped so a long message cannot fill the screen.
+export interface LifecycleTooltipState {
+  open: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+  // Spread onto the node's focusable control so the tooltip also opens on keyboard focus.
+  focusProps: { onFocus: () => void; onBlur: () => void };
+}
+
+// The tooltip hangs off the status icon, which is not focusable, so keyboard focus on the
+// node's button is tracked here and opens the same tooltip. Escape closes it again.
+export function useLifecycleTooltip(): LifecycleTooltipState {
+  const [hovered, setHovered] = React.useState(false);
+  const [focused, setFocused] = React.useState(false);
+  return {
+    open: hovered || focused,
+    onOpen: () => setHovered(true),
+    onClose: () => {
+      setHovered(false);
+      setFocused(false);
+    },
+    focusProps: { onFocus: () => setFocused(true), onBlur: () => setFocused(false) },
+  };
+}
+
+// Status icon for a task with a lifecycle message. The tooltip shows the category and the
+// message, clamped so a long message cannot fill the screen. Pass the state from
+// useLifecycleTooltip to open it from keyboard focus as well as hover.
 export function getLifecycleStatusIcon(
   message: string,
   category?: string,
   state?: PipelineTaskTaskState,
+  tooltip?: LifecycleTooltipState,
 ) {
   const failed = state === PipelineTaskTaskState.FAILED;
   const unclassified = !failed && isUnclassifiedLifecycle(category);
@@ -174,6 +209,9 @@ export function getLifecycleStatusIcon(
       : 'bg-mui-yellow-100';
   return (
     <CardTooltip
+      open={tooltip?.open}
+      onOpen={tooltip?.onOpen}
+      onClose={tooltip?.onClose}
       helpText={
         <div data-testid='lifecycle-tooltip'>
           <strong>{getLifecycleCategoryLabel(category)}</strong>

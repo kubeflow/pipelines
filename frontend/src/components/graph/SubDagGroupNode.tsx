@@ -8,7 +8,12 @@ import { PipelineTaskTaskState } from 'src/apisv2/run';
 import { classes, style } from 'typestyle';
 import { SubDagFlowElementData } from './Constants';
 import { color } from 'src/Css';
-import { getIcon, getLifecycleStatusIcon, getLifecycleWarningLabel } from './ExecutionNode';
+import {
+  getIcon,
+  getLifecycleStatusIcon,
+  getLifecycleStatusLabel,
+  useLifecycleTooltip,
+} from './ExecutionNode';
 import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
 import SubDagTypeIcon from './SubDagTypeIcon';
 import { GROUP_HEADER_HEIGHT } from 'src/lib/v2/GroupedFlow';
@@ -30,10 +35,16 @@ export default function SubDagGroupNode({
   draggable?: boolean;
 }) {
   const collapsed = !!data.collapsed;
-  // Same rule as ExecutionNode: a lifecycle message is a warning until the task is FAILED.
-  const showWarning = !!data.lifecycleMessage && data.state !== PipelineTaskTaskState.FAILED;
+  // Same rule as ExecutionNode: a lifecycle message is shown as a status until the task is FAILED.
+  const hasLifecycleStatus = !!data.lifecycleMessage && data.state !== PipelineTaskTaskState.FAILED;
+  const lifecycleTooltip = useLifecycleTooltip();
   const status = data.lifecycleMessage
-    ? getLifecycleStatusIcon(data.lifecycleMessage, data.lifecycleCategory, data.state)
+    ? getLifecycleStatusIcon(
+        data.lifecycleMessage,
+        data.lifecycleCategory,
+        data.state,
+        lifecycleTooltip,
+      )
     : getIcon(data.state);
   return (
     <>
@@ -66,8 +77,11 @@ export default function SubDagGroupNode({
             className='focus:outline-hidden focus:ring-0 px-3 flex flex-1 min-w-0 items-center justify-center text-sm'
             title={data.label}
             aria-label={
-              showWarning ? getLifecycleWarningLabel(data.label, data.lifecycleCategory) : undefined
+              hasLifecycleStatus
+                ? getLifecycleStatusLabel(data.label, data.lifecycleCategory)
+                : undefined
             }
+            {...lifecycleTooltip.focusProps}
             style={{ background: 'transparent', border: 0, fontWeight: 400 }}
           >
             <span className='truncate' data-testid='subdag-label'>

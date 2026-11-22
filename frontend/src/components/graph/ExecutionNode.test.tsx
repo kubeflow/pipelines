@@ -17,6 +17,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { waitFor } from '@testing-library/react';
 import ExecutionNode, { getIcon, getExecutionIcon, getDebugPauseIcon } from './ExecutionNode';
 import { PipelineTaskTaskState } from 'src/apisv2/run';
 import { ReactFlowProvider } from '@xyflow/react';
@@ -98,7 +99,7 @@ describe('ExecutionNode', () => {
     expect(screen.queryByTestId('ErrorIcon')).not.toBeInTheDocument();
   });
 
-  it('announces the warning in the node name', () => {
+  it('announces the lifecycle status in the node name', () => {
     renderWithProvider(
       <ExecutionNode
         id='exec-1'
@@ -129,7 +130,7 @@ describe('ExecutionNode', () => {
     expect(screen.queryByTestId('WarningAmberIcon')).not.toBeInTheDocument();
   });
 
-  it('shows an unclassified lifecycle message as a blue status, not an amber warning', () => {
+  it('shows an unclassified lifecycle message as a blue info status', () => {
     renderWithProvider(
       <ExecutionNode
         id='exec-1'
@@ -196,6 +197,63 @@ describe('ExecutionNode', () => {
     );
     await userEvent.hover(screen.getByTestId('ErrorIcon'));
     expect(await screen.findByTestId('lifecycle-tooltip')).toHaveTextContent('OOMKilled');
+  });
+
+  it('opens the tooltip when the node receives keyboard focus', async () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'stuck-step',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'Back-off pulling image "nope:latest"',
+          lifecycleCategory: 'image-pull',
+        }}
+      />,
+    );
+    expect(screen.queryByTestId('lifecycle-tooltip')).not.toBeInTheDocument();
+    await userEvent.tab();
+    expect(screen.getByRole('button', { name: /stuck-step/ })).toHaveFocus();
+    const tooltip = await screen.findByTestId('lifecycle-tooltip');
+    expect(tooltip).toHaveTextContent('Image pull problem');
+    expect(tooltip).toHaveTextContent('Back-off pulling image "nope:latest"');
+
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('lifecycle-tooltip')).not.toBeInTheDocument());
+  });
+
+  it('opens the tooltip on keyboard focus of a failed node too', async () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'oom-step',
+          state: PipelineTaskTaskState.FAILED,
+          lifecycleMessage: 'main: OOMKilled (exit code 137)',
+          lifecycleCategory: 'runtime',
+        }}
+      />,
+    );
+    await userEvent.tab();
+    expect(await screen.findByTestId('lifecycle-tooltip')).toHaveTextContent('OOMKilled');
+  });
+
+  it('closes the keyboard tooltip when focus leaves the node', async () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'stuck-step',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'Insufficient cpu',
+          lifecycleCategory: 'scheduling',
+        }}
+      />,
+    );
+    await userEvent.tab();
+    await screen.findByTestId('lifecycle-tooltip');
+    await userEvent.tab();
+    await waitFor(() => expect(screen.queryByTestId('lifecycle-tooltip')).not.toBeInTheDocument());
   });
 
   it('shows no warning when the lifecycle message is empty', () => {
