@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Generate client code (go & json) from API protocol buffers
-FROM golang:1.27.4@sha256:5e8afd493a7124a8586e134d9b532731161d4b9becf9dee5a5956b107426f93d AS generator
+FROM golang:1.27.4@sha256:205c7636d74e0ffbe3d007162df7d74f859f5a8c8322dfb9f907977686c126cf AS generator
 ENV PROTOC_VERSION=31.1
 ENV GOBIN=/go/bin
 # The googleapis repo doesn't use GitHub releases or version tags,
