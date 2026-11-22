@@ -8,23 +8,23 @@ require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/argoproj/argo-workflows/v4 v4.1.6
 	github.com/aws/aws-sdk-go-v2 v1.48.0
-	github.com/aws/aws-sdk-go-v2/config v1.33.19
-	github.com/aws/aws-sdk-go-v2/credentials v1.21.1
+	github.com/aws/aws-sdk-go-v2/config v1.33.20
+	github.com/aws/aws-sdk-go-v2/credentials v1.21.2
 	github.com/aws/aws-sdk-go-v2/feature/rds/auth v1.7.12
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.114.10
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.116.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.52.0
 	github.com/aws/smithy-go v1.28.9
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-openapi/errors v0.22.9
-	github.com/go-openapi/runtime v0.33.4
+	github.com/go-openapi/runtime v0.33.5
 	github.com/go-openapi/strfmt v0.27.4
 	github.com/go-openapi/swag/conv v0.29.2
 	github.com/go-openapi/swag/jsonutils v0.29.2
 	github.com/go-openapi/swag/stringutils v0.29.2
 	github.com/go-openapi/swag/typeutils v0.29.2
 	github.com/go-openapi/validate v1.0.2
-	github.com/go-sql-driver/mysql v1.10.1
+	github.com/go-sql-driver/mysql v1.10.2
 	github.com/golang/glog v1.2.5
 	github.com/google/addlicense v1.2.0
 	github.com/google/cel-go v0.30.0
@@ -54,7 +54,7 @@ require (
 	gocloud.dev v0.49.0
 	golang.org/x/net v0.62.0
 	golang.org/x/oauth2 v0.38.0
-	google.golang.org/api v0.315.0
+	google.golang.org/api v0.316.0
 	// Pre-generated Go code (.pb.go files) for a subset of the .proto files found in
 	// googleapis/googleapis both /api and /rpc should be released relatively close to
 	// the googleapis proto files used for kfp-pipeline-spec see GOOGLEAPIS_COMMIT in api/Makefile
@@ -111,7 +111,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.11.13 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.12 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.20.12 // indirect
-	github.com/aws/aws-sdk-go-v2/service/signin v1.13.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/signin v1.14.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.39.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.44.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -142,7 +142,7 @@ require (
 	github.com/go-openapi/jsonpointer v1.0.2 // indirect
 	github.com/go-openapi/jsonreference v1.0.3 // indirect
 	github.com/go-openapi/loads v0.25.4 // indirect
-	github.com/go-openapi/runtime/server-middleware v0.33.4 // indirect
+	github.com/go-openapi/runtime/server-middleware v0.33.5 // indirect
 	github.com/go-openapi/spec v1.0.1 // indirect
 	github.com/go-openapi/swag v0.29.2 // indirect
 	github.com/go-openapi/swag/cmdutils v0.29.2 // indirect
