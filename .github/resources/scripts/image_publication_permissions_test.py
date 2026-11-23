@@ -278,7 +278,10 @@ done
             with self.subTest(push=push):
                 result, arguments, output = self.run_build(push, DIGEST)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn('--provenance=mode=min', arguments)
+                self.assertIn(
+                    '--provenance=mode=min' if push else '--provenance=false',
+                    arguments,
+                )
                 if push:
                     self.assertIn(
                         'type=image,name=ghcr.io/kubeflow/kfp-api-server,'

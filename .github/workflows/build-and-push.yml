@@ -246,7 +246,6 @@ jobs:
           build_command=(
             bash ./.github/resources/scripts/docker-buildx-build-with-retry.sh
             --platform "${INPUT_PLATFORMS}"
-            --provenance=mode=min
             --file "${INPUT_DOCKER_FILE}"
             --metadata-file "${METADATA_FILE}"
             --build-arg "NODE_VERSION=${NODE_VERSION}"
@@ -256,9 +255,11 @@ jobs:
           )
 
           if [ "$INPUT_PUSH" = "true" ]; then
-            build_command+=(--output "type=image,name=${IMAGE_NAME},push-by-digest=true,name-canonical=true,push=true")
+            build_command+=(--provenance=mode=min --output "type=image,name=${IMAGE_NAME},push-by-digest=true,name-canonical=true,push=true")
           else
-            build_command+=(--output "type=docker,dest=${RUNNER_TEMP}/publication-image.tar")
+            # Docker archives cannot contain BuildKit attestation manifests.
+            # Binary provenance is verified and retained separately below.
+            build_command+=(--provenance=false --output "type=docker,dest=${RUNNER_TEMP}/publication-image.tar")
           fi
 
           while IFS= read -r label; do

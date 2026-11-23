@@ -819,3 +819,8 @@ ignore files), while native Go builds retain the external recipe/ignore override
 needed for VCS stamping. `image_publication_permissions_test.py` reproduces the
 local-action lifetime boundary and `image_build_provenance_test.py` checks root
 and subdirectory non-Go contexts without weakening binary verification.
+
+Publication dry-runs use the Docker archive exporter with BuildKit attestations
+disabled because that exporter cannot encode attestation manifest lists. Registry
+publication retains `--provenance=mode=min` and its artifact attestation; both
+paths still verify and preserve the separate binary-provenance evidence.
