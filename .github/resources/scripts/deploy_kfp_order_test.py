@@ -45,7 +45,8 @@ esac
                 ['bash', str(SCRIPT.resolve()), '--multi-user'],
                 cwd=directory,
                 env={
-                    **os.environ,
+                    # Exercise the rollout with fake kubectl and no CI artifacts.
+                    'GITHUB_ACTIONS': 'false',
                     'PATH': directory + os.pathsep + os.environ['PATH'],
                 },
                 capture_output=True,
