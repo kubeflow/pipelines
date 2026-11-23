@@ -7,11 +7,11 @@ resources:
 
 images:
 - name: docker.io/istio/install-cni
-  newTag: 1.31.4
+  newTag: 1.31.4-distroless
 - name: docker.io/istio/pilot
-  newTag: 1.31.4
+  newTag: 1.31.4-distroless
 - name: docker.io/istio/proxyv2
-  newTag: 1.31.4
+  newTag: 1.31.4-distroless
 
 configMapGenerator:
 - name: istio-sidecar-injector
