@@ -9,7 +9,7 @@ const { randomBytes } = require('node:crypto');
 const loginPath = '/__profile_fixture/login';
 const sessionPath = '/__profile_fixture/session';
 const loginForm = `<!doctype html><title>Profile fixture sign in</title><h1>Sign in</h1>
-<form method="post"><label>Email <input type="email" name="email" required></label>
+<form method="post"><label>Username <input type="text" name="username" required></label>
 <label>Password <input type="password" name="password" required></label>
 <button type="submit">Sign in</button></form>`;
 
@@ -53,7 +53,7 @@ async function startFixtureGateway(upstreamBaseURL, identities) {
         return reply(400);
       }
       const fields = new URLSearchParams(body);
-      const identity = fields.get('email');
+      const identity = fields.get('username');
       if (!passwords.has(identity) || passwords.get(identity) !== fields.get('password')) return reply(401);
       const token = randomBytes(32).toString('hex');
       sessions.set(token, identity);
@@ -99,7 +99,7 @@ async function startFixtureGateway(upstreamBaseURL, identities) {
     async signIn(page, identity) {
       if (!passwords.has(identity)) throw new Error('Unknown fixture identity');
       await page.goto(url + loginPath);
-      await page.getByLabel('Email').fill(identity);
+      await page.getByLabel('Username').fill(identity);
       await page.getByLabel('Password').fill(passwords.get(identity));
       await page.getByRole('button', { name: 'Sign in' }).click();
       await page.waitForURL(url + sessionPath);

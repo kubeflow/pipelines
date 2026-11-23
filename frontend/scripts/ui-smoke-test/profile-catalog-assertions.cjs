@@ -25,9 +25,14 @@ async function scanCatalog(page, visit) {
     if (await visit()) return true;
     if (await next.isDisabled()) return false;
 
-    const previous = page.locator('[data-row-id="' + first + '"]');
-    await next.click();
-    await previous.waitFor({ state: 'detached' });
+    await Promise.all([
+      page.waitForResponse(response => {
+        const url = new URL(response.url());
+        return response.request().method() === 'GET' && url.pathname === '/apis/v2/artifacts' &&
+          Boolean(url.searchParams.get('page_token'));
+      }),
+      next.click(),
+    ]);
   }
 }
 
