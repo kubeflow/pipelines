@@ -624,7 +624,9 @@ class Test(unittest.TestCase):
         component = _make_component(
             func_name='train',
             target_image='custom-image',
-            pip_index_urls=['https://user:dummy-password@example.invalid/simple'],
+            pip_index_urls=[
+                'https://user:dummy-password@example.invalid/simple'
+            ],
         )
         _write_components('components.py', component)
 
