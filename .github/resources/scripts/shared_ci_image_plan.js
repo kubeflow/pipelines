@@ -5,7 +5,7 @@ const {applicable, loadLocalInventory} = require('./ci_expected_workflows');
 const AMD64_CONSUMERS = new Set([
   'api-server-tests.yml', 'e2e-test-frontend.yml', 'e2e-test.yml',
   'kfp-kubernetes-native-migration-tests.yaml', 'kfp-sdk-client-tests.yml',
-  'kfp-webhooks.yml',
+  'kfp-webhooks.yml', 'tensorboard-acceptance.yml',
 ]);
 
 function architectures(inventory, eventName, event, files) {
@@ -18,6 +18,12 @@ function architectures(inventory, eventName, event, files) {
   if (eventName === 'push') return {amd64: true, arm64: false};
   if (eventName === 'workflow_dispatch') return {amd64: true, arm64: true};
   if (eventName !== 'pull_request') throw new Error(`Unsupported event: ${eventName}`);
+  const provenanceTooling = new Set([
+    'release/kfpr/go_build_provenance.py',
+    'release/kfpr/read_go_buildinfo.go',
+    '.github/resources/scripts/image-build-provenance.py',
+  ]);
+  if (files.some(file => provenanceTooling.has(file))) return {amd64: true, arm64: true};
   const branch = event.pull_request.base.ref;
   const selected = {amd64: false, arm64: false};
   for (const workflow of inventory.workflows) {

@@ -48,6 +48,7 @@ on:
       - 'Runtime Base Images'
       - 'Shared CI Images'
       - 'Third-party Image Upgrade Checks'
+      - 'Main PostgreSQL image retained-data upgrade'
       - 'KFP SDK Docformatter Test'
       - 'Python Ruff Lint'
       - 'KFP SDK Upgrade Test'
@@ -129,7 +130,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      actions: read
+      actions: write
       checks: read
       contents: read
       pull-requests: write
@@ -197,14 +198,17 @@ jobs:
           script: |
             const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting.js');
             const {finalize} = require('./.github/resources/scripts/ci_passed.js');
-            return await withRequestAccounting({github, core, scope: 'finalize'},
-              () => finalize({github, context, core,
+            const {wakeAdmission} = require('./.github/resources/scripts/merge_queue_wakeup.js');
+            return await withRequestAccounting({github, core, scope: 'finalize'}, async () => {
+              const pr = await finalize({github, context, core,
                 number: process.env.CI_PR_NUMBER,
                 head: process.env.CI_HEAD_SHA,
                 before: process.env.CI_PR_SNAPSHOT,
                 preparationSucceeded: process.env.CI_PREPARATION_SUCCEEDED === 'true',
                 validationReady: process.env.CI_VALIDATION_READY === 'true',
-                preparedResult: process.env.CI_PREPARED_RESULT}));
+                preparedResult: process.env.CI_PREPARED_RESULT});
+              await wakeAdmission({github, context, core, pr});
+            });
 
   recover_merged_release:
     if: github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
@@ -303,18 +307,19 @@ jobs:
               async () => await reconcile({github, context, core}));
 
   queue_admission:
-    # Each survivor checks all queue members plus the affected PR. Scheduled
-    # recovery sweeps all open PRs; replaced label events cannot strand holds.
-    needs: check_ci_status
+    # Events reconcile their PR or candidate. The scheduled sweep covers
+    # missed events, rebuilt candidates and failing PR Gate aggregates.
     if: >-
       always() && !cancelled() && (
       github.event_name == 'schedule' ||
       github.event_name == 'pull_request_target' ||
       (github.event_name == 'workflow_run' && github.event.action == 'completed' &&
        (github.event.workflow_run.event == 'pull_request' ||
-        github.event.workflow_run.event == 'merge_group' ||
-        (github.event.workflow_run.event == 'workflow_dispatch' &&
-         startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/')))))
+        ((github.event.workflow_run.event == 'merge_group' || github.event.workflow_run.event == 'workflow_dispatch') &&
+         github.event.workflow_run.head_repository.full_name == github.repository &&
+         (startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/master/') ||
+          startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/main/') ||
+          startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/release-2.18/'))))))
     concurrency:
       group: merge-queue-admission
       cancel-in-progress: false

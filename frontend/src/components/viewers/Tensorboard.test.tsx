@@ -158,7 +158,7 @@ describe('Tensorboard', () => {
     expect(startAppMock).toHaveBeenCalledWith({
       logdir: config.url,
       namespace: config.namespace,
-      image: expect.stringContaining('tensorflow/tensorflow:'),
+      image: 'ghcr.io/kubeflow/kfp-tensorboard:master',
       podTemplateSpec: undefined,
     });
   });
@@ -187,7 +187,7 @@ describe('Tensorboard', () => {
     expect(startAppSpy).toHaveBeenCalledWith({
       logdir: config.url,
       namespace: config.namespace,
-      image: expect.stringContaining('tensorflow/tensorflow:'),
+      image: 'ghcr.io/kubeflow/kfp-tensorboard:master',
       podTemplateSpec: undefined,
     });
     expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith('apps/tensorboard/proxy/new-token/');
@@ -212,7 +212,7 @@ describe('Tensorboard', () => {
     const expectedUrl = `Series1:${config.url},Series2:${config2.url}`;
     expect(startAppMock).toHaveBeenCalledWith({
       logdir: expectedUrl,
-      image: expect.stringContaining('tensorflow/tensorflow:'),
+      image: 'ghcr.io/kubeflow/kfp-tensorboard:master',
       namespace: config.namespace,
       podTemplateSpec: undefined,
     });
@@ -226,29 +226,25 @@ describe('Tensorboard', () => {
     expect(TensorboardViewer.prototype.isAggregatable()).toBeTruthy();
   });
 
-  it('selects a version, then starts a tensorboard of the corresponding version', async () => {
-    const config = { ...DEFAULT_CONFIG };
-
+  it('preserves a configured custom image and offers only the maintained default', async () => {
+    const config = { ...DEFAULT_CONFIG, image: 'example.com/custom-tensorboard:stable' };
     vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_NOT_FOUND);
-    const startAppMock = vi.fn(() => Promise.resolve(''));
-    const startAppSpy = vi.spyOn(Apis, 'startTensorboardApp').mockImplementationOnce(startAppMock);
-
-    const ref = React.createRef<TensorboardViewer>();
-    render(<TensorboardViewer ref={ref} configs={[config]} />);
+    const startAppSpy = vi.spyOn(Apis, 'startTensorboardApp').mockResolvedValue('');
+    render(<TensorboardViewer configs={[config]} />);
     await flushPromisesInAct();
 
-    act(() => {
-      ref.current?.handleImageSelect({
-        target: { value: 'tensorflow/tensorflow:1.15.5' },
-      } as React.ChangeEvent<{ name?: string; value: unknown }>);
-    });
-
+    fireEvent.mouseDown(screen.getByRole('combobox'));
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      config.image,
+      'KFP TensorBoard (default)',
+    ]);
+    fireEvent.click(screen.getByRole('option', { name: config.image }));
     await invokeAndFlush(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Start Tensorboard' }));
     });
     expect(startAppSpy).toHaveBeenCalledWith({
       logdir: config.url,
-      image: 'tensorflow/tensorflow:1.15.5',
+      image: config.image,
       namespace: config.namespace,
       podTemplateSpec: undefined,
     });
@@ -270,6 +266,74 @@ describe('Tensorboard', () => {
     await flushPromisesInAct();
     expect(screen.getByRole('button', { name: 'Start Tensorboard' })).toBeInTheDocument();
   });
+
+  it.each([
+    {
+      runningImage: GET_APP_FOUND.image,
+      configuredImage: undefined,
+      expectedImage: 'ghcr.io/kubeflow/kfp-tensorboard:master',
+    },
+    {
+      runningImage: GET_APP_FOUND.image,
+      configuredImage: 'example.com/pipeline-image:stable',
+      expectedImage: 'example.com/pipeline-image:stable',
+    },
+    {
+      runningImage: 'example.com/custom-tensorboard:stable',
+      configuredImage: undefined,
+      expectedImage: 'example.com/custom-tensorboard:stable',
+    },
+    {
+      runningImage: 'example.com/custom-tensorboard:stable',
+      configuredImage: 'example.com/pipeline-image:stable',
+      expectedImage: 'example.com/custom-tensorboard:stable',
+    },
+    {
+      runningImage: GET_APP_FOUND.image,
+      configuredImage: GET_APP_FOUND.image,
+      expectedImage: GET_APP_FOUND.image,
+    },
+  ])(
+    'restarts $runningImage with $expectedImage when the configured image is $configuredImage',
+    async ({ runningImage, configuredImage, expectedImage }) => {
+      vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue({
+        ...GET_APP_FOUND,
+        image: runningImage,
+      });
+      vi.spyOn(Apis, 'deleteTensorboardApp').mockResolvedValue('');
+      const startAppSpy = vi.spyOn(Apis, 'startTensorboardApp').mockResolvedValue('');
+      const config = { ...DEFAULT_CONFIG, image: configuredImage };
+      render(<TensorboardViewer configs={[config]} />);
+      await flushPromisesInAct();
+      expect(
+        screen.getByText(`Tensorboard ${runningImage} is running for this output.`),
+      ).toBeInTheDocument();
+
+      fireEvent.click(screen.getByText('Stop Tensorboard'));
+      await invokeAndFlush(() => {
+        fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
+      });
+      const label = expectedImage.startsWith('ghcr.io/kubeflow/')
+        ? 'KFP TensorBoard (default)'
+        : expectedImage;
+      expect(screen.getByRole('combobox')).toHaveTextContent(label);
+      fireEvent.mouseDown(screen.getByRole('combobox'));
+      expect(screen.getByRole('option', { name: label, selected: true })).toBeInTheDocument();
+      if (configuredImage) {
+        expect(screen.getByRole('option', { name: configuredImage })).toBeInTheDocument();
+      }
+      fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' });
+      await invokeAndFlush(() => {
+        fireEvent.click(screen.getByRole('button', { name: 'Start Tensorboard' }));
+      });
+      expect(startAppSpy).toHaveBeenCalledWith({
+        logdir: config.url,
+        image: expectedImage,
+        namespace: config.namespace,
+        podTemplateSpec: undefined,
+      });
+    },
+  );
 
   it('shows version info in delete confirming dialog if a tensorboard instance exists', async () => {
     vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_FOUND);

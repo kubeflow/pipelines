@@ -140,6 +140,11 @@ func (f *FakeClientManager) ExperimentStore() storage.ExperimentStoreInterface {
 	return f.experimentStore
 }
 
+// SetExperimentStore replaces the experiment store. Intended for tests that count lookups.
+func (f *FakeClientManager) SetExperimentStore(store storage.ExperimentStoreInterface) {
+	f.experimentStore = store
+}
+
 func (f *FakeClientManager) PipelineStore() storage.PipelineStoreInterface {
 	return f.pipelineStore
 }
@@ -193,6 +198,21 @@ func (f *FakeClientManager) ArtifactStore() storage.ArtifactStoreInterface {
 
 func (f *FakeClientManager) ArtifactTaskStore() storage.ArtifactTaskStoreInterface {
 	return f.artifactTaskStore
+}
+
+// SetRunStore replaces the run store. Intended for tests that count lookups.
+func (f *FakeClientManager) SetRunStore(store storage.RunStoreInterface) {
+	f.runStore = store
+}
+
+// SetTaskStore replaces the task store. Intended for tests that count lookups.
+func (f *FakeClientManager) SetTaskStore(store storage.TaskStoreInterface) {
+	f.taskStore = store
+}
+
+// SetArtifactStore replaces the artifact store. Intended for tests that count lookups.
+func (f *FakeClientManager) SetArtifactStore(store storage.ArtifactStoreInterface) {
+	f.artifactStore = store
 }
 
 // SetArtifactTaskStore replaces the artifact-task store. Intended for tests that

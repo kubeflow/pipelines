@@ -228,6 +228,11 @@ def qualify_release(context: ReleaseContext) -> None:
         raise ValueError(
             'Exception approval changed during qualification; rerun qualify-release'
         )
+    if 'landed_ci_run' in context.state.answers:
+        report['landed_ci'] = {
+            'run_id': context.state.answers['landed_ci_run'],
+            'run_attempt': context.state.answers['landed_ci_attempt'],
+        }
     report['qualified_at'] = datetime.now(timezone.utc).isoformat()
     path = output / 'qualification.json'
     path.write_text(json.dumps(report, indent=2) + '\n')

@@ -207,7 +207,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "4eccd1f3a8bbb634d1e5ac0060d581eeb3dae5989ffcf68d2f89b1cc1b252285",
+      "header_sha256": "242a51ecef9497916aa12a6f770c7435437711e0823e31e3a256d216199e9826",
       "pull_request": null,
       "merge_group": null
     },
@@ -221,7 +221,7 @@
     {
       "path": ".github/workflows/ci-images.yml",
       "name": "Shared CI Images",
-      "header_sha256": "54536d179124d0b7ca9ca1fd79b2a5e96579608def378ddeae386a443196d5f5",
+      "header_sha256": "b1e6919533df14d98f4961be5a6bb93c734c207cb1650810ed37ddfe7728e890",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -266,6 +266,8 @@
           "kubernetes_platform/**",
           "manifests/kustomize/**",
           "proxy/**",
+          "release/kfpr/go_build_provenance.py",
+          "release/kfpr/read_go_buildinfo.go",
           "pyproject.toml",
           "samples/**",
           "sdk/**",
@@ -281,6 +283,18 @@
           "third_party/**",
           "tools/k8s-native/**",
           "uv.lock",
+          "backend/Dockerfile.tensorboard",
+          "backend/src/tensorboard/**",
+          "backend/src/crd/controller/viewer/**",
+          "frontend/src/components/viewers/Tensorboard*",
+          "frontend/server/handlers/tensorboard*",
+          "test/tensorboard/**",
+          "hack/update_tensorboard_image.py",
+          ".github/workflows/tensorboard-acceptance.yml",
+          ".github/resources/scripts/artifact-files.sh",
+          ".github/resources/scripts/ci-image-artifacts.sh",
+          ".github/resources/scripts/load-tensorboard-image.sh",
+          ".github/resources/scripts/shared_ci_images.py",
           "!**/*.md",
           "!**/OWNERS"
         ]
@@ -306,7 +320,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "1cc41d552ef4b4bead2f830eb9c7177d41dfeb8cc23c7f72d1ae605f283b6531",
+      "header_sha256": "3a9284f969b0b4df839297c1305089044246fa6c35b927e4ae0aa0e41a44c235",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -334,11 +348,13 @@
           ".github/resources/ci-workflow-inventory.json",
           ".github/resources/legacy-v2-migration-specs.json",
           ".github/resources/legacy-v2-service-account-specs.json",
+          "test/artifact-proxy/test-artifact-proxy.sh",
           "test/presubmit-backend-test.sh",
           "hack/update-all-requirements.sh",
           ".github/workflows/**",
           ".github/scripts/*.py",
           ".github/resources/scripts/*.sh",
+          "backend/Makefile",
           ".github/resources/scripts/kfp-readiness/**",
           ".github/actions/junit-summary/**",
           ".github/workflows/ci-checks.yml",
@@ -355,6 +371,14 @@
           ".github/workflows/build-tools-images.yml",
           ".github/workflows/runtime-base-images.yml",
           ".github/workflows/ci-scripts-tests.yml",
+          ".github/workflows/postgresql-main-upgrade.yml",
+          ".github/resources/postgresql-upgrade/**",
+          ".github/workflows/tensorboard-acceptance.yml",
+          "backend/Dockerfile.tensorboard",
+          "backend/src/tensorboard/**",
+          "test/tensorboard/**",
+          "hack/update_tensorboard_image.py",
+          "manifests/kustomize/hack/release.sh",
           ".github/workflows/third-party-image-upgrades.yml",
           ".github/workflows/check-requirements-txt.yml",
           ".github/workflows/check-uv-lock.yml",
@@ -929,7 +953,7 @@
     {
       "path": ".github/workflows/merge-queue-recovery.yml",
       "name": "Merge Queue Recovery",
-      "header_sha256": "5048decdf5c3a3864c3dfc09f8c5dd5ddead35c59f3bab9e653766020c8d1d25",
+      "header_sha256": "3075fac0a079af38e75e3d2ec17fb465fde59f67f6df9b5e54560cdde4fd8e4e",
       "pull_request": null,
       "merge_group": null
     },
@@ -946,6 +970,42 @@
       "header_sha256": "82f7beeabe237497eea56048e754f345a99c04f72fed5bba32bd44ec9961a32f",
       "pull_request": null,
       "merge_group": null
+    },
+    {
+      "path": ".github/workflows/postgresql-main-upgrade.yml",
+      "name": "Main PostgreSQL image retained-data upgrade",
+      "header_sha256": "c8d5428aafe5f4ea68b14d41b0f4b549a928689051039cdac4518abd9a5a752a",
+      "pull_request": {
+        "branches": [
+          "master",
+          "main"
+        ],
+        "paths": [
+          "manifests/kustomize/third-party/postgresql/**",
+          "backend/src/apiserver/client_manager/**",
+          "backend/src/apiserver/common/**",
+          "backend/src/apiserver/model/**",
+          "backend/src/apiserver/storage/**",
+          "go.mod",
+          "go.sum",
+          ".github/resources/postgresql-upgrade/**",
+          ".github/resources/scripts/postgresql_image_upgrade*",
+          ".github/workflows/postgresql-main-upgrade.yml",
+          ".github/actions/create-cluster/**",
+          ".github/actions/setup-go/**",
+          ".github/actions/setup-python-pip-cache/**"
+        ]
+      },
+      "merge_group": {
+        "types": [
+          "checks_requested"
+        ],
+        "branches": [
+          "master",
+          "main",
+          "release-2.18"
+        ]
+      }
     },
     {
       "path": ".github/workflows/pr-gate.yml",
@@ -1076,6 +1136,13 @@
       "path": ".github/workflows/release-branch-image-scanning.yml",
       "name": "Release Branch Image Scanning",
       "header_sha256": "5cdc42c545f1ed08927c1acb3d84a1fcd3aae02c8e6d8283b6e6ed79e6164c84",
+      "pull_request": null,
+      "merge_group": null
+    },
+    {
+      "path": ".github/workflows/release-landed-ci.yml",
+      "name": "Release landed CI",
+      "header_sha256": "cfe2896a860b0d89e8e180d81a53cee77ebbef2dc631ef191d533ed3d5f9f98a",
       "pull_request": null,
       "merge_group": null
     },
@@ -1246,7 +1313,7 @@
     {
       "path": ".github/workflows/shared-ci-images-ready.yml",
       "name": "Shared CI image readiness",
-      "header_sha256": "24d497b8469dc78bdaf6dbccbd6a8794a9947de97a64001f7908a20a7a27fc65",
+      "header_sha256": "ad09515b81f40bb0f8737acbba3973b44556160f26fbb269c14c1b9f70e99968",
       "pull_request": null,
       "merge_group": null
     },
@@ -1260,9 +1327,40 @@
     {
       "path": ".github/workflows/tensorboard-acceptance.yml",
       "name": "TensorBoard runtime acceptance",
-      "header_sha256": "a093494daf3bb910cfa789f85d270326adcd30724923ae75a3a70b74794430bb",
-      "pull_request": null,
-      "merge_group": null
+      "header_sha256": "3c33292f11fef7c31a42e432f17f0c5e99150f0cbb9d5cda70c3e4a4d70e5bd2",
+      "pull_request": {
+        "paths": [
+          "backend/Dockerfile.tensorboard",
+          "backend/src/tensorboard/**",
+          "backend/src/crd/controller/viewer/**",
+          "frontend/src/components/viewers/Tensorboard*",
+          "frontend/server/handlers/tensorboard*",
+          "test/tensorboard/**",
+          "hack/update_tensorboard_image.py",
+          ".github/workflows/tensorboard-acceptance.yml",
+          ".github/actions/deploy/**",
+          ".github/actions/download-artifact-with-retry/**",
+          ".github/resources/scripts/artifact-files.sh",
+          ".github/resources/scripts/ci-image-artifacts.sh",
+          ".github/resources/scripts/load-tensorboard-image.sh",
+          ".github/workflows/image-builds.yml",
+          ".github/workflows/shared-ci-images-ready.yml",
+          ".github/actions/shared-ci-images/**",
+          ".github/resources/scripts/shared_ci_images.py",
+          "!**/*.md",
+          "!**/OWNERS"
+        ]
+      },
+      "merge_group": {
+        "types": [
+          "checks_requested"
+        ],
+        "branches": [
+          "master",
+          "main",
+          "release-2.18"
+        ]
+      }
     },
     {
       "path": ".github/workflows/third-party-image-scanning.yml",

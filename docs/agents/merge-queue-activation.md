@@ -31,12 +31,49 @@ identify their target branch, and recovery revisits greens when policy mode or
 base policy changes. Queue candidates continue to run all applicable lanes against
 the exact combined SHA, with no relaxation of candidate freshness or image identity.
 
-The trusted `queue_admission` job runs after PR CI reconciliation, on approval,
-hold, draft, retarget, and head-change events, and during scheduled recovery.
-Ordinary events inspect the affected PR and all current queue members; scheduled
-recovery alone sweeps all open PRs. A replaced pending event is therefore not the
-only opportunity to remove a held PR. Admission is excluded from the aggregate's test
-checks to avoid a dependency cycle; it does not constitute CI evidence.
+The trusted `queue_admission` job runs independently of the status-recovery
+matrix. A PR event reconciles admission or revocation for the affected PR.
+A newly verified PR success wakes admission for that exact head. When enqueue
+returns a built candidate, the controller can start its missing CI immediately.
+A queue workflow completion reconciles only the reported queue ref and SHA.
+The per-SHA publisher verifies the aggregate result. Scheduled recovery
+discovers candidates that GitHub built or replaced later, checks current
+queue members, and revisits ready PRs whose pending event was replaced. Admission is excluded
+from the aggregate's test checks to avoid a dependency cycle.
+
+### Why a PR is waiting
+
+The optional `merge-queue-admission` commit status explains the latest admission
+assessment for the PR head. It is separate from `ci-passed`: green CI alone does
+not mean GitHub's merge requirements are satisfied. The status reports missing
+approvals or holds, waiting for current-head CI or an eligible retry, unresolved
+review conversations, or a recognized GitHub enqueue rejection. Once admitted,
+it reports `Queued; awaiting merge-group checks.` A surviving sweep also updates
+already queued PRs, so replaced controller jobs do not leave stale blocker text.
+
+Conversation counts are read across all review-thread pages when the branch's
+effective rulesets or classic branch protection require resolution. The controller
+reads classic protection through `Ref.refUpdateRule`, which is visible to non-admins.
+Resolve the threads after addressing them;
+replying alone does not satisfy GitHub's requirement. A race with a new comment
+is still enforced by GitHub at enqueue time. Known policy rejections leave a PR
+pending without failing the shared sweep. Unexpected API errors still fail the
+controller and retain its conservative cleanup; inspect the latest admission or
+recovery job logs when the diagnostic says admission could not be verified.
+
+Statuses are attached to the inspected head and identical updates are deduplicated.
+The controller revisits eligible PRs on subsequent events and five-minute recovery
+sweeps; the diagnostic is not a live guarantee and does not promise a start time.
+**Do not require this status or use it as CI evidence:** it succeeds after admission,
+so requiring it before enqueue would create a dependency cycle. Status publication
+errors are logged without blocking admission or removing a queued PR.
+
+Shared `queue_admission` job cancellations can be expected when GitHub replaces
+pending requests in the concurrency group. They do not describe an individual PR's
+eligibility. Use the per-PR diagnostic and native queue membership instead of a
+Tide summary of those jobs. Native-queue branches must remain excluded from Tide's
+merge queries as described below; this diagnostic does not deploy external Tide
+configuration changes.
 
 Eligibility preserves Prow's `lgtm` plus `approved` requirement for normal PRs.
 Only the exact `dependabot[bot]` Bot identity receives the existing development
@@ -46,6 +83,40 @@ owner of approval labels and OWNERS interpretation. The bridge never adds approv
 labels or waives checks. It uses `enqueuePullRequest` with `expectedHeadOid` and
 `jump: false`; it never directly merges or enables auto-merge as a fallback.
 GitHub still enforces DCO and the other configured required checks.
+
+Before automatic admission, the controller checks for dependency manifests or
+lockfiles (including GitHub workflow and action definitions) changed by both the incoming PR and an earlier PR in the same queue.
+Two PRs can edit the same file and merge cleanly. For an overlap, the controller
+tests the combined changes with Git and defers the incoming PR only if Git
+reports a conflict on an overlapping dependency file. Other ready PRs can still
+enter the queue. Rename aliases are retained on both sides. File discovery uses only immutable
+base/head comparisons; a truncated comparison is inconclusive rather than
+falling back to a moving PR file list. An inconclusive probe leaves the merge
+decision to GitHub.
+
+A confirmed conflict is recorded against the PR head, target branch tip and
+ordered queue snapshot. Recovery can reuse that decision while those inputs
+match and checks again when they change. Deferral does not consume the retry
+reserved for a PR removed after failed queue CI. If a conflicting change has
+already merged, the incoming PR may still need to update its branch.
+
+The controller also checks the live base and ordered predecessor PR heads after
+enqueue. Candidate commits may be rebuilt for those unchanged inputs without
+causing compensation. A race
+causes a compensating dequeue before admission consumption is recorded. A
+reserved retry is released only after removal is confirmed, using a bot-authored
+receipt bound to the original admission ID, CI fingerprint and confirmed
+manual removal event ID from the GitHub Actions controller. Native queue
+failures and maintainer removals cannot release a retry. The removal must remain the latest queue event before
+reservation and again before enqueue; later manual queue actions invalidate
+the receipt. Uncertain or stale removal evidence keeps the retry consumed.
+An acknowledged enqueue that disappears before observation still records its
+admission attempt; it cannot bypass the retry cooldown or limit on the next
+sweep. The receipt retains GitHub’s enqueue timestamp so removal chronology
+does not depend on when the status write finishes; earlier-admission removals
+remain ineligible. Read failures after acknowledgment also attempt to record
+consumption while retaining the independent cleanup path. A new sweep must recheck the queue and all admission
+requirements before retrying; the original admission budget is not reset.
 
 The bridge rereads PR policy around admission and attempts dequeue when policy
 changes or admission becomes uncertain. It invalidates affected queue-candidate
@@ -115,8 +186,13 @@ producers and consumers.
 Recovery is scheduled every five minutes to revisit admission, discover newly
 created or rebuilt candidates, dispatch missing lanes, and reconcile candidate
 statuses even when events are missed. GitHub can delay scheduled workflows; this
-is not a five-minute latency guarantee. Before each dispatch, the controller
-writes a per-candidate/workflow commit-status receipt. It waits at least 120
+is not a five-minute latency guarantee. The controller processes up to four
+workflows per candidate at a time. It validates the candidate, base, and queue
+policy once before writing the batch’s per-workflow reservation statuses, waits
+for all writes to settle, then validates again before dispatching the reserved
+workflows. A replacement detected at that boundary stops the batch and all
+later batches for that candidate. Each subsequent batch reads a fresh snapshot.
+The controller waits at least 120
 seconds for run registration before retrying a missing run, with a maximum of
 three dispatch attempts. These receipts are not passing CI evidence. Registered
 failed or cancelled runs are never automatically retried; use an intentional
@@ -126,11 +202,24 @@ operator investigation rather than an unbounded dispatch loop.
 Successful enqueue also records `queue-admission-attempt` on the PR head,
 consuming the workflow-attempt fingerprint bound to the successful PR status.
 Admission compares current evidence with that verified fingerprint, so a running
-or failed retry cannot reuse an older green. Recovery
-cannot repeatedly re-enqueue the same green head after a failed or removed queue
-candidate. After investigating, deliberately rerun PR CI to obtain a fresh
-successful admission status before retrying admission. This is separate from
-rerunning a failed candidate workflow while its queue entry still exists.
+or failed retry cannot reuse an older green. Recovery permits one automatic
+re-admission after GitHub removes a candidate for `failed_checks`, following a
+15-minute cooldown and fresh head, CI, approval, hold and enforcement checks.
+Manual removals do not qualify. The `queue-admission-retry` receipt consumes this
+retry before enqueue, so an ambiguous API response cannot cause a retry loop.
+If that retry fails, investigate and deliberately rerun PR CI to obtain a new
+verified workflow fingerprint. Merely restamping the existing success does not
+reset the budget. This is separate from rerunning a failed candidate workflow
+while its queue entry still exists.
+
+For an eligible PR blocked by failed admission CI, recovery can rerun PR Gate's
+membership-lookup infrastructure failure after 15 minutes. It considers only the
+authoritative matching run, ordered by current attempt time rather than original
+creation time, retries attempt 1 once, and reserves at most two distinct reruns
+per PR head. Authority is rechecked before each write; historical failures are
+never retried as a fallback. Failures in issue-admission rules or other steps are not
+retryable. Scheduled CI reconciliation must verify success before queue entry;
+recovery does not grant approval or bypass checks.
 
 The isolated full-CI test merged [PR #15620](https://github.com/kubeflow/pipelines/pull/15620)
 and [PR #15621](https://github.com/kubeflow/pipelines/pull/15621) through the native
@@ -295,10 +384,12 @@ Activation order (Tide configuration remains unchanged):
    including no Tide App bypass, before relaxing freshness.
 5. Read the current release protection and reconcile any drift. Apply only
    [the required-checks patch](merge-queue-release-2.18-required-checks.json):
-   preserve existing App-bound DCO and pre-commit checks, add App-bound ci-passed,
-   and set strict freshness false. Preserve every unrelated protection.
+   require App-bound DCO and ci-passed and set strict freshness false. The
+   ci-passed publisher verifies pre-commit on release PRs and queue candidates.
+   A dispatched pre-commit job can pass on the candidate SHA while GitHub
+   omits it from the queue’s check rollup, so requiring it separately stalls merging.
 6. Observe a normally approved release PR automatically enter the queue, run all
-   required exact-candidate lanes, publish DCO/pre-commit/ci-passed, and merge.
+   required candidate lanes including pre-commit, pass DCO and ci-passed, and merge.
    Verify scheduled recovery and a hold/revoked approval blocks merging. Tide
    can still attempt direct merges but has no App bypass in the queue rule.
    Repository administrators can explicitly bypass through a PR; this does not

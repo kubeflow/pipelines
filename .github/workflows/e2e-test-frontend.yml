@@ -67,6 +67,8 @@ jobs:
       actions: read
       contents: read
     uses: ./.github/workflows/shared-ci-images-ready.yml
+    with:
+      include_tensorboard: true
 
   frontend-integration-dependency-checks:
     runs-on: ubuntu-latest
@@ -130,6 +132,7 @@ jobs:
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         with:
           image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
+          load_tensorboard_image: 'true'
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000

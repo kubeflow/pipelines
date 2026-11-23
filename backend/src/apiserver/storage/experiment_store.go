@@ -416,6 +416,7 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 	}
 
 	// Disable jobs via ExperimentUUID (v2-style jobs that have ExperimentUUID set but no resource_references row).
+	// Include already-disabled rows so an in-flight report cannot bypass archival.
 	updateJobsWithExperimentUUIDSQL, updateJobsWithExperimentUUIDArgs, err := qb.
 		Update(q("jobs")).
 		SetMap(sq.Eq{
@@ -423,7 +424,6 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 			q("UpdatedAtInSec"): now,
 		}).
 		Where(sq.Eq{q("ExperimentUUID"): expId}).
-		Where(sq.NotEq{q("Enabled"): false}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create query to disable jobs by ExperimentUUID")

@@ -35,9 +35,12 @@ RUN GO111MODULE=on go mod download
 
 COPY . .
 
-RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -tags netgo -gcflags="${GCFLAGS}" -ldflags '-extldflags "-static"' -o /bin/driver ./backend/src/driver/*.go
+RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -buildvcs=true -mod=readonly -tags netgo -gcflags="${GCFLAGS}" -ldflags '-extldflags "-static"' -o /bin/driver ./backend/src/driver
 
 FROM alpine:3.21
+
+# Refresh the runtime library even when the base tag still contains an older package.
+RUN apk add --no-cache 'zlib>=1.4-r0'
 
 RUN adduser -S -u 65532 appuser
 USER 65532

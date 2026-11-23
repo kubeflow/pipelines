@@ -2,6 +2,7 @@
 
 import datetime
 import json
+import re
 import time
 from pathlib import Path
 
@@ -62,13 +63,38 @@ def wait_for_pr_merge(runner: CommandRunner, pr_url: str) -> None:
         time.sleep(60)
 
 
-def is_pending_merge_queue_check(check: dict) -> bool:
-    """Tide's pending merge eligibility is not an unfinished CI test."""
+def is_pending_merge_queue_check(
+    check: dict, *, merged_pr_url: str | None = None
+) -> bool:
+    """Identify queue bookkeeping that can outlive CI and the PR itself."""
+    if (
+        check.get('__typename') != 'StatusContext'
+        or check.get('state') != 'PENDING'
+    ):
+        return False
+    if check.get('context') == 'tide':
+        return check.get('targetUrl') == 'https://oss.gprow.dev/tide'
     return (
-        check.get('__typename') == 'StatusContext'
-        and check.get('context') == 'tide'
-        and check.get('targetUrl') == 'https://oss.gprow.dev/tide'
-        and check.get('state') == 'PENDING'
+        check.get('context') == 'merge-queue-admission'
+        and merged_pr_url is not None
+        and re.fullmatch(
+            r'https://github\.com/kubeflow/pipelines/pull/[1-9][0-9]*',
+            merged_pr_url,
+        )
+        is not None
+        and check.get('targetUrl') == merged_pr_url
+    )
+
+
+def has_successful_ci_passed(checks: list[dict]) -> bool:
+    aggregate = [
+        check
+        for check in checks
+        if check.get('__typename') == 'StatusContext'
+        and check.get('context') == 'ci-passed'
+    ]
+    return bool(aggregate) and all(
+        check.get('state') == 'SUCCESS' for check in aggregate
     )
 
 
@@ -85,7 +111,7 @@ def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
         return
     reported_check_urls = set()
     while True:
-        checks = json.loads(
+        pr = json.loads(
             runner.capture(
                 [
                     'gh',
@@ -93,14 +119,19 @@ def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
                     'view',
                     pr_url,
                     '--json',
-                    'statusCheckRollup',
-                    '--jq',
-                    '.statusCheckRollup',
+                    'state,url,statusCheckRollup',
                 ]
             )
         )
         checks = [
-            check for check in checks if not is_pending_merge_queue_check(check)
+            check
+            for check in pr['statusCheckRollup']
+            if not is_pending_merge_queue_check(
+                check,
+                merged_pr_url=pr.get('url')
+                if pr['state'] == 'MERGED'
+                else None,
+            )
         ]
         if not checks:
             print('No CI gates reported yet')
@@ -115,9 +146,11 @@ def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
                 or 'unknown'
             )
             timestamp = check.get('startedAt') or check.get('completedAt') or ''
-            previous = latest_checks.get(name)
+            # A CheckRun and StatusContext can share a display name.
+            key = (check.get('__typename'), name)
+            previous = latest_checks.get(key)
             if previous is None or timestamp >= previous[0]:
-                latest_checks[name] = (timestamp, check)
+                latest_checks[key] = (timestamp, check)
         completed = 0
         for check in [item[1] for item in latest_checks.values()]:
             name = (
@@ -146,6 +179,10 @@ def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
                 reported_check_urls.add(details_url)
                 print(underline_links(f'Watching check: {name}: {details_url}'))
         if completed == len(latest_checks):
+            if pr['state'] == 'MERGED' and not has_successful_ci_passed(checks):
+                print('Waiting for successful ci-passed on the merged PR')
+                time.sleep(60)
+                continue
             print(
                 f'All PR CI gates completed successfully ({completed}/{len(latest_checks)})'
             )

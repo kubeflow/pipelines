@@ -17,6 +17,7 @@ import unittest
 from pathlib import Path
 
 import yaml
+from artifact_workflow_test_support import evaluate
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -86,7 +87,71 @@ class AdmissionWorkflowTest(unittest.TestCase):
         self.assertEqual(
             job['steps'][0]['with']['ref'], '${{ github.workflow_sha }}'
         )
-        self.assertIn('queueOnly: true', job['steps'][-1]['with']['script'])
+        self.assertIn(
+            "queueOnly: context.eventName === 'schedule'",
+            job['steps'][-1]['with']['script'],
+        )
+        self.assertIn('github.event.repository.default_branch', job['if'])
+        self.assertEqual(
+            set(recovery['on']['workflow_dispatch']['inputs']),
+            {'pr_number', 'head_sha'},
+        )
+
+    def test_verified_publisher_wakes_admission_with_accounting(self) -> None:
+        publisher = self.workflow['jobs']['check_ci_status']
+        self.assertEqual(publisher['permissions']['actions'], 'write')
+        script = publisher['steps'][-1]['with']['script']
+        self.assertIn('const pr = await finalize(', script)
+        self.assertIn(
+            'await wakeAdmission({github, context, core, pr})', script
+        )
+        self.assertLess(
+            script.index('withRequestAccounting({'),
+            script.index('await wakeAdmission('),
+        )
+
+    def test_queue_writer_filters_completion_events_before_runner_start(self):
+        upstream = 'kubeflow/pipelines'
+        queue_ref = 'gh-readonly-queue/release-2.18/pr-7-abc'
+        for event, action, branch, repo, expected in [
+            ('pull_request', 'completed', 'feature', 'fork/repo', True),
+            ('merge_group', 'completed', queue_ref, upstream, True),
+            ('workflow_dispatch', 'completed', queue_ref, upstream, True),
+            ('merge_group', 'in_progress', queue_ref, upstream, False),
+            ('merge_group', 'completed', queue_ref, 'fork/repo', False),
+            ('workflow_dispatch', 'completed', 'main', upstream, False),
+            ('workflow_dispatch', 'completed', queue_ref, 'fork/repo', False),
+            (
+                'workflow_dispatch',
+                'completed',
+                'gh-readonly-queue/dev/pr-7-abc',
+                upstream,
+                False,
+            ),
+        ]:
+            with self.subTest(
+                event=event, action=action, branch=branch, repo=repo
+            ):
+                github = {
+                    'repository': upstream,
+                    'event_name': 'workflow_run',
+                    'event': {
+                        'action': action,
+                        'workflow_run': {
+                            'event': event,
+                            'head_branch': branch,
+                            'head_repository': {'full_name': repo},
+                        },
+                    },
+                }
+                self.assertEqual(
+                    evaluate(
+                        self.job['if'],
+                        {'github': github},
+                        {'always': lambda: True, 'cancelled': lambda: False},
+                    ),
+                    expected,
+                )
 
     def test_revocation_events_and_sweep_do_not_deadlock_ci(self):
         events = self.workflow['on']['pull_request_target']['types']
@@ -101,7 +166,7 @@ class AdmissionWorkflowTest(unittest.TestCase):
         ]:
             self.assertIn(event, events)
         self.assertIn('schedule', self.workflow['on'])
-        self.assertEqual(self.job['needs'], 'check_ci_status')
+        self.assertNotIn('needs', self.job)
         self.assertEqual(self.job['concurrency']['cancel-in-progress'], 'false')
         self.assertIn('always()', self.job['if'])
         self.assertIn("github.event.action == 'completed'", self.job['if'])

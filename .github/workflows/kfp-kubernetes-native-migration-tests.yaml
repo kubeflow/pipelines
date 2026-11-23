@@ -139,7 +139,7 @@ jobs:
           echo "Installing cert-manager..."
 
           # Install cert-manager
-          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
+          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.21.3/cert-manager.yaml
 
           # Wait for cert-manager to be ready
           kubectl wait --for=condition=available --timeout=300s deployment/cert-manager -n cert-manager

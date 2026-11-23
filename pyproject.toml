@@ -64,7 +64,7 @@ test = [
   "docker",
   # Older 1.x releases import removed kfp.dsl internals. Do not let dependency
   # resolution backtrack to them when a newer protobuf is incompatible.
-  "google-cloud-pipeline-components>=2.22.0",
+  "google-cloud-pipeline-components>=2.23.0",
   "kfp[notebooks]",
   "kubernetes",
   "nbformat",
@@ -97,7 +97,7 @@ docs = [
   "m2r2",
   "sphinx>=7.2.0,<8.0.0",
   "sphinx-click",
-  "sphinx-immaterial>=0.13.11,<1",
+  "sphinx-immaterial>=0.13.12,<1",
   "sphinx-rtd-theme",
   "furo>=2024.8.6",
   "myst-parser>=3.0.0,<4.0.0",

@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -80,6 +81,9 @@ type ArtifactStoreInterface interface {
 
 	// GetArtifact fetches an artifact with a given id.
 	GetArtifact(id string) (*model.Artifact, error)
+
+	// GetArtifactsByIDs fetches a batch of artifacts keyed by artifact UUID.
+	GetArtifactsByIDs(artifactIDs []string) (map[string]*model.Artifact, error)
 
 	// GetArtifactsByURI fetches artifacts with exact Namespace + URI equality.
 	// This is a dedicated lookup path that avoids paginated ListArtifacts + COUNT.
@@ -517,63 +521,87 @@ func (s *ArtifactStore) getArtifactByIdentityKey(namespace, identityKey string) 
 	return artifacts[0], nil
 }
 
+type rowScanner interface {
+	Scan(dest ...any) error
+}
+
+type reqIDRowScanner struct {
+	reqID *string
+	inner rowScanner
+}
+
+func (s *reqIDRowScanner) Scan(dest ...any) error {
+	allDest := make([]any, 0, len(dest)+1)
+	allDest = append(allDest, s.reqID)
+	allDest = append(allDest, dest...)
+	return s.inner.Scan(allDest...)
+}
+
+func scanArtifactRow(scanner rowScanner) (*model.Artifact, error) {
+	var uuid, namespace string
+	var name, uri, uriHash, description, identityKey sql.NullString
+	var artifactType int32
+	var createdAtInSec, lastUpdateInSec int64
+	var metadataBytes []byte
+	var numberValue sql.NullFloat64
+
+	err := scanner.Scan(
+		&uuid,
+		&namespace,
+		&artifactType,
+		&uri,
+		&uriHash,
+		&name,
+		&description,
+		&createdAtInSec,
+		&lastUpdateInSec,
+		&metadataBytes,
+		&numberValue,
+		&identityKey,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse metadata JSON
+	var metadata model.JSONData
+	if metadataBytes != nil {
+		err = metadata.Scan(metadataBytes)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to parse artifact metadata")
+		}
+	}
+
+	artifact := &model.Artifact{
+		UUID:            uuid,
+		Namespace:       namespace,
+		Type:            model.ArtifactType(artifactType),
+		URIHash:         uriHash.String,
+		Name:            name.String,
+		Description:     description.String,
+		CreatedAtInSec:  createdAtInSec,
+		LastUpdateInSec: lastUpdateInSec,
+		Metadata:        metadata,
+	}
+	if numberValue.Valid {
+		artifact.NumberValue = &numberValue.Float64
+	}
+	if identityKey.Valid {
+		artifact.IdentityKey = &identityKey.String
+	}
+
+	if uri.Valid {
+		artifact.URI = &uri.String
+	}
+	return artifact, nil
+}
+
 func (s *ArtifactStore) scanRows(rows *sql.Rows) ([]*model.Artifact, error) {
 	var artifacts []*model.Artifact
 	for rows.Next() {
-		var uuid, namespace string
-		var name, uri, uriHash, description, identityKey sql.NullString
-		var artifactType int32
-		var createdAtInSec, lastUpdateInSec int64
-		var metadataBytes []byte
-		var numberValue sql.NullFloat64
-
-		err := rows.Scan(
-			&uuid,
-			&namespace,
-			&artifactType,
-			&uri,
-			&uriHash,
-			&name,
-			&description,
-			&createdAtInSec,
-			&lastUpdateInSec,
-			&metadataBytes,
-			&numberValue,
-			&identityKey,
-		)
+		artifact, err := scanArtifactRow(rows)
 		if err != nil {
 			return nil, err
-		}
-
-		// Parse metadata JSON
-		var metadata model.JSONData
-		if metadataBytes != nil {
-			err = metadata.Scan(metadataBytes)
-			if err != nil {
-				return nil, util.NewInternalServerError(err, "Failed to parse artifact metadata")
-			}
-		}
-
-		artifact := &model.Artifact{
-			UUID:            uuid,
-			Namespace:       namespace,
-			Type:            model.ArtifactType(artifactType),
-			URIHash:         uriHash.String,
-			Name:            name.String,
-			Description:     description.String,
-			CreatedAtInSec:  createdAtInSec,
-			LastUpdateInSec: lastUpdateInSec,
-			Metadata:        metadata,
-		}
-		if numberValue.Valid {
-			artifact.NumberValue = &numberValue.Float64
-		}
-		if identityKey.Valid {
-			artifact.IdentityKey = &identityKey.String
-		}
-
-		if uri.Valid {
-			artifact.URI = &uri.String
 		}
 		artifacts = append(artifacts, artifact)
 	}
@@ -712,6 +740,108 @@ func (s *ArtifactStore) GetArtifact(id string) (*model.Artifact, error) {
 	}
 
 	return artifacts[0], nil
+}
+
+// maxIDsPerQuery defines the maximum number of ID terms in a single compound SELECT query.
+// SQLite enforces a default SQLITE_LIMIT_COMPOUND_SELECT of 500 terms. Chunking larger
+// requests into bounded batches of at most 500 terms prevents "too many terms in compound SELECT"
+// while keeping database-side comparison semantics intact across all dialects.
+const maxIDsPerQuery = 500
+
+// GetArtifactsByIDs fetches a batch of artifacts keyed by artifact UUID.
+// It joins the requested IDs to the stored UUIDs in SQL using the column's
+// own comparison semantics, returning the matching request spelling alongside
+// each row to preserve database collation and trailing whitespace behavior.
+// Requests with more than maxIDsPerQuery distinct IDs are partitioned into bounded
+// batches to stay within compound SELECT limits (such as SQLite's SQLITE_LIMIT_COMPOUND_SELECT).
+func (s *ArtifactStore) GetArtifactsByIDs(artifactIDs []string) (map[string]*model.Artifact, error) {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	artifactsByID := make(map[string]*model.Artifact)
+	if len(artifactIDs) == 0 {
+		return artifactsByID, nil
+	}
+
+	dedupedIDs := make([]string, 0, len(artifactIDs))
+	seenIDs := make(map[string]struct{}, len(artifactIDs))
+	for _, id := range artifactIDs {
+		if id == "" {
+			continue
+		}
+		if _, seen := seenIDs[id]; seen {
+			continue
+		}
+		seenIDs[id] = struct{}{}
+		dedupedIDs = append(dedupedIDs, id)
+	}
+	if len(dedupedIDs) == 0 {
+		return artifactsByID, nil
+	}
+
+	selectCols := make([]string, 0, 1+len(artifactColumns))
+	selectCols = append(selectCols, q("req")+"."+q("req_id"))
+	for _, col := range artifactColumns {
+		selectCols = append(selectCols, q(artifactTableName)+"."+q(col))
+	}
+
+	for i := 0; i < len(dedupedIDs); i += maxIDsPerQuery {
+		end := i + maxIDsPerQuery
+		if end > len(dedupedIDs) {
+			end = len(dedupedIDs)
+		}
+		chunk := dedupedIDs[i:end]
+
+		args := make([]interface{}, len(chunk))
+		for j, id := range chunk {
+			args[j] = id
+		}
+
+		unionClause := "(SELECT ? AS " + q("req_id") + strings.Repeat(" UNION ALL SELECT ?", len(chunk)-1) + ") " + q("req")
+		joinClause := unionClause + " ON " + q(artifactTableName) + "." + q("UUID") + " = " + q("req") + "." + q("req_id")
+
+		queryBuilder := qb.
+			Select(selectCols...).
+			From(q(artifactTableName)).
+			Join(joinClause, args...)
+
+		var sqlStr string
+		var sqlArgs []interface{}
+		var err error
+		if s.dbDialect != nil {
+			sqlStr, sqlArgs, err = s.dbDialect.FinalizeSelect(queryBuilder)
+		} else {
+			sqlStr, sqlArgs, err = queryBuilder.ToSql()
+		}
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to create query to get artifacts by IDs: %v", err.Error())
+		}
+
+		r, err := s.db.Query(sqlStr, sqlArgs...)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to get artifacts by IDs: %v", err.Error())
+		}
+
+		for r.Next() {
+			var reqID string
+			scanner := &reqIDRowScanner{
+				reqID: &reqID,
+				inner: r,
+			}
+			artifact, err := scanArtifactRow(scanner)
+			if err != nil {
+				r.Close()
+				return nil, util.NewInternalServerError(err, "Failed to scan artifacts by IDs: %v", err.Error())
+			}
+			artifactsByID[reqID] = artifact
+		}
+		if err := r.Err(); err != nil {
+			r.Close()
+			return nil, util.NewInternalServerError(err, "Failed to iterate artifacts by IDs: %v", err.Error())
+		}
+		r.Close()
+	}
+
+	return artifactsByID, nil
 }
 
 // GetArtifactsByURI returns artifacts matching Namespace and URI exactly.
