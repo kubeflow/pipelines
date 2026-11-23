@@ -92,16 +92,12 @@ class MergeQueueWorkflowsTest(unittest.TestCase):
         self.assertGreater(len(lanes), 30)
         for lane in lanes:
             with self.subTest(path=lane['path']):
-                # The PostgreSQL image upgrade is a main-only lane.
-                branches = ['master', 'main']
-                if (
-                    lane['path']
-                    != '.github/workflows/postgresql-main-upgrade.yml'
-                ):
-                    branches.append('release-2.18')
                 self.assertEqual(
                     lane['merge_group'],
-                    {'types': ['checks_requested'], 'branches': branches},
+                    {
+                        'types': ['checks_requested'],
+                        'branches': ['master', 'main', 'release-2.18'],
+                    },
                 )
         paused = next(
             item for item in lanes if item['path'].endswith('/upgrade-test.yml')
