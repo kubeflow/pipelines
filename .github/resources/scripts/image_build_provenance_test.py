@@ -104,6 +104,13 @@ class ImageBuildProvenanceTest(unittest.TestCase):
                     context,
                 )
                 prepared = Path(result['context'])
+                self.assertEqual(
+                    prepared,
+                    self.root
+                    / ('prepared-' + recipe.parent.name)
+                    / 'source'
+                    / context,
+                )
                 self.assertNotEqual(prepared, self.source / context)
                 self.assertFalse((prepared / '.publication-tooling').exists())
                 self.assertTrue(tooling.is_file())
