@@ -19,4 +19,4 @@ labels:
     app: kubeflow-pipelines-profile-controller
 images:
 - name: ghcr.io/kubeflow/kfp-profile-controller
-  newTag: 2.18.1
+  newTag: 2.18.2
