@@ -27,6 +27,11 @@ on:
         default: 'true'
         description: 'Add a sha image tag.'
         required: false
+      enforce_profile_isolation:
+        description: Require metadata isolation as well as owner compatibility
+        type: boolean
+        default: false
+        required: false
       dry_run:
         type: boolean
         default: false
@@ -154,9 +159,9 @@ jobs:
           pattern: digests-*-amd64
       - uses: ./.github/actions/profile-upgrade
         with:
+          target-tag: ${{ inputs.target_tag }}
           release-digests: ${{ runner.temp }}/profile-release-digests
-          # The release containing the deliberate #15844 revert.
-          metadata-isolation: ${{ inputs.target_tag == '2.18.2' && 'report' || 'enforce' }}
+          metadata-isolation: ${{ (inputs.enforce_profile_isolation || vars.KFP_ENFORCE_PROFILE_ISOLATION == 'true') && 'enforce' || 'report' }}
 
   create-manifests:
     needs: [build-images-for-release, qualify-profile-upgrade]

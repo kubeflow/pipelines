@@ -85,11 +85,30 @@ class ReleaseImageWorkflowPermissionsTest(unittest.TestCase):
                          'digests-*-amd64')
         self.assertEqual(release_check['steps'][2]['uses'],
                          './.github/actions/profile-upgrade')
+        self.assertEqual(release_check['steps'][2]['with']['target-tag'],
+                         '${{ inputs.target_tag }}')
         self.assertEqual(release_check['steps'][2]['with']['release-digests'],
                          release_check['steps'][1]['with']['path'])
-        self.assertEqual(
-            release_check['steps'][2]['with']['metadata-isolation'],
-            "${{ inputs.target_tag == '2.18.2' && 'report' || 'enforce' }}")
+
+    def test_metadata_isolation_enforcement_is_explicit(self):
+        for workflow, job in (('upgrade-test.yml', 'profile-upgrade'),
+                              ('image-builds-release.yml',
+                               'qualify-profile-upgrade')):
+            with self.subTest(workflow=workflow):
+                data = yaml.load(
+                    (WORKFLOWS / workflow).read_text(), Loader=yaml.BaseLoader)
+                inputs = data['on']['workflow_dispatch']['inputs']
+                policy = inputs['enforce_profile_isolation']
+                self.assertEqual(policy['type'], 'boolean')
+                self.assertEqual(policy['default'], 'false')
+                action, = (
+                    step for step in data['jobs'][job]['steps']
+                    if step.get('uses') == './.github/actions/profile-upgrade')
+                self.assertEqual(
+                    action['with']['metadata-isolation'],
+                    "${{ (inputs.enforce_profile_isolation || "
+                    "vars.KFP_ENFORCE_PROFILE_ISOLATION == 'true') "
+                    "&& 'enforce' || 'report' }}")
 
     def test_pr_and_release_use_the_same_upgrade_harness(self):
         profile = jobs('upgrade-test.yml')['profile-upgrade']

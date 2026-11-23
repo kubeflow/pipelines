@@ -136,16 +136,22 @@ Use the exact step ID from `kfpr steps` or the list below.
 The release image workflow must pass **Two-profile release upgrade acceptance**
 before publishing the 2.18 release image tags. The browser signs into a
 disposable test gateway, uploads a pipeline, and starts runs in two profiles on
-2.18.1. The workflow upgrades the same cluster and checks retained runs,
+the latest published stable 2.18 patch. For a versioned release, the source
+must be older than the target. The workflow upgrades the same cluster and
+checks retained runs,
 artifacts, downloads, previews, lineage, metrics, and new browser submissions.
 The AMD64 candidate images come from the same digest artifacts used to assemble
 the release manifests.
 
-The 2.18.2 qualification reports observed metadata isolation failures as
-warnings while the #15844 revert remains in effect. Owner workflows and normal
-Run API authorization remain blocking. Later releases require metadata isolation
-as well. The fixture exercises the browser session and real KFP authorization
-but does not validate a production identity provider or deployment-specific SSO.
+While the shared MLMD routes restored in #15844 remain enabled, qualification
+reports known cross-profile metadata visibility as warnings. Owner workflows,
+ordinary Run API authorization and unexpected failures remain blocking. To test
+a candidate isolation fix, dispatch with `enforce_profile_isolation=true`.
+When adopting that fix, set the repository variable
+`KFP_ENFORCE_PROFILE_ISOLATION=true` to enforce isolation for every run,
+including release promotion. The fixture exercises browser sessions and KFP
+authorization. Production identity providers and deployment-specific SSO are
+outside its scope.
 
 If the gate fails, fix the candidate and rerun the release workflow. The dry
 run builds images without promotion or release upgrade qualification.

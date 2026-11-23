@@ -3,14 +3,13 @@
 # SPDX-License-Identifier: Apache-2.0
 set -euo pipefail
 
-source_commit=2bfc482594dc125e66746b836d49387173539b4e
-source_version=2.18.1
+source_version=
 digest_root=
 if [[ $# == 0 ]]; then
-  ref=$source_commit
-  if ! git cat-file -e "$ref^{commit}" 2>/dev/null; then
-    git fetch --no-tags --depth=1 https://github.com/kubeflow/pipelines.git "$ref"
-  fi
+  source_version=$(gh api --paginate 'repos/kubeflow/pipelines/releases?per_page=100' |
+    jq -ser --arg target "${PROFILE_TARGET_TAG:-}" -f .github/resources/scripts/profile-upgrade-source.jq)
+  git fetch --no-tags --depth=1 https://github.com/kubeflow/pipelines.git "refs/tags/$source_version"
+  ref=$(git rev-parse 'FETCH_HEAD^{commit}')
   echo "Deploying Kubeflow Pipelines $source_version ($ref)"
 elif [[ $# == 2 && $1 == --candidate && $2 == /* && -d $2 ]]; then
   ref=$(git rev-parse HEAD)

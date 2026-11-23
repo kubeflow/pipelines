@@ -4,6 +4,9 @@ inputs:
   image-artifacts-ready:
     description: Whether this run has published CI image tarballs
     default: 'false'
+  target-tag:
+    description: Release tag being qualified, to select an older published upgrade source
+    default: ''
   release-digests:
     description: Absolute path to the candidate release's AMD64 digest artifacts, when qualifying a release
     default: ''
@@ -20,6 +23,9 @@ runs:
         cluster_name: kfp
     - name: Deploy previous release
       shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PROFILE_TARGET_TAG: ${{ inputs.target-tag }}
       run: bash .github/resources/scripts/deploy-profile-upgrade-source.sh
     - name: Set up Node
       uses: actions/setup-node@v7.1.0
