@@ -76,6 +76,8 @@ Now that your code is in a standalone directory and you've specified a target im
 kfp component build src/ --component-filepattern my_component.py --no-push-image
 ```
 
+The CLI rejects HTTP(S) package index and package URLs that contain user information (such as `user:password@`) or query parameters. These values would otherwise be written into the generated Dockerfile or requirements file and included in the image build. To use a private package source, build the image separately with credentials supplied through Docker build secrets, then reference that image with `target_image`.
+
 If you have a [configured Docker to use a private image registry](https://docs.docker.com/engine/reference/commandline/login/), you can replace the `--no-push-image` flag with `--push-image` to automatically push the image after building.
 
 ### 4. Use the component in a pipeline
