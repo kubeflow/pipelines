@@ -15,12 +15,14 @@
 import contextlib
 import logging
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import warnings
 from typing import List, Optional, Sequence
+from urllib.parse import urlsplit
 
 import click
 
@@ -56,6 +58,20 @@ _COMPONENT_METADATA_DIR = 'component_metadata'
 _DOCKERIGNORE_TEMPLATE = f"""
 {_COMPONENT_METADATA_DIR}/
 """
+
+_HTTP_URL_PATTERN = re.compile(r'(?:git\+)?https?://[^\s<>]+', re.IGNORECASE)
+
+
+def _contains_url_credentials(value: str) -> bool:
+    for match in _HTTP_URL_PATTERN.finditer(value):
+        try:
+            url = urlsplit(match.group(0))
+        except ValueError:
+            continue
+        if url.username is not None or url.password is not None or url.query:
+            return True
+    return False
+
 
 # Location at which v2 Python function-based components will stored
 # in containerized components.
@@ -214,7 +230,7 @@ class ComponentBuilder:
                     f'Found {len(component_modules)} component(s) in file {python_file}:'
                 )
                 for name, component in component_modules.items():
-                    logging.info(f'{name}: {component}')
+                    logging.info('Found component %s', name)
                     self._components.append(component)
 
         base_images = {info.base_image for info in self._components}
@@ -296,6 +312,17 @@ class ComponentBuilder:
             contents='\n'.join(sorted(dependencies)),
             overwrite=True,
         )
+
+    def validate_dependency_urls(self):
+        dependency_urls = list(self._pip_index_urls or [])
+        for component in self._components:
+            dependency_urls.extend(component.packages_to_install or [])
+        if any(_contains_url_credentials(value) for value in dependency_urls):
+            raise click.ClickException(
+                'Component dependency URLs with embedded credentials or query '
+                'parameters cannot be written to generated build files. Use '
+                'credential-free URLs or a separately managed Docker build with secrets.'
+            )
 
     def maybe_generate_dockerignore(self):
         self._maybe_write_file(_DOCKERIGNORE, _DOCKERIGNORE_TEMPLATE)
@@ -537,6 +564,7 @@ def build(
         ],
         component_filepattern=component_filepattern,
     )
+    builder.validate_dependency_urls()
     builder.write_component_files()
     builder.generate_kfp_config()
 

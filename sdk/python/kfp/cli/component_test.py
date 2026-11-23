@@ -628,13 +628,19 @@ class Test(unittest.TestCase):
         )
         _write_components('components.py', component)
 
-        result = self.runner.invoke(self.cli, ['build', str(self._working_dir)])
+        with mock.patch('kfp.cli.component.logging.info') as log_info:
+            result = self.runner.invoke(
+                self.cli, ['build', str(self._working_dir)]
+            )
 
         self.assertNotEqual(result.exit_code, 0)
         self.assertIn('credentials', result.output)
         self.assertNotIn('dummy-password', result.output)
+        self.assertNotIn('dummy-password', str(log_info.call_args_list))
         self.assertFalse((self._working_dir / 'Dockerfile').exists())
-        self.assertFalse((self._working_dir / 'runtime-requirements.txt').exists())
+        self.assertFalse(
+            (self._working_dir / 'runtime-requirements.txt').exists()
+        )
         self._docker_client.api.build.assert_not_called()
 
     def test_rejects_package_url_query_before_generating_files(self):
@@ -653,7 +659,9 @@ class Test(unittest.TestCase):
         self.assertIn('credentials', result.output)
         self.assertNotIn('dummy-token', result.output)
         self.assertFalse((self._working_dir / 'Dockerfile').exists())
-        self.assertFalse((self._working_dir / 'runtime-requirements.txt').exists())
+        self.assertFalse(
+            (self._working_dir / 'runtime-requirements.txt').exists()
+        )
         self._docker_client.api.build.assert_not_called()
 
     def test_existing_dockerfile_is_unchanged_by_default(self):
