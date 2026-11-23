@@ -16,11 +16,23 @@
 import unittest
 
 import exporter
+from nbconvert.filters.markdown import markdown2html_mistune
 from nbformat.v4 import new_notebook
 
 
 class RuntimeImageTest(unittest.TestCase):
     """Verify notebook execution with the installed runtime dependencies."""
+
+    def test_nbconvert_markdown_links_and_images_with_patched_parser(
+            self) -> None:
+        html = markdown2html_mistune(
+            '# Markdown compatibility\n\n'
+            '[documentation](https://example.test/docs)\n\n'
+            '![diagram](https://example.test/diagram.png)\n\n' + '[](' * 64 +
+            '\n\n' + '![' * 64 + 'text' + ']' * 64)
+        self.assertIn('Markdown compatibility', html)
+        self.assertIn('href="https://example.test/docs"', html)
+        self.assertIn('src="https://example.test/diagram.png"', html)
 
     def test_notebook_execution_and_html_export(self) -> None:
         """Execute a kernel and export its output after bootstrap removal."""
