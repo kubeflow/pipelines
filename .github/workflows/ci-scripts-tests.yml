@@ -204,6 +204,7 @@ jobs:
           kfpr.candidate_test kfpr.ci_qualification_client_test kfpr.qualification_test
           kfpr.qualification_exceptions_test kfpr.security_test
           kfpr.security_exceptions_test kfpr.third_party_test
+          kfpr.landed_ci_test kfpr.landed_attestation_test
       - name: Run release automation tests
         env:
           PYTHONPATH: release

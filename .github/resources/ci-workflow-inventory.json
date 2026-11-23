@@ -1140,6 +1140,13 @@
       "merge_group": null
     },
     {
+      "path": ".github/workflows/release-landed-ci.yml",
+      "name": "Release landed CI",
+      "header_sha256": "cfe2896a860b0d89e8e180d81a53cee77ebbef2dc631ef191d533ed3d5f9f98a",
+      "pull_request": null,
+      "merge_group": null
+    },
+    {
       "path": ".github/workflows/release-promote-latest.yml",
       "name": "Promote Published Release Images",
       "header_sha256": "9959b76421cf287b008dde6705e571752c118477dd39115f8fc33f2719c93539",
