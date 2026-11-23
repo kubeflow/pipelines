@@ -325,6 +325,60 @@ def verify_replay_run(run, replay):
     )
 
 
+def effective_jobs(run, replay):
+    """Keep the last execution of each full matrix-job name across attempts."""
+    jobs = {}
+    seen_ids = set()
+    for attempt in range(1, run['run_attempt'] + 1):
+        endpoint = f'actions/runs/{run["id"]}/attempts/{attempt}'
+        if attempt != run['run_attempt']:
+            previous = api(endpoint)
+            require(
+                previous['run_attempt'] == attempt
+                and previous['status'] == 'completed'
+                and all(
+                    previous[key] == run[key]
+                    for key in (
+                        'id',
+                        'workflow_id',
+                        'path',
+                        'event',
+                        'head_branch',
+                        'head_sha',
+                        'check_suite_id',
+                    )
+                )
+                and previous['repository']['full_name']
+                == previous['head_repository']['full_name']
+                == REPO,
+                'Earlier workflow attempt has different source provenance',
+            )
+            if run['event'] == 'pull_request':
+                verify_replay_run(previous, replay)
+        records = paged(f'{endpoint}/jobs', 'jobs')
+        if attempt == run['run_attempt']:
+            require(records, f'No jobs registered for {endpoint}')
+        names = set()
+        for job in records:
+            name = job['name']
+            require(
+                job['run_id'] == run['id']
+                and job['run_attempt'] == attempt
+                and job['head_sha'] == run['head_sha']
+                and job['head_branch'] == run['head_branch']
+                and isinstance(name, str)
+                and name
+                and name not in names
+                and positive(job['id'])
+                and job['id'] not in seen_ids,
+                f'Unexpected job identity for {endpoint}',
+            )
+            names.add(name)
+            seen_ids.add(job['id'])
+            jobs[name] = job
+    return list(jobs.values())
+
+
 def verify_jobs(path, run, jobs):
     filename = path.removeprefix(PREFIX)
     skipped = {'queue-dispatch-guard'}
@@ -340,7 +394,8 @@ def verify_jobs(path, run, jobs):
         name = job['name']
         require(
             job['run_id'] == run['id']
-            and job['run_attempt'] == run['run_attempt']
+            and positive(job['run_attempt'])
+            and job['run_attempt'] <= run['run_attempt']
             and job['status'] == 'completed'
             and name not in seen,
             f'Unexpected job for {path}',
@@ -477,11 +532,7 @@ def collect_evidence(pr, sha, replay_pr):
         )
         if event == 'pull_request':
             verify_replay_run(run, replay)
-        jobs = paged(
-            f'actions/runs/{run["id"]}/attempts/{run["run_attempt"]}/jobs',
-            'jobs',
-        )
-        verify_jobs(path, run, jobs)
+        verify_jobs(path, run, effective_jobs(run, replay))
         evidence.append(
             dict(
                 path=path,

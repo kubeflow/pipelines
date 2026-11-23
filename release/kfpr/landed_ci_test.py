@@ -34,6 +34,7 @@ def run(path='e2e-test.yml'):
         repository={'full_name': ci.REPO},
         head_repository={'full_name': ci.REPO},
         workflow_id=17,
+        check_suite_id=23,
         pull_requests=[
             dict(number=9, base=side(BASE, PARENT), head=side(HEAD, SHA))
         ],
@@ -52,6 +53,8 @@ def job(name, steps, conclusion='success'):
         id=12,
         run_id=101,
         run_attempt=1,
+        head_sha=SHA,
+        head_branch=HEAD,
         name=name,
         status='completed',
         conclusion=conclusion,
@@ -193,7 +196,13 @@ class LandedCITest(unittest.TestCase):
         actual = job('kubeflow-pipelines-manifests', ['Run tests'])
         actual['run_attempt'] = 2
 
+        self.responses['actions/runs/101/attempts/1'] = dict(
+            current, run_attempt=1
+        )
+
         def page(_endpoint, field):
+            if _endpoint == 'actions/runs/101/attempts/1/jobs':
+                return [dict(actual, id=11, run_attempt=1)]
             return {
                 'workflow_runs': [current],
                 'workflows': [{'path': current['path'], 'id': 17}],
@@ -348,3 +357,78 @@ class LandedCITest(unittest.TestCase):
             status['created_at'] = '2026-01-02T00:00:03Z'
             with self.assertRaisesRegex(RuntimeError, 'reconciliation job'):
                 ci.verify_aggregate(SHA, self.replay)
+
+    def test_failed_jobs_only_rerun_retains_successful_postgres_major(self):
+        current = dict(
+            run('postgresql-image-upgrade.yml'),
+            event='workflow_dispatch',
+            run_attempt=2,
+        )
+        previous = dict(current, run_attempt=1, conclusion='failure')
+        names = list(ci.TEST_STEPS['postgresql-image-upgrade.yml'])
+        step = ['Upgrade using the rendered deployment and retained PVC']
+        first = [
+            dict(job(names[0], step), id=10),
+            dict(job(names[1], [], 'failure'), id=11),
+        ]
+        retry = dict(job(names[1], step), run_attempt=2)
+        with (
+            mock.patch.object(ci, 'api', return_value=previous),
+            mock.patch.object(ci, 'paged', side_effect=[first, [retry]]),
+        ):
+            jobs = ci.effective_jobs(current, self.replay)
+            ci.verify_jobs(current['path'], current, jobs)
+        self.assertEqual(
+            [(j['name'], j['run_attempt']) for j in jobs],
+            [(names[0], 1), (names[1], 2)],
+        )
+
+    def test_new_failure_or_active_retry_overrides_prior_success(self):
+        current = dict(run('kubeflow-pipelines-manifests.yml'), run_attempt=2)
+        previous = dict(current, run_attempt=1)
+        earlier = job('kubeflow-pipelines-manifests', ['Run tests'])
+        for status, result in [('completed', 'failure'), ('in_progress', None)]:
+            latest = dict(
+                earlier, id=13, run_attempt=2, status=status, conclusion=result
+            )
+            with (
+                self.subTest(status=status),
+                mock.patch.object(ci, 'api', return_value=previous),
+                mock.patch.object(
+                    ci, 'paged', side_effect=[[earlier], [latest]]
+                ),
+                self.assertRaises(RuntimeError),
+            ):
+                ci.verify_jobs(
+                    current['path'],
+                    current,
+                    ci.effective_jobs(current, self.replay),
+                )
+
+    def test_prior_attempt_cannot_supply_a_job_from_another_test_merge(self):
+        current = dict(run(), run_attempt=2)
+        previous = copy.deepcopy(dict(current, run_attempt=1))
+        previous['referenced_workflows'][0]['sha'] = SHA
+        with (
+            mock.patch.object(ci, 'api', return_value=previous),
+            self.assertRaisesRegex(RuntimeError, 'test merge'),
+        ):
+            ci.effective_jobs(current, self.replay)
+
+    def test_rerun_rejects_missing_or_cross_revision_jobs(self):
+        current = dict(run(), run_attempt=2)
+        previous = dict(current, run_attempt=1)
+        earlier = job('example', ['Test'])
+        for latest in (
+            [],
+            [dict(earlier, id=13, run_attempt=2, head_sha=PARENT)],
+            [dict(earlier, id=13, run_attempt=1)],
+            [dict(earlier, run_attempt=2)],
+        ):
+            with (
+                self.subTest(latest=latest),
+                mock.patch.object(ci, 'api', return_value=previous),
+                mock.patch.object(ci, 'paged', side_effect=[[earlier], latest]),
+                self.assertRaises(RuntimeError),
+            ):
+                ci.effective_jobs(current, self.replay)
