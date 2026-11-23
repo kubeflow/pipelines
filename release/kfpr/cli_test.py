@@ -136,6 +136,24 @@ class PackageImportTest(unittest.TestCase):
             )
             self.assertNotEqual(rejected.exit_code, 0)
 
+    def test_landed_ci_run_persists_and_new_run_requires_new_attempt(self):
+        from kfpr import cli
+
+        with TemporaryDirectory() as temporary:
+            state = ReleaseState(Path(temporary) / 'state.json')
+            with (
+                mock.patch.object(cli, '_load_state', return_value=state),
+                mock.patch.object(cli, 'collect_context'),
+            ):
+                args = [state.path, False, None, None, None, None, None, None]
+                cli._context(*args, landed_ci_run=123)
+                state.answers['landed_ci_attempt'] = 1
+                cli._context(*args)
+                self.assertEqual(state.answers['landed_ci_run'], 123)
+                self.assertEqual(state.answers['landed_ci_attempt'], 1)
+                cli._context(*args, landed_ci_run=124)
+                self.assertNotIn('landed_ci_attempt', state.answers)
+
     def test_image_mode_defaults_to_ci_and_rejects_saved_local(self):
         from kfpr import cli
 
