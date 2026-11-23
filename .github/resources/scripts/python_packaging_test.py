@@ -44,6 +44,19 @@ class PythonPackagingTest(unittest.TestCase):
                     self.assertGreaterEqual(
                         Version(pins['tornado']), Version('6.6'))
 
+    def test_visualization_mistune_dos_security_floor(self):
+        directory = ROOT / 'backend/src/apiserver/visualization'
+        for filename in ('requirements.in', 'requirements.txt'):
+            with self.subTest(filename=filename):
+                requirements = [
+                    Requirement(line)
+                    for line in (directory / filename).read_text().splitlines()
+                    if line.startswith('mistune')
+                ]
+                self.assertEqual(len(requirements), 1)
+                self.assertNotIn(Version('3.3.3'), requirements[0].specifier)
+                self.assertIn(Version('3.3.4'), requirements[0].specifier)
+
     def test_artifact_preview_torch_platform_wheels(self) -> None:
         lines = (ROOT / 'samples/core/artifact_previews/requirements.txt'
                 ).read_text().splitlines()

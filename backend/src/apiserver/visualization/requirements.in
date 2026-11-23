@@ -8,6 +8,8 @@ Jinja2>=3.1.2,<4
 jupyter-client==8.10.0
 markupsafe>=3.0.4
 nbconvert==7.17.2
+# Bound repeated link/image parsing in notebook Markdown export.
+mistune>=3.3.4,<4
 nbformat==5.10.4
 pandas==2.3.2
 pyarrow==23.0.1
