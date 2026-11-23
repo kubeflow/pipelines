@@ -4608,17 +4608,19 @@ func findScopedTaskNode(task *model.Task, nodes map[string]util.NodeStatus, task
 		}
 		candidates = append(candidates, id)
 	}
-	// Each loop iteration has its own same-named node and task; the iteration index tells them apart.
-	if len(candidates) > 1 {
-		if want, found := taskLoopIterationIndex(task); found {
-			var matched []string
-			for _, id := range candidates {
-				if got, ok := nodeLoopIterationIndex(id, nodes); ok && got == want {
-					matched = append(matched, id)
-				}
+	// Each loop iteration has its own same-named node and task; the iteration index tells
+	// them apart. Apply the filter even when only one candidate remains: a delayed workflow
+	// report can carry iteration 0's failed node while iteration 1 is already RUNNING with
+	// no pod of its own, and returning iteration 0's node for iteration 1's task would let
+	// the stale report fail the healthy retry.
+	if want, found := taskLoopIterationIndex(task); found {
+		var matched []string
+		for _, id := range candidates {
+			if got, ok := nodeLoopIterationIndex(id, nodes); ok && got == want {
+				matched = append(matched, id)
 			}
-			candidates = matched
 		}
+		candidates = matched
 	}
 	if len(candidates) != 1 {
 		return "", false
@@ -4699,10 +4701,17 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 		// finish time. The reset clears the pods, so no pod registration ever closes this window;
 		// only comparing retry generations does. This is an early-out on a snapshot; the guarded
 		// write rechecks the generation under the task row lock, which is what closes the race.
-		if !skipFailureReconciliation {
-			if _, err := r.reconcileTaskFailure(task, nodes, resolved, tasksByUUID, reportedGeneration); err != nil {
-				reconcileErrs = append(reconcileErrs, fmt.Errorf("reconciling task %q: %w", task.UUID, err))
-			}
+		if skipFailureReconciliation {
+			// The same stale-report reasoning applies to the lifecycle message and category:
+			// a report read before the retry carries the previous attempt's warning (or its
+			// absence), and writing it back here would either restore the old attempt's error
+			// on a healthy retry or clear a warning the new attempt has already recorded.
+			// The retry-generation comparison is the only signal that closes that window, so
+			// skip the diagnostic write for the same reason reconcileTaskFailure is skipped.
+			continue
+		}
+		if _, err := r.reconcileTaskFailure(task, nodes, resolved, tasksByUUID, reportedGeneration); err != nil {
+			reconcileErrs = append(reconcileErrs, fmt.Errorf("reconciling task %q: %w", task.UUID, err))
 		}
 		msg, phase, matched := lifecycleMessageForTask(task, nodes, resolved, tasksByUUID)
 		if !matched {

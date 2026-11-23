@@ -4135,6 +4135,100 @@ func TestReportWorkflowResource_PersistsLifecycleMessage(t *testing.T) {
 	assert.Nil(t, got.LifecycleCategory, "lifecycle category should be cleared with the message")
 }
 
+// A stale report arriving after a retry has already recorded a new warning must not
+// overwrite the current attempt's lifecycle diagnostic. The retry-generation comparison
+// is the only signal that closes this window, and persistTaskLifecycleMessages receives
+// it via skipFailureReconciliation. Before the fix the diagnostic write fell through the
+// guard and the stale message clobbered the current one.
+func TestPersistTaskLifecycleMessages_StaleReportDoesNotOverwriteCurrentAttempt(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "executor-pod",
+		Uid:  "uid-1",
+		Type: apiv2.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          run.UUID,
+		Name:             "train",
+		DisplayName:      "train",
+		Type:             model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint:      "fp-train",
+		Pods:             pods,
+		TypeAttrs:        model.JSONData{},
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	// Seed the task with the current retry's recorded warning.
+	currentMsg := model.LargeText("Insufficient cpu")
+	currentCategory := string(util.FailureCategoryScheduling)
+	_, err = store.TaskStore().UpdateTask(&model.Task{
+		UUID:              task.UUID,
+		LifecycleMessage:  &currentMsg,
+		LifecycleCategory: &currentCategory,
+	})
+	require.NoError(t, err)
+
+	// A stale report would carry the previous attempt's message for the same pod.
+	staleWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			UID:       types.UID(run.UUID),
+			Namespace: "ns1",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{
+				"workflows.argoproj.io/pod-name-format": "v1",
+			},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowRunning,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"executor-pod": {
+					ID:          "executor-pod",
+					Name:        "executor-pod",
+					DisplayName: "train",
+					Phase:       v1alpha1.NodePending,
+					Message:     `Back-off pulling image "ghcr.io/example/missing:v1"`,
+				},
+			},
+		},
+	})
+
+	// Load the seeded task back so persistTaskLifecycleMessages sees the current
+	// LifecycleMessage when it compares.
+	seeded, err := store.TaskStore().GetTask(task.UUID)
+	require.NoError(t, err)
+
+	err = manager.persistTaskLifecycleMessages([]*model.Task{seeded}, staleWorkflow, true, 0)
+	require.NoError(t, err)
+
+	got, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	require.NotNil(t, got.LifecycleMessage)
+	assert.Equal(t, currentMsg, *got.LifecycleMessage, "stale report must not overwrite the current attempt's lifecycle message")
+	require.NotNil(t, got.LifecycleCategory)
+	assert.Equal(t, currentCategory, *got.LifecycleCategory, "stale report must not overwrite the current attempt's lifecycle category")
+
+	// Sanity: with the stale flag cleared, the same workflow would have overwritten
+	// the diagnostic. This pins the guard, not an unrelated reason the write never ran.
+	err = manager.persistTaskLifecycleMessages([]*model.Task{seeded}, staleWorkflow, false, 0)
+	require.NoError(t, err)
+	got, err = manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	require.NotNil(t, got.LifecycleMessage)
+	assert.Equal(t, model.LargeText(`Back-off pulling image "ghcr.io/example/missing:v1"`), *got.LifecycleMessage)
+	require.NotNil(t, got.LifecycleCategory)
+	assert.Equal(t, string(util.FailureCategoryImagePull), *got.LifecycleCategory)
+}
+
 type runStoreWithBeforeWorkflowUpdateHook struct {
 	storage.RunStoreInterface
 	beforeUpdate func()
@@ -9389,6 +9483,34 @@ func TestFindScopedTaskNode_ParallelForIterationsDisambiguatedByIndex(t *testing
 	tasks["train-0"].TypeAttrs = nil
 	_, ok = findScopedTaskNode(tasks["train-0"], nodes, tasks)
 	assert.False(t, ok)
+}
+
+// A delayed workflow report can carry only iteration 0's train node while the task store
+// already has a RUNNING, podless train for iteration 1. Returning iteration 0's node for
+// iteration 1's task would let the stale report fail the healthy retry through the same
+// retry generation. The iteration-index filter must therefore run even when a single
+// candidate remains.
+func TestFindScopedTaskNode_SingleCandidateWithMismatchedIterationIsRejected(t *testing.T) {
+	nodes := parallelForBodyNodes() // only iteration 0's train node is present
+	tasks := map[string]*model.Task{
+		"wf-root":   {UUID: "wf-root", Name: "wf-root"},
+		"loop-task": scopedTask(t, "loop-task", "for-loop-1", "wf-root"),
+		"train-1":   scopedTask(t, "train-1", "train", "loop-task"),
+	}
+	tasks["train-1"].TypeAttrs = model.JSONData{"iterationIndex": "1"}
+	tasks["train-1"].State = model.TaskStatus(apiv2.PipelineTask_RUNNING)
+	tasks["train-1"].Type = model.TaskType(apiv2.PipelineTask_RUNTIME)
+
+	_, ok := findScopedTaskNode(tasks["train-1"], nodes, tasks)
+	assert.False(t, ok, "iteration 1's task must not be matched to iteration 0's node even when it is the only candidate")
+
+	// The matched iteration 0 task still resolves as before: regression guard that the
+	// stricter filter did not break the common one-candidate-one-iteration case.
+	tasks["train-0"] = scopedTask(t, "train-0", "train", "loop-task")
+	tasks["train-0"].TypeAttrs = model.JSONData{"iterationIndex": "0"}
+	id, ok := findScopedTaskNode(tasks["train-0"], nodes, tasks)
+	require.True(t, ok)
+	assert.Equal(t, "train", id)
 }
 
 // isLoopIterationNode must detect ParallelFor iteration wrappers and reject non-iterations.
