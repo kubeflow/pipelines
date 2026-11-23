@@ -29,15 +29,18 @@ class IstioImageVariantTest(unittest.TestCase):
         version = injector['global']['tag']
         self.assertEqual(injector['global']['variant'], 'distroless')
         images = {image['name']: image['newTag'] for image in overlay['images']}
-        self.assertEqual(images, {
-            'docker.io/istio/' + name: version + '-distroless'
-            for name in ('install-cni', 'pilot', 'proxyv2')
-        })
+        self.assertEqual(
+            images, {
+                'docker.io/istio/' + name: version + '-distroless'
+                for name in ('install-cni', 'pilot', 'proxyv2')
+            })
         cni_patch = next(entry for entry in overlay['patches']
                          if entry['target']['name'] == 'istio-cni-config')
         settings = yaml.safe_load(cni_patch['patch'])
-        agent_version = next(setting['value'] for setting in settings
-                             if setting['path'] == '/data/CURRENT_AGENT_VERSION')
+        agent_version = next(
+            setting['value']
+            for setting in settings
+            if setting['path'] == '/data/CURRENT_AGENT_VERSION')
         self.assertEqual(agent_version, version)
 
 
