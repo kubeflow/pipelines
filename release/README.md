@@ -1063,6 +1063,14 @@ to activate release versions, trigger builds, wait for successful builds, and up
 defaults for major and minor releases. Patch releases build and activate their documentation
 without changing project defaults; the manual fallback preserves defaults too. If the API call fails, `kfpr` asks whether to fall back to the manual checklist.
 
+Before publishing the backend GitHub release, `publish-backend-docs` verifies that
+the bare version tag has a successful build at the qualified release commit and that
+its public version-specific URL serves the documentation. With `RTD_TOKEN` set, the
+command syncs, activates, and builds the tag first. Without a token, activate and
+build the tag in the kubeflow-pipelines Read the Docs dashboard, then rerun the
+command to verify the public build. This step applies to backend-only and combined
+releases and leaves the project defaults unchanged.
+
 ## Commands
 
 ```text
@@ -1087,6 +1095,7 @@ run publish-sdks
 run create-kfp-kubernetes-docs-branch
 run confirm-rtd
 run create-sdk-release
+run publish-backend-docs
 run create-backend-release
 run sync-master
 run confirm-website-and-slack

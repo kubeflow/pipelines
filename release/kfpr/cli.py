@@ -323,7 +323,7 @@ update-version-tags -> merge-version-pr
                       -> confirm-rtd -> create-sdk-release
   |
 
-create-backend-release -> sync-master -> confirm-website-and-slack"""
+publish-backend-docs -> create-backend-release -> sync-master -> confirm-website-and-slack"""
 
 
 @run_app.callback(invoke_without_command=True)

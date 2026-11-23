@@ -1529,10 +1529,15 @@ class OrchestrationTest(unittest.TestCase):
                         step_ids = [step.step_id for step in steps_list]
 
                         if include_backend:
+                            self.assertLess(
+                                step_ids.index('publish-backend-docs'),
+                                step_ids.index('create-backend-release'),
+                            )
                             self.assertIn('create-backend-release', step_ids)
                             self.assertIn('sync-master', step_ids)
                             self.assertIn('confirm-website-and-slack', step_ids)
                         else:
+                            self.assertNotIn('publish-backend-docs', step_ids)
                             self.assertNotIn('create-backend-release', step_ids)
                             self.assertNotIn('sync-master', step_ids)
                             self.assertNotIn(
