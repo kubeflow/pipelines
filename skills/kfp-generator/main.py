@@ -7,7 +7,7 @@ def get_skill_root() -> str:
     return os.path.dirname(os.path.abspath(__file__)) # gets the skills directory after installation.
 
 
-def bootstrap_reference(ref-dir: str | None = None) -> str:
+def bootstrap_reference(ref_dir: str | None = None) -> str:
     """Bootstraps the workspace by installing the skill and look if KFP reference checkout exists."""
     target_dir = ref_dir or os.environ.get("KFP_REFERENCE_DIR", os.path.join(get_skill_dir(), ".kfp-ref"))
     repo_url = 'https://github.com/kubeflow/pipelines.git'
