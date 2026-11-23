@@ -424,11 +424,11 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   replicas at zero. Update both pins together after checking runtime provenance,
   operator-supported version, and all four file/S3 and cache-enabled/disabled
   combinations. The separate `red-hat-data-services` image selection is unchanged.
-- Multi-user CI pins Kubeflow Community Distribution at `c5e3896566d52e02090f15b476f4528605a9c35f`
-  (Istio 1.31.1), whose manifests use `docker.io/istio` for control-plane,
-  gateway, CNI and injected sidecar images. Apply the upstream manifests directly.
-  When advancing this pin, review and render all four consumed paths, including
-  the profile controller; the pin selects more than Istio images.
+- Multi-user CI uses the Community Distribution commit pinned in `deploy-kfp.sh`
+  for the Istio prerequisites and profile controller. The local Istio overlay
+  selects 1.31.4 distroless for the control plane, CNI, gateway and injected
+  sidecars. When advancing the shared pin, refresh the overlay and injector
+  values against that same commit.
 
 - Docker mirror setup only modifies and restarts an active local systemd Docker
   service. Containerized/provider-managed runners without that service retain

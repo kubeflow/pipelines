@@ -150,7 +150,7 @@ fi
 
 
 # Pin kubeflow/community-distribution to a specific commit for reproducibility.
-# To upgrade: verify all four paths below exist at the new SHA before updating.
+# When upgrading, also refresh the local Istio overlay base and injector values.
 KUBEFLOW_MANIFESTS_SHA="5f0edd216742560ba205775e17b6b522cee53ae2"
 
 # Deploy multi-user prerequisites if multi-user mode is enabled
@@ -201,7 +201,7 @@ if [ "${MULTI_USER}" == "true" ]; then
   echo "Installing Istio..."
   kubectl apply -k "https://github.com/kubeflow/community-distribution/common/istio/istio-crds/base?ref=${KUBEFLOW_MANIFESTS_SHA}"
   kubectl apply -k "https://github.com/kubeflow/community-distribution/common/istio/istio-namespace/base?ref=${KUBEFLOW_MANIFESTS_SHA}"
-  kubectl apply -k "https://github.com/kubeflow/community-distribution/common/istio/istio-install/base?ref=${KUBEFLOW_MANIFESTS_SHA}"
+  kubectl apply -k "manifests/kustomize/third-party/istio/install"
   echo "Waiting for all Istio Pods to become ready..."
   wait_for_pods_ready istio-system "" 300s "Istio pods"
 
