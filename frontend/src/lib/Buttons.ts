@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import * as React from 'react';
 import AddIcon from '@mui/icons-material/Add';
 import CollapseIcon from '@mui/icons-material/UnfoldLess';
 import ExpandIcon from '@mui/icons-material/UnfoldMore';
@@ -821,6 +822,21 @@ export default class Buttons {
       return;
     }
 
+    const deleteRelatedRuns = { value: false };
+    const deleteRunsOption = React.createElement(
+      'label',
+      { htmlFor: 'delete-pipeline-runs', style: { display: 'block', marginTop: 16 } },
+      React.createElement('input', {
+        id: 'delete-pipeline-runs',
+        type: 'checkbox',
+        style: { marginRight: 8 },
+        onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+          deleteRelatedRuns.value = event.currentTarget.checked;
+        },
+      }),
+      'Also delete related runs and the artifacts only those runs produced. Artifacts still used by another run are kept.',
+    );
+
     // Check if any selected pipelines have versions
     let pipelinesWithVersions: string[] = [];
     try {
@@ -874,6 +890,7 @@ export default class Buttons {
                 selectedIds,
                 selectedVersionIds,
                 callback,
+                deleteRelatedRuns.value,
               ),
             text: 'Delete',
           },
@@ -881,6 +898,7 @@ export default class Buttons {
         content: `Do you want to delete the selected ${pipelineMessage}${
           pipelineVersionMessage ? ` and ${pipelineVersionMessage}` : ''
         }? This action cannot be undone.`,
+        extraContent: deleteRunsOption,
         onClose: async () =>
           await this._deletePipelinesAndPipelineVersions(
             false,
@@ -921,6 +939,7 @@ export default class Buttons {
               selectedIds,
               selectedVersionIds,
               callback,
+              deleteRelatedRuns.value,
             ),
           text: 'Delete All',
         },
@@ -932,6 +951,7 @@ export default class Buttons {
       } will also delete all ${pipelinesWithVersions.length === 1 ? 'its' : 'their'} versions. ${
         pipelineVersionMessage ? `Additionally, ${pipelineVersionMessage} will be deleted. ` : ''
       }This action cannot be undone.`,
+      extraContent: deleteRunsOption,
       onClose: async () =>
         await this._deletePipelinesAndPipelineVersions(
           false,
@@ -950,6 +970,7 @@ export default class Buttons {
     selectedIds: string[],
     selectedVersionIds: { [pipelineId: string]: string[] },
     callback: (pipelineId: string | undefined, selectedIds: string[]) => void,
+    deleteRuns: boolean = false,
   ): Promise<void> {
     if (!confirmed) {
       return;
@@ -965,7 +986,7 @@ export default class Buttons {
     await Promise.all(
       selectedIds.map(async (id) => {
         try {
-          await Apis.pipelineServiceApiV2.deletePipeline(id, cascade);
+          await Apis.pipelineServiceApiV2.deletePipeline(id, cascade || deleteRuns, deleteRuns);
         } catch (err) {
           unsuccessfulIds.push(id);
           succeededfulIds.delete(id);

@@ -62,6 +62,8 @@ type PipelineServiceClient interface {
 	ListPipelines(ctx context.Context, in *ListPipelinesRequest, opts ...grpc.CallOption) (*ListPipelinesResponse, error)
 	// Deletes a pipeline by ID. If cascade is false (default), it returns an error if the
 	// pipeline has any versions. If cascade is true, it will also delete all pipeline versions.
+	// If delete_runs is true, runs created from this pipeline and artifacts that only
+	// those runs reference are deleted as well, and versions are deleted with the pipeline.
 	DeletePipeline(ctx context.Context, in *DeletePipelineRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Creates a new pipeline and a new pipeline version in a single transaction.
 	CreatePipelineAndVersion(ctx context.Context, in *CreatePipelineAndVersionRequest, opts ...grpc.CallOption) (*Pipeline, error)
@@ -221,6 +223,8 @@ type PipelineServiceServer interface {
 	ListPipelines(context.Context, *ListPipelinesRequest) (*ListPipelinesResponse, error)
 	// Deletes a pipeline by ID. If cascade is false (default), it returns an error if the
 	// pipeline has any versions. If cascade is true, it will also delete all pipeline versions.
+	// If delete_runs is true, runs created from this pipeline and artifacts that only
+	// those runs reference are deleted as well, and versions are deleted with the pipeline.
 	DeletePipeline(context.Context, *DeletePipelineRequest) (*emptypb.Empty, error)
 	// Creates a new pipeline and a new pipeline version in a single transaction.
 	CreatePipelineAndVersion(context.Context, *CreatePipelineAndVersionRequest) (*Pipeline, error)

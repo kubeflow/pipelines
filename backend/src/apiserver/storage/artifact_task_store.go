@@ -65,6 +65,12 @@ type ArtifactTaskStoreInterface interface {
 	// DeleteInputArtifactTasksByTaskIDs deletes attempt-local input links for the given tasks.
 	// Required on retry so CreateArtifactTasks can recreate UniqueLink rows for the new attempt.
 	DeleteInputArtifactTasksByTaskIDs(taskIDs []string) error
+
+	// ListArtifactIDsByRuns returns the distinct artifact IDs linked to any of the runs.
+	ListArtifactIDsByRuns(runIDs []string) ([]string, error)
+
+	// DeleteArtifactTasksByRuns removes artifact links for the given runs.
+	DeleteArtifactTasksByRuns(runIDs []string) error
 }
 
 type ArtifactTaskStore struct {
@@ -487,6 +493,60 @@ func (s *ArtifactTaskStore) DeleteInputArtifactTasksByTaskIDs(taskIDs []string) 
 	}
 	if _, err := s.db.Exec(sql, args...); err != nil {
 		return util.NewInternalServerError(err, "Failed to delete input artifact-tasks: %v", err.Error())
+	}
+	return nil
+}
+
+// ListArtifactIDsByRuns returns distinct artifact IDs linked from any of the given runs.
+func (s *ArtifactTaskStore) ListArtifactIDsByRuns(runIDs []string) ([]string, error) {
+	if len(runIDs) == 0 {
+		return nil, nil
+	}
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	sqlQuery, args, err := qb.
+		Select("DISTINCT " + q("ArtifactID")).
+		From(q(artifactTaskTableName)).
+		Where(sq.Eq{q("RunUUID"): runIDs}).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to list artifacts for runs: %v", err.Error())
+	}
+	rows, err := s.db.Query(sqlQuery, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to list artifacts for runs: %v", err.Error())
+	}
+	defer rows.Close()
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to scan artifact id for runs: %v", err.Error())
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to iterate artifacts for runs: %v", err.Error())
+	}
+	return ids, nil
+}
+
+// DeleteArtifactTasksByRuns removes every artifact link belonging to the given runs.
+func (s *ArtifactTaskStore) DeleteArtifactTasksByRuns(runIDs []string) error {
+	if len(runIDs) == 0 {
+		return nil
+	}
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	sqlQuery, args, err := qb.
+		Delete(q(artifactTaskTableName)).
+		Where(sq.Eq{q("RunUUID"): runIDs}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to delete artifact links for runs: %v", err.Error())
+	}
+	if _, err := s.db.Exec(sqlQuery, args...); err != nil {
+		return util.NewInternalServerError(err, "Failed to delete artifact links for runs: %v", err.Error())
 	}
 	return nil
 }

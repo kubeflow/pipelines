@@ -33,6 +33,7 @@ import (
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v4/util/file"
+	"github.com/google/uuid"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
@@ -1723,7 +1724,7 @@ func TestListPipelines(t *testing.T) {
 	assert.Equal(t, 2, nTotal)
 
 	// Delete the above pipeline.
-	err = manager.DeletePipeline(pnew2.UUID, false)
+	err = manager.DeletePipeline(context.Background(), pnew2.UUID, false, false)
 	assert.Nil(t, err)
 
 	_, nTotal, _, err = manager.ListPipelines(
@@ -1797,7 +1798,7 @@ func TestListPipelineVersions(t *testing.T) {
 	assert.Equal(t, 2, nTotal)
 
 	// Delete the above pipeline.
-	err = manager.DeletePipeline(pnew2.UUID, false)
+	err = manager.DeletePipeline(context.Background(), pnew2.UUID, false, false)
 	assert.Nil(t, err)
 
 	_, nTotal, _, err = manager.ListPipelineVersions(
@@ -2199,7 +2200,7 @@ func TestDeletePipeline(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Delete the above pipeline.
-	err = manager.DeletePipeline(pnew2.UUID, false)
+	err = manager.DeletePipeline(context.Background(), pnew2.UUID, false, false)
 	assert.Nil(t, err)
 
 	// Verify the pipeline doesn't exist.
@@ -2211,7 +2212,7 @@ func TestDeletePipeline(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Must fail due to active pipeline versions
-	err = manager.DeletePipeline(pnew1.UUID, false)
+	err = manager.DeletePipeline(context.Background(), pnew1.UUID, false, false)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), fmt.Sprintf("as it has existing pipeline versions (e.g. %v)", FakeUUIDOne))
 }
@@ -2239,7 +2240,7 @@ func TestDeletePipeline_CascadeDeletesVersions(t *testing.T) {
 	_, err = manager.CreatePipelineVersion(pv2)
 	require.Nil(t, err)
 
-	err = manager.DeletePipeline(pnew.UUID, true)
+	err = manager.DeletePipeline(context.Background(), pnew.UUID, true, false)
 	require.Nil(t, err)
 
 	_, err = manager.GetPipeline(pnew.UUID)
@@ -2253,6 +2254,171 @@ func TestDeletePipeline_CascadeDeletesVersions(t *testing.T) {
 	_, err = manager.GetPipelineVersion(DefaultFakePipelineIdThree)
 	require.NotNil(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+}
+
+type sequenceUUIDGenerator struct {
+	n int
+}
+
+func (g *sequenceUUIDGenerator) NewRandom() (uuid.UUID, error) {
+	g.n++
+	return uuid.Parse(fmt.Sprintf("123e4567-e89b-12d3-a456-%012x", g.n))
+}
+
+func TestDeletePipeline_DeleteRunsRemovesExclusiveArtifacts(t *testing.T) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	ids := &sequenceUUIDGenerator{}
+	artifactStore := storage.NewArtifactStore(store.db, store.time, ids, testDialect)
+	taskStore := storage.NewTaskStore(store.db, store.time, ids, testDialect)
+	linkStore := storage.NewArtifactTaskStore(store.db, ids, testDialect)
+	manager.artifactStore = artifactStore
+	manager.taskStore = taskStore
+	manager.artifactTaskStore = linkStore
+
+	p1, err := manager.CreatePipeline(createPipelineV1("pipeline-with-runs"))
+	require.NoError(t, err)
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	require.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	p2, err := manager.CreatePipeline(createPipelineV1("other-pipeline"))
+	require.NoError(t, err)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil))
+	_, err = manager.CreatePipelineVersion(createPipelineVersion(p1.UUID, "v1", "", "", v2SpecHelloWorld, "", ""))
+	require.NoError(t, err)
+
+	run1ID := "123e4567-e89b-12d3-a456-426655440101"
+	run2ID := "123e4567-e89b-12d3-a456-426655440102"
+	newRun := func(id, pipelineID, name string) *model.Run {
+		return &model.Run{
+			UUID:           id,
+			DisplayName:    name,
+			K8SName:        name,
+			Namespace:      "ns1",
+			ExperimentId:   "exp-1",
+			StorageState:   model.StorageStateAvailable,
+			Description:    "",
+			ServiceAccount: "",
+			PipelineSpec:   model.PipelineSpec{PipelineId: pipelineID},
+			RunDetails: model.RunDetails{
+				State:            model.RuntimeStateSucceeded,
+				CreatedAtInSec:   1,
+				ScheduledAtInSec: 1,
+			},
+		}
+	}
+	_, err = store.runStore.CreateRun(newRun(run1ID, p1.UUID, "run-1"))
+	require.NoError(t, err)
+	_, err = store.runStore.CreateRun(newRun(run2ID, p2.UUID, "run-2"))
+	require.NoError(t, err)
+
+	exclusiveURI := "s3://bucket/exclusive"
+	sharedURI := "s3://bucket/shared"
+	exclusive, err := artifactStore.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      1,
+		URI:       &exclusiveURI,
+		Name:      "exclusive",
+		Metadata:  model.JSONData{},
+	})
+	require.NoError(t, err)
+	shared, err := artifactStore.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      1,
+		URI:       &sharedURI,
+		Name:      "shared",
+		Metadata:  model.JSONData{},
+	})
+	require.NoError(t, err)
+
+	newTask := func(runID, name string) *model.Task {
+		return &model.Task{
+			Namespace:        "ns1",
+			RunUUID:          runID,
+			Name:             name,
+			Pods:             model.JSONSlice{},
+			Fingerprint:      name,
+			State:            1,
+			StateHistory:     model.JSONSlice{},
+			InputParameters:  model.JSONSlice{},
+			OutputParameters: model.JSONSlice{},
+			TypeAttrs:        model.JSONData{},
+		}
+	}
+	task1, err := taskStore.CreateTask(newTask(run1ID, "task-1"))
+	require.NoError(t, err)
+	task2, err := taskStore.CreateTask(newTask(run2ID, "task-2"))
+	require.NoError(t, err)
+	_, err = linkStore.CreateArtifactTask(&model.ArtifactTask{
+		ArtifactID:  exclusive.UUID,
+		TaskID:      task1.UUID,
+		RunUUID:     run1ID,
+		Type:        model.IOType(apiv2.IOType_OUTPUT),
+		ArtifactKey: "exclusive",
+	})
+	require.NoError(t, err)
+	_, err = linkStore.CreateArtifactTask(&model.ArtifactTask{
+		ArtifactID:  shared.UUID,
+		TaskID:      task1.UUID,
+		RunUUID:     run1ID,
+		Type:        model.IOType(apiv2.IOType_OUTPUT),
+		ArtifactKey: "shared-from-run-1",
+	})
+	require.NoError(t, err)
+	_, err = linkStore.CreateArtifactTask(&model.ArtifactTask{
+		ArtifactID:  shared.UUID,
+		TaskID:      task2.UUID,
+		RunUUID:     run2ID,
+		Type:        model.IOType(apiv2.IOType_OUTPUT),
+		ArtifactKey: "shared-from-run-2",
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, manager.objectStore.AddFile(context.Background(), []byte("exclusive-bytes"), "exclusive"))
+	require.NoError(t, manager.objectStore.AddFile(context.Background(), []byte("shared-bytes"), "shared"))
+
+	err = manager.DeletePipeline(context.Background(), p1.UUID, false, true)
+	require.NoError(t, err)
+
+	_, err = manager.GetPipeline(p1.UUID)
+	require.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	_, err = manager.GetPipelineVersion(DefaultFakePipelineIdThree)
+	require.NotNil(t, err)
+	_, err = manager.GetPipeline(p2.UUID)
+	require.NoError(t, err)
+	_, err = manager.GetRun(run1ID)
+	require.NotNil(t, err)
+	_, err = manager.GetRun(run2ID)
+	require.NoError(t, err)
+
+	remainingExclusive, err := artifactStore.GetArtifactsByIDs([]string{exclusive.UUID})
+	require.NoError(t, err)
+	assert.Empty(t, remainingExclusive)
+	remainingShared, err := artifactStore.GetArtifactsByIDs([]string{shared.UUID})
+	require.NoError(t, err)
+	assert.Contains(t, remainingShared, shared.UUID)
+
+	_, err = manager.objectStore.GetFileReader(context.Background(), "exclusive")
+	require.Error(t, err)
+	sharedReader, err := manager.objectStore.GetFileReader(context.Background(), "shared")
+	require.NoError(t, err)
+	sharedReader.Close()
+}
+
+func TestObjectKeyFromArtifactURI(t *testing.T) {
+	key, ok := objectKeyFromArtifactURI("s3://mlpipeline/v2/artifacts/run/node/name")
+	assert.True(t, ok)
+	assert.Equal(t, "v2/artifacts/run/node/name", key)
+	key, ok = objectKeyFromArtifactURI("minio://bucket/path/file")
+	assert.True(t, ok)
+	assert.Equal(t, "path/file", key)
+	_, ok = objectKeyFromArtifactURI("https://example.com/file")
+	assert.False(t, ok)
+	_, ok = objectKeyFromArtifactURI("s3://bucket")
+	assert.False(t, ok)
 }
 
 func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
@@ -9405,7 +9571,7 @@ func TestDeletePipeline_DanglingDefaultVersionStillBlocksNonCascade(t *testing.T
 	store.pipelineStore = storage.NewPipelineStoreKubernetes(k8sClient, k8sClient)
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 
-	err := manager.DeletePipeline(pipelineID, false)
+	err := manager.DeletePipeline(context.Background(), pipelineID, false, false)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Set cascade=true")
 

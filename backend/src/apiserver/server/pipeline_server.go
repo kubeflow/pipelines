@@ -426,7 +426,7 @@ func extractTagFiltersFromFilterSpec(filterSpec string) (string, map[string]stri
 }
 
 // Removes a pipeline.
-func (s *BasePipelineServer) deletePipeline(ctx context.Context, pipelineId string, cascade bool) error {
+func (s *BasePipelineServer) deletePipeline(ctx context.Context, pipelineId string, cascade bool, deleteRuns bool) error {
 	// Fail fast
 	if pipelineId == "" {
 		return util.NewInvalidInputError("Failed to delete a pipeline due missing pipeline id")
@@ -441,7 +441,7 @@ func (s *BasePipelineServer) deletePipeline(ctx context.Context, pipelineId stri
 		return util.Wrapf(err, "Failed to delete a pipeline due authorization error for pipeline id %v", pipelineId)
 	}
 
-	return s.resourceManager.DeletePipeline(pipelineId, cascade)
+	return s.resourceManager.DeletePipeline(ctx, pipelineId, cascade, deleteRuns)
 }
 
 // Deletes a pipeline.
@@ -451,7 +451,7 @@ func (s *PipelineServer) DeletePipeline(ctx context.Context, request *apiv2.Dele
 		deletePipelineRequests.Inc()
 	}
 
-	if err := s.deletePipeline(ctx, request.GetPipelineId(), request.GetCascade()); err != nil {
+	if err := s.deletePipeline(ctx, request.GetPipelineId(), request.GetCascade(), request.GetDeleteRuns()); err != nil {
 		return nil, util.Wrapf(err, "Failed to delete pipeline %s. Check error stack", request.GetPipelineId())
 	}
 

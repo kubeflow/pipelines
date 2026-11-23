@@ -166,6 +166,7 @@ export interface DialogProps {
   buttons?: Array<{ onClick?: () => any; text: string }>;
   // TODO: This should be generalized to any react component.
   content?: string;
+  extraContent?: React.ReactNode;
   onClose?: () => any;
   open?: boolean;
   title?: string;
@@ -405,9 +406,10 @@ class RoutedPage extends React.Component<
           {this.state.dialogProps.title && (
             <DialogTitle> {this.state.dialogProps.title}</DialogTitle>
           )}
-          {this.state.dialogProps.content && (
+          {(this.state.dialogProps.content || this.state.dialogProps.extraContent) && (
             <DialogContent className={commonCss.prewrap}>
               {this.state.dialogProps.content}
+              {this.state.dialogProps.extraContent}
             </DialogContent>
           )}
           {this.state.dialogProps.buttons && (

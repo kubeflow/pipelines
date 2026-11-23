@@ -93,6 +93,12 @@ type ArtifactStoreInterface interface {
 	// It returns the current page of artifacts, the total count across all pages,
 	// the next page token, and an error.
 	ListArtifacts(filterContext *model.FilterContext, opts *list.Options) ([]*model.Artifact, int, string, error)
+
+	// CountArtifactTasks returns how many artifact-task links still reference the artifact.
+	CountArtifactTasks(artifactID string) (int, error)
+
+	// DeleteArtifact removes an artifact row.
+	DeleteArtifact(artifactID string) error
 }
 
 type ArtifactStore struct {
@@ -894,4 +900,40 @@ func (s *ArtifactStore) GetArtifactsByURI(namespace, uri string) ([]*model.Artif
 		}
 	}
 	return matched, nil
+}
+
+// CountArtifactTasks returns how many artifact-task rows still reference artifactID.
+func (s *ArtifactStore) CountArtifactTasks(artifactID string) (int, error) {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	query, args, err := qb.
+		Select("count(*)").
+		From(q("artifact_tasks")).
+		Where(sq.Eq{q("ArtifactID"): artifactID}).
+		ToSql()
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to create query to count links for artifact %s", artifactID)
+	}
+	var count int
+	if err := s.db.QueryRow(query, args...).Scan(&count); err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to count links for artifact %s", artifactID)
+	}
+	return count, nil
+}
+
+// DeleteArtifact removes the artifact row. Links must already be gone.
+func (s *ArtifactStore) DeleteArtifact(artifactID string) error {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	query, args, err := qb.
+		Delete(q(artifactTableName)).
+		Where(sq.Eq{q("UUID"): artifactID}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to delete artifact %s", artifactID)
+	}
+	if _, err := s.db.Exec(query, args...); err != nil {
+		return util.NewInternalServerError(err, "Failed to delete artifact %s", artifactID)
+	}
+	return nil
 }

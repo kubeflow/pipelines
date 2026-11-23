@@ -612,6 +612,14 @@ func (s *countingArtifactTaskStore) DeleteInputArtifactTasksByTaskIDs(taskIDs []
 	return s.inner.DeleteInputArtifactTasksByTaskIDs(taskIDs)
 }
 
+func (s *countingArtifactTaskStore) ListArtifactIDsByRuns(runIDs []string) ([]string, error) {
+	return s.inner.ListArtifactIDsByRuns(runIDs)
+}
+
+func (s *countingArtifactTaskStore) DeleteArtifactTasksByRuns(runIDs []string) error {
+	return s.inner.DeleteArtifactTasksByRuns(runIDs)
+}
+
 func TestArtifactServer_ListArtifactTasks_RejectsEmptyRunIDs(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })

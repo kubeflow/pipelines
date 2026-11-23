@@ -480,7 +480,7 @@ describe('PipelineList', () => {
       await confirmBtn.onClick();
     });
     await waitFor(() => {
-      expect(deletePipelineSpy).toHaveBeenLastCalledWith('test-pipeline-id0', false);
+      expect(deletePipelineSpy).toHaveBeenLastCalledWith('test-pipeline-id0', false, false);
     });
   });
 
@@ -522,9 +522,9 @@ describe('PipelineList', () => {
     await waitFor(() => {
       expect(deletePipelineSpy).toHaveBeenCalledTimes(3);
     });
-    expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id0', false);
-    expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id1', false);
-    expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id4', false);
+    expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id0', false, false);
+    expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id1', false, false);
+    expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id4', false, false);
   });
 
   it('shows snackbar confirmation after pipeline is deleted', async () => {
@@ -644,7 +644,7 @@ describe('PipelineList', () => {
 
     await waitFor(() => {
       expect(deletePipelineSpy).toHaveBeenCalledTimes(1);
-      expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id0', false);
+      expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id0', false, false);
       expect(deletePipelineVersionSpy).toHaveBeenCalledTimes(1);
       expect(deletePipelineVersionSpy).toHaveBeenCalledWith(
         'test-pipeline-id1',
@@ -798,7 +798,7 @@ describe('PipelineList', () => {
     await act(async () => {
       await confirmBtn.onClick();
     });
-    expect(deletePipelineSpy).toHaveBeenLastCalledWith('test-pipeline-id0', true);
+    expect(deletePipelineSpy).toHaveBeenLastCalledWith('test-pipeline-id0', true, false);
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
       message: 'Deletion succeeded for 1 pipeline',
       open: true,
@@ -833,8 +833,8 @@ describe('PipelineList', () => {
       await confirmBtn.onClick();
     });
     expect(deletePipelineSpy).toHaveBeenCalledTimes(2);
-    expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id0', true);
-    expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id1', true);
+    expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id0', true, false);
+    expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id1', true, false);
   });
 
   it('does not call delete API when "Delete All" dialog is canceled', async () => {
@@ -857,5 +857,21 @@ describe('PipelineList', () => {
       await cancelBtn.onClick();
     });
     expect(deletePipelineSpy).not.toHaveBeenCalled();
+  });
+
+  it('deletes related runs when the checkbox is checked', async () => {
+    listPipelineVersionsSpy.mockResolvedValue({ pipeline_versions: [] });
+    deletePipelineSpy.mockResolvedValue(undefined as any);
+    await mountWithNPipelines(1);
+    await selectPipeline('test-pipeline-id0');
+    const call = await openDeleteDialog();
+    const option = render(<>{call.extraContent}</>);
+    await userEvent.click(option.container.querySelector('#delete-pipeline-runs')!);
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    await act(async () => {
+      await confirmBtn.onClick();
+    });
+    expect(deletePipelineSpy).toHaveBeenLastCalledWith('test-pipeline-id0', true, true);
+    option.unmount();
   });
 });

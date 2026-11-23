@@ -69,6 +69,14 @@ type PipelineServiceDeletePipelineParams struct {
 	// If false (default), only the pipeline will be deleted if it has no versions.
 	Cascade *bool
 
+	// DeleteRuns.
+	//
+	// Optional. If true, runs created from this pipeline are deleted, and artifacts
+	// produced by those runs are deleted when no other run still references them.
+	// Implies cascade, so versions of the pipeline are deleted as well.
+	// If false (default), runs and their artifacts are left in place.
+	DeleteRuns *bool
+
 	// PipelineID.
 	//
 	// Required input. ID of the pipeline to be deleted.
@@ -142,6 +150,17 @@ func (o *PipelineServiceDeletePipelineParams) SetCascade(cascade *bool) {
 	o.Cascade = cascade
 }
 
+// WithDeleteRuns adds the deleteRuns to the pipeline service delete pipeline params.
+func (o *PipelineServiceDeletePipelineParams) WithDeleteRuns(deleteRuns *bool) *PipelineServiceDeletePipelineParams {
+	o.SetDeleteRuns(deleteRuns)
+	return o
+}
+
+// SetDeleteRuns adds the deleteRuns to the pipeline service delete pipeline params.
+func (o *PipelineServiceDeletePipelineParams) SetDeleteRuns(deleteRuns *bool) {
+	o.DeleteRuns = deleteRuns
+}
+
 // WithPipelineID adds the pipelineID to the pipeline service delete pipeline params.
 func (o *PipelineServiceDeletePipelineParams) WithPipelineID(pipelineID string) *PipelineServiceDeletePipelineParams {
 	o.SetPipelineID(pipelineID)
@@ -172,6 +191,23 @@ func (o *PipelineServiceDeletePipelineParams) WriteToRequest(r runtime.ClientReq
 		if qCascade != "" {
 
 			if err := r.SetQueryParam("cascade", qCascade); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.DeleteRuns != nil {
+
+		// query param delete_runs
+		var qrDeleteRuns bool
+
+		if o.DeleteRuns != nil {
+			qrDeleteRuns = *o.DeleteRuns
+		}
+		qDeleteRuns := conv.FormatBool(qrDeleteRuns)
+		if qDeleteRuns != "" {
+
+			if err := r.SetQueryParam("delete_runs", qDeleteRuns); err != nil {
 				return err
 			}
 		}

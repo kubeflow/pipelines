@@ -293,7 +293,7 @@
         ]
       },
       "delete": {
-        "summary": "Deletes a pipeline by ID. If cascade is false (default), it returns an error if the\npipeline has any versions. If cascade is true, it will also delete all pipeline versions.",
+        "summary": "Deletes a pipeline by ID. If cascade is false (default), it returns an error if the\npipeline has any versions. If cascade is true, it will also delete all pipeline versions.\nIf delete_runs is true, runs created from this pipeline and artifacts that only\nthose runs reference are deleted as well, and versions are deleted with the pipeline.",
         "operationId": "PipelineService_DeletePipeline",
         "responses": {
           "200": {
@@ -321,6 +321,13 @@
           {
             "name": "cascade",
             "description": "Optional. If true, the pipeline and all its versions will be deleted.\nIf false (default), only the pipeline will be deleted if it has no versions.",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "delete_runs",
+            "description": "Optional. If true, runs created from this pipeline are deleted, and artifacts\nproduced by those runs are deleted when no other run still references them.\nImplies cascade, so versions of the pipeline are deleted as well.\nIf false (default), runs and their artifacts are left in place.",
             "in": "query",
             "required": false,
             "type": "boolean"

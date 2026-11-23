@@ -96,6 +96,7 @@ func (f *fakeRunStore) UpdateRunPluginsOutput(_ string, _ *model.LargeText) erro
 func (f *fakeRunStore) ArchiveRun(_ string) error                                 { return nil }
 func (f *fakeRunStore) UnarchiveRun(_ string) error                               { return nil }
 func (f *fakeRunStore) DeleteRun(_ string) error                                  { return nil }
+func (f *fakeRunStore) ListRunIDsByPipeline(_ string) ([]string, error)           { return nil, nil }
 
 func (f *fakeRunStore) TerminateRun(_ string) error { return nil }
 func (f *fakeRunStore) GetRunByRecurringRunIDAndDisplayName(_, _ string) (string, error) {

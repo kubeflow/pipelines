@@ -91,6 +91,8 @@ service PipelineService {
 
   // Deletes a pipeline by ID. If cascade is false (default), it returns an error if the
   // pipeline has any versions. If cascade is true, it will also delete all pipeline versions.
+  // If delete_runs is true, runs created from this pipeline and artifacts that only
+  // those runs reference are deleted as well, and versions are deleted with the pipeline.
   rpc DeletePipeline(DeletePipelineRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v2/pipelines/{pipeline_id}"
@@ -309,6 +311,12 @@ message DeletePipelineRequest {
   // Optional. If true, the pipeline and all its versions will be deleted.
   // If false (default), only the pipeline will be deleted if it has no versions.
   bool cascade = 2;
+
+  // Optional. If true, runs created from this pipeline are deleted, and artifacts
+  // produced by those runs are deleted when no other run still references them.
+  // Implies cascade, so versions of the pipeline are deleted as well.
+  // If false (default), runs and their artifacts are left in place.
+  bool delete_runs = 3;
 }
 
 message CreatePipelineAndVersionRequest {

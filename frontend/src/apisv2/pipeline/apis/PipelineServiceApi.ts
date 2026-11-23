@@ -58,6 +58,7 @@ export interface CreatePipelineVersionRequest {
 export interface DeletePipelineRequest {
   pipeline_id: string;
   cascade?: boolean;
+  delete_runs?: boolean;
 }
 
 export interface DeletePipelineVersionRequest {
@@ -300,6 +301,10 @@ export class PipelineServiceApi extends runtime.BaseAPI {
       queryParameters['cascade'] = requestParameters['cascade'];
     }
 
+    if (requestParameters['delete_runs'] != null) {
+      queryParameters['delete_runs'] = requestParameters['delete_runs'];
+    }
+
     const headerParameters: runtime.HTTPHeaders = {};
 
     if (this.configuration && this.configuration.apiKey) {
@@ -331,10 +336,11 @@ export class PipelineServiceApi extends runtime.BaseAPI {
   async deletePipeline(
     pipeline_id: string,
     cascade?: boolean,
+    deleteRuns?: boolean,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<object> {
     const response = await this.deletePipelineRaw(
-      { pipeline_id: pipeline_id, cascade: cascade },
+      { pipeline_id: pipeline_id, cascade: cascade, delete_runs: deleteRuns },
       initOverrides,
     );
     return await response.value();

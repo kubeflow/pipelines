@@ -469,11 +469,19 @@ func (r *ResourceManager) GetPipelineByNameAndNamespace(name string, namespace s
 // Deletes a pipeline. Does not delete pipeline spec in the object storage.
 // If cascade is false, fails if the pipeline has existing pipeline versions.
 // If cascade is true, deletes all pipeline versions first, then deletes the pipeline.
-func (r *ResourceManager) DeletePipeline(pipelineId string, cascade bool) error {
+func (r *ResourceManager) DeletePipeline(ctx context.Context, pipelineId string, cascade bool, deleteRuns bool) error {
 	// Check if pipeline exists
 	_, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete pipeline with id %v as it was not found", pipelineId)
+	}
+
+	if deleteRuns {
+		if err := r.deletePipelineRunsAndArtifacts(ctx, pipelineId); err != nil {
+			return err
+		}
+		// Versions cannot stay behind once the pipeline and its runs are removed.
+		cascade = true
 	}
 
 	if cascade {
@@ -507,6 +515,74 @@ func (r *ResourceManager) DeletePipeline(pipelineId string, cascade bool) error 
 		return util.Wrapf(err, "Failed to delete pipeline DB entry for pipeline id %v", pipelineId)
 	}
 	return nil
+}
+
+// deletePipelineRunsAndArtifacts deletes runs created from pipelineID and then
+// deletes artifacts that no remaining run references, including their object bytes.
+func (r *ResourceManager) deletePipelineRunsAndArtifacts(ctx context.Context, pipelineID string) error {
+	runIDs, err := r.runStore.ListRunIDsByPipeline(pipelineID)
+	if err != nil {
+		return util.Wrapf(err, "Failed to list runs for pipeline %s", pipelineID)
+	}
+	if len(runIDs) == 0 {
+		return nil
+	}
+	artifactIDs, err := r.artifactTaskStore.ListArtifactIDsByRuns(runIDs)
+	if err != nil {
+		return util.Wrapf(err, "Failed to list artifacts for runs of pipeline %s", pipelineID)
+	}
+	artifactsByID, err := r.artifactStore.GetArtifactsByIDs(artifactIDs)
+	if err != nil {
+		return util.Wrapf(err, "Failed to load artifacts for runs of pipeline %s", pipelineID)
+	}
+	for _, runID := range runIDs {
+		if err := r.artifactTaskStore.DeleteArtifactTasksByRuns([]string{runID}); err != nil {
+			return util.Wrapf(err, "Failed to delete artifact links for run %s while deleting pipeline %s", runID, pipelineID)
+		}
+		if err := r.DeleteRun(ctx, runID); err != nil {
+			return util.Wrapf(err, "Failed to delete run %s while deleting pipeline %s", runID, pipelineID)
+		}
+	}
+	for _, artifactID := range artifactIDs {
+		remaining, err := r.artifactStore.CountArtifactTasks(artifactID)
+		if err != nil {
+			return util.Wrapf(err, "Failed to check remaining links for artifact %s", artifactID)
+		}
+		if remaining > 0 {
+			continue
+		}
+		if artifact := artifactsByID[artifactID]; artifact != nil && artifact.URI != nil {
+			if key, ok := objectKeyFromArtifactURI(*artifact.URI); ok {
+				if err := r.objectStore.DeleteFile(ctx, key); err != nil {
+					glog.Warningf("Failed to delete artifact object %q for artifact %s: %v", key, artifactID, err)
+				}
+			}
+		}
+		if err := r.artifactStore.DeleteArtifact(artifactID); err != nil {
+			return util.Wrapf(err, "Failed to delete artifact %s while deleting pipeline %s", artifactID, pipelineID)
+		}
+	}
+	return nil
+}
+
+// objectKeyFromArtifactURI returns the object key inside the pipeline bucket.
+// URIs look like s3://bucket/v2/artifacts/run/node/name.
+func objectKeyFromArtifactURI(uri string) (string, bool) {
+	for _, scheme := range []string{"s3://", "minio://", "gs://"} {
+		if !strings.HasPrefix(uri, scheme) {
+			continue
+		}
+		rest := strings.TrimPrefix(uri, scheme)
+		slash := strings.Index(rest, "/")
+		if slash < 0 || slash == len(rest)-1 {
+			return "", false
+		}
+		return rest[slash+1:], true
+	}
+	if uri != "" && !strings.Contains(uri, "://") {
+		return uri, true
+	}
+	return "", false
 }
 
 // MaxTagKeyLength is the maximum allowed length (in characters) for a tag key.

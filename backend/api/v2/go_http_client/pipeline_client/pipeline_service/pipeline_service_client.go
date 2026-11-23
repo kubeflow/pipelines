@@ -73,10 +73,10 @@ type ClientService interface {
 	// PipelineServiceCreatePipelineVersionContext adds a pipeline version to the specified pipeline ID.
 	PipelineServiceCreatePipelineVersionContext(ctx context.Context, params *PipelineServiceCreatePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceCreatePipelineVersionOK, error)
 
-	// PipelineServiceDeletePipeline deletes a pipeline by ID if cascade is false default it returns an error if the pipeline has any versions if cascade is true it will also delete all pipeline versions.
+	// PipelineServiceDeletePipeline deletes a pipeline by ID if cascade is false default it returns an error if the pipeline has any versions if cascade is true it will also delete all pipeline versions if delete runs is true runs created from this pipeline and artifacts that only those runs reference are deleted as well and versions are deleted with the pipeline.
 	PipelineServiceDeletePipeline(params *PipelineServiceDeletePipelineParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceDeletePipelineOK, error)
 
-	// PipelineServiceDeletePipelineContext deletes a pipeline by ID if cascade is false default it returns an error if the pipeline has any versions if cascade is true it will also delete all pipeline versions.
+	// PipelineServiceDeletePipelineContext deletes a pipeline by ID if cascade is false default it returns an error if the pipeline has any versions if cascade is true it will also delete all pipeline versions if delete runs is true runs created from this pipeline and artifacts that only those runs reference are deleted as well and versions are deleted with the pipeline.
 	PipelineServiceDeletePipelineContext(ctx context.Context, params *PipelineServiceDeletePipelineParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceDeletePipelineOK, error)
 
 	// PipelineServiceDeletePipelineVersion deletes a specific pipeline version by pipeline version ID and pipeline ID.
@@ -316,7 +316,7 @@ func (a *Client) PipelineServiceCreatePipelineVersionContext(ctx context.Context
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
-// PipelineServiceDeletePipeline deletes a pipeline by ID if cascade is false default it returns an error if the pipeline has any versions if cascade is true it will also delete all pipeline versions.
+// PipelineServiceDeletePipeline deletes a pipeline by ID if cascade is false default it returns an error if the pipeline has any versions if cascade is true it will also delete all pipeline versions if delete runs is true runs created from this pipeline and artifacts that only those runs reference are deleted as well and versions are deleted with the pipeline.
 //
 // This method does not support injected context.
 // However, timeout and opentracing contexts are honored whenever enabled.
@@ -333,7 +333,7 @@ func (a *Client) PipelineServiceDeletePipeline(params *PipelineServiceDeletePipe
 	return a.PipelineServiceDeletePipelineContext(ctx, params, authInfo, opts...)
 }
 
-// PipelineServiceDeletePipelineContext deletes a pipeline by ID if cascade is false default it returns an error if the pipeline has any versions if cascade is true it will also delete all pipeline versions.
+// PipelineServiceDeletePipelineContext deletes a pipeline by ID if cascade is false default it returns an error if the pipeline has any versions if cascade is true it will also delete all pipeline versions if delete runs is true runs created from this pipeline and artifacts that only those runs reference are deleted as well and versions are deleted with the pipeline.
 //
 // Do not use the deprecated [PipelineServiceDeletePipelineParams.Context] with this method: it would be ignored.
 func (a *Client) PipelineServiceDeletePipelineContext(ctx context.Context, params *PipelineServiceDeletePipelineParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceDeletePipelineOK, error) {

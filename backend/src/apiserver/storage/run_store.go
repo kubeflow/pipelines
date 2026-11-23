@@ -230,6 +230,9 @@ type RunStoreInterface interface {
 	// DeleteRun deletes a run.
 	DeleteRun(runId string) error
 
+	// ListRunIDsByPipeline returns the IDs of runs created from a pipeline.
+	ListRunIDsByPipeline(pipelineID string) ([]string, error)
+
 	// TerminateRun terminates a run.
 	TerminateRun(runId string) error
 
@@ -1283,6 +1286,37 @@ func (s *RunStore) UnarchiveRun(runId string) error {
 	}
 
 	return nil
+}
+
+// ListRunIDsByPipeline returns run IDs whose PipelineId column matches pipelineID.
+func (s *RunStore) ListRunIDsByPipeline(pipelineID string) ([]string, error) {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	sqlQuery, args, err := qb.
+		Select(q("UUID")).
+		From(q("run_details")).
+		Where(sq.Eq{q("PipelineId"): pipelineID}).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to list runs for pipeline %s", pipelineID)
+	}
+	rows, err := s.db.Query(sqlQuery, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to list runs for pipeline %s", pipelineID)
+	}
+	defer rows.Close()
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to scan run id for pipeline %s", pipelineID)
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to iterate runs for pipeline %s", pipelineID)
+	}
+	return ids, nil
 }
 
 func (s *RunStore) DeleteRun(id string) error {

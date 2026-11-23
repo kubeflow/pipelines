@@ -659,7 +659,12 @@ type DeletePipelineRequest struct {
 	PipelineId string `protobuf:"bytes,1,opt,name=pipeline_id,json=pipelineId,proto3" json:"pipeline_id,omitempty"`
 	// Optional. If true, the pipeline and all its versions will be deleted.
 	// If false (default), only the pipeline will be deleted if it has no versions.
-	Cascade       bool `protobuf:"varint,2,opt,name=cascade,proto3" json:"cascade,omitempty"`
+	Cascade bool `protobuf:"varint,2,opt,name=cascade,proto3" json:"cascade,omitempty"`
+	// Optional. If true, runs created from this pipeline are deleted, and artifacts
+	// produced by those runs are deleted when no other run still references them.
+	// Implies cascade, so versions of the pipeline are deleted as well.
+	// If false (default), runs and their artifacts are left in place.
+	DeleteRuns    bool `protobuf:"varint,3,opt,name=delete_runs,json=deleteRuns,proto3" json:"delete_runs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -704,6 +709,13 @@ func (x *DeletePipelineRequest) GetPipelineId() string {
 func (x *DeletePipelineRequest) GetCascade() bool {
 	if x != nil {
 		return x.Cascade
+	}
+	return false
+}
+
+func (x *DeletePipelineRequest) GetDeleteRuns() bool {
+	if x != nil {
+		return x.DeleteRuns
 	}
 	return false
 }
@@ -1226,11 +1238,13 @@ const file_backend_api_v2_pipeline_proto_rawDesc = "" +
 	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"L\n" +
 	"\x18GetPipelineByNameRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"R\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"s\n" +
 	"\x15DeletePipelineRequest\x12\x1f\n" +
 	"\vpipeline_id\x18\x01 \x01(\tR\n" +
 	"pipelineId\x12\x18\n" +
-	"\acascade\x18\x02 \x01(\bR\acascade\"\xc9\x01\n" +
+	"\acascade\x18\x02 \x01(\bR\acascade\x12\x1f\n" +
+	"\vdelete_runs\x18\x03 \x01(\bR\n" +
+	"deleteRuns\"\xc9\x01\n" +
 	"\x1fCreatePipelineAndVersionRequest\x12G\n" +
 	"\bpipeline\x18\x01 \x01(\v2+.kubeflow.pipelines.backend.api.v2.PipelineR\bpipeline\x12]\n" +
 	"\x10pipeline_version\x18\x02 \x01(\v22.kubeflow.pipelines.backend.api.v2.PipelineVersionR\x0fpipelineVersion\"\x9e\x01\n" +
