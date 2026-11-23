@@ -424,11 +424,10 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   replicas at zero. Update both pins together after checking runtime provenance,
   operator-supported version, and all four file/S3 and cache-enabled/disabled
   combinations. The separate `red-hat-data-services` image selection is unchanged.
-- Multi-user CI uses the Community Distribution commit pinned in `deploy-kfp.sh`
-  for the Istio prerequisites and profile controller. The local Istio overlay
-  selects 1.31.4 distroless for the control plane, CNI, gateway and injected
-  sidecars. When advancing the shared pin, refresh the overlay and injector
-  values against that same commit.
+- Multi-user CI installs the Istio CRDs, namespace, mesh and profile controller
+  directly from the Community Distribution commit pinned in `deploy-kfp.sh`.
+  Review and render all four paths when advancing the pin. Propose changes to
+  the shared Istio images and injector settings in Community Distribution.
 
 - Docker mirror setup only modifies and restarts an active local systemd Docker
   service. Containerized/provider-managed runners without that service retain
