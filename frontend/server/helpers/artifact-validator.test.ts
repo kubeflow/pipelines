@@ -389,6 +389,25 @@ describe('artifact-validator', () => {
     },
   );
 
+  it('logs an untrusted artifact URI without interpreting its format specifiers', async () => {
+    const artifactUri = 'https://files.example/reports/%s-result.json';
+    const error = new Error('unavailable');
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(error));
+    const logSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      await expect(
+        validateArtifactNamespace('http://api-server', artifactUri, 'team-a'),
+      ).resolves.toEqual({ valid: false, reason: 'artifact-api-unavailable' });
+      expect(logSpy).toHaveBeenCalledWith(
+        '[SECURITY] Artifact ownership lookup failed for URI "%s"; denying access.',
+        artifactUri,
+        error,
+      );
+    } finally {
+      logSpy.mockRestore();
+    }
+  });
+
   it.each([401, 403, 500])('fails closed on a native API %s for a custom root', async (status) => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status })));
 
