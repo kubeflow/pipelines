@@ -1,5 +1,26 @@
 Changelog
 
+## 2.18.2 (2026-11-23)
+
+### Multi-user metadata access
+
+This release restores shared ML Metadata access for the Artifacts and Executions pages, lineage, and Compare Runs. As in 2.18.0, a tenant who can reach the frontend proxy or the Istio route can read or modify another profile’s metadata. This affects any client with route access. [Compatibility change](https://github.com/kubeflow/pipelines/pull/15844) · [Security advisory](https://github.com/kubeflow/pipelines/security/advisories/GHSA-j53r-x5f5-j4hr)
+
+The development branch for KFP 3.0 resolves this exposure by removing the shared MLMD service and both routes. We are evaluating whether a follow-up 2.18 release can address it while preserving the affected UI features. [Migration](https://github.com/kubeflow/pipelines/pull/13986)
+
+### Legacy Python visualization
+
+Legacy Python visualization remains disabled by default and available by opt-in in 2.18.2. The following 2.18 release will remove the service completely.
+
+### Bug fixes
+
+* **sdk**: preserve string literals in local pipeline conditions ([#15843](https://github.com/kubeflow/pipelines/pull/15843))
+* **frontend**: preserve Create Run drafts during selection changes ([#15841](https://github.com/kubeflow/pipelines/pull/15841))
+* **sdk**: preserve positional pipeline version configuration ([#15842](https://github.com/kubeflow/pipelines/pull/15842))
+* **backend**: prevent launcher panic during metadata finalization. Fixes #15781 ([#15836](https://github.com/kubeflow/pipelines/pull/15836))
+
+**Full changelog:** https://github.com/kubeflow/pipelines/compare/7dd28116ad652bfb7b6c282e7920be84e6a7634a...69c69846fe8f2f3745ce59a2e0a46558eff1ce05
+
 ## 2.18.1 (2026-11-13)
 
 ### Bug Fixes

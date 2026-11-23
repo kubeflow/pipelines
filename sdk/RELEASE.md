@@ -8,6 +8,13 @@
 
 ## Bug fixes and other changes
 
+# 2.18.2
+
+## Bug fixes
+
+* **sdk**: preserve string literals in local pipeline conditions ([#15843](https://github.com/kubeflow/pipelines/pull/15843))
+* **sdk**: preserve positional pipeline version configuration ([#15842](https://github.com/kubeflow/pipelines/pull/15842))
+
 # 2.18.1
 
 ## Bug fixes and other changes
