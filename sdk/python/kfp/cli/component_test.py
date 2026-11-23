@@ -693,6 +693,18 @@ class Test(unittest.TestCase):
                 },
             ),
             (
+                'package_empty_host',
+                {
+                    'packages_to_install': [
+                        'package @ https:///user:dummy-password@host/x'
+                    ]
+                },
+            ),
+            (
+                'index_invalid_port',
+                {'pip_index_urls': ['https://example.invalid:invalid/simple']},
+            ),
+            (
                 'package_split_authority',
                 {
                     'packages_to_install': [
