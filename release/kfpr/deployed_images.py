@@ -52,33 +52,30 @@ def _local_istio(sources, sha):
         raise ValueError(
             'Istio overlay requires exactly the three runtime image overrides'
         )
-    versions = {i['newTag'] for i in images}
-    if len(versions) != 1 or not re.fullmatch(
-        r'1\.31\.[0-9]+', next(iter(versions))
-    ):
-        raise ValueError(
-            'Istio patch images must share the compatible 1.31 version'
-        )
-    version = next(iter(versions))
     values = json.loads(sources[ISTIO_INPUTS[1]])
+    global_values = values.get('global', {})
+    version = global_values.get('tag')
     if (
-        values.get('global', {}).get('tag') != version
-        or values['global'].get('hub') != 'docker.io/istio'
+        not isinstance(version, str)
+        or not re.fullmatch(r'1\.31\.[0-9]+', version)
+        or global_values.get('hub') != 'docker.io/istio'
     ):
         raise ValueError(
-            'Istio injected sidecar version differs from runtime images'
+            'Istio injector must use docker.io/istio and a 1.31 patch'
         )
-    global_values = values['global']
-    if (
-        any(
-            not isinstance(global_values.get(selector), dict)
-            or global_values[selector].get('image') != 'proxyv2'
-            for selector in ('proxy', 'proxy_init')
-        )
-        or global_values.get('variant', '') != ''
+    variant = global_values.get('variant', '')
+    if variant not in ('', 'distroless') or any(
+        not isinstance(global_values.get(selector), dict)
+        or global_values[selector].get('image') != 'proxyv2'
+        for selector in ('proxy', 'proxy_init')
     ):
         raise ValueError(
-            'Istio injected image selectors must use proxyv2 without a variant'
+            'Istio injected image must use proxyv2 with the standard or distroless variant'
+        )
+    image_tag = f'{version}-{variant}' if variant else version
+    if any(image['newTag'] != image_tag for image in images):
+        raise ValueError(
+            'Istio injected sidecar version or injected image variant differs from runtime images'
         )
     if overlay.get('configMapGenerator') != [
         {
@@ -109,17 +106,17 @@ def _local_istio(sources, sha):
         ]
     ):
         raise ValueError('Istio CNI version differs from runtime images')
-    return version, values
+    return image_tag, values
 
 
 def _validate_istio_render(sources, rendered, sha):
-    version, values = _local_istio(sources, sha)
+    image_tag, values = _local_istio(sources, sha)
     images = {
         image
         for image in extract_images(rendered)
         if repository_name(image) in ISTIO_REPOSITORIES
     }
-    if images != {name + ':' + version for name in ISTIO_REPOSITORIES}:
+    if images != {name + ':' + image_tag for name in ISTIO_REPOSITORIES}:
         raise ValueError(
             'Rendered Istio images differ from the retained overlay'
         )
@@ -138,7 +135,7 @@ def _validate_istio_render(sources, rendered, sha):
         or maps.get('istio-cni-config', {})
         .get('data', {})
         .get('CURRENT_AGENT_VERSION')
-        != version
+        != values['global']['tag']
     ):
         raise ValueError(
             'Rendered Istio injection or CNI settings differ from retained inputs'

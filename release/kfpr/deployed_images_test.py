@@ -508,6 +508,42 @@ class IstioPatchInventoryTest(unittest.TestCase):
             sorted(name + ':1.31.4' for name in inventory.ISTIO_REPOSITORIES),
         )
 
+    def set_variant(self, variant):
+        sources = self.inputs['sources']
+        tag = '1.31.4-' + variant
+        for image in self.overlay['images']:
+            image['newTag'] = tag
+        sources[inventory.ISTIO_INPUTS[0]] = yaml.safe_dump(self.overlay)
+        values = json.loads(sources[inventory.ISTIO_INPUTS[1]])
+        values['global']['variant'] = variant
+        encoded = json.dumps(values)
+        sources[inventory.ISTIO_INPUTS[1]] = encoded
+        self.documents[1]['data']['values'] = encoded
+        for container in self.documents[0]['spec']['containers']:
+            container['image'] = container['image'].split(':')[0] + ':' + tag
+
+    def test_distroless_overlay_is_exact_scan_target(self):
+        self.set_variant('distroless')
+        result = self.discover()
+        self.assertEqual(
+            result['profiles']['prerequisite/istio'],
+            sorted(
+                name + ':1.31.4-distroless'
+                for name in inventory.ISTIO_REPOSITORIES
+            ),
+        )
+
+    def test_unknown_image_variant_fails_closed(self):
+        self.set_variant('debug')
+        with self.assertRaisesRegex(ValueError, 'injected image'):
+            self.discover()
+
+    def test_distroless_render_rejects_suffixed_cni_version(self):
+        self.set_variant('distroless')
+        self.documents[2]['data']['CURRENT_AGENT_VERSION'] = '1.31.4-distroless'
+        with self.assertRaisesRegex(ValueError, 'Rendered Istio'):
+            self.discover()
+
     def test_changed_injector_image_selectors_fail_closed(self):
         original = self.inputs['sources'][inventory.ISTIO_INPUTS[1]]
         for selector, value in (
@@ -535,9 +571,10 @@ class IstioPatchInventoryTest(unittest.TestCase):
             self.discover()
 
     def test_stale_source_injection_tag_fails_closed(self):
-        self.inputs['sources'][inventory.ISTIO_INPUTS[1]] = json.dumps(
-            {'global': {'tag': '1.31.3', 'hub': 'docker.io/istio'}}
-        )
+        sources = self.inputs['sources']
+        values = json.loads(sources[inventory.ISTIO_INPUTS[1]])
+        values['global']['tag'] = '1.31.3'
+        sources[inventory.ISTIO_INPUTS[1]] = json.dumps(values)
         with self.assertRaisesRegex(ValueError, 'injected sidecar version'):
             self.discover()
 

@@ -744,18 +744,17 @@ OSV findings and security-policy semantics remain unchanged. The hosted
 The release deployment script can select the local
 `manifests/kustomize/third-party/istio/install` overlay to apply compatible Istio
 1.31 image patches without upgrading the prerequisite manifest API surface. Its
-three runtime images, CNI version setting, and injected-sidecar version must
-match. The release inventory retains and hashes the overlay and injector values,
-renders the same local target, and rejects missing inputs or mismatched rendered
-images/injection settings. Existing candidates using the pinned remote base
-remain supported. See the overlay README for the injection-settings refresh
-procedure.
+three runtime images must use the same tag. Both injector selectors
+(`global.proxy.image` and `global.proxy_init.image`) must select `proxyv2`.
+Use an empty or omitted `global.variant` for standard images, or `distroless`
+for image tags ending in `-distroless`. The injector's `global.tag` and the
+CNI's `CURRENT_AGENT_VERSION` always contain the unsuffixed 1.31 patch version.
 
-The bounded Istio qualification overlay requires both injector selectors
-(`global.proxy.image` and `global.proxy_init.image`) to be `proxyv2`, with no
-`global.variant`. Matching source and rendered injector values alone cannot
-establish coverage: the selected injected image must also match the static
-prerequisite image inventory. Other selectors fail qualification.
+The release inventory retains and hashes the local overlay and injector values.
+It verifies that the rendered runtime images use the tag selected by the
+injector and that the rendered CNI configuration uses the matching product
+version. Existing candidates using the pinned remote base remain supported.
+See the overlay README for the injection-settings refresh procedure.
 
 The backend install target and Kubernetes-native migration workflow both use
 cert-manager v1.21.3, matching the qualified release-2.18 prerequisite. Runtime
