@@ -59,15 +59,15 @@ _DOCKERIGNORE_TEMPLATE = f"""
 {_COMPONENT_METADATA_DIR}/
 """
 
-_HTTP_URL_PATTERN = re.compile(r'(?:git\+)?https?://\S+', re.IGNORECASE)
+_HTTP_URL_START_PATTERN = re.compile(r'(?:git\+)?https?://', re.IGNORECASE)
 
 
 def _has_unsafe_dependency_url(value: str) -> bool:
     # Pip joins continued requirement lines before interpreting the URL.
     logical_value = re.sub(r'\\\r?\n', '', value)
-    for match in _HTTP_URL_PATTERN.finditer(logical_value):
+    for match in _HTTP_URL_START_PATTERN.finditer(logical_value):
         try:
-            url = urlsplit(match.group(0))
+            url = urlsplit(logical_value[match.start() :])
         except ValueError:
             return True
         if url.username is not None or url.password is not None or url.query:
