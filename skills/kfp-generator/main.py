@@ -10,7 +10,8 @@ def get_skill_root() -> str:
 
 
 def bootstrap_reference(ref_dir: str | None = None) -> str:
-    """Bootstraps the workspace by installing the skill and look if KFP reference checkout exists."""
+    """Bootstraps the workspace by installing the skill and look if KFP
+    reference checkout exists."""
     target_dir = ref_dir or os.environ.get(
         'KFP_REFERENCE_DIR', os.path.join(get_skill_root(), '.kfp-ref')
     )
