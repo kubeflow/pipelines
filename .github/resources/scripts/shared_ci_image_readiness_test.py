@@ -117,7 +117,57 @@ class ReadinessStateTest(unittest.TestCase):
             {'runtime-base-images.tar', 'modelcar.tar'},
         )
 
+    def test_optional_viewer_readiness_preserves_complete_pinned_sets(self):
+        self.api.add('ci-images-amd64-attempt-1')
+        self.api.bundle('tensorboard', 'amd64', self.directory)
+        output = self.directory / 'viewer-readiness-output'
+        api = self.api
+
+        class FakeGitHub:
+            def __new__(cls, repository):
+                return api
+
+        with (
+            mock.patch.object(
+                shared, 'environment_identity', return_value=self.consumer
+            ),
+            mock.patch.object(shared, 'GitHub', FakeGitHub),
+            mock.patch(
+                'sys.argv',
+                [
+                    'shared_ci_images.py',
+                    'prepare',
+                    '--architecture',
+                    'amd64',
+                    '--include-tensorboard',
+                    '--state',
+                    str(self.path),
+                    '--output',
+                    str(output),
+                ],
+            ),
+        ):
+            self.assertEqual(shared.main(), 0)
+        value = output.read_text().strip().split('=', 1)[1]
+        for kind in ('all', 'tensorboard'):
+            imported = shared.import_ready_state(
+                value, self.consumer, 'amd64', kind
+            )
+            self.assertEqual(
+                set(imported['sets']), {'images', 'runtime', 'tensorboard'}
+            )
+            self.assertEqual(imported['identity'], identity())
+        state = json.loads(value)
+        del state['sets']['tensorboard']
+        with self.assertRaisesRegex(
+            shared.InvalidEvidence, 'missing the selected set'
+        ):
+            shared.import_ready_state(
+                json.dumps(state), self.consumer, 'amd64', 'tensorboard'
+            )
+
     def test_cli_passes_readiness_output_to_a_retried_consumer(self):
+        self.api.add('ci-images-amd64-attempt-1')
         output = self.directory / 'ready-output'
         api = self.api
 
@@ -389,8 +439,8 @@ class ReadinessWorkflowTest(unittest.TestCase):
                 '.github/workflows/shared-ci-images-ready.yml',
                 events['pull_request']['paths'],
             )
-        self.assertEqual(callers, 8)
-        self.assertEqual(consumers, 14)
+        self.assertEqual(callers, 9)
+        self.assertEqual(consumers, 15)
 
     def test_readiness_propagates_failure_and_consumers_keep_safe_default(self):
         workflow = yaml.safe_load(

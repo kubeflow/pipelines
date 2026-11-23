@@ -5,7 +5,7 @@
  * Complete workflow for comparing UI screenshots between branches.
  *
  * Primary workflow — compare a PR against a base ref with live backend:
- *   node smoke-test-runner.js --compare master
+ *   node smoke-test-runner.js --compare main
  *   node smoke-test-runner.js --compare release
  *   node smoke-test-runner.js --compare 2.15.0
  *
@@ -15,13 +15,13 @@
  * generates side-by-side comparisons.
  *
  * Test someone else's PR against a base ref:
- *   node smoke-test-runner.js --compare master --pr 12756
+ *   node smoke-test-runner.js --compare main --pr 12756
  *
  * Label local HEAD screenshots with a PR number:
- *   node smoke-test-runner.js --compare master --pr-number 12793
+ *   node smoke-test-runner.js --compare main --pr-number 12793
  *
  * Skip backend rebuild for frontend-only PRs:
- *   node smoke-test-runner.js --compare master --skip-backend
+ *   node smoke-test-runner.js --compare main --skip-backend
  *
  * Other workflows:
  *   node smoke-test-runner.js --current-only --use-existing --url http://localhost:3000
@@ -39,6 +39,7 @@ const http = require('http');
 // Import helpers
 const clusterManager = require('./cluster-manager');
 const { detectChanges } = require('./detect-changes');
+const { verifyCachedCheckout, createBaseWorktree } = require('./checkout');
 const { seedData, checkHealth } = require('./seed-data');
 
 // Parse arguments
@@ -57,7 +58,7 @@ const TEARDOWN = hasFlag('teardown');
 const PR_NUMBER = getArg('pr', '');
 const PR_LABEL_NUMBER = getArg('pr-number', process.env.UI_SMOKE_PR_NUMBER || '');
 const REPO = getArg('repo', 'kubeflow/pipelines');
-const BASE_BRANCH = getArg('base', 'master');
+const BASE_BRANCH = getArg('base', 'main');
 const MODE = getArg('mode', 'auto'); // auto, cluster, mock, static
 const CURRENT_ONLY = hasFlag('current-only');
 const SKIP_BUILD = hasFlag('skip-build');
@@ -584,9 +585,10 @@ async function runComparison(baseRef, displayPrNumber = '') {
   // Step 9: Check out base ref via git worktree and build its frontend
   tracker.step(`Building base frontend (${changes.baseRef})...`);
 
-  const worktreeResult = run(`git worktree add "${WORKTREE_DIR}" ${changes.baseRef}`, { cwd: REPO_ROOT });
-  if (!worktreeResult.success) {
-    log(`Failed to create worktree: ${worktreeResult.error}`, 'error');
+  try {
+    createBaseWorktree(REPO_ROOT, WORKTREE_DIR, changes.baseRef);
+  } catch (error) {
+    log(`Failed to create worktree: ${error.message}`, 'error');
     return false;
   }
   // Register cleanup for base worktree (Issue 5)
@@ -805,10 +807,15 @@ async function checkoutAndBuild(branchRef, targetDir, label) {
     fs.mkdirSync(targetDir, { recursive: true });
 
     log(`Cloning ${branchRef} to ${targetDir}...`);
-    run(`git clone --depth 1 --branch ${branchRef} --single-branch https://github.com/${REPO}.git "${targetDir}"`, {
+    const cloneResult = run(`git clone --depth 1 --branch ${shellEscape(branchRef)} --single-branch https://github.com/${REPO}.git "${targetDir}"`, {
       cwd: WORK_DIR,
     });
+    if (!cloneResult.success) {
+      throw new Error(`Failed to clone ${branchRef}: ${cloneResult.error}`);
+    }
   }
+
+  verifyCachedCheckout(targetDir, branchRef);
 
   if (!SKIP_BUILD) {
     const frontendDir = path.join(targetDir, 'frontend');

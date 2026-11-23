@@ -31,12 +31,13 @@ class ActionlintCompatibilityTest(unittest.TestCase):
         self.patterns = self.config['paths'][WORKFLOW]['ignore']
 
     def test_exceptions_only_match_known_diagnostics(self):
-        self.assertEqual(len(self.patterns), 3)
+        self.assertEqual(len(self.patterns), 5)
         job_context = (
             '{check_run_id: number; container: {id: string; network: string}; '
             'services: {string => {id: string; network: string; ports: '
             '{string => string}}}; status: string}'
         )
+        cache_diagnostic = 'unexpected key "cache-mode" for "job" section. expected one of "concurrency", "container", "continue-on-error", "defaults", "env", "environment", "if", "name", "needs", "outputs", "permissions", "runs-on", "secrets", "services", "snapshot", "steps", "strategy", "timeout-minutes", "uses", "with"'
         known = (
             'unexpected key "queue" for "concurrency" section. expected one of '
             '"cancel-in-progress", "group"',
@@ -44,16 +45,23 @@ class ActionlintCompatibilityTest(unittest.TestCase):
             'permission scopes are "actions", "contents"',
             'property "workflow_ref" is not defined in object type '
             + job_context,
+            cache_diagnostic,
+            'property "workflow_sha" is not defined in object type '
+            + job_context,
         )
         for diagnostic in known:
             self.assertTrue(
                 any(re.search(p, diagnostic) for p in self.patterns)
             )
         for diagnostic in (
+            cache_diagnostic.replace('cache-mode', 'cache-modes'),
+            cache_diagnostic.replace('"job"', '"workflow"'),
             known[0].replace('"queue"', '"queues"'),
             known[0].replace('"concurrency"', '"jobs"'),
             known[1].replace('copilot-requests', 'unknown-scope'),
             known[2].replace('workflow_ref', 'workflow_refs'),
+            known[4].replace('workflow_sha', 'workflow_shas'),
+            known[4].replace('check_run_id: number; ', ''),
             known[2].replace('check_run_id: number; ', ''),
             'property "admission-result" is not defined in object type '
             '{aw_context: string}',
@@ -69,7 +77,7 @@ class ActionlintCompatibilityTest(unittest.TestCase):
             if path != WORKFLOW:
                 self.assertFalse(set(self.patterns) & set(settings['ignore']))
 
-    def test_cache_mode_exception_only_matches_qualification_workflow_syntax(
+    def test_cache_mode_exception_only_matches_release_verifier_syntax(
         self,
     ):
         path = '.github/workflows/release-qualification.yml'
@@ -88,11 +96,21 @@ class ActionlintCompatibilityTest(unittest.TestCase):
         ):
             self.assertIsNone(re.search(patterns[0], invalid))
         for other_path, settings in self.config['paths'].items():
-            if other_path != path:
+            if other_path == '.github/workflows/release-landed-ci.yml':
+                self.assertEqual(patterns, settings['ignore'])
+            elif other_path != path:
                 self.assertNotIn(patterns[0], settings['ignore'])
 
     def test_generated_fields_have_supported_values(self):
         workflow = yaml.safe_load((ROOT / WORKFLOW).read_text())
+        self.assertEqual(
+            {
+                name: job['cache-mode']
+                for name, job in workflow['jobs'].items()
+                if 'cache-mode' in job
+            },
+            {'agent': 'read'},
+        )
         queues = []
         permissions = []
         for scope in (workflow, *workflow['jobs'].values()):

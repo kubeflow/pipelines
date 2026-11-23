@@ -61,7 +61,9 @@ class CIGateRequestReductionTest(unittest.TestCase):
                     self.assert_no_evidence_reads(result)
                     for name in ('pr', 'pulls', 'currentRun', 'statuses'):
                         self.assertEqual(
-                            result['requestCounts'][name], 1, (name, result)
+                            result['requestCounts'][name],
+                            2 if name == 'statuses' else 1,
+                            (name, result),
                         )
 
     def test_active_starts_preserve_unchanged_non_green_status(self):
@@ -267,7 +269,7 @@ class CIGateRequestReductionTest(unittest.TestCase):
         self.assertEqual(result['requestCounts']['checks'], 0)
 
     def test_external_failure_keeps_precedence_over_cached_pending_result(self):
-        result = exercise({'runStatus': 'in_progress', 'pollPassed': False})
+        result = exercise({'runStatus': 'in_progress', 'checksPassed': False})
         self.assertEqual(result['status'], 'failure', result)
         self.assertIn('DCO', result['descriptions'][-1])
         self.assertEqual(result['requestCounts']['files'], 1)
@@ -429,7 +431,7 @@ class CIGateRequestReductionTest(unittest.TestCase):
             }
         )
 
-    def assert_intermediate_cost(self, result):
+    def assert_intermediate_cost(self, result, reads=7):
         self.assertNotIn('error', result)
         self.assert_never_green(result)
         for name in (
@@ -443,10 +445,213 @@ class CIGateRequestReductionTest(unittest.TestCase):
         ):
             self.assertEqual(result['requestCounts'][name], 0, (name, result))
         self.assertEqual(result['requestCounts']['runs'], 1)
-        self.assertEqual(sum(result['requestCounts'].values()), 6)
+        self.assertEqual(sum(result['requestCounts'].values()), reads)
         self.assertTrue(
             json.loads(result['outputs']['prepared_result'])['intermediate']
         )
+
+    def failed_completion(self, conclusion='failure', **overrides):
+        failed = {
+            'id': 43,
+            'workflow_id': 43,
+            'check_suite_id': 943,
+            'run_attempt': 1,
+            'path': '.github/workflows/backend.yml',
+            'event': 'pull_request',
+            'head_sha': 'head',
+            'status': 'completed',
+            'conclusion': conclusion,
+            'created_at': '2026-09-07T11:00:00Z',
+            'run_started_at': '2026-09-07T11:01:00Z',
+        }
+        return self.completion(
+            eventRun={'conclusion': conclusion},
+            **{'discoveredRuns': [failed], **overrides},
+        )
+
+    def test_failed_completions_skip_full_scans(self):
+        for conclusion in (
+            'failure',
+            'cancelled',
+            'timed_out',
+            'action_required',
+            'stale',
+            'startup_failure',
+        ):
+            with self.subTest(conclusion=conclusion):
+                result = self.failed_completion(conclusion)
+                self.assertNotIn('error', result)
+                self.assertEqual(result['status'], 'failure', result)
+                self.assert_never_green(result)
+                self.assertEqual(
+                    sum(result['requestCounts'].values()), 6, result
+                )
+                for name in (
+                    'inventory',
+                    'timeline',
+                    'files',
+                    'base',
+                    'associated',
+                    'history',
+                    'checks',
+                ):
+                    self.assertEqual(result['requestCounts'][name], 0, result)
+
+    def test_failed_completion_interruption_preserves_failure(self):
+        result = self.failed_completion(
+            initialStatus='failure', statusReadFailureAt=1
+        )
+        self.assertIn('error', result)
+        self.assertEqual(result['status'], 'failure', result)
+        self.assertNotIn(['status', 'pending', 'head'], result['calls'])
+
+    def test_failed_completion_recovery_cannot_publish_green(self):
+        result = self.failed_completion(finishActiveBeforeFinal=True)
+        self.assertEqual(result['status'], 'failure', result)
+        self.assert_never_green(result)
+        recovered = self.completion(discoveredRuns=[], initialStatus='failure')
+        self.assertEqual(recovered['status'], 'success', recovered)
+        self.assertGreater(recovered['requestCounts']['checks'], 0)
+
+    def test_failed_completion_rechecks_pr_identity(self):
+        for drift in ('head', 'base', 'base-sha', 'hold', 'closed'):
+            with self.subTest(drift=drift):
+                result = self.failed_completion(beforeFinalDrift=drift)
+                self.assertEqual(result['status'], 'failure', result)
+                self.assert_never_green(result)
+
+    def test_failed_event_superseded_by_newer_run_uses_full_checks(self):
+        old = {
+            'id': 43,
+            'workflow_id': 43,
+            'check_suite_id': 943,
+            'run_attempt': 1,
+            'path': '.github/workflows/backend.yml',
+            'event': 'pull_request',
+            'head_sha': 'head',
+            'status': 'completed',
+            'conclusion': 'failure',
+            'created_at': '2026-09-07T11:00:00Z',
+            'run_started_at': '2026-09-07T11:01:00Z',
+        }
+        newer = {
+            **old,
+            'id': 44,
+            'check_suite_id': 944,
+            'conclusion': 'success',
+            'run_started_at': '2026-09-07T12:01:00Z',
+        }
+        result = self.failed_completion(discoveredRuns=[old, newer])
+        self.assertEqual(result['status'], 'success', result)
+        self.assertGreater(result['requestCounts']['checks'], 0)
+        self.assertGreater(result['requestCounts']['files'], 0)
+
+    def test_failed_completion_bad_probe_falls_back(self):
+        result = self.failed_completion(discoveredRunsFailure=True)
+        self.assertGreater(result['requestCounts']['files'], 0, result)
+        self.assert_never_green(result)
+
+    def test_pending_completion_is_read_only_on_development_and_release(self):
+        for branch in ('main', 'release-2.18'):
+            with self.subTest(branch=branch):
+                result = self.completion(
+                    initialStatus='pending',
+                    pr={
+                        'base': {
+                            'sha': 'b' * 40,
+                            'ref': branch,
+                            'repo': {'full_name': 'kubeflow/pipelines'},
+                        }
+                    },
+                )
+                self.assertEqual(result['status'], 'pending', result)
+                self.assertEqual(result['calls'], [], result)
+                self.assertEqual(result['outputs'], {}, result)
+                self.assertEqual(
+                    sum(result['requestCounts'].values()), 4, result
+                )
+                self.assertEqual(result['requestCounts']['runs'], 1, result)
+                self.assertEqual(result['requestCounts']['statuses'], 1, result)
+
+    def test_pending_completion_races_remain_safe_on_both_branches(self):
+        for branch in ('main', 'release-2.18'):
+            base = {
+                'sha': 'b' * 40,
+                'ref': branch,
+                'repo': {'full_name': 'kubeflow/pipelines'},
+            }
+            for state in ('failure', 'success'):
+                with self.subTest(branch=branch, state=state):
+                    result = self.completion(
+                        initialStatus='pending',
+                        statusDuringRuns=state,
+                        pr={'base': base},
+                    )
+                    self.assertEqual(
+                        result['status'],
+                        'failure' if state == 'failure' else 'pending',
+                        result,
+                    )
+                    self.assertIn('pr_number', result['outputs'], result)
+                    self.assert_never_green(result)
+            result = self.completion(
+                initialStatus='pending',
+                beforeFinalStatus='failure',
+                pr={'base': base},
+            )
+            self.assertEqual(result['status'], 'failure', result)
+            self.assertEqual(result['calls'], [], result)
+            self.assertEqual(result['outputs'], {}, result)
+            stale = self.completion(
+                initialStatus='pending',
+                headDuringRuns='new-head',
+                pr={'base': base},
+            )
+            self.assertEqual(stale['calls'], [], stale)
+            self.assertEqual(stale['outputs'], {}, stale)
+            for failed in (False, True):
+                final = self.completion(
+                    initialStatus='pending',
+                    cycles=2,
+                    discoveredRunsByCycle=[
+                        [
+                            self.failed_workflow(
+                                status='in_progress', conclusion=None
+                            )
+                        ],
+                        [],
+                    ],
+                    finishActiveBeforeFinal=True,
+                    checkConclusion='failure' if failed else 'success',
+                    pr={'base': base},
+                )
+                self.assertEqual(
+                    final['status'], 'failure' if failed else 'success', final
+                )
+                self.assertGreater(final['requestCounts']['checks'], 0, final)
+            delayed = self.completion(
+                initialStatus='pending', discoveredRuns=[], pr={'base': base}
+            )
+            self.assertEqual(delayed['status'], 'success', delayed)
+            self.assertGreater(delayed['requestCounts']['checks'], 0, delayed)
+
+    def test_failed_pending_completion_probe_does_not_retry_the_shortcut(self):
+        for branch in ('main', 'release-2.18'):
+            with self.subTest(branch=branch):
+                result = self.completion(
+                    initialStatus='pending',
+                    discoveredRunsFailureAt=1,
+                    pr={
+                        'base': {
+                            'sha': 'b' * 40,
+                            'ref': branch,
+                            'repo': {'full_name': 'kubeflow/pipelines'},
+                        }
+                    },
+                )
+                self.assertGreater(result['requestCounts']['files'], 0, result)
+                self.assertGreater(result['requestCounts']['checks'], 0, result)
+                self.assertIn('pr_number', result['outputs'], result)
 
     def test_successful_completion_coalesces_while_another_run_is_active(self):
         result = self.completion(initialStatus='success')
@@ -458,7 +663,7 @@ class CIGateRequestReductionTest(unittest.TestCase):
     ):
         # Only the explicit intermediate result defers newly discovered failures;
         # ordinary prepared pending results still check failure precedence.
-        result = self.completion(pollPassed=False)
+        result = self.completion(checksPassed=False)
         self.assertEqual(result['status'], 'pending', result)
         self.assert_intermediate_cost(result)
         final = self.completion(discoveredRuns=[], checkConclusion='failure')
@@ -495,7 +700,8 @@ class CIGateRequestReductionTest(unittest.TestCase):
         )
         self.assertEqual(result['status'], 'failure', result)
         self.assertEqual(result['calls'], [], result)
-        self.assert_intermediate_cost(result)
+        self.assertEqual(result['outputs'], {}, result)
+        self.assertEqual(sum(result['requestCounts'].values()), 4, result)
 
     def test_intermediate_status_read_failure_cannot_overwrite_failure(self):
         for read in (1, 2):
@@ -512,13 +718,17 @@ class CIGateRequestReductionTest(unittest.TestCase):
 
     def test_intermediate_completion_revokes_a_concurrent_success(self):
         result = self.completion(
-            initialStatus='pending', beforeFinalStatus='success'
+            initialStatus='pending',
+            beforeFinalStatus='success',
+            pr={'labels': [{'name': 'ci-passed'}]},
         )
         self.assertEqual(result['status'], 'pending', result)
         self.assertEqual(
-            result['calls'], [['status', 'pending', 'head']], result
+            result['calls'],
+            [['remove-label', 'ci-passed'], ['status', 'pending', 'head']],
+            result,
         )
-        self.assert_intermediate_cost(result)
+        self.assert_intermediate_cost(result, reads=6)
 
     def test_observed_workflow_failure_prevents_intermediate_shortcut(self):
         active = self.failed_workflow(
@@ -831,7 +1041,7 @@ class CIGateRequestReductionTest(unittest.TestCase):
         self.assertIn('attempt 2', result['descriptions'][-1])
 
     def test_scheduled_external_failure_still_gets_full_assessment(self):
-        result = exercise({'schedule': True, 'pollPassed': False})
+        result = exercise({'schedule': True, 'checksPassed': False})
         self.assertEqual(result['status'], 'failure', result)
         self.assertGreater(result['requestCounts']['files'], 0)
         self.assertGreater(result['requestCounts']['checks'], 0)

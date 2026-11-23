@@ -195,6 +195,32 @@ class ApprovalFastPathTest(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         return json.loads(completed.stdout)
 
+    def test_empty_polls_only_discover_runs(self):
+        result = self.run_approval()
+        self.assertEqual(result['approved'], [])
+        self.assertEqual(result['failures'], [])
+        self.assertEqual(
+            [request['kind'] for request in result['requests']],
+            ['listRuns'] * 8,
+        )
+
+    def test_already_approved_runs_do_not_repeat_authorization_reads(self):
+        result = self.run_approval(run_batches=[[_run()]])
+        self.assertEqual(result['approved'], [101])
+        kinds = [request['kind'] for request in result['requests']]
+        self.assertEqual(kinds[:4], ['listRuns', 'getPR', 'listPRs', 'approve'])
+        self.assertEqual(kinds.count('getPR'), 1)
+        self.assertEqual(kinds.count('listPRs'), 1)
+        self.assertEqual(kinds.count('listRuns'), 8)
+
+    def test_unrelated_pending_runs_do_not_fetch_pr_metadata(self):
+        result = self.run_approval(run_batches=[[_run(repo_id=701)]])
+        self.assertEqual(result['approved'], [])
+        self.assertEqual(
+            [request['kind'] for request in result['requests']],
+            ['listRuns'] * 8,
+        )
+
     def test_live_label_is_required_for_external_author(self):
         for labels in ((), ('ok-to-test', 'needs-ok-to-test')):
             with self.subTest(labels=labels):
@@ -204,11 +230,9 @@ class ApprovalFastPathTest(unittest.TestCase):
                 )
                 self.assertEqual(result['approved'], [])
                 self.assertEqual(result['failures'], [])
-                self.assertFalse(
-                    any(
-                        request['kind'] == 'listRuns'
-                        for request in result['requests']
-                    )
+                self.assertEqual(
+                    [request['kind'] for request in result['requests']],
+                    ['listRuns', 'getPR'],
                 )
 
     def test_changed_or_closed_pr_head_is_not_approved(self):
@@ -224,11 +248,9 @@ class ApprovalFastPathTest(unittest.TestCase):
                     current_prs=[current_pr], run_batches=[[_run()]]
                 )
                 self.assertEqual(result['approved'], [])
-                self.assertFalse(
-                    any(
-                        request['kind'] == 'listRuns'
-                        for request in result['requests']
-                    )
+                self.assertEqual(
+                    [request['kind'] for request in result['requests']],
+                    ['listRuns', 'getPR'],
                 )
 
     def test_ambiguous_open_prs_with_same_head_need_manual_approval(self):
@@ -284,6 +306,18 @@ class ApprovalFastPathTest(unittest.TestCase):
                 ]
             ),
             2,
+        )
+
+    def test_later_run_rechecks_live_admission_after_prior_approval(self):
+        result = self.run_approval(
+            current_prs=[_pr(), _pr(labels=('needs-ok-to-test',))],
+            run_batches=[[_run()], [_run(), _run(102)]],
+        )
+        self.assertEqual(result['approved'], [101])
+        self.assertEqual(result['failures'], [])
+        self.assertEqual(
+            [request['kind'] for request in result['requests']],
+            ['listRuns', 'getPR', 'listPRs', 'approve', 'listRuns', 'getPR'],
         )
 
     def test_unresolved_action_required_run_fails(self):

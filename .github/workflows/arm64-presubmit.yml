@@ -1,6 +1,9 @@
 name: KFP ARM64 Presubmit
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [master, main, release-2.18]
   pull_request:
     paths:
       - '.github/workflows/arm64-presubmit.yml'
@@ -31,6 +34,22 @@ on:
       - '!**/*.md'
       - '!**/OWNERS'
   workflow_dispatch:
+    inputs:
+      queue_head_sha:
+        description: Exact queue candidate SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_ref:
+        description: Queue target branch, master, main, or release-2.18 (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_sha:
+        description: Current target branch SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -41,6 +60,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  queue-dispatch-guard:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/queue-dispatch-guard.yml
+    with:
+      queue_head_sha: ${{ inputs.queue_head_sha }}
+      queue_base_ref: ${{ inputs.queue_base_ref }}
+      queue_base_sha: ${{ inputs.queue_base_sha }}
+
   image-artifacts-ready:
     permissions:
       actions: read
@@ -48,6 +77,7 @@ jobs:
     uses: ./.github/workflows/shared-ci-images-ready.yml
     with:
       architecture: arm64
+      include_tensorboard: true
 
   smoke:
     needs: image-artifacts-ready
@@ -67,6 +97,14 @@ jobs:
         with:
           ready-state: ${{ needs.image-artifacts-ready.outputs.state }}
           architecture: arm64
+          path: arm64-images
+          layout: flat
+      - name: Download verified shared ARM TensorBoard image
+        uses: ./.github/actions/shared-ci-images
+        with:
+          architecture: arm64
+          kind: tensorboard
+          ready-state: ${{ needs.image-artifacts-ready.outputs.state }}
           path: arm64-images
           layout: flat
       - name: Install KFP and run a pipeline natively

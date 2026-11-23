@@ -193,6 +193,9 @@ jobs:
           - image: frontend
             dockerfile: frontend/Dockerfile
             context: .
+          - image: tensorboard
+            dockerfile: backend/Dockerfile.tensorboard
+            context: .
           - image: viewer-crd-controller
             dockerfile: backend/Dockerfile.viewercontroller
             context: .
@@ -209,6 +212,21 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+
+      - name: Prepare clean Go build context
+        if: ${{ matrix.image != 'frontend' }}
+        id: go-context
+        env:
+          DOCKERFILE: ${{ matrix.dockerfile }}
+        run: |
+          context_json=$(python3 .github/resources/scripts/image-build-provenance.py prepare \
+            --source . --sha "$GITHUB_SHA" --dockerfile "$DOCKERFILE" \
+            --destination "$RUNNER_TEMP/go-build-context")
+          printf '%s' "$context_json" | jq -r '"context=\(.context)", "dockerfile=\(.dockerfile)"' >> "$GITHUB_OUTPUT"
+
+      - name: Set up Go provenance reader
+        if: ${{ matrix.image != 'frontend' && matrix.image != 'tensorboard' }}
+        uses: ./.github/actions/setup-go
 
       - name: Read frontend Node version
         id: frontend_node
@@ -283,8 +301,8 @@ jobs:
           DOCKER_BUILD_SUMMARY: false
         with:
           builder: ${{ steps.buildx.outputs.builder_name }}
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
+          context: ${{ steps.go-context.outputs.context }}
+          file: ${{ steps.go-context.outputs.dockerfile }}
           push: false
           platforms: linux/${{ inputs.architecture }}
           cache-from: type=gha,version=2,scope=kfp-image-${{ matrix.image }}-${{ inputs.architecture }},timeout=60s
@@ -309,8 +327,8 @@ jobs:
           DOCKER_BUILD_SUMMARY: false
         with:
           builder: ${{ steps.buildx.outputs.builder_name }}
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
+          context: ${{ steps.go-context.outputs.context }}
+          file: ${{ steps.go-context.outputs.dockerfile }}
           push: false
           platforms: linux/${{ inputs.architecture }}
           no-cache: true
@@ -320,6 +338,19 @@ jobs:
             ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
             ${{ env.REGISTRY }}/${{ matrix.image }}:ci
           outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
+
+      - name: Verify native Go image provenance
+        id: verify-go
+        if: ${{ matrix.image != 'frontend' && matrix.image != 'tensorboard' && (steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
+        env:
+          DOCKERFILE: ${{ matrix.dockerfile }}
+          CI_IMAGE: ${{ matrix.image }}
+        run: |
+          docker load --input "$ARTIFACTS_PATH/$ARTIFACT_NAME.tar"
+          python3 .github/resources/scripts/image-build-provenance.py verify \
+            --source . --sha "$GITHUB_SHA" --dockerfile "$DOCKERFILE" \
+            --image "$REGISTRY/$CI_IMAGE:ci" --platform "linux/$TARGET_ARCH" \
+            --output "$ARTIFACTS_PATH/$ARTIFACT_NAME.go-provenance"
 
       - name: Record ARM image identity
         if: ${{ inputs.architecture == 'arm64' && (steps.frontend-image.outcome == 'success' || steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
@@ -350,5 +381,61 @@ jobs:
             ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
             ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.json
             ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.provenance.json
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload Go binary evidence
+        id: upload-go-provenance
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: ${{ steps.verify-go.outcome == 'success' }}
+        with:
+          name: ${{ env.ARTIFACT_NAME }}-go-provenance-attempt-${{ github.run_attempt }}
+          path: ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.go-provenance/
+          if-no-files-found: error
+          retention-days: 1
+
+  image-bundle:
+    if: inputs.shared
+    needs: image-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: List required bundle files
+        id: bundle-files
+        env:
+          ARCHITECTURE: ${{ inputs.architecture }}
+        run: |
+          python3 - <<'PYTHON' >> "$GITHUB_OUTPUT"
+          import os
+          import sys
+          sys.path.insert(0, '.github/resources/scripts')
+          from shared_ci_images import IMAGES, filenames, provenance_name
+          architecture = os.environ['ARCHITECTURE']
+          print('required-files<<BUNDLE_FILES')
+          for image in IMAGES:
+              print(*filenames(image, architecture), provenance_name(image, architecture), sep='\n')
+          print('BUNDLE_FILES')
+          PYTHON
+      # Same-run downloads use the artifact service rather than the REST quota.
+      - uses: ./.github/actions/download-artifact-with-retry
+        with:
+          pattern: "{apiserver,persistenceagent,scheduledworkflow,launcher,driver,frontend,viewer-crd-controller}${{ inputs.architecture == 'arm64' && '-arm64' || '' }}-attempt-${{ github.run_attempt }}"
+          path: shared-image-bundle
+          merge-multiple: 'true'
+          required-files: ${{ steps.bundle-files.outputs.required-files }}
+      - name: Verify complete current-attempt image bundle
+        env:
+          ARCHITECTURE: ${{ inputs.architecture }}
+        run: python3 .github/resources/scripts/shared_ci_images.py bundle --architecture "$ARCHITECTURE" --directory shared-image-bundle
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ci-images-${{ inputs.architecture }}-attempt-${{ github.run_attempt }}
+          path: shared-image-bundle
+          compression-level: 0
           if-no-files-found: error
           retention-days: 1

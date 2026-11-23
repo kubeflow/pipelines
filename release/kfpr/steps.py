@@ -28,6 +28,7 @@ from .editorial import editorial_scaffold, validate_notes
 from .generated import restore_generated_sections
 from .github_api import (
     REPO,
+    has_successful_ci_passed,
     is_pending_merge_queue_check,
     upstream_default_branch,
     wait_for_pr_merge,
@@ -35,6 +36,10 @@ from .github_api import (
     watch_pr_ci,
 )
 from .inventory import build_inventory, release_scaffolding
+from .landed_attestation import (
+    superseded_ci_bookkeeping,
+    verify_landed_attestation,
+)
 from .metadata import ReleaseMetadata
 from .notes import render_notes
 from .packages import clean_legacy_distributions, validate_legacy_wheels
@@ -434,6 +439,10 @@ def step_merge_version_pr(context: ReleaseContext) -> None:
     if recorded_pr:
         _wait_for_version_pr(context, recorded_pr)
         return
+    if context.state.answers.get('landed_ci_run') is not None:
+        raise ValueError(
+            'Record the merged version PR before selecting landed CI'
+        )
     metadata = context.metadata
     version_branch = f'{metadata.tag}-update-version-tags'
     upstream_remote = f'https://github.com/{REPO}.git'
@@ -592,8 +601,9 @@ def _wait_for_version_pr(context: ReleaseContext, pr_url: str) -> None:
         )
         return
     print(underline_links(f'Version PR: {pr_url}'))
-    watch_pr_ci(context.runner, pr_url)
-    wait_for_pr_merge(context.runner, pr_url)
+    if context.state.answers.get('landed_ci_run') is None:
+        watch_pr_ci(context.runner, pr_url)
+        wait_for_pr_merge(context.runner, pr_url)
     validate_release_pr(context)
     context.state.save()
 
@@ -617,7 +627,7 @@ def validate_release_pr(context: ReleaseContext) -> str:
                 '--repo',
                 REPO,
                 '--json',
-                'state,baseRefName,headRefName,headRefOid,mergeCommit,statusCheckRollup',
+                'state,url,baseRefName,headRefName,headRefOid,mergeCommit,statusCheckRollup',
             ],
             cwd=context.root,
         )
@@ -639,12 +649,29 @@ def validate_release_pr(context: ReleaseContext) -> str:
         raise RuntimeError(
             'Version PR has no valid merged commit or tested head.'
         )
+    landed_run = context.state.answers.get('landed_ci_run')
+    if landed_run is not None:
+        verify_landed_attestation(
+            context,
+            landed_run,
+            int(url.rsplit('/', 1)[1]),
+            context.metadata.release_branch,
+            sha,
+        )
     checks = pr.get('statusCheckRollup') or []
-    passed = False
     for check in checks:
         # Tide reports merge-queue eligibility, not a CI result. Its pending
         # status can remain on the tested head after the PR has been merged.
-        if is_pending_merge_queue_check(check):
+        if is_pending_merge_queue_check(check, merged_pr_url=pr.get('url')):
+            continue
+        if landed_run is not None and (
+            (
+                check.get('__typename') == 'StatusContext'
+                and check.get('context') == 'ci-passed'
+                and check.get('state') == 'PENDING'
+            )
+            or superseded_ci_bookkeeping(context, check, checks, head)
+        ):
             continue
         status = check.get('status') or check.get('state')
         result = check.get('conclusion') if status == 'COMPLETED' else status
@@ -652,10 +679,9 @@ def validate_release_pr(context: ReleaseContext) -> str:
             raise RuntimeError(
                 f'Latest version PR CI is not green: {check.get("name") or check.get("context")}'
             )
-        passed = passed or result == 'SUCCESS'
-    if not passed:
+    if landed_run is None and not has_successful_ci_passed(checks):
         raise RuntimeError(
-            'Version PR requires successful CI on its latest head.'
+            'Version PR requires successful ci-passed status on its latest head.'
         )
     for key, value in (('version_pr_head_sha', head), ('release_sha', sha)):
         previous = context.state.answers.get(key)
@@ -1409,13 +1435,13 @@ def _print_notes_warnings(notes: str) -> None:
         print(f'Release notes warning: {warning}')
 
 
-def _release_notes_preview(
+def _prepare_release_notes_preview(
     context: ReleaseContext,
     tag: str,
     render: Callable[[], str],
     selected: ReleaseRange,
 ) -> Path:
-    """Create or reuse editable notes, then review them before publication."""
+    """Create or reuse editable notes bound to the selected release range."""
     path = _release_preview_path(context, tag)
     provenance_path = path.with_suffix('.json')
     if path.exists():
@@ -1447,9 +1473,91 @@ def _release_notes_preview(
             )
             + '\n'
         )
+    return path
+
+
+def review_release_notes(
+    context: ReleaseContext,
+    *,
+    publishing_product: str | None = None,
+    reuse_published: bool = False,
+    display: bool = True,
+) -> list[str]:
+    """Show all selected, range-bound drafts and current public advisories."""
+    # Workflow-only imports of steps do not install the CLI rendering stack.
+    from .joint_review import show_review
+
+    paths = {}
+    for product, enabled, tag, render in (
+        (
+            'backend',
+            context.include_backend,
+            context.metadata.tag,
+            _backend_release_body,
+        ),
+        (
+            'sdk',
+            context.include_sdk,
+            context.metadata.sdk_tag,
+            _sdk_release_body,
+        ),
+    ):
+        active = product == publishing_product
+        if not enabled and not active:
+            continue
+        published = (
+            reuse_published
+            if active
+            else context.state.is_done(f'create-{product}-release')
+        )
+        if published:
+            paths[product] = None
+        else:
+            selected = _notes_range(context, product, publishing=True)
+            paths[product] = _prepare_release_notes_preview(
+                context, tag, lambda: render(context, selected), selected
+            )
+    return show_review(context, paths, display=display)
+
+
+def _require_release_notes_review(
+    context: ReleaseContext,
+    product: str,
+    *,
+    display: bool = True,
+    reuse_published: bool = False,
+) -> None:
+    issues = review_release_notes(
+        context,
+        publishing_product=product,
+        display=display,
+        reuse_published=reuse_published,
+    )
+    if issues:
+        raise ValueError('Release notes need review:\n' + '\n'.join(issues))
+
+
+def _release_notes_preview(
+    context: ReleaseContext,
+    tag: str,
+    render: Callable[[], str],
+    selected: ReleaseRange,
+    *,
+    publishing_product: str | None = None,
+) -> Path:
+    """Review editable notes before publication and restore generated
+    sections."""
+    path = _prepare_release_notes_preview(context, tag, render, selected)
+    provenance_path = path.with_suffix('.json')
     print(f'Release notes preview: {path}')
     reviewed_text = path.read_text()
-    print(reviewed_text)
+    if publishing_product and not context.runner.dry_run:
+        for issue in review_release_notes(
+            context, publishing_product=publishing_product
+        ):
+            print(f'Release notes warning: {issue}')
+    else:
+        print(reviewed_text)
     _print_notes_warnings(reviewed_text)
     if has_conflicts(reviewed_text):
         raise ValueError(
@@ -1490,7 +1598,7 @@ def _sdk_release_body(
     consolidated: bool | None = None,
 ) -> str:
     metadata = context.metadata
-    if consolidated is None and context.runner.dry_run:
+    if consolidated is None:
         contents = subprocess.check_output(
             [
                 'git',
@@ -1502,8 +1610,6 @@ def _sdk_release_body(
             text=True,
         ).splitlines()
         consolidated = 'server_api' in contents
-    elif consolidated is None:
-        consolidated = _sdk_release_is_consolidated(context)
     if consolidated:
         notes = f"""Release of the unified KFP SDK, including Kubernetes configuration,
 the server API client, and pipeline-spec bindings.
@@ -1584,6 +1690,7 @@ def step_create_sdk_release(context: ReleaseContext) -> None:
             default='u',
         )
         if choice == 'u':
+            _require_release_notes_review(context, 'sdk', reuse_published=True)
             return
     selected = _notes_range(context, 'sdk', publishing=True)
     _verify_release_target(context, metadata.sdk_tag, selected)
@@ -1592,8 +1699,10 @@ def step_create_sdk_release(context: ReleaseContext) -> None:
         metadata.sdk_tag,
         lambda: _sdk_release_body(context, selected, consolidated),
         selected,
+        publishing_product='sdk',
     )
     _verify_release_target(context, metadata.sdk_tag, selected)
+    _require_release_notes_review(context, 'sdk', display=False)
     if existing_release.returncode == 0:
         context.runner.run(
             [
@@ -1917,12 +2026,14 @@ def step_create_backend_release(context: ReleaseContext) -> None:
         metadata.tag,
         lambda: _backend_release_body(context, selected),
         selected,
+        publishing_product='backend',
     )
     if context.runner.dry_run:
         print(f'[dry-run] would create backend GitHub release: {metadata.tag}')
         return
 
     _verify_release_target(context, metadata.tag, selected)
+    _require_release_notes_review(context, 'backend', display=False)
     context.runner.run(
         [
             'gh',

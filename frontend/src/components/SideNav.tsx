@@ -38,7 +38,7 @@ import { BuildInfoContext } from 'src/lib/BuildInfo';
 import { Button, IconButton, Tooltip } from '@mui/material';
 
 export const tailwindcss = {
-  sideNavItem: 'flex flex-row flex-shrink-0',
+  sideNavItem: 'flex flex-row shrink-0',
 };
 
 export const sideNavColors = {

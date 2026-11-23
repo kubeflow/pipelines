@@ -45,20 +45,19 @@ the dependency configuration tests guard that alignment.
 ## Frontend dependency security constraints
 
 The Kubernetes client override patches its nested `js-yaml` independently of
-the server's direct YAML dependency. The `gaxios` override keeps `uuid` on
-patched major 11, which retains CommonJS support; major 12 changes to ESM.
-The server dependency regression test exercises gaxios's multipart UUID path.
+the server's direct YAML dependency. Authentication uses gaxios 8's native UUID
+multipart boundary instead of the external UUID package. The server security regression verifies the removed
+dependency and that the Headers boundary matches the complete multipart body.
 
-The frontend selector-parser override covers nested Tailwind/PostCSS copies.
-Tailwind 3.0.11 generated identical CSS with parser 7.1.7 during verification;
-keep validating the CSS build when changing this cross-major override.
+Validate the CSS build and `npm run test:tailwind` when changing Tailwind or
+PostCSS dependencies; the browser regression protects graph colors, selection
+rings, and utility precedence over MUI styles.
 
 ### Remaining braces advisory
 
 [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)
 affects `braces` through 3.0.3, with no patched release listed on 2026-10-23.
-Frontend and server retain `http-proxy-middleware → micromatch → braces`;
-frontend build tooling also retains it through Tailwind's glob/file watchers.
+Frontend and server retain `http-proxy-middleware → micromatch → braces`.
 These build tools consume repository-controlled patterns, not request inputs.
 
 Production proxies omit `pathFilter` or use an artifact namespace callback.
@@ -146,3 +145,9 @@ also ignores `tfx-oss-public/ml_metadata_store_server`, including its Kubernetes
 manifest references. Keep the other dependencies in
 those projects scheduled. This does not remove MLMD from dependency resolution or
 waive advisory triage; any necessary MLMD change requires explicit review.
+
+TypeScript remains on 6.0 while typescript-eslint supports versions below 6.1.
+Both npm schedules ignore TypeScript >=6.1; revisit that bound when the parser
+supports newer releases. Tailwind 4 uses `@tailwindcss/cli`, explicitly loads the
+retained theme config, and leaves utilities unlayered to preserve their precedence
+over injected MUI styles.

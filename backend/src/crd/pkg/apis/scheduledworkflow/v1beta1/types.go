@@ -119,6 +119,11 @@ type WorkflowResource struct {
 
 	PipelineRoot string `json:"pipelineRoot,omitempty"`
 
+	// EnableCaching is the recurring run's enable_caching override, passed to
+	// every run created through the API. Nil keeps the compiled settings.
+	// +optional
+	EnableCaching *bool `json:"enableCaching,omitempty"`
+
 	// Specification of the workflow to start.
 	// Use interface{} for backward compatibility
 	// TODO: change it to string and avoid type casting

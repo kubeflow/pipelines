@@ -7,6 +7,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+import yaml
+
 from . import deployed_images as inventory
 
 
@@ -400,3 +402,162 @@ spec:
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class IstioPatchInventoryTest(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.path = Path(self.temp.name)
+        write_inventory_fixture(self.path)
+        self.inputs = json.loads((self.path / 'inputs.json').read_text())
+        self.renders = json.loads((self.path / 'rendered.json').read_text())
+        sources = self.inputs['sources']
+        original = (
+            'https://github.com/kubeflow/community-distribution/'
+            + inventory.PREREQUISITES['istio']
+            + '?ref=${KUBEFLOW_MANIFESTS_SHA}'
+        )
+        sources[inventory.SOURCE_PATHS[1]] = sources[
+            inventory.SOURCE_PATHS[1]
+        ].replace(original, inventory.ISTIO_OVERLAY)
+        version = '1.31.4'
+        values = {
+            'global': {
+                'tag': version,
+                'hub': 'docker.io/istio',
+                'proxy': {'image': 'proxyv2'},
+                'proxy_init': {'image': 'proxyv2'},
+                'variant': '',
+            }
+        }
+        self.overlay = {
+            'resources': [
+                original.replace('${KUBEFLOW_MANIFESTS_SHA}', 'a' * 40)
+            ],
+            'images': [
+                {'name': name, 'newTag': version}
+                for name in sorted(inventory.ISTIO_REPOSITORIES)
+            ],
+            'configMapGenerator': [
+                {
+                    'name': 'istio-sidecar-injector',
+                    'namespace': 'istio-system',
+                    'behavior': 'merge',
+                    'files': ['values=injector-values.json'],
+                }
+            ],
+            'patches': [
+                {
+                    'target': {
+                        'version': 'v1',
+                        'kind': 'ConfigMap',
+                        'name': 'istio-cni-config',
+                        'namespace': 'kube-system',
+                    },
+                    'patch': yaml.safe_dump(
+                        [
+                            {
+                                'op': 'replace',
+                                'path': '/data/CURRENT_AGENT_VERSION',
+                                'value': version,
+                            }
+                        ]
+                    ),
+                }
+            ],
+        }
+        sources[inventory.ISTIO_INPUTS[0]] = yaml.safe_dump(self.overlay)
+        sources[inventory.ISTIO_INPUTS[1]] = json.dumps(values)
+        self.inputs['prerequisites'] = inventory._pins(sources)
+        self.documents = [
+            {
+                'kind': 'Pod',
+                'spec': {
+                    'containers': [
+                        {'image': name + ':' + version}
+                        for name in sorted(inventory.ISTIO_REPOSITORIES)
+                    ]
+                },
+            },
+            {
+                'kind': 'ConfigMap',
+                'metadata': {'name': 'istio-sidecar-injector'},
+                'data': {'values': json.dumps(values)},
+            },
+            {
+                'kind': 'ConfigMap',
+                'metadata': {'name': 'istio-cni-config'},
+                'data': {'CURRENT_AGENT_VERSION': version},
+            },
+        ]
+
+    def discover(self):
+        self.renders['prerequisite/istio'] = yaml.safe_dump_all(self.documents)
+        (self.path / 'inputs.json').write_text(json.dumps(self.inputs))
+        (self.path / 'rendered.json').write_text(json.dumps(self.renders))
+        return inventory.discover(self.path)
+
+    def test_local_overlay_is_exact_scan_target(self):
+        result = self.discover()
+        self.assertEqual(
+            self.inputs['prerequisites']['istio'], inventory.ISTIO_OVERLAY
+        )
+        self.assertEqual(
+            result['profiles']['prerequisite/istio'],
+            sorted(name + ':1.31.4' for name in inventory.ISTIO_REPOSITORIES),
+        )
+
+    def test_changed_injector_image_selectors_fail_closed(self):
+        original = self.inputs['sources'][inventory.ISTIO_INPUTS[1]]
+        for selector, value in (
+            ('proxy', {'image': 'different-proxy'}),
+            ('proxy_init', {'image': 'different-init'}),
+            ('variant', 'distroless'),
+            ('proxy', {}),
+        ):
+            with self.subTest(selector=selector, value=value):
+                values = json.loads(original)
+                values['global'][selector] = value
+                encoded = json.dumps(values)
+                self.inputs['sources'][inventory.ISTIO_INPUTS[1]] = encoded
+                # Matching source and rendered values must not hide an image
+                # absent from the static prerequisite scan inventory.
+                self.documents[1]['data']['values'] = encoded
+                with self.assertRaisesRegex(ValueError, 'injected image'):
+                    inventory._pins(self.inputs['sources'])
+                with self.assertRaisesRegex(ValueError, 'injected image'):
+                    self.discover()
+
+    def test_missing_overlay_input_fails_closed(self):
+        del self.inputs['sources'][inventory.ISTIO_INPUTS[1]]
+        with self.assertRaisesRegex(ValueError, 'inventory source'):
+            self.discover()
+
+    def test_stale_source_injection_tag_fails_closed(self):
+        self.inputs['sources'][inventory.ISTIO_INPUTS[1]] = json.dumps(
+            {'global': {'tag': '1.31.3', 'hub': 'docker.io/istio'}}
+        )
+        with self.assertRaisesRegex(ValueError, 'injected sidecar version'):
+            self.discover()
+
+    def test_rendered_images_and_injection_must_match_inputs(self):
+        for index in range(3):
+            with self.subTest(index=index):
+                original = self.documents[index]
+                self.documents[index] = json.loads(
+                    json.dumps(original).replace('1.31.4', '1.31.3')
+                )
+                with self.assertRaisesRegex(ValueError, 'Rendered Istio'):
+                    self.discover()
+                self.documents[index] = original
+
+    def test_overlay_base_must_match_installer_commit(self):
+        self.overlay['resources'][0] = self.overlay['resources'][0].replace(
+            'a' * 40, 'b' * 40
+        )
+        self.inputs['sources'][inventory.ISTIO_INPUTS[0]] = yaml.safe_dump(
+            self.overlay
+        )
+        with self.assertRaisesRegex(ValueError, 'pinned prerequisite base'):
+            self.discover()

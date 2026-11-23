@@ -25,7 +25,7 @@ exports[`ConfusionMatrix > does not break on asymetric data 1`] = `
           </td>
           <td
             class="cell_fkzbx8g"
-            style="background-color: rgba(41, 121, 255, 0.5); color: rgb(0, 0, 0); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
+            style="background-color: rgba(41, 121, 255, 0.5); color: rgb(0, 0, 0); height: 79px; min-size: 79px; width: 79px;"
           >
             <div
               class="overlay_fecblze"
@@ -35,7 +35,7 @@ exports[`ConfusionMatrix > does not break on asymetric data 1`] = `
           </td>
           <td
             class="cell_fkzbx8g"
-            style="background-color: rgba(41, 121, 255, 0.875); color: rgb(255, 255, 255); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
+            style="background-color: rgba(41, 121, 255, 0.875); color: rgb(255, 255, 255); height: 79px; min-size: 79px; width: 79px;"
           >
             <div
               class="overlay_fecblze"
@@ -55,7 +55,7 @@ exports[`ConfusionMatrix > does not break on asymetric data 1`] = `
           </td>
           <td
             class="cell_fkzbx8g"
-            style="background-color: rgba(41, 121, 255, 0.375); color: rgb(0, 0, 0); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
+            style="background-color: rgba(41, 121, 255, 0.376); color: rgb(0, 0, 0); height: 79px; min-size: 79px; width: 79px;"
           >
             <div
               class="overlay_fecblze"
@@ -65,7 +65,7 @@ exports[`ConfusionMatrix > does not break on asymetric data 1`] = `
           </td>
           <td
             class="cell_fkzbx8g"
-            style="background-color: rgba(41, 121, 255, 0.75); color: rgb(255, 255, 255); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
+            style="background-color: rgba(41, 121, 255, 0.75); color: rgb(255, 255, 255); height: 79px; min-size: 79px; width: 79px;"
           >
             <div
               class="overlay_fecblze"
@@ -204,7 +204,7 @@ exports[`ConfusionMatrix > renders a basic confusion matrix 1`] = `
           </td>
           <td
             class="cell_fkzbx8g"
-            style="background-color: rgba(41, 121, 255, 0.125); color: rgb(0, 0, 0); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
+            style="background-color: rgba(41, 121, 255, 0.125); color: rgb(0, 0, 0); height: 79px; min-size: 79px; width: 79px;"
           >
             <div
               class="overlay_fecblze"
@@ -214,7 +214,7 @@ exports[`ConfusionMatrix > renders a basic confusion matrix 1`] = `
           </td>
           <td
             class="cell_fkzbx8g"
-            style="background-color: rgba(41, 121, 255, 0.5); color: rgb(0, 0, 0); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
+            style="background-color: rgba(41, 121, 255, 0.5); color: rgb(0, 0, 0); height: 79px; min-size: 79px; width: 79px;"
           >
             <div
               class="overlay_fecblze"
@@ -234,7 +234,7 @@ exports[`ConfusionMatrix > renders a basic confusion matrix 1`] = `
           </td>
           <td
             class="cell_fkzbx8g"
-            style="background-color: rgba(41, 121, 255, 0); color: rgb(0, 0, 0); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
+            style="background-color: rgba(41, 121, 255, 0); color: rgb(0, 0, 0); height: 79px; min-size: 79px; width: 79px;"
           >
             <div
               class="overlay_fecblze"
@@ -244,7 +244,7 @@ exports[`ConfusionMatrix > renders a basic confusion matrix 1`] = `
           </td>
           <td
             class="cell_fkzbx8g"
-            style="background-color: rgba(41, 121, 255, 0.375); color: rgb(0, 0, 0); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
+            style="background-color: rgba(41, 121, 255, 0.376); color: rgb(0, 0, 0); height: 79px; min-size: 79px; width: 79px;"
           >
             <div
               class="overlay_fecblze"
@@ -368,7 +368,7 @@ exports[`ConfusionMatrix > renders a small confusion matrix snapshot, with no la
         <tr>
           <td
             class="cell_ffgmx8m"
-            style="background-color: rgba(41, 121, 255, 0.125); color: rgb(0, 0, 0); height: 32.333333333333336px; min-height: 32.333333333333336px; min-width: 32.333333333333336px; width: 32.333333333333336px;"
+            style="background-color: rgba(41, 121, 255, 0.125); color: rgb(0, 0, 0); height: 32.3333px; min-size: 32.3333px; width: 32.3333px;"
           >
             <div
               class="overlay_fecblze"
@@ -378,7 +378,7 @@ exports[`ConfusionMatrix > renders a small confusion matrix snapshot, with no la
           </td>
           <td
             class="cell_ffgmx8m"
-            style="background-color: rgba(41, 121, 255, 0.5); color: rgb(0, 0, 0); height: 32.333333333333336px; min-height: 32.333333333333336px; min-width: 32.333333333333336px; width: 32.333333333333336px;"
+            style="background-color: rgba(41, 121, 255, 0.5); color: rgb(0, 0, 0); height: 32.3333px; min-size: 32.3333px; width: 32.3333px;"
           >
             <div
               class="overlay_fecblze"
@@ -390,7 +390,7 @@ exports[`ConfusionMatrix > renders a small confusion matrix snapshot, with no la
         <tr>
           <td
             class="cell_ffgmx8m"
-            style="background-color: rgba(41, 121, 255, 0); color: rgb(0, 0, 0); height: 32.333333333333336px; min-height: 32.333333333333336px; min-width: 32.333333333333336px; width: 32.333333333333336px;"
+            style="background-color: rgba(41, 121, 255, 0); color: rgb(0, 0, 0); height: 32.3333px; min-size: 32.3333px; width: 32.3333px;"
           >
             <div
               class="overlay_fecblze"
@@ -400,7 +400,7 @@ exports[`ConfusionMatrix > renders a small confusion matrix snapshot, with no la
           </td>
           <td
             class="cell_ffgmx8m"
-            style="background-color: rgba(41, 121, 255, 0.375); color: rgb(0, 0, 0); height: 32.333333333333336px; min-height: 32.333333333333336px; min-width: 32.333333333333336px; width: 32.333333333333336px;"
+            style="background-color: rgba(41, 121, 255, 0.376); color: rgb(0, 0, 0); height: 32.3333px; min-size: 32.3333px; width: 32.3333px;"
           >
             <div
               class="overlay_fecblze"
@@ -440,7 +440,7 @@ exports[`ConfusionMatrix > renders only one of the given list of configs 1`] = `
           </td>
           <td
             class="cell_fkzbx8g"
-            style="background-color: rgba(41, 121, 255, 0.125); color: rgb(0, 0, 0); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
+            style="background-color: rgba(41, 121, 255, 0.125); color: rgb(0, 0, 0); height: 79px; min-size: 79px; width: 79px;"
           >
             <div
               class="overlay_fecblze"
@@ -450,7 +450,7 @@ exports[`ConfusionMatrix > renders only one of the given list of configs 1`] = `
           </td>
           <td
             class="cell_fkzbx8g"
-            style="background-color: rgba(41, 121, 255, 0.5); color: rgb(0, 0, 0); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
+            style="background-color: rgba(41, 121, 255, 0.5); color: rgb(0, 0, 0); height: 79px; min-size: 79px; width: 79px;"
           >
             <div
               class="overlay_fecblze"
@@ -470,7 +470,7 @@ exports[`ConfusionMatrix > renders only one of the given list of configs 1`] = `
           </td>
           <td
             class="cell_fkzbx8g"
-            style="background-color: rgba(41, 121, 255, 0); color: rgb(0, 0, 0); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
+            style="background-color: rgba(41, 121, 255, 0); color: rgb(0, 0, 0); height: 79px; min-size: 79px; width: 79px;"
           >
             <div
               class="overlay_fecblze"
@@ -480,7 +480,7 @@ exports[`ConfusionMatrix > renders only one of the given list of configs 1`] = `
           </td>
           <td
             class="cell_fkzbx8g"
-            style="background-color: rgba(41, 121, 255, 0.375); color: rgb(0, 0, 0); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
+            style="background-color: rgba(41, 121, 255, 0.376); color: rgb(0, 0, 0); height: 79px; min-size: 79px; width: 79px;"
           >
             <div
               class="overlay_fecblze"

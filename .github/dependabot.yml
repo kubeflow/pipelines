@@ -99,6 +99,10 @@ updates:
       - "javascript"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # typescript-eslint supports TypeScript <6.1; revisit with parser support.
+      - dependency-name: "typescript"
+        versions: [">=6.1"]
     groups:
       react-version:
         applies-to: version-updates
@@ -153,6 +157,7 @@ updates:
     # The root and SDK form the uv workspace; uv owns those manifests and lock.
     directories:
       - "/.github/scripts"
+      - "/backend/src/tensorboard"
       - "/components/PyTorch/pytorch-kfp-components"
       - "/components/google-cloud"
       - "/docs"
@@ -296,6 +301,10 @@ updates:
       - "javascript"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # typescript-eslint supports TypeScript <6.1; revisit with parser support.
+      - dependency-name: "typescript"
+        versions: [">=6.1"]
     groups:
       # @mui/icons-material declares a peer dependency on the matching
       # @mui/material version, so bumping either one alone leaves the other

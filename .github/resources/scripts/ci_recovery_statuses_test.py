@@ -19,6 +19,8 @@ import subprocess
 import unittest
 from pathlib import Path
 
+from ci_pass_eligibility_test import run_with_disabled_policy
+
 MODULE = Path(__file__).with_name('ci_recovery_statuses.js')
 
 
@@ -42,7 +44,8 @@ const github = {graphql: async (query, variables) => {
     if (!name.startsWith('sha')) continue;
     repository[`head${name.slice(3)}`] = {__typename: 'Commit', oid: head,
       status: {context: {context: 'ci-passed', state: options.state || 'SUCCESS',
-        description: options.nullDescription ? null : 'base-policy-stamp'}}};
+        description: options.nullDescription ? null : 'base-policy-stamp',
+        ...(options.targetUrl === undefined ? {} : {targetUrl:options.targetUrl})}}};
   }
   const commit = repository.head0;
   switch (options.error) {
@@ -98,15 +101,12 @@ github.paginate.iterator = async function* () {
   calls.rest++;
   yield {data: {statuses: [{context: 'ci-passed', state: 'failure', description: 'failed'}]}};
 };
-recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}})
+recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}, root: process.argv.at(-1)})
   .then(result => console.log(JSON.stringify({calls, count: result.length})))
   .catch(error => {console.error(error); process.exit(1);});
 """
-        result = subprocess.run(
-            ['node', '-e', script, str(MODULE.with_name('ci_passed.js'))],
-            capture_output=True,
-            text=True,
-            check=True,
+        result = run_with_disabled_policy(
+            ['node', '-e', script, str(MODULE.with_name('ci_passed.js'))]
         )
         actual = json.loads(result.stdout)
         self.assertEqual(actual['count'], 101)
@@ -142,6 +142,15 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}})
                 )
         result = exercise({'nullDescription': True})
         self.assertIsNone(result['statuses'][0][1]['description'])
+
+    def test_preserves_bound_attempt_target_for_queue_recovery(self):
+        target = (
+            'https://github.com/upstream/repo/actions/runs/42#queue-attempts='
+            + 'a' * 64
+        )
+        result = exercise({'targetUrl': target})
+        self.assertEqual(result['statuses'][0][1]['target_url'], target)
+        self.assertIn('targetUrl', result['calls'][0]['query'])
 
     def test_absent_status_is_distinct_from_incomplete_response(self):
         for absent in ['status', 'context']:
