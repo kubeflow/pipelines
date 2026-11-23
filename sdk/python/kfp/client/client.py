@@ -26,7 +26,7 @@ import time
 import warnings
 import zipfile
 from types import ModuleType
-from typing import Any, Dict, List, Optional, TextIO
+from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
 from urllib.parse import urlsplit
 
 import yaml
@@ -1579,12 +1579,14 @@ class Client:
         self,
         recurring_run_id: str,
         job_id: Optional[str] = None,
+        _request_timeout: Optional[Union[float, Tuple[float, float]]] = None,
     ) -> kfp.server_api.V2RecurringRun:
         """Gets recurring run details.
 
         Args:
             recurring_run_id: ID of the recurring run.
             job_id: Deprecated. Use `recurring_run_id` instead.
+            _request_timeout: Optional timeout setting for this request.
 
         Returns:
             ``V2RecurringRun`` object.
@@ -1597,8 +1599,21 @@ class Client:
             )
             recurring_run_id = recurring_run_id or job_id
 
+        kwargs = {}
+        if _request_timeout is not None:
+            if isinstance(_request_timeout, int):
+                kwargs['_request_timeout'] = _request_timeout
+            elif isinstance(_request_timeout, float):
+                kwargs['_request_timeout'] = (
+                    _request_timeout,
+                    _request_timeout,
+                )
+            else:
+                kwargs['_request_timeout'] = _request_timeout
+
         return self._recurring_run_api.recurring_run_service_get_recurring_run(
-            recurring_run_id=recurring_run_id
+            recurring_run_id=recurring_run_id,
+            **kwargs,
         )
 
     def get_run(self, run_id: str) -> kfp.server_api.V2Run:
