@@ -13,6 +13,7 @@
 # limitations under the License.
 """Security and compatibility tests for local condition evaluation."""
 
+import json
 import os
 import tempfile
 import unittest
@@ -139,6 +140,49 @@ class ConditionEvaluatorTest(unittest.TestCase):
         self.store.put_task_output('producer', 'Output', value)
         self.assertTrue(
             ConditionEvaluator.evaluate_condition(condition, self.store))
+
+    def test_compiler_escaped_string_literals_round_trip(self):
+        channel = pipeline_channel.PipelineParameterChannel(
+            name='Output', channel_type='String', task_name='producer')
+        for value in (
+                r"O\'Reilly",
+                "O'Reilly",
+                r'C:\new',
+                'line 1\r\nline 2',
+                'tab\tand NUL\x00',
+                'Double "quotes" and a backslash\\',
+                "inputs.parameter_values['another']",
+        ):
+            with self.subTest(value=value):
+                condition = pipeline_spec_builder._single_binary_operation_to_cel_condition(
+                    pipeline_channel.ConditionOperation('==', channel, value))
+                self.assertEqual(
+                    condition,
+                    "inputs.parameter_values['pipelinechannel--producer-Output'] == "
+                    + json.dumps(value))
+                self.store.put_task_output('producer', 'Output', value)
+                self.assertTrue(
+                    ConditionEvaluator.evaluate_condition(
+                        condition, self.store, preserve_legacy_literals=True))
+                self.store.put_task_output('producer', 'Output', value + '!')
+                self.assertFalse(
+                    ConditionEvaluator.evaluate_condition(
+                        condition, self.store, preserve_legacy_literals=True))
+
+    def test_existing_compiler_literals_keep_raw_backslashes(self):
+        for value in (r"O\'Reilly", r'C:\new', r'C:\\network'):
+            with self.subTest(value=value):
+                self.store.put_task_output('producer', 'Output', value)
+                condition = (
+                    "inputs.parameter_values['pipelinechannel--producer-Output']"
+                    f" == '{value}'")
+                self.assertTrue(
+                    ConditionEvaluator.evaluate_condition(
+                        condition, self.store, preserve_legacy_literals=True))
+                self.store.put_task_output('producer', 'Output', value + '!')
+                self.assertFalse(
+                    ConditionEvaluator.evaluate_condition(
+                        condition, self.store, preserve_legacy_literals=True))
 
     def test_large_numeric_conversion_fails_closed(self):
         self.store.put_task_output('number', 'Output', 10**400)

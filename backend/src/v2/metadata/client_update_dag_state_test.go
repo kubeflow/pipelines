@@ -236,6 +236,46 @@ func TestUpdateDAGExecutionsState_StateResolution(t *testing.T) {
 	}
 }
 
+func TestUpdateDAGExecutionsState_StaleSiblingWrite(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		before, after pb.Execution_State
+	}{
+		{"failure reconciliation", pb.Execution_COMPLETE, pb.Execution_FAILED},
+		{"successful retry", pb.Execution_FAILED, pb.Execution_COMPLETE},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dag := makeExecution(10, pb.Execution_RUNNING, map[string]*pb.Value{keyTotalDagTasks: intValue(2)})
+			first := makeExecution(11, pb.Execution_COMPLETE, map[string]*pb.Value{keyTaskName: StringValue("first"), keyParentDagID: intValue(10)})
+			second := makeExecution(12, tc.before, map[string]*pb.Value{keyTaskName: StringValue("second"), keyParentDagID: intValue(10)})
+			store := map[int64]*pb.Execution{10: dag, 11: first, 12: second}
+			runID := int64(500)
+			pipeline := &Pipeline{pipelineRunCtx: &pb.Context{Id: &runID}}
+			mock := buildMock(store, nil, map[int64][]*pb.Execution{runID: {first, second}}, nil)
+			writes := 0
+			mock.PutExecutionFn = func(ctx context.Context, req *pb.PutExecutionRequest, opts ...grpc.CallOption) (*pb.PutExecutionResponse, error) {
+				writes++
+				if writes == 1 {
+					if got := req.GetExecution().GetLastKnownState(); got != tc.before {
+						t.Fatalf("first writer computed %v, want %v", got, tc.before)
+					}
+					// The other launcher finishes its child and DAG updates just
+					// before this pending write reaches MLMD.
+					second.LastKnownState = tc.after.Enum()
+					store[10] = makeExecution(10, tc.after, dag.GetCustomProperties())
+				}
+				return defaultPutExecution(store)(ctx, req, opts...)
+			}
+			if err := newTestClient(mock).UpdateDAGExecutionsState(context.Background(), makeDAG(dag), pipeline); err != nil {
+				t.Fatal(err)
+			}
+			if got := store[10].GetLastKnownState(); got != tc.after {
+				t.Errorf("stale sibling write left DAG %v, want %v", got, tc.after)
+			}
+		})
+	}
+}
+
 func TestUpdateDAGExecutionsState_ExpectedTaskCount(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -366,14 +406,12 @@ func TestUpdateDAGExecutionsState_RecursivePropagation(t *testing.T) {
 			runCtx := &pb.Context{Id: &runCtxID, TypeId: &runCtxTypeID}
 			sharedContexts := []*pb.Context{pipelineCtx, runCtx}
 
-			callCount := 0
 			mock := &MockMLMDClient{
-				getExecutionsByContextFn: func(_ context.Context, _ *pb.GetExecutionsByContextRequest, _ ...grpc.CallOption) (*pb.GetExecutionsByContextResponse, error) {
-					callCount++
-					switch callCount {
-					case 1:
+				getExecutionsByContextFn: func(_ context.Context, req *pb.GetExecutionsByContextRequest, _ ...grpc.CallOption) (*pb.GetExecutionsByContextResponse, error) {
+					switch req.GetOptions().GetFilterQuery() {
+					case "custom_properties.parent_dag_id.int_value = 2":
 						return &pb.GetExecutionsByContextResponse{Executions: []*pb.Execution{leafExecution}}, nil
-					case 2:
+					case "custom_properties.parent_dag_id.int_value = 1":
 						return &pb.GetExecutionsByContextResponse{Executions: []*pb.Execution{parentExecution}}, nil
 					default:
 						return &pb.GetExecutionsByContextResponse{}, nil

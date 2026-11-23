@@ -18,6 +18,7 @@ dsl.ParallelFor."""
 import ast
 import concurrent.futures
 import enum
+import json
 import logging
 import operator
 import re
@@ -40,6 +41,7 @@ _PROMOTED_CHANNEL = re.compile(
 _CEL_CHANNEL = re.compile(r"inputs\.parameter_values\['([^']+)'\]")
 _DIRECT_CHANNEL = re.compile(r'pipelinechannel--[a-zA-Z0-9_\-]+')
 _CEL_NOT = re.compile(r'!\s*\(')
+_JSON_DECODER = json.JSONDecoder()
 
 
 @enum.unique
@@ -55,14 +57,22 @@ class ConditionEvaluator:
     """Evaluates condition expressions for dsl.Condition support."""
 
     @staticmethod
-    def _prepare_condition(condition: str,
-                           io_store: io.IOStore) -> Tuple[str, Dict[str, Any]]:
+    def _prepare_condition(
+        condition: str,
+        io_store: io.IOStore,
+        *,
+        preserve_legacy_literals: bool,
+    ) -> Tuple[str, Dict[str, Any]]:
         """Bind channel values and preserve compiler-emitted string data."""
         expression = []
         values = {}
         index = 0
         while index < len(condition):
-            promoted = _PROMOTED_CHANNEL.match(condition, index)
+            # The compiler uses single quotes for promoted channel references.
+            # Double-quoted compiler operands can contain the same text as data.
+            promoted = None if (preserve_legacy_literals and condition[index]
+                                == '"') else _PROMOTED_CHANNEL.match(
+                                    condition, index)
             channel = _CEL_CHANNEL.match(condition, index)
             direct = _DIRECT_CHANNEL.match(condition, index)
             if promoted or channel or direct:
@@ -88,6 +98,17 @@ class ConditionEvaluator:
 
             char = condition[index]
             if char in ("'", '"'):
+                if char == '"':
+                    try:
+                        value, end = _JSON_DECODER.raw_decode(condition, index)
+                    except json.JSONDecodeError:
+                        # Older locally supplied expressions also accepted
+                        # double-quoted strings with non-JSON escapes.
+                        pass
+                    else:
+                        expression.append(repr(value))
+                        index = end
+                        continue
                 quote = char
                 literal = []
                 index += 1
@@ -99,6 +120,9 @@ class ConditionEvaluator:
                             index += 2
                             continue
                         if next_char == quote:
+                            if preserve_legacy_literals and quote == "'":
+                                # Older compilers copied backslashes verbatim.
+                                literal.append('\\')
                             literal.append(quote)
                             index += 2
                             continue
@@ -176,7 +200,12 @@ class ConditionEvaluator:
             return None
 
     @staticmethod
-    def evaluate_condition(condition: str, io_store: io.IOStore) -> bool:
+    def evaluate_condition(
+        condition: str,
+        io_store: io.IOStore,
+        *,
+        preserve_legacy_literals: bool = False,
+    ) -> bool:
         """Evaluate a condition without turning task outputs into Python
         code."""
         if not condition or not condition.strip():
@@ -184,7 +213,9 @@ class ConditionEvaluator:
 
         try:
             expression, values = ConditionEvaluator._prepare_condition(
-                condition, io_store)
+                condition,
+                io_store,
+                preserve_legacy_literals=preserve_legacy_literals)
             tree = ast.parse(expression, mode='eval')
             return bool(ConditionEvaluator._evaluate_node(tree.body, values))
         except (
@@ -672,7 +703,7 @@ def run_enhanced_dag(
             elif kind == TaskKind.CONDITION:
                 condition_expr = task_spec.trigger_policy.condition
                 should_execute = condition_evaluator.evaluate_condition(
-                    condition_expr, io_store)
+                    condition_expr, io_store, preserve_legacy_literals=True)
 
                 if not should_execute:
                     logging.info(f'Skipping conditional task {task_name} '

@@ -22,10 +22,19 @@ interface ErrorBoundaryState {
   errorInfo: any;
 }
 
-export class ErrorBoundary extends React.Component<React.PropsWithChildren, ErrorBoundaryState> {
-  constructor(props: React.PropsWithChildren) {
+type ErrorBoundaryProps = React.PropsWithChildren<{ resetKey?: string }>;
+
+export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { error: null, errorInfo: null };
+  }
+
+  componentDidUpdate(previousProps: ErrorBoundaryProps) {
+    // Navigation recovers a failed page without remounting healthy page state.
+    if (this.state.errorInfo && previousProps.resetKey !== this.props.resetKey) {
+      this.setState({ error: null, errorInfo: null });
+    }
   }
 
   componentDidCatch(error: any, errorInfo: any) {

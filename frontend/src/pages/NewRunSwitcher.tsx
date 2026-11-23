@@ -207,14 +207,16 @@ function NewRunSwitcher(props: PageProps) {
   // 2. templateStrFromSpec: pipeline_spec stored in pipeline_version
   // 3. v1TemplateStr: pipelines created by v1 API (no pipeline_spec field)
   const templateString = pipelineManifest ?? (templateStrFromSpec || v1TemplateStr);
+  const isV2Template = isTemplateV2(templateString);
+  const isLegacyRun = !!templateString && !isV2Template;
 
   if (
     v2RunIsFetching ||
     recurringRunIsFetching ||
     pipelineIsFetching ||
     pipelineVersionIsFetching ||
-    (!isTemplateV2(templateString) && v1TemplateStrIsFetching) ||
-    experimentIsFetching
+    (!isV2Template && v1TemplateStrIsFetching) ||
+    (isLegacyRun && experimentIsFetching)
   ) {
     return (
       <div style={{ textAlign: 'center', paddingTop: 40 }}>
@@ -224,7 +226,7 @@ function NewRunSwitcher(props: PageProps) {
     );
   }
 
-  if (templateString && !isTemplateV2(templateString)) {
+  if (isLegacyRun) {
     return (
       <NewRun
         {...props}
@@ -238,20 +240,26 @@ function NewRunSwitcher(props: PageProps) {
   }
 
   return (
-    <NewRunV2
-      {...props}
-      namespace={namespace}
-      existingRunId={existingRunId}
-      existingRun={v2Run}
-      existingRecurringRunId={originalRecurringRunId}
-      existingRecurringRun={recurringRun}
-      existingPipeline={pipeline}
-      handlePipelineIdChange={setPipelineIdFromPipeline}
-      existingPipelineVersion={pipelineVersion}
-      handlePipelineVersionIdChange={setPipelineVersionIdParam}
-      templateString={templateString}
-      chosenExperiment={experiment}
-    />
+    <>
+      {experimentIsFetching && !experiment && (
+        <div role='status'>Loading experiment information</div>
+      )}
+      <NewRunV2
+        {...props}
+        namespace={namespace}
+        existingRunId={existingRunId}
+        existingRun={v2Run}
+        existingRecurringRunId={originalRecurringRunId}
+        existingRecurringRun={recurringRun}
+        existingPipeline={pipeline}
+        handlePipelineIdChange={setPipelineIdFromPipeline}
+        existingPipelineVersion={pipelineVersion}
+        handlePipelineVersionIdChange={setPipelineVersionIdParam}
+        templateString={templateString}
+        chosenExperiment={experiment}
+        isExperimentResolved={!experimentId || experiment?.experiment_id === experimentId}
+      />
+    </>
   );
 }
 

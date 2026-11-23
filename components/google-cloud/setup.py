@@ -63,16 +63,16 @@ setuptools.setup(
         # second list of deps are true dependencies for building the site
         "docs": ([
             "protobuf>=4.21.1,<7",
-            "grpcio-status<=1.85.1",
+            "grpcio-status<=1.85.3",
         ] + [
             "commonmark==0.9.2",
             "autodocsumm==0.2.15",
             "sphinx>=5.0.2,<6.0.0; python_version < '3.10'",
             "sphinx>=5.0.2,<9.0.0; python_version >= '3.10'",
             "sphinx-immaterial==0.9.0; python_version < '3.10'",
-            "sphinx-immaterial==0.12.6; python_version >= '3.10'",
-            "sphinx-rtd-theme==2.0.0",
-            "m2r2==0.3.4",
+            "sphinx-immaterial==0.13.11; python_version >= '3.10'",
+            "sphinx-rtd-theme==3.1.0",
+            "m2r2==2.1.0",
             "sphinx-notfound-page==1.0.4",
         ]),
     },

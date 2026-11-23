@@ -48,6 +48,15 @@ CURRENT_DIR="$(pwd)"
 DIR="$CURRENT_DIR/$API_VERSION/python_http_client"
 swagger_file="$CURRENT_DIR/$API_VERSION/swagger/kfp_api_single_file.swagger.json"
 
+if [[ "$API_VERSION" == "v2beta1" ]]; then
+    # Annotate the Python generator input without changing the public schema.
+    swagger_tmp_dir="$(mktemp -d)"
+    trap 'rm -rf "$swagger_tmp_dir"' EXIT
+    jq '.definitions.v2beta1PipelineVersionReference["x-kfp-legacy-positional-configuration"] = true' \
+        "$swagger_file" > "$swagger_tmp_dir/swagger.json"
+    swagger_file="$swagger_tmp_dir/swagger.json"
+fi
+
 echo "Removing old content in DIR first."
 rm -rf "$DIR"
 

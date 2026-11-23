@@ -15,12 +15,13 @@
 package api
 
 import (
+	"crypto/rand"
 	"crypto/tls"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -156,7 +157,8 @@ var _ = BeforeEach(func() {
 	testContext = &TestContext{
 		TestStartTimeUTC: time.Now(),
 	}
-	randomName = strconv.FormatInt(time.Now().UnixNano(), 10)
+	// Keep fixture names DNS-safe and independent of clock resolution across parallel workers.
+	randomName = strings.ToLower(rand.Text()[:19])
 	testContext.Pipeline.CreatedPipelines = make([]*pipeline_upload_model.V2beta1Pipeline, 0)
 	testContext.Pipeline.UploadParams = uploadparams.NewUploadPipelineParams()
 	testContext.PipelineRun.CreatedRunIds = make([]string, 0)

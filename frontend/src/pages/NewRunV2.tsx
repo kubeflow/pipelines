@@ -64,7 +64,6 @@ import {
   convertPipelineVersionToResource,
 } from 'src/lib/ResourceConverter';
 import AddIcon from '@mui/icons-material/Add';
-import { ToolbarActionMap } from '../components/Toolbar';
 import { NewExperimentFC } from './functional_components/NewExperimentFC';
 
 const css = stylesheet({
@@ -95,6 +94,7 @@ interface RunV2Props {
   handlePipelineVersionIdChange: (pipelineVersionId: string) => void;
   templateString?: string;
   chosenExperiment?: V2beta1Experiment;
+  isExperimentResolved?: boolean;
 }
 
 type NewRunV2Props = RunV2Props & PageProps;
@@ -250,6 +250,7 @@ function NewRunV2(props: NewRunV2Props) {
     handlePipelineVersionIdChange,
     templateString,
     chosenExperiment,
+    isExperimentResolved = true,
   } = props;
   const cloneOrigin = getCloneOrigin(existingRun, existingRecurringRun);
   const urlParser = new URLParser(props);
@@ -258,7 +259,6 @@ function NewRunV2(props: NewRunV2Props) {
   const [runDescription, setRunDescription] = useState('');
   const [serviceAccount, setServiceAccount] = useState('');
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
-  const [openNewExperiment, setOpenNewExperiment] = useState(false);
   const [isRecurringRun, setIsRecurringRun] = useState(
     urlParser.get(QUERY_PARAMS.isRecurring) === '1' || cloneOrigin.isRecurring,
   );
@@ -360,7 +360,11 @@ function NewRunV2(props: NewRunV2Props) {
     isTemplatePullSuccess,
   );
   const isStartButtonEnabled =
-    !!templateString && !validationErrorMessage && isParameterValid && isMaxConcurrentRunValid;
+    !!templateString &&
+    !validationErrorMessage &&
+    isParameterValid &&
+    isMaxConcurrentRunValid &&
+    isExperimentResolved;
 
   const titleVerb = cloneOrigin.isClone ? 'Clone' : 'Start';
   const titleAdjective = cloneOrigin.isClone ? '' : 'new';
@@ -377,18 +381,6 @@ function NewRunV2(props: NewRunV2Props) {
   const pipelineVersionRefClone = cloneOrigin.isRecurring
     ? cloneOrigin.recurringRun?.pipeline_version_reference
     : cloneOrigin.run?.pipeline_version_reference;
-
-  // Creat new experiment option
-  const createNewExperiment = {
-    action1: {
-      action: () => setOpenNewExperiment(true),
-      disabledTitle: 'create experiment to new run disabled title',
-      icon: AddIcon,
-      id: 'create experiment to new run id',
-      title: 'Create new experiment',
-      tooltip: 'Create new experiment',
-    },
-  };
 
   // Title and list of actions on the top of page.
   useEffect(() => {
@@ -621,38 +613,18 @@ function NewRunV2(props: NewRunV2Props) {
         <div>This run will be associated with the following experiment</div>
         <ExperimentSelector
           {...props}
-          isOpenNewExperiment={openNewExperiment}
-          onCancelNewExperiment={() => setOpenNewExperiment(false)}
-          toolbarActionMap={createNewExperiment}
           experimentName={experimentName}
-          handleExperimentChange={(experiment) => {
+          handleExperimentChange={(experiment, created) => {
             setSelectedExperiment(experiment);
             if (experiment.experiment_id) {
-              let searchString;
-              if (existingPipeline?.pipeline_id && existingPipelineVersion?.pipeline_version_id) {
-                searchString = urlParser.build({
-                  [QUERY_PARAMS.experimentId]: experiment.experiment_id || '',
-                  [QUERY_PARAMS.pipelineId]: existingPipeline.pipeline_id || '',
-                  [QUERY_PARAMS.pipelineVersionId]:
-                    existingPipelineVersion.pipeline_version_id || '',
-                });
-              } else if (existingRunId) {
-                searchString = urlParser.build({
-                  [QUERY_PARAMS.experimentId]: experiment.experiment_id || '',
-                  [QUERY_PARAMS.cloneFromRun]: existingRunId || '',
-                });
-              } else if (existingRecurringRunId) {
-                searchString = urlParser.build({
-                  [QUERY_PARAMS.experimentId]: experiment.experiment_id || '',
-                  [QUERY_PARAMS.cloneFromRecurringRun]: existingRecurringRunId || '',
-                });
+              const search = new URLSearchParams(props.location.search);
+              search.set(QUERY_PARAMS.experimentId, experiment.experiment_id);
+              if (created) {
+                search.set(QUERY_PARAMS.firstRunInExperiment, '1');
               } else {
-                // Enter new run page from run list (none of pipeline is selected)
-                searchString = urlParser.build({
-                  [QUERY_PARAMS.experimentId]: experiment.experiment_id || '',
-                });
+                search.delete(QUERY_PARAMS.firstRunInExperiment);
               }
-              props.history.replace(searchString);
+              props.history.replace({ search: search.toString() });
             }
           }}
         />
@@ -983,16 +955,24 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
 interface ExperimentSelectorSpecificProps {
   namespace?: string;
   experimentName: string | undefined;
-  handleExperimentChange: (experiment: V2beta1Experiment) => void;
-  toolbarActionMap?: ToolbarActionMap;
-  isOpenNewExperiment: boolean;
-  onCancelNewExperiment: () => void;
+  handleExperimentChange: (experiment: V2beta1Experiment, created?: boolean) => void;
 }
 type ExperimentSelectorProps = PageProps & ExperimentSelectorSpecificProps;
 
 function ExperimentSelector(props: ExperimentSelectorProps) {
-  const [experimentSelectorOpen, setExperimentSelectorOpen] = useState(false);
+  const [dialog, setDialog] = useState<'choose' | 'create' | null>(null);
   const [pendingExperiment, setPendingExperiment] = useState<V2beta1Experiment>();
+
+  const createNewExperiment = {
+    action1: {
+      action: () => setDialog('create'),
+      disabledTitle: 'create experiment to new run disabled title',
+      icon: AddIcon,
+      id: 'create experiment to new run id',
+      title: 'Create new experiment',
+      tooltip: 'Create new experiment',
+    },
+  };
 
   return (
     <>
@@ -1009,7 +989,10 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
               <Button
                 color='secondary'
                 id='chooseExperimentBtn'
-                onClick={() => setExperimentSelectorOpen(true)}
+                onClick={() => {
+                  setPendingExperiment(undefined);
+                  setDialog('choose');
+                }}
                 style={{ padding: '3px 5px', margin: 0 }}
               >
                 Choose
@@ -1022,19 +1005,26 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
 
       {/* Experiment selector dialog */}
       <Dialog
-        open={experimentSelectorOpen}
+        open={dialog !== null}
         classes={{ paper: css.selectorDialog }}
-        onClose={() => setExperimentSelectorOpen(false)}
+        onClose={() => setDialog(null)}
         PaperProps={{ id: 'experimentSelectorDialog' }}
       >
-        {props.isOpenNewExperiment ? (
-          <NewExperimentFC onCancel={props.onCancelNewExperiment} {...props} />
+        {dialog === 'create' ? (
+          <NewExperimentFC
+            {...props}
+            onCancel={() => setDialog('choose')}
+            onCreated={(experiment) => {
+              props.handleExperimentChange(experiment, true);
+              setDialog(null);
+            }}
+          />
         ) : (
           <>
             <DialogContent>
               <ResourceSelector
                 {...props}
-                toolbarActionMap={props.toolbarActionMap}
+                toolbarActionMap={createNewExperiment}
                 title='Choose an experiment'
                 filterLabel='Filter experiments'
                 listApi={async (
@@ -1087,7 +1077,7 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
             <DialogActions>
               <Button
                 id='cancelExperimentSelectionBtn'
-                onClick={() => setExperimentSelectorOpen(false)}
+                onClick={() => setDialog(null)}
                 color='secondary'
               >
                 Cancel
@@ -1098,7 +1088,7 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
                   if (pendingExperiment) {
                     props.handleExperimentChange(pendingExperiment);
                   }
-                  setExperimentSelectorOpen(false);
+                  setDialog(null);
                 }}
                 color='secondary'
                 disabled={!pendingExperiment}
