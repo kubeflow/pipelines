@@ -59,15 +59,17 @@ _DOCKERIGNORE_TEMPLATE = f"""
 {_COMPONENT_METADATA_DIR}/
 """
 
-_HTTP_URL_PATTERN = re.compile(r'(?:git\+)?https?://[^\s<>]+', re.IGNORECASE)
+_HTTP_URL_PATTERN = re.compile(r'(?:git\+)?https?://\S+', re.IGNORECASE)
 
 
-def _contains_url_credentials(value: str) -> bool:
-    for match in _HTTP_URL_PATTERN.finditer(value):
+def _has_unsafe_dependency_url(value: str) -> bool:
+    # Pip joins continued requirement lines before interpreting the URL.
+    logical_value = re.sub(r'\\\r?\n', '', value)
+    for match in _HTTP_URL_PATTERN.finditer(logical_value):
         try:
             url = urlsplit(match.group(0))
         except ValueError:
-            continue
+            return True
         if url.username is not None or url.password is not None or url.query:
             return True
     return False
@@ -127,6 +129,21 @@ class ComponentBuilder:
         self._maybe_copy_additional_packages = ''
         self._additional_package_paths = []
 
+        self._component_files = [
+            file
+            for file in self._context_directory.glob(
+                self._component_filepattern
+            )
+            if file.is_file()
+        ]
+
+        self._base_image = None
+        self._target_image = None
+        self._pip_index_urls = None
+        self._pip_trusted_hosts = None
+        self._load_components()
+        self.validate_dependency_urls()
+
         if kfp_package_path is None:
             self._kfp_package_path = f'kfp=={kfp.__version__}'
         elif kfp_package_path.is_dir():
@@ -161,20 +178,6 @@ class ComponentBuilder:
             for file in self._context_directory.glob('*')
             if file.is_file()
         ]
-
-        self._component_files = [
-            file
-            for file in self._context_directory.glob(
-                self._component_filepattern
-            )
-            if file.is_file()
-        ]
-
-        self._base_image = None
-        self._target_image = None
-        self._pip_index_urls = None
-        self._pip_trusted_hosts = None
-        self._load_components()
 
     def _build_local_package(self, package_path: pathlib.Path) -> str:
         logging.info(f'Building local package from {package_path}')
@@ -317,11 +320,12 @@ class ComponentBuilder:
         dependency_urls = list(self._pip_index_urls or [])
         for component in self._components:
             dependency_urls.extend(component.packages_to_install or [])
-        if any(_contains_url_credentials(value) for value in dependency_urls):
+        if any(_has_unsafe_dependency_url(value) for value in dependency_urls):
             raise click.ClickException(
-                'Component dependency URLs with embedded credentials or query '
-                'parameters cannot be written to generated build files. Use '
-                'credential-free URLs or a separately managed Docker build with secrets.'
+                'Component dependency URLs with embedded credentials, query '
+                'parameters, or invalid syntax cannot be written to generated '
+                'build files. Use credential-free URLs or a separately managed '
+                'Docker build with secrets.'
             )
 
     def maybe_generate_dockerignore(self):
@@ -341,6 +345,10 @@ class ComponentBuilder:
             component_info.component_spec.save_to_component_yaml(
                 str(container_filename)
             )
+            if component_info.output_component_file:
+                component_info.component_spec.save_to_component_yaml(
+                    component_info.output_component_file
+                )
 
     def generate_kfp_config(self):
         config = kfp_config.KFPConfig(config_directory=self._context_directory)
@@ -564,7 +572,6 @@ def build(
         ],
         component_filepattern=component_filepattern,
     )
-    builder.validate_dependency_urls()
     builder.write_component_files()
     builder.generate_kfp_config()
 
