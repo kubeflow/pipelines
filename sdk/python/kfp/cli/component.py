@@ -68,6 +68,8 @@ def _has_unsafe_dependency_url(value: str) -> bool:
     for match in _HTTP_URL_START_PATTERN.finditer(logical_value):
         try:
             url = urlsplit(logical_value[match.start() :])
+            if not url.hostname or url.port == 0:
+                return True
         except ValueError:
             return True
         if url.username is not None or url.password is not None or url.query:
