@@ -8,6 +8,7 @@ const { readFile } = require('node:fs/promises');
 const { test } = require('node:test');
 const { chromium } = require('playwright');
 const { openFixturePage, startFixtureGateway } = require('./profile-auth-gateway');
+const { scanCatalog } = require('./profile-catalog-assertions.cjs');
 
 const baseURL = process.env.PROFILE_UI_URL || 'http://127.0.0.1:3000';
 
@@ -46,21 +47,10 @@ async function readCatalog(page, namespace) {
 }
 
 async function openDataset(page, dataset) {
-  await page.goto('/#/artifacts');
   const row = page.getByTestId('table-row').filter({
     has: page.getByRole('link', { name: 'Artifact ID ' + dataset.artifact_id, exact: true }),
   });
-  const rows = page.getByTestId('table-row');
-  await rows.first().waitFor();
-  while (!(await row.count())) {
-    const first = await rows.first().getAttribute('data-row-id');
-    const previous = rows.filter({ has: page.getByRole('link', { name: 'Artifact ID ' + first, exact: true }) });
-    const next = page.getByRole('button', { name: 'Next page', exact: true });
-    assert.ok(await next.isEnabled(), 'Dataset missing from the visible artifact catalog');
-    await next.click();
-    await previous.waitFor({ state: 'detached' });
-    await rows.first().waitFor();
-  }
+  assert.ok(await scanCatalog(page, () => row.count()), 'Dataset missing from the visible artifact catalog');
   await row.getByText(dataset.uri, { exact: true }).waitFor();
   await row.getByRole('link', { name: 'Artifact ID ' + dataset.artifact_id, exact: true }).click();
   await page.getByText('Artifact details', { exact: true }).waitFor();
@@ -112,12 +102,29 @@ test('native artifact catalog preserves each profile’s historical dataset and 
       await preview.getByRole('columnheader', { name: /^value\b/ }).waitFor();
       await preview.getByRole('cell', { name: run.display_name, exact: true }).waitFor();
 
-      const downloadLink = page.locator('a[download]').and(page.getByTitle(dataset.uri, { exact: true }));
+      const namespace = encodeURIComponent(profile.namespace);
+      const downloadLink = page.locator('a[download][href*="namespace=' + namespace + '"]')
+        .and(page.getByTitle(dataset.uri, { exact: true }));
       const url = new URL(await downloadLink.getAttribute('href'), page.url());
       assert.equal(url.origin, gateway.url);
       assert.equal(url.searchParams.get('namespace'), profile.namespace);
-      const [download] = await Promise.all([page.waitForEvent('download'), downloadLink.click()]);
-      assert.equal(await download.failure(), null);
+      const startDownload = async () => {
+        const [download] = await Promise.all([page.waitForEvent('download'), downloadLink.click()]);
+        const target = new URL(download.url());
+        assert.equal(target.origin, url.origin);
+        assert.equal(target.pathname, url.pathname);
+        assert.equal(target.searchParams.get('namespace'), profile.namespace);
+        assert.equal(target.searchParams.get('key'), url.searchParams.get('key'));
+        return download;
+      };
+      let download = await startDownload();
+      let failure = await download.failure();
+      if (failure === 'canceled') {
+        t.diagnostic('Chromium canceled the download. Retrying the same link once.');
+        download = await startDownload();
+        failure = await download.failure();
+      }
+      assert.equal(failure, null, 'Browser download did not complete');
       assert.deepEqual(await readFile(await download.path()), Buffer.from('value\n' + run.display_name + '\n'));
 
       await page.getByRole('button', { name: 'Related tasks', exact: true }).click();
@@ -148,6 +155,11 @@ test('native artifact catalog preserves each profile’s historical dataset and 
       await page.waitForURL(taskLinks[0].target.href);
 
       const foreign = await openFixturePage(browser, gateway, t, other);
+      const foreignRows = foreign.getByTestId('table-row').filter({
+        has: foreign.getByRole('link', { name: 'Artifact ID ' + dataset.artifact_id, exact: true }),
+      });
+      assert.equal(await scanCatalog(foreign, () => foreignRows.count()), false,
+        'Artifact catalog includes an artifact from another profile');
       await assertDenied(foreign, runPath);
       await assertDenied(foreign, url.pathname + url.search);
       await assertDenied(foreign, '/apis/v2/artifacts/' + encodeURIComponent(dataset.artifact_id));

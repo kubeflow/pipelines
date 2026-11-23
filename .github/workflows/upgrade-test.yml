@@ -202,8 +202,11 @@ jobs:
         run: |
           npm ci
           npx playwright install --with-deps --only-shell chromium
+          node --test profile-catalog-assertions.unit.cjs
 
-      - name: Deploy the supported MLMD source fixture
+      - name: Deploy the latest published 2.18 MLMD source
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: bash .github/resources/scripts/deploy-profile-upgrade-source.sh
 
       - name: Create runs in both profiles through the released UI
