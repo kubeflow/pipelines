@@ -115,24 +115,17 @@ Resolve bundled scripts relative to the skill directory containing this `SKILL.m
 
 ### 1. Static Compilation Verification
 ```bash
-python .agents/skills/kfp-generator/scripts/eval_output.py path/to/pipeline.py
+python3 .agents/skills/kfp-generator/scripts/eval_output.py path/to/pipeline.py
 ```
 
-The script:
-- Uses the repo `.venv` Python when available
-- Executes the pipeline file to trigger KFP v2 YAML compilation
-- Confirms the companion `.yaml` pipeline spec was written
-- Prints compiler tracebacks to stderr on failure so the agent can fix and re-run
+### 2. Evaluation Procedure
+To evaluate skill output quality:
 
-### 2. Eval-Driven Suite (agentskills.io standard)
-To evaluate the overall output quality of this skill across the standardized test cases:
+1. Review the test prompts and expected checks in `evals/evals.json`.
+2. Generate `.py` pipelines with and without the skill (for example, in `workspaces/iteration-1/`).
+3. Run `eval_output.py` on each generated `.py` pipeline to verify compilation.
+4. Compare outputs manually against `evals/evals.json` and the **Generation checklist**, recording findings in your own notes or review summary.
 
-```bash
-# Run the full benchmark evaluation suite for iteration 1:
-python .agents/skills/kfp-generator/main.py --suite --iteration 1
-```
-
-This runs the eval suite defined in `evals/evals.json`, creates the workspace under `workspaces/iteration-1/`, executes assertion grading across `with_skill` vs `without_skill` configurations, and generates `benchmark.json` with aggregate metrics (pass rate, duration, tokens, delta) and `feedback.json` for human review.
 
 ## Generation checklist
 
