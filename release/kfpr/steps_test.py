@@ -142,6 +142,7 @@ class QualifiedPublicationTest(unittest.TestCase):
         self.addCleanup(review.stop)
         for target in (
             'qualification.require_qualification',
+            'rtd.publish_backend_docs',
             '_ensure_release_tag',
             '_should_set_backend_latest',
         ):
@@ -986,6 +987,41 @@ class CreateBackendReleaseStepTest(QualifiedPublicationTest):
                 with self.assertRaises(SystemExit):
                     steps.step_create_backend_release(context)
             runner.run.assert_not_called()
+
+    def test_standalone_backend_release_requires_public_tag_docs(self):
+        with TemporaryDirectory() as tmpdir:
+            context = core.ReleaseContext(
+                root=Path(tmpdir),
+                state=core.ReleaseState(Path(tmpdir) / 'state.json'),
+                runner=mock.Mock(dry_run=False),
+                metadata=core.ReleaseMetadata.from_version('patch', '2.18.2'),
+                fork_remote='origin',
+                include_backend=True,
+                include_sdk=False,
+                previous_release='2.18.1',
+            )
+            context.state.answers['release_sha'] = 'b' * 40
+            with (
+                mock.patch('builtins.input', return_value='y'),
+                mock.patch.object(
+                    steps,
+                    '_generate_backend_release_notes',
+                    return_value='Fixes',
+                ),
+                mock.patch.object(
+                    steps.rtd,
+                    'publish_backend_docs',
+                    side_effect=steps.rtd.ReadTheDocsError(
+                        'Tagged docs unavailable'
+                    ),
+                ) as verify,
+                self.assertRaisesRegex(
+                    steps.rtd.ReadTheDocsError, 'unavailable'
+                ),
+            ):
+                steps.step_create_backend_release(context)
+            verify.assert_called_once_with('2.18.2', 'b' * 40, token='')
+            context.runner.run.assert_not_called()
 
     def test_2_x_release_has_no_architecture_claim_or_confirmation(self):
         with TemporaryDirectory() as tmpdir:

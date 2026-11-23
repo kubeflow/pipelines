@@ -1069,7 +1069,9 @@ its public version-specific URL serves the documentation. With `RTD_TOKEN` set, 
 command syncs, activates, and builds the tag first. Without a token, activate and
 build the tag in the kubeflow-pipelines Read the Docs dashboard, then rerun the
 command to verify the public build. This step applies to backend-only and combined
-releases and leaves the project defaults unchanged.
+releases and leaves the project defaults unchanged. The standalone
+`create-backend-release` command also verifies the public build and tagged URL
+immediately before publishing the release. This verification does not trigger a build.
 
 ## Commands
 

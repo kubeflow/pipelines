@@ -2059,6 +2059,8 @@ def step_create_backend_release(context: ReleaseContext) -> None:
 
     _verify_release_target(context, metadata.tag, selected)
     _require_release_notes_review(context, 'backend', display=False)
+    # An empty token selects read-only verification, including for standalone runs.
+    rtd.publish_backend_docs(metadata.tag, selected.target_sha, token='')
     context.runner.run(
         [
             'gh',
