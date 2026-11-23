@@ -555,6 +555,12 @@ func (s *ArtifactStore) CreateArtifactWithTask(
 		)
 	}
 
+	// Lock the run before the identity row, the same order as bulk writes and
+	// retry cleanup, so concurrent single and bulk writes cannot deadlock.
+	if _, _, err := s.lockRunRetryGeneration(tx, artifactTaskCopy.RunUUID); err != nil {
+		return nil, nil, err
+	}
+
 	// Fast path: the operation ID has already been committed.
 	existingIdentity, err :=
 		s.getArtifactWriteIdentity(tx, identity)
