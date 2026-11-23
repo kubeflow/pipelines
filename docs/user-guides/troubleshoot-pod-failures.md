@@ -27,7 +27,7 @@ or the task finishes successfully.
 | Scheduling problem | `Unschedulable`, `FailedScheduling`, `Insufficient cpu`, `Insufficient memory` | The task requests more CPU, memory or accelerators than any node has, node taints, namespace quota | Lower the resource request, check node capacity and taints, check the namespace quota |
 | Runtime problem | `OOMKilled`, `CrashLoopBackOff` | The container ran out of memory or keeps crashing | Raise the memory limit, read the task logs |
 | Admission problem | `forbidden`, admission webhook, PodSecurity, Kyverno | A cluster policy rejected the pod | Check the policy that rejected the pod and the namespace labels it relies on |
-| Pod status (blue) | Any other status text | Usually a normal step such as `ContainerCreating`, or a cause we don't recognize yet | Wait, or look at the pod events |
+| Pod status (blue) | Any other status text | A pod-level reason the UI does not classify, such as `CreateContainerConfigError` from a missing ConfigMap or Secret | Open the task's Details panel for the full message, or look at the pod events |
 
 A scheduling problem is sometimes temporary. If the cluster uses an autoscaler such as
 Karpenter, a pod can stay unschedulable for a few minutes while a node is created. The

@@ -15,10 +15,14 @@
  */
 
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { waitFor } from '@testing-library/react';
-import ExecutionNode, { getIcon, getExecutionIcon, getDebugPauseIcon } from './ExecutionNode';
+import ExecutionNode, {
+  getIcon,
+  getExecutionIcon,
+  getDebugPauseIcon,
+  useLifecycleTooltip,
+} from './ExecutionNode';
 import { PipelineTaskTaskState } from 'src/apisv2/run';
 import { ReactFlowProvider } from '@xyflow/react';
 
@@ -254,6 +258,55 @@ describe('ExecutionNode', () => {
     await screen.findByTestId('lifecycle-tooltip');
     await userEvent.tab();
     await waitFor(() => expect(screen.queryByTestId('lifecycle-tooltip')).not.toBeInTheDocument());
+  });
+
+  it('associates the focused button with the tooltip content via aria-describedby', async () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'stuck-step',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'Back-off pulling image "nope:latest"',
+          lifecycleCategory: 'image-pull',
+        }}
+      />,
+    );
+    const button = screen.getByRole('button', { name: /stuck-step/ });
+    expect(button).not.toHaveAttribute('aria-describedby');
+    await userEvent.tab();
+    expect(button).toHaveFocus();
+    const tooltip = await screen.findByTestId('lifecycle-tooltip');
+    const describedBy = button.getAttribute('aria-describedby');
+    expect(describedBy).toBeTruthy();
+    expect(tooltip.id).toBe(describedBy);
+    expect(tooltip).toHaveTextContent('Image pull problem');
+    expect(tooltip).toHaveTextContent('Back-off pulling image "nope:latest"');
+  });
+
+  it('keeps the tooltip open after a mouse leave while focus remains', () => {
+    // onClose is MUI's mouse-leave callback; when the control is still focused the
+    // tooltip must stay open. The hook owns that decision, so test it directly.
+    const { result } = renderHook(() => useLifecycleTooltip());
+    act(() => result.current.focusProps.onFocus());
+    act(() => result.current.onOpen());
+    expect(result.current.open).toBe(true);
+    act(() => result.current.onClose());
+    expect(result.current.open).toBe(true);
+    act(() => result.current.focusProps.onBlur());
+    expect(result.current.open).toBe(false);
+  });
+
+  it('dismisses the tooltip on Escape without waiting for blur', () => {
+    const { result } = renderHook(() => useLifecycleTooltip());
+    act(() => result.current.focusProps.onFocus());
+    expect(result.current.open).toBe(true);
+    act(() =>
+      result.current.focusProps.onKeyDown({
+        key: 'Escape',
+      } as React.KeyboardEvent),
+    );
+    expect(result.current.open).toBe(false);
   });
 
   it('shows no warning when the lifecycle message is empty', () => {

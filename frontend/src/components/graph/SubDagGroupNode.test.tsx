@@ -213,3 +213,30 @@ it('opens the lifecycle tooltip on keyboard focus of a failed sub-DAG too', asyn
   await userEvent.tab();
   expect(await screen.findByTestId('lifecycle-tooltip')).toHaveTextContent('OOMKilled');
 });
+
+it('associates the sub-DAG title button with the tooltip content via aria-describedby', async () => {
+  render(
+    <ReactFlowProvider>
+      <SubDagGroupNode
+        id='group'
+        selected={false}
+        data={{
+          label: 'Training',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'Insufficient cpu',
+          lifecycleCategory: 'scheduling',
+          expand: vi.fn(),
+        }}
+      />
+    </ReactFlowProvider>,
+  );
+  const button = screen.getByRole('button', { name: 'Training, pod lifecycle warning' });
+  expect(button).not.toHaveAttribute('aria-describedby');
+  await userEvent.tab();
+  const tooltip = await screen.findByTestId('lifecycle-tooltip');
+  const describedBy = button.getAttribute('aria-describedby');
+  expect(describedBy).toBeTruthy();
+  expect(tooltip.id).toBe(describedBy);
+  expect(tooltip).toHaveTextContent('Scheduling problem');
+  expect(tooltip).toHaveTextContent('Insufficient cpu');
+});

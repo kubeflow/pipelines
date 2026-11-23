@@ -162,25 +162,49 @@ export function getLifecycleCategoryLabel(category?: string) {
 
 export interface LifecycleTooltipState {
   open: boolean;
+  // Stable id for the tooltip content, referenced by aria-describedby on the focusable
+  // control so screen readers announce the category + Kubernetes message, not just the label.
+  tooltipId: string;
   onOpen: () => void;
   onClose: () => void;
-  // Spread onto the node's focusable control so the tooltip also opens on keyboard focus.
-  focusProps: { onFocus: () => void; onBlur: () => void };
+  // Spread onto the node's focusable control so the tooltip also opens on keyboard focus
+  // and the control exposes aria-describedby pointing at the tooltip content. Escape is an
+  // explicit dismissal; mouse leave alone never closes the tooltip while focus is on.
+  focusProps: {
+    onFocus: () => void;
+    onBlur: () => void;
+    onKeyDown: (event: React.KeyboardEvent) => void;
+    'aria-describedby'?: string;
+  };
 }
 
 // The tooltip hangs off the status icon, which is not focusable, so keyboard focus on the
 // node's button is tracked here and opens the same tooltip. Escape closes it again.
 export function useLifecycleTooltip(): LifecycleTooltipState {
+  const tooltipId = React.useId();
   const [hovered, setHovered] = React.useState(false);
   const [focused, setFocused] = React.useState(false);
+  const open = hovered || focused;
   return {
-    open: hovered || focused,
+    open,
+    tooltipId,
     onOpen: () => setHovered(true),
-    onClose: () => {
-      setHovered(false);
-      setFocused(false);
+    // MUI calls onClose on mouse leave; only clear hovered here so the tooltip stays
+    // open while the button still has keyboard focus. Focus is cleared on blur below.
+    onClose: () => setHovered(false),
+    focusProps: {
+      onFocus: () => setFocused(true),
+      onBlur: () => setFocused(false),
+      // Escape is the explicit dismissal: clear both so a hovered+focused tooltip closes
+      // without waiting for the pointer to leave or focus to move.
+      onKeyDown: (event: React.KeyboardEvent) => {
+        if (event.key === 'Escape') {
+          setFocused(false);
+          setHovered(false);
+        }
+      },
+      'aria-describedby': open ? tooltipId : undefined,
     },
-    focusProps: { onFocus: () => setFocused(true), onBlur: () => setFocused(false) },
   };
 }
 
@@ -213,7 +237,7 @@ export function getLifecycleStatusIcon(
       onOpen={tooltip?.onOpen}
       onClose={tooltip?.onClose}
       helpText={
-        <div data-testid='lifecycle-tooltip'>
+        <div data-testid='lifecycle-tooltip' id={tooltip?.tooltipId}>
           <strong>{getLifecycleCategoryLabel(category)}</strong>
           <div style={LIFECYCLE_MESSAGE_STYLE}>{message}</div>
           <small>Select the node, then Details, to see the full message.</small>
