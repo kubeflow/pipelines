@@ -40,6 +40,7 @@ WRITE_PERMISSIONS = {
         'pre_activation': {'actions', 'issues'},
         'safe_outputs': {'issues'},
     },
+    'bot-branch-cleanup.yml': {'delete-branch': {'contents'}},
     'build-and-push.yml': {
         'build-and-push-images': {'packages', 'attestations', 'id-token'},
     },
