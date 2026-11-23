@@ -931,7 +931,15 @@ def import_ready_state(value, consumer, architecture, kind):
 
 
 def resolve_once(
-    api, consumer, architecture, kind, state, pin=None, require_bundle=False
+    api,
+    consumer,
+    architecture,
+    kind,
+    state,
+    pin=None,
+    require_bundle=False,
+    unrelated_attempts=None,
+    select_attempt=None,
 ):
     run = None
     artifacts = None
@@ -947,12 +955,12 @@ def resolve_once(
                 else consumer['source_sha']
             )
             runs = candidate_runs(api.runs(sha), consumer)
-            if not runs:
-                raise NotReady(
-                    'No matching producer; run ci-images.yml for this revision'
-                )
-            mismatch = None
+            if unrelated_attempts is None:
+                unrelated_attempts = set()
             for run in runs:
+                attempt = (run['id'], run['run_attempt'])
+                if attempt in unrelated_attempts:
+                    continue
                 identity = dict(
                     consumer,
                     run_id=run['id'],
@@ -962,6 +970,8 @@ def resolve_once(
                 # A head SHA can belong to multiple PRs or merge revisions.
                 # Validate provenance before judging an unrelated run's result.
                 validate_run(run, identity, check_conclusion=False)
+                if select_attempt is not None:
+                    select_attempt(attempt)
                 artifacts = api.artifacts(run['id'])
                 source = named_artifact(
                     artifacts,
@@ -972,15 +982,21 @@ def resolve_once(
                 validate_run(run, identity, check_conclusion=False)
                 try:
                     same_source(identity, consumer)
-                except InvalidEvidence as error:
+                except InvalidEvidence:
                     # Only a valid, API-bound source proves this run unrelated.
                     # Missing or malformed provenance above must fail closed.
-                    mismatch = error
+                    unrelated_attempts.add(attempt)
                     continue
                 validate_run(run, identity)
                 break
             else:
-                raise mismatch
+                # A completed run for another merge revision cannot start
+                # the publication grace for the producer we are waiting for.
+                run = None
+                raise NotReady(
+                    f'No matching producer for checkout {consumer["source_sha"]}; '
+                    'run ci-images.yml for this revision'
+                )
             state = {
                 'consumer': consumer,
                 'identity': identity,
@@ -1055,11 +1071,22 @@ def resolve(
     require(timeout > 0 and poll > 0, 'Wait bounds must be positive')
     state = load_state(path, consumer, architecture)
     deadline = clock() + timeout
+    unrelated_attempts = set()
     publication_deadline = None
     completed_producer = None
     previous_deadline = getattr(api, 'deadline', None)
     previous_polling = getattr(api, 'polling', False)
     api.polling = True
+
+    def select_attempt(attempt):
+        nonlocal completed_producer, publication_deadline
+        if completed_producer is not None and attempt != completed_producer:
+            # The old attempt's publication budget cannot bound API calls or
+            # retries for a newly discovered producer.
+            completed_producer = None
+            publication_deadline = None
+            api.deadline = deadline
+
     try:
         while True:
             api.deadline = min(deadline, publication_deadline or deadline)
@@ -1071,16 +1098,22 @@ def resolve(
                     kind,
                     state,
                     pin=lambda pinned: write_json(path, pinned),
+                    unrelated_attempts=unrelated_attempts,
+                    select_attempt=select_attempt,
                     require_bundle=require_bundle,
                 )
                 write_json(path, state)
                 return state
             except (NotReady, APIError) as error:
                 state = load_state(path, consumer, architecture)
-                completed = getattr(error, 'completed_producer', None)
-                if completed is not None and completed != completed_producer:
-                    completed_producer = completed
-                    publication_deadline = clock() + 60
+                if (
+                    isinstance(error, NotReady)
+                    and error.completed_producer != completed_producer
+                ):
+                    completed_producer = error.completed_producer
+                    publication_deadline = (
+                        clock() + 60 if completed_producer is not None else None
+                    )
                 effective_deadline = min(
                     deadline, publication_deadline or deadline
                 )

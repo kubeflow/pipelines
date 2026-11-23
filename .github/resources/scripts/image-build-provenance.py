@@ -36,20 +36,29 @@ def prepare(
     destination: Path,
     context: str = '.',
 ) -> dict[str, str | Path]:
-    """Give Go builds a pristine Git context; retain other build ignores."""
+    """Isolate committed source while retaining non-Go build ignore rules."""
     source = Path(source).resolve()
     dockerfile = recipe_path(dockerfile)
-    if dockerfile in BINARIES:
-        if Path(context) != Path('.'):
+    context = recipe_path(context)
+    if dockerfile in BINARIES and context != '.':
+        raise ValueError('KFP Go images require the repository-root context')
+    prepared = provenance.prepare_context(source, sha, dockerfile, destination)
+    if dockerfile not in BINARIES:
+        # Keep the in-tree recipe so Docker retains its original ignore rules.
+        # The snapshot excludes the untracked tooling checkout without moving
+        # local actions that GitHub still needs during post-job cleanup.
+        snapshot = prepared['context']
+        build_context = snapshot / context
+        if (
+            not build_context.is_dir()
+            or not build_context.resolve().is_relative_to(snapshot)
+        ):
             raise ValueError(
-                'KFP Go images require the repository-root context'
+                'Build context must remain inside committed source'
             )
-        return provenance.prepare_context(source, sha, dockerfile, destination)
-    return {
-        'context': str(source / context),
-        'dockerfile': str(source / dockerfile),
-        **provenance.source_identity(source, sha),
-    }
+        prepared['context'] = build_context
+        prepared['dockerfile'] = snapshot / dockerfile
+    return prepared
 
 
 def verify(

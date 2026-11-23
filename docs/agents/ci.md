@@ -111,7 +111,9 @@ invalidates consumers pinned to its previous attempt. Manual consumers can reuse
 a push/manual producer only at the exact same source/ref; dispatch
 `ci-images.yml` at that ref first when no eligible producer exists. Discovery is
 bounded to 40 minutes; a completed producer missing artifacts gets a 60-second
-publication grace period. Revision-specific concurrency prevents a newer
+publication grace period. When the PR head is unchanged but its merge SHA changes,
+readiness keeps looking for the exact checkout within the discovery deadline.
+It skips verified unrelated run attempts on subsequent polls. Revision-specific concurrency prevents a newer
 revision from cancelling images still needed by older consumers.
 
 Artifact readiness is polled once per consumer workflow every ten seconds,
@@ -465,6 +467,10 @@ The frontend qualification reliability reporter supports `--collect --repository
 
 - The deploy action first restores the existing runtime-image cache using the producer’s exact source fingerprint, UTC date, and archive paths; matrix jobs never save caches. A missing, failed, or incomplete restore falls back to the same-run runtime artifact with digest checking and bounded recovery. Both archives must be nonempty before accepting a cache hit, and all required image tags are still verified in Kind. Runtime preparation overlaps branch image builds; the later barrier and positive download pattern select only the seven branch images. The two archive inventories preserve optional Modelcar coverage. Measure the full job, including cache misses: artifact transfer/extraction variability can dominate cluster setup.
 
+## PostgreSQL image upgrade checks
+
+The main-branch workflow in `.github/workflows/postgresql-main-upgrade.yml` upgrades the shipped PostgreSQL 18 deployment on its existing PVC. It checks that KFP can read the original experiment, write to the database after the upgrade, and read it again after a restart. When changing the candidate image, keep the preceding deployment image as the test baseline.
+
 ## TensorBoard runtime acceptance
 
 Main builds the standalone TensorBoard image from `backend/Dockerfile.tensorboard`
@@ -814,3 +820,25 @@ invalidate an earlier independent candidate. When removing an ineligible PR,
 revoke its candidate and downstream candidates that contain its changes, then
 dequeue that PR. Entries sharing a candidate SHA must all pass policy checks.
 Unknown queue membership or a failed global policy snapshot still fails closed.
+
+The release-2.18 `kfp-profile-controller` image is first-party and is covered by
+the release source image matrix on AMD64 and ARM64. Its classification in
+`osv_manifest_images.py` prevents third-party inventory from rejecting that
+repository. Main’s current `alpine/k8s` profile-controller runtime remains a
+third-party scan target; classification follows the image repository, not the
+component name. Unknown KFP repositories still fail closed.
+
+Publication keeps its trusted `.publication-tooling` checkout at its original
+workspace path until post-job cleanup finishes; GitHub resolves local composite
+actions again during cleanup. All publication contexts use the committed source
+snapshot, excluding the untracked tooling checkout. Non-Go builds select their
+in-tree Dockerfile and existing ignore rules (including Dockerfile-specific
+ignore files), while native Go builds retain the external recipe/ignore override
+needed for VCS stamping. `image_publication_permissions_test.py` reproduces the
+local-action lifetime boundary and `image_build_provenance_test.py` checks root
+and subdirectory non-Go contexts without weakening binary verification.
+
+Publication dry-runs use the Docker archive exporter with BuildKit attestations
+disabled because that exporter cannot encode attestation manifest lists. Registry
+publication retains `--provenance=mode=min` and its artifact attestation; both
+paths still verify and preserve the separate binary-provenance evidence.

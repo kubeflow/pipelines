@@ -5,7 +5,9 @@ description = "Kubeflow Pipelines release automation"
 requires-python = ">=3.11"
 dependencies = [
   "build>=1,<2",
+  "markdown-it-py>=3,<5",
   "PyYAML>=6,<7",
+  "rich>=13",
   "typer>=0.16,<1.0",
 ]
 

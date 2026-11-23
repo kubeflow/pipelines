@@ -48,6 +48,7 @@ on:
       - 'Runtime Base Images'
       - 'Shared CI Images'
       - 'Third-party Image Upgrade Checks'
+      - 'Main PostgreSQL image retained-data upgrade'
       - 'KFP SDK Docformatter Test'
       - 'Python Ruff Lint'
       - 'KFP SDK Upgrade Test'
