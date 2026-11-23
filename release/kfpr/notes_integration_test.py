@@ -423,6 +423,7 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
             self.assertTrue(body.startswith('## Highlights\n'))
             self.assertIn('## Bug fixes', body)
             self.assertIn('## Contributors', body)
+            self.assertIn('## Security improvements', body)
             self.assertIn('## Assets', body)
             self.assertEqual(
                 body.count('## Installation'), int(product == 'sdk')
@@ -499,18 +500,60 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
             )
         self.assertEqual(path.read_text(), 'Reviewed notes\n')
 
+    def write_reviewed_notes(self):
+        for tag, publish in (
+            ('sdk-2.1.1', steps.step_create_sdk_release),
+            ('2.1.1', steps.step_create_backend_release),
+        ):
+            publish(self.context)
+            path = self.root / 'release-state-notes' / f'{tag}.md'
+            path.write_text('Reviewed user-facing changes.\n')
+
+    def test_first_publication_can_complete_fresh_drafts_at_edit_prompt(self):
+        self.context.runner.dry_run = False
+        directory = self.root / 'release-state-notes'
+
+        def edit(_prompt):
+            for tag in ('sdk-2.1.1', '2.1.1'):
+                draft = directory / f'{tag}.md'
+                self.assertIn('<!-- TODO:', draft.read_text())
+                draft.write_text('Reviewed release notes.\n')
+
+        with (
+            mock.patch.object(
+                self.context.runner,
+                'run',
+                return_value=subprocess.CompletedProcess([], 1),
+            ) as run,
+            mock.patch.object(
+                self.context.runner, 'capture', return_value='[[]]'
+            ),
+            mock.patch.object(
+                steps, '_remote_release_sha', return_value=self.target
+            ),
+            mock.patch.object(steps, 'confirm', side_effect=edit) as confirm,
+            contextlib.redirect_stdout(io.StringIO()) as output,
+        ):
+            steps.step_create_sdk_release(self.context)
+
+        confirm.assert_called_once()
+        for product in ('backend', 'sdk'):
+            self.assertRegex(output.getvalue(), rf'{product}: [^\n]*unfinished')
+        self.assertIn(
+            ['gh', 'release', 'create', 'sdk-2.1.1'],
+            [call.args[0][:4] for call in run.call_args_list],
+        )
+
     def test_publication_uses_resolved_target_and_reviewed_file(self):
+        self.write_reviewed_notes()
         for product, remote_sha, publish in (
             ('sdk', self.target, steps.step_create_sdk_release),
             ('backend', self.target, steps.step_create_backend_release),
             ('backend', '', steps.step_create_backend_release),
         ):
             with self.subTest(product=product, remote_sha=remote_sha):
-                self.context.runner.dry_run = True
-                publish(self.context)
                 tag = 'sdk-2.1.1' if product == 'sdk' else '2.1.1'
                 path = self.root / 'release-state-notes' / f'{tag}.md'
-                path.write_text('Reviewed user-facing changes.\n')
                 self.context.runner.dry_run = False
                 with (
                     mock.patch.object(
@@ -518,6 +561,9 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
                         'run',
                         return_value=subprocess.CompletedProcess([], 1),
                     ) as run,
+                    mock.patch.object(
+                        self.context.runner, 'capture', return_value='[[]]'
+                    ),
                     mock.patch.object(steps, 'confirm'),
                     mock.patch.object(
                         steps, '_remote_release_sha', return_value=remote_sha
@@ -544,7 +590,81 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
                 self.assertIn('## Contributors', path.read_text())
                 self.assertIn('## Assets', path.read_text())
 
+    def test_publication_rechecks_advisory_coverage_on_resume_and_after_edits(
+        self,
+    ):
+        issue = 'GHSA-j53r-x5f5-j4hr'
+        url = (
+            f'https://github.com/kubeflow/pipelines/security/advisories/{issue}'
+        )
+        published = [
+            [
+                {
+                    'ghsa_id': issue,
+                    'html_url': url,
+                    'summary': 'Backend downtime advisory',
+                    'published_at': '2026-11-18T12:00:00Z',
+                    'state': 'published',
+                    'vulnerabilities': [
+                        {
+                            'package': {
+                                'ecosystem': 'go',
+                                'name': 'github.com/kubeflow/pipelines',
+                            },
+                            'patched_versions': '2.1.1',
+                        }
+                    ],
+                }
+            ]
+        ]
+        self.write_reviewed_notes()
+        backend = self.root / 'release-state-notes' / '2.1.1.md'
+        self.context.state.mark_done('create-sdk-release')
+        self.context.runner.dry_run = False
+        for edit_during_review in (False, True):
+            with self.subTest(edit_during_review=edit_during_review):
+                body = (
+                    f'Fixed the backend availability issue. [{issue}]({url})\n'
+                )
+                backend.write_text(
+                    body if edit_during_review else 'Reviewed fixes.\n'
+                )
+
+                def confirm(_prompt):
+                    if edit_during_review:
+                        backend.write_text('Reviewed fixes.\n')
+
+                def capture(command, **kwargs):
+                    if any('security-advisories?' in arg for arg in command):
+                        return json.dumps(published)
+                    self.assertIn('sdk-2.1.1', ' '.join(command))
+                    return 'Published SDK notes.'
+
+                with (
+                    mock.patch.object(
+                        self.context.runner,
+                        'capture',
+                        side_effect=capture,
+                    ),
+                    mock.patch.object(self.context.runner, 'run') as run,
+                    mock.patch.object(steps, 'confirm', side_effect=confirm),
+                    mock.patch.object(
+                        steps, '_remote_release_sha', return_value=self.target
+                    ),
+                ):
+                    with self.assertRaisesRegex(
+                        (ValueError, RuntimeError), issue
+                    ):
+                        steps.step_create_backend_release(self.context)
+                self.assertFalse(
+                    any(
+                        call.args[0][:3] == ['gh', 'release', 'create']
+                        for call in run.call_args_list
+                    )
+                )
+
     def test_tag_moving_during_review_cannot_publish(self):
+        self.write_reviewed_notes()
         self.context.runner.dry_run = False
         with (
             mock.patch.object(
@@ -552,6 +672,9 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
                 'run',
                 return_value=subprocess.CompletedProcess([], 1),
             ) as run,
+            mock.patch.object(
+                self.context.runner, 'capture', return_value='[[]]'
+            ),
             mock.patch.object(steps, 'confirm'),
             mock.patch.object(
                 steps,

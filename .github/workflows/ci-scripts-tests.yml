@@ -56,6 +56,7 @@ on:
       - '.github/resources/ci-workflow-inventory.json'
       - '.github/resources/legacy-v2-migration-specs.json'
       - '.github/resources/legacy-v2-service-account-specs.json'
+      - 'test/artifact-proxy/test-artifact-proxy.sh'
       - 'test/presubmit-backend-test.sh'
       - 'hack/update-all-requirements.sh'
       # Any trigger change must update the expected-workflow inventory.
@@ -63,6 +64,8 @@ on:
       - '.github/scripts/*.py'
       # The observability shell scripts are covered by Python-driven tests.
       - '.github/resources/scripts/*.sh'
+      # deploy_kfp_certmanager_test.py pins the install-cert-manager waits.
+      - 'backend/Makefile'
       - '.github/resources/scripts/kfp-readiness/**'
       - '.github/actions/junit-summary/**'
       - '.github/workflows/ci-checks.yml'

@@ -4221,6 +4221,15 @@ func (r *ResourceManager) GetArtifact(artifactID string) (*model.Artifact, error
 	return artifact, nil
 }
 
+// GetArtifactsByIDs fetches a batch of artifacts keyed by artifact UUID.
+func (r *ResourceManager) GetArtifactsByIDs(artifactIDs []string) (map[string]*model.Artifact, error) {
+	artifactsByID, err := r.artifactStore.GetArtifactsByIDs(artifactIDs)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to fetch artifact batch")
+	}
+	return artifactsByID, nil
+}
+
 // CreateArtifact Creates an artifact entry.
 func (r *ResourceManager) CreateArtifact(artifact *model.Artifact) (*model.Artifact, error) {
 	newArtifact, err := r.artifactStore.CreateArtifact(artifact)

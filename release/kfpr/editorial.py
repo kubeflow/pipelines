@@ -2,6 +2,8 @@
 
 import re
 
+from .previews import has_conflicts
+
 _EDITORIAL_HEADINGS = {
     'highlights',
     'action required',
@@ -84,13 +86,14 @@ def editorial_scaffold(product: str = 'backend') -> str:
             ),
         ]
     else:
-        sections = common
+        sections = common + [
+            (
+                'Security improvements',
+                'For each applicable published advisory, describe the exposure that was fixed and who needs to upgrade. Link the public advisory. Omit this section if there are no security changes.',
+            ),
+        ]
         if product == 'backend':
             sections += [
-                (
-                    'Security improvements',
-                    'Describe verified authorization and isolation improvements with their limits. Distinguish scoped fixes from complete security guarantees.',
-                ),
                 (
                     'Availability and resilience',
                     'Describe verified recovery, restart, and multi-replica improvements with their limits. Do not imply complete high availability or zero-downtime upgrades without evidence.',
@@ -149,6 +152,45 @@ def _outside_fences(text: str) -> tuple[list[str], set[int]]:
     return lines, code_content
 
 
+def _placeholder_warnings(lines: list[str]) -> list[str]:
+    text = '\n'.join(lines)
+    if not _PLACEHOLDER.search(text):
+        return []
+    # Render-time dependency: workflow-only imports of kfpr omit CLI packages.
+    from markdown_it import MarkdownIt
+
+    warnings = []
+    for block in MarkdownIt('commonmark').parse(text):
+        if block.type == 'inline':
+            fragments = [
+                token.content
+                for token in block.children or []
+                if token.type in ('text', 'html_inline')
+            ]
+        elif block.type == 'html_block':
+            # The scaffold deliberately puts its prompts in HTML comments.
+            fragments = [block.content]
+        else:
+            continue
+        if any(_PLACEHOLDER.search(fragment) for fragment in fragments):
+            warnings.append(
+                f'Block starting on line {block.map[0] + 1}: unfinished '
+                'TODO/TBD/FIXME placeholder; resolve or remove it.'
+            )
+    return warnings
+
+
+def publication_blockers(text: str) -> list[str]:
+    """Identify unfinished notes without enforcing editorial preferences."""
+    if not text.strip():
+        return ['Release notes are empty.']
+    lines, _ = _outside_fences(text)
+    issues = _placeholder_warnings(lines)
+    if has_conflicts(text):
+        issues.append('Resolve merge conflict markers before publishing.')
+    return issues
+
+
 def validate_notes(text: str, product: str | None = None) -> list[str]:
     """Return heuristic editorial warnings; callers decide how to display
     them."""
@@ -157,11 +199,7 @@ def validate_notes(text: str, product: str | None = None) -> list[str]:
             'Choose backend, sdk, or upgrade for editorial checks.'
         )
     lines, code_content = _outside_fences(text)
-    warnings = [
-        f'Line {number}: unfinished TODO/TBD/FIXME placeholder; resolve or remove it.'
-        for number, line in enumerate(lines, 1)
-        if _PLACEHOLDER.search(line)
-    ]
+    warnings = _placeholder_warnings(lines)
     # Comments still trigger placeholders above but cannot satisfy prose checks.
     visible = re.sub(
         r'<!--.*?(?:-->|$)',

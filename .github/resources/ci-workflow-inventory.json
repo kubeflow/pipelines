@@ -320,7 +320,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "30869abf9e136b92d88df449393f970b8ed5b6c8043d284c303f240665a3df63",
+      "header_sha256": "b97271ad830c8fb7ad0a6824bfac4513015a3710e2834e22ee7dd3aad1b3ad3d",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -348,11 +348,13 @@
           ".github/resources/ci-workflow-inventory.json",
           ".github/resources/legacy-v2-migration-specs.json",
           ".github/resources/legacy-v2-service-account-specs.json",
+          "test/artifact-proxy/test-artifact-proxy.sh",
           "test/presubmit-backend-test.sh",
           "hack/update-all-requirements.sh",
           ".github/workflows/**",
           ".github/scripts/*.py",
           ".github/resources/scripts/*.sh",
+          "backend/Makefile",
           ".github/resources/scripts/kfp-readiness/**",
           ".github/actions/junit-summary/**",
           ".github/workflows/ci-checks.yml",

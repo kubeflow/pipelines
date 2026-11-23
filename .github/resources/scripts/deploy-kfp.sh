@@ -110,6 +110,11 @@ if [ "${MULTI_USER}" == "true" ] && [ "${USE_PROXY}" == "true" ]; then
   exit 1
 fi
 
+if [ "${POD_TO_POD_TLS_ENABLED}" == "true" ] && { [ "${CACHE_DISABLED}" == "true" ] || [ "${USE_PROXY}" == "true" ] || [ "${MULTI_USER}" == "true" ]; }; then
+  echo "ERROR: POD_TO_POD_TLS_ENABLED cannot be combined with CACHE_DISABLED, USE_PROXY, or MULTI_USER (no TLS overlay exists for those deployments)." >&2
+  exit 1
+fi
+
 if [ -n "${KFP_ARGO_MANIFESTS_DIRECTORY:-}" ]; then
   selected_argo_version="${AWF_VERSION:-$(cat third_party/argo/VERSION)}"
   python3 "${C_DIR}/argo_manifest_artifacts.py" install \
@@ -268,11 +273,37 @@ fi
 
 echo "Deploying ${TEST_MANIFESTS}..."
 
-kubectl kustomize --load-restrictor LoadRestrictionsNone "${TEST_MANIFESTS}" | kubectl apply -f - || EXIT_CODE=$?
+apply_manifests() {
+  kubectl kustomize --load-restrictor LoadRestrictionsNone "${TEST_MANIFESTS}" | kubectl apply -f -
+}
+
+# Retry: the cert-manager webhook may briefly reject CRs after its pods are ready.
+retry 5 5 apply_manifests || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Deploy unsuccessful. Failure applying ${TEST_MANIFESTS}."
   exit 1
+fi
+
+# The TLS and kubernetes-native lanes apply Certificate resources above.
+# Wait here for cert-manager to finish issuing them, so pods that mount the
+# TLS secrets do not start before the secrets exist. Multi-user deployments
+# never apply Certificates, regardless of the store flag.
+if [ "${MULTI_USER}" == "false" ] && { [ "${PIPELINES_STORE}" == "kubernetes" ] || [ "${POD_TO_POD_TLS_ENABLED}" == "true" ]; }; then
+  kubectl wait --for=condition=Ready certificate --all -n kubeflow --timeout=180s || EXIT_CODE=$?
+  if [[ $EXIT_CODE -ne 0 ]]
+  then
+    echo "Deploy unsuccessful. TLS certificates did not become Ready."
+    echo "----- certificates -----"
+    kubectl -n kubeflow describe certificate || true
+    echo "----- issuers -----"
+    kubectl -n kubeflow describe issuer || true
+    echo "----- cert-manager logs -----"
+    kubectl -n cert-manager logs deployment/cert-manager --tail=100 --prefix=true || true
+    kubectl -n cert-manager logs deployment/cert-manager-webhook --tail=100 --prefix=true || true
+    kubectl -n cert-manager logs deployment/cert-manager-cainjector --tail=100 --prefix=true || true
+    exit 1
+  fi
 fi
 
 # Check if all pods are running - (10 minutes)

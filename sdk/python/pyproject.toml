@@ -30,7 +30,7 @@ dependencies = [
   "google-auth>=2.62.2,<3",
   # Generated pipeline specs import google.rpc; 1.69.2 supports protobuf 6.
   "googleapis-common-protos>=1.76.0",
-  "kubernetes>=37.0.2",
+  "kubernetes>=37.0.3",
   "protobuf>=6.33.5,<7",
   "certifi",
   "python-dateutil",
