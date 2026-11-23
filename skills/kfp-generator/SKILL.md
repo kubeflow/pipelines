@@ -13,8 +13,11 @@ Generate KFP v2 pipelines that match this repo's SDK, samples, and conventions.
 
 ## Before generating
 
-1. Read the closest existing sample in `samples/core/` for the feature being used.
-2. Prefer **v2 DSL** (`@dsl.component`, `@dsl.container_component`, `@dsl.pipeline`) — not v1 `ContainerOp` or `load_component_from_url` unless maintaining legacy code.
+## Before generating
+
+1. **Bootstrap & locate the KFP reference checkout first:** Run `<skill-dir>/main.py` (for a project-local install, `.agents/skills/kfp-generator/main.py`) or ensure `KFP_REFERENCE_DIR` / `KFP_SAMPLES_DIR` is set so the upstream KFP reference checkout exists in a dedicated directory (default to `<skill-dir>/.kfp-ref`).
+2. **Read reference samples from the KFP reference checkout:** Read the closest existing sample under `$KFP_SAMPLES_DIR/core` (or `<skill-dir>/.kfp-ref/samples/core` / `samples/core/` if already inside a `kubeflow/pipelines` repo) for the feature being used.
+3. **Prefer v2 DSL:** Use `@dsl.component`, `@dsl.container_component`, and `@dsl.pipeline` — not v1 `ContainerOp` or `load_component_from_url` unless maintaining legacy code.
 
 ## Output location
 
@@ -108,11 +111,11 @@ with dsl.ExitHandler(cleanup_task):
 
 ## Compile and verify
 
-After generating a `.py` pipeline, run the skill evaluation script to validate compilation and execution:
+Resolve bundled scripts relative to the skill directory containing this `SKILL.md` (for a project-local install, `.agents/skills/kfp-generator/`):
 
 ### 1. Static Compilation Verification
 ```bash
-python kfp-generator/scripts/eval_output.py path/to/pipeline.py
+python .agents/skills/kfp-generator/scripts/eval_output.py path/to/pipeline.py
 ```
 
 The script:
@@ -126,7 +129,7 @@ To evaluate the overall output quality of this skill across the standardized tes
 
 ```bash
 # Run the full benchmark evaluation suite for iteration 1:
-python .agents/kfp-generator/main.py --suite --iteration 1
+python .agents/skills/kfp-generator/main.py --suite --iteration 1
 ```
 
 This runs the eval suite defined in `evals/evals.json`, creates the workspace under `workspaces/iteration-1/`, executes assertion grading across `with_skill` vs `without_skill` configurations, and generates `benchmark.json` with aggregate metrics (pass rate, duration, tokens, delta) and `feedback.json` for human review.
@@ -138,7 +141,6 @@ This runs the eval suite defined in `evals/evals.json`, creates the workspace un
 - [ ] Pipeline parameters have sensible defaults where appropriate
 - [ ] `if __name__ == '__main__'` compiles to YAML
 - [ ] `scripts/eval_output.py` passes static YAML compilation check for the generated `.py`
-- [ ] (When backend is available) `scripts/eval_output.py --run` succeeds and `get_run` confirms `SUCCEEDED` state
 - [ ] Matches an existing sample pattern when the feature already exists in `samples/core/`
 - [ ] No SDK-only imports inside component function bodies (runtime installs `kfp` with `--no-deps`)
 
