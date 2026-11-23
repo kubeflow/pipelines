@@ -17,6 +17,8 @@ package kfpapi
 import (
 	"context"
 	"errors"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -143,22 +145,31 @@ func TestRetryReadRespectsCancellationDuringBackoff(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	attemptStarted := make(chan struct{}, 1)
+	backoffStarted := make(chan struct{})
+	var signalBackoff sync.Once
+	env := retryEnv{
+		sleep: func(sleepCtx context.Context, d time.Duration) error {
+			signalBackoff.Do(func() { close(backoffStarted) })
+			return sleepContext(sleepCtx, d)
+		},
+		jitter: func(upperBound time.Duration) time.Duration { return upperBound },
+	}
 	start := time.Now()
 
+	var calls atomic.Int32
 	done := make(chan error, 1)
 	go func() {
-		_, err := retryRead(ctx, "TestRetryRead", policy, func(context.Context) (string, error) {
-			attemptStarted <- struct{}{}
+		_, err := retryReadWithEnv(ctx, env, "TestRetryRead", policy, func(context.Context) (string, error) {
+			calls.Add(1)
 			return "", status.Error(codes.Unavailable, "temporary")
 		})
 		done <- err
 	}()
 
 	select {
-	case <-attemptStarted:
+	case <-backoffStarted:
 	case <-time.After(time.Second):
-		t.Fatal("retry attempt did not start")
+		t.Fatal("retry backoff did not start")
 	}
 
 	cancel()
@@ -167,6 +178,7 @@ func TestRetryReadRespectsCancellationDuringBackoff(t *testing.T) {
 	case err := <-done:
 		require.ErrorIs(t, err, context.Canceled)
 		require.Less(t, time.Since(start), 150*time.Millisecond)
+		require.EqualValues(t, 1, calls.Load())
 	case <-time.After(time.Second):
 		t.Fatal("retry did not stop promptly after cancellation")
 	}
