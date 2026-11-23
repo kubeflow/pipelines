@@ -620,6 +620,42 @@ class Test(unittest.TestCase):
                 """),
         )
 
+    def test_rejects_index_url_credentials_before_generating_files(self):
+        component = _make_component(
+            func_name='train',
+            target_image='custom-image',
+            pip_index_urls=['https://user:dummy-password@example.invalid/simple'],
+        )
+        _write_components('components.py', component)
+
+        result = self.runner.invoke(self.cli, ['build', str(self._working_dir)])
+
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertIn('credentials', result.output)
+        self.assertNotIn('dummy-password', result.output)
+        self.assertFalse((self._working_dir / 'Dockerfile').exists())
+        self.assertFalse((self._working_dir / 'runtime-requirements.txt').exists())
+        self._docker_client.api.build.assert_not_called()
+
+    def test_rejects_package_url_query_before_generating_files(self):
+        component = _make_component(
+            func_name='train',
+            target_image='custom-image',
+            packages_to_install=[
+                'package @ https://example.invalid/package.whl?token=dummy-token'
+            ],
+        )
+        _write_components('components.py', component)
+
+        result = self.runner.invoke(self.cli, ['build', str(self._working_dir)])
+
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertIn('credentials', result.output)
+        self.assertNotIn('dummy-token', result.output)
+        self.assertFalse((self._working_dir / 'Dockerfile').exists())
+        self.assertFalse((self._working_dir / 'runtime-requirements.txt').exists())
+        self._docker_client.api.build.assert_not_called()
+
     def test_existing_dockerfile_is_unchanged_by_default(self):
         component = _make_component(
             func_name='train', target_image='custom-image'
