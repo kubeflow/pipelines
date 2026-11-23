@@ -693,6 +693,14 @@ class Test(unittest.TestCase):
                 },
             ),
             (
+                'package_split_authority',
+                {
+                    'packages_to_install': [
+                        'package @ https://user:pa ss@example.invalid/pkg.whl'
+                    ]
+                },
+            ),
+            (
                 'package_continued',
                 {
                     'packages_to_install': [
