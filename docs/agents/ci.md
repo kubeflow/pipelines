@@ -809,3 +809,18 @@ the release source image matrix on AMD64 and ARM64. Its classification in
 repository. Main’s current `alpine/k8s` profile-controller runtime remains a
 third-party scan target; classification follows the image repository, not the
 component name. Unknown KFP repositories still fail closed.
+
+Publication keeps its trusted `.publication-tooling` checkout at its original
+workspace path until post-job cleanup finishes; GitHub resolves local composite
+actions again during cleanup. All publication contexts use the committed source
+snapshot, excluding the untracked tooling checkout. Non-Go builds select their
+in-tree Dockerfile and existing ignore rules (including Dockerfile-specific
+ignore files), while native Go builds retain the external recipe/ignore override
+needed for VCS stamping. `image_publication_permissions_test.py` reproduces the
+local-action lifetime boundary and `image_build_provenance_test.py` checks root
+and subdirectory non-Go contexts without weakening binary verification.
+
+Publication dry-runs use the Docker archive exporter with BuildKit attestations
+disabled because that exporter cannot encode attestation manifest lists. Registry
+publication retains `--provenance=mode=min` and its artifact attestation; both
+paths still verify and preserve the separate binary-provenance evidence.
