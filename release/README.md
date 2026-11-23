@@ -326,6 +326,14 @@ export PATH="/tmp/kfpr-tools/bin:$PATH"
    separately. The verifier also checks branch-specific workflows that the
    temporary PR base does not trigger.
 
+   If the latest green came from a `pull_request_target` event (for example,
+   after a maintainer removed a test hold), rerun a required automatic test
+   from the **test-only PR**. Pick its manifests test when applicable.
+   Use `gh run rerun "$REPLAY_TEST_RUN_ID" --repo kubeflow/pipelines` and
+   wait for the test and the resulting upstream `CI Check` run to finish.
+   The test's start and completion events trigger a fresh evaluation on
+   `main`. Then dispatch the verifier.
+
    ```bash
    gh workflow run release-landed-ci.yml --repo kubeflow/pipelines --ref main \
      -f pr_number="$VERSION_PR" -f release_sha="$LANDED_SHA" -f replay_pr="$REPLAY_PR"

@@ -425,17 +425,33 @@ def verify_jobs(path, run, jobs):
     )
 
 
+def latest_ci_status(sha):
+    """GitHub lists statuses newest first, including superseded contexts."""
+    page = 1
+    newest_id = None
+    while True:
+        rows = api(f'commits/{sha}/statuses?per_page=100&page={page}')
+        if page == 1 and len(rows) == 100:
+            newest_id = rows[0]['id']
+        for status in rows:
+            if status['context'] == 'ci-passed':
+                if page > 1 and status['state'] == 'success':
+                    # A newly posted failure may have shifted the page boundaries.
+                    first = api(f'commits/{sha}/statuses?per_page=1&page=1')
+                    require(
+                        first and first[0]['id'] == newest_id,
+                        'Status history changed during pagination; retry verification',
+                    )
+                return status
+        if len(rows) < 100:
+            return {}
+        page += 1
+
+
 def verify_aggregate(sha, replay):
     """Bind the most recent ci-passed to the official publisher and replay
     base."""
-    status = next(
-        (
-            s
-            for s in api(f'commits/{sha}/statuses?per_page=100')
-            if s['context'] == 'ci-passed'
-        ),
-        {},
-    )
+    status = latest_ci_status(sha)
     base = replay['base']
     stamp = hashlib.sha256(
         json.dumps([base['ref'], base['sha']], separators=(',', ':')).encode()
@@ -458,14 +474,23 @@ def verify_aggregate(sha, replay):
         run['id'] == int(owner[1])
         and run['workflow_id'] == workflow['id']
         and run['path'] == workflow['path'] == PREFIX + 'ci-checks.yml'
-        and run['event'] in ('schedule', 'workflow_run')
-        and run['head_branch'] == 'main'
         and run['repository']['full_name']
         == run['head_repository']['full_name']
         == REPO
         and run['status'] == 'completed'
         and run['conclusion'] == 'success',
-        'ci-passed publisher is not a completed upstream main CI Check',
+        'ci-passed publisher is not a completed upstream CI Check',
+    )
+    if run['event'] == 'pull_request_target':
+        raise RuntimeError(
+            'ci-passed came from pull_request_target; rerun a required automatic '
+            'test workflow from the replay PR to trigger fresh reconciliation on main. '
+            'See release/README.md.'
+        )
+    require(
+        run['event'] in ('schedule', 'workflow_run')
+        and run['head_branch'] == 'main',
+        'ci-passed publisher did not run on upstream main',
     )
     require(
         re.fullmatch(r'[0-9a-f]{40}', run['head_sha']),
@@ -545,18 +570,6 @@ def collect_evidence(pr, sha, replay_pr):
                 else sha,
             )
         )
-    # Run attempts and branch pointers are mutable. Recheck the selected
-    # runs after reading their jobs, before returning this evidence snapshot.
-    fresh = paged(f'actions/runs?head_sha={sha}', 'workflow_runs')
-    for item in evidence:
-        event = item['event']
-        ref = replay['head']['ref'] if event == 'pull_request' else BRANCH
-        current = select_run(fresh, item['path'], event, ref, sha)
-        require(
-            (current['id'], current['run_attempt'])
-            == (item['run_id'], item['run_attempt']),
-            'Release CI attempt changed during verification',
-        )
     subprocess.run(
         [
             'node',
@@ -574,6 +587,18 @@ def collect_evidence(pr, sha, replay_pr):
         and replay['merge_commit_sha'] == final_replay['merge_commit_sha'],
         'Replay binding changed during verification',
     )
+    # Run attempts and branch pointers are mutable. Make the attempt identity check
+    # the final read, after the external CI and aggregate provenance gates.
+    fresh = paged(f'actions/runs?head_sha={sha}', 'workflow_runs')
+    for item in evidence:
+        event = item['event']
+        ref = replay['head']['ref'] if event == 'pull_request' else BRANCH
+        current = select_run(fresh, item['path'], event, ref, sha)
+        require(
+            (current['id'], current['run_attempt'])
+            == (item['run_id'], item['run_attempt']),
+            'Release CI attempt changed during verification',
+        )
     return BRANCH, evidence
 
 

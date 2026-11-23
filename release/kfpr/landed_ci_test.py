@@ -277,6 +277,8 @@ class LandedCITest(unittest.TestCase):
                 ci, 'expected_workflows', return_value=[current['path']]
             ),
             mock.patch.object(ci, 'paged', side_effect=pages),
+            mock.patch.object(ci.subprocess, 'run'),
+            mock.patch.object(ci, 'verify_aggregate'),
             self.assertRaisesRegex(RuntimeError, 'queued'),
         ):
             ci.collect_evidence(8, SHA, 9)
@@ -321,7 +323,12 @@ class LandedCITest(unittest.TestCase):
         )
         self.responses.update(
             {
-                f'commits/{SHA}/statuses?per_page=100': [status],
+                f'commits/{SHA}/statuses?per_page=100&page=1': [
+                    {'context': 'other', 'id': 1234}
+                ]
+                * 100,
+                f'commits/{SHA}/statuses?per_page=100&page=2': [status],
+                f'commits/{SHA}/statuses?per_page=1&page=1': [dict(id=1234)],
                 'actions/runs/10': owner,
                 'actions/workflows/ci-checks.yml': {
                     'path': owner['path'],
@@ -354,6 +361,12 @@ class LandedCITest(unittest.TestCase):
             mock.patch.object(ci, 'paged', return_value=jobs),
         ):
             ci.verify_aggregate(SHA, self.replay)
+            owner['event'] = 'pull_request_target'
+            with self.assertRaisesRegex(
+                RuntimeError, 'rerun a required automatic.*replay PR'
+            ):
+                ci.verify_aggregate(SHA, self.replay)
+            owner['event'] = 'schedule'
             status['created_at'] = '2026-01-02T00:00:03Z'
             with self.assertRaisesRegex(RuntimeError, 'reconciliation job'):
                 ci.verify_aggregate(SHA, self.replay)
@@ -432,3 +445,63 @@ class LandedCITest(unittest.TestCase):
                 self.assertRaises(RuntimeError),
             ):
                 ci.effective_jobs(current, self.replay)
+
+    def test_newest_non_green_ci_status_shadows_older_green(self):
+        newer = dict(context='ci-passed', state='pending')
+        stale = dict(context='ci-passed', state='success')
+        with mock.patch.object(
+            ci,
+            'api',
+            side_effect=[
+                [{'context': 'other', 'id': 1234}] * 100,
+                [newer, stale],
+            ],
+        ) as api:
+            with self.assertRaisesRegex(
+                RuntimeError, 'Missing successful ci-passed'
+            ):
+                ci.verify_aggregate(SHA, self.replay)
+        self.assertEqual(api.call_count, 2)
+
+    def test_green_attempt_started_during_aggregate_is_rejected(self):
+        current = run('kubeflow-pipelines-manifests.yml')
+        actual = job('kubeflow-pipelines-manifests', ['Run tests'])
+        latest = [current]
+
+        def page(_endpoint, field):
+            return {
+                'workflow_runs': latest,
+                'workflows': [dict(path=current['path'], id=17)],
+                'jobs': [actual],
+            }[field]
+
+        def new_attempt(*args):
+            latest[0] = dict(current, run_attempt=2)
+
+        with (
+            mock.patch.object(
+                ci, 'api', side_effect=self.responses.__getitem__
+            ),
+            mock.patch.object(
+                ci, 'expected_workflows', return_value=[current['path']]
+            ),
+            mock.patch.object(ci, 'paged', side_effect=page),
+            mock.patch.object(ci.subprocess, 'run'),
+            mock.patch.object(ci, 'verify_aggregate', side_effect=new_attempt),
+            self.assertRaisesRegex(RuntimeError, 'attempt changed'),
+        ):
+            ci.collect_evidence(8, SHA, 9)
+
+    def test_new_status_during_pagination_cannot_hide_failure(self):
+        oldest = dict(id=1, context='ci-passed', state='success')
+        newest = dict(id=101, context='ci-passed', state='failure')
+        pages = [
+            [dict(id=i, context='other') for i in range(100, 0, -1)],
+            [oldest],
+            [newest],
+        ]
+        with (
+            mock.patch.object(ci, 'api', side_effect=pages),
+            self.assertRaisesRegex(RuntimeError, 'history changed'),
+        ):
+            ci.latest_ci_status(SHA)
