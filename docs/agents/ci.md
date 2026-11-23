@@ -453,6 +453,10 @@ The frontend qualification reliability reporter supports `--collect --repository
 
 - The deploy action first restores the existing runtime-image cache using the producer’s exact source fingerprint, UTC date, and archive paths; matrix jobs never save caches. A missing, failed, or incomplete restore falls back to the same-run runtime artifact with digest checking and bounded recovery. Both archives must be nonempty before accepting a cache hit, and all required image tags are still verified in Kind. Runtime preparation overlaps branch image builds; the later barrier and positive download pattern select only the seven branch images. The two archive inventories preserve optional Modelcar coverage. Measure the full job, including cache misses: artifact transfer/extraction variability can dominate cluster setup.
 
+## PostgreSQL image upgrade checks
+
+The main-branch workflow in `.github/workflows/postgresql-main-upgrade.yml` upgrades the shipped PostgreSQL 18 deployment on its existing PVC. It checks that KFP can read the original experiment, write to the database after the upgrade, and read it again after a restart. When changing the candidate image, keep the preceding deployment image as the test baseline.
+
 ## TensorBoard runtime acceptance
 
 Main builds the standalone TensorBoard image from `backend/Dockerfile.tensorboard`

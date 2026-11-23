@@ -1891,7 +1891,7 @@ notebooks = [
 
 [package.metadata]
 requires-dist = [
-    { name = "certifi" },
+    { name = "certifi", specifier = ">=2026.10.19" },
     { name = "click", specifier = ">=8.5.1" },
     { name = "click-option-group", specifier = ">=0.5.7" },
     { name = "docker", marker = "extra == 'all'" },
