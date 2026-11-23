@@ -145,6 +145,38 @@ class ImagePublicationPermissionsTest(unittest.TestCase):
             },
         )
 
+    def test_local_action_remains_available_for_post_job_cleanup(self):
+        steps = self.build_job(True)['steps']
+        setup = next(
+            i
+            for i, step in enumerate(steps)
+            if step['name'] == 'Set up provenance reader'
+        )
+        prepare = next(
+            i
+            for i, step in enumerate(steps)
+            if step['name'] == 'Prepare image source context'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / 'workspace'
+            temporary = Path(directory) / 'runner-temp'
+            temporary.mkdir()
+            action = workspace / steps[setup]['uses'] / 'action.yml'
+            action.parent.mkdir(parents=True)
+            action.write_text('runs: {using: composite, steps: []}\n')
+            for step in steps[setup + 1 : prepare]:
+                if 'run' in step:
+                    subprocess.run(
+                        ['bash', '-e', '-c', step['run']],
+                        cwd=workspace,
+                        env=dict(os.environ, RUNNER_TEMP=str(temporary)),
+                        check=True,
+                    )
+            self.assertTrue(
+                action.is_file(),
+                'Post-job cleanup cannot resolve the local action definition',
+            )
+
     def test_verified_archive_precedes_digest_handoff(self) -> None:
         steps = self.build_job(True)['steps']
         names = [step['name'] for step in steps]

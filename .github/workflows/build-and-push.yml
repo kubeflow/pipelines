@@ -166,9 +166,6 @@ jobs:
       - name: Set up provenance reader
         uses: ./.publication-tooling/.github/actions/setup-go
 
-      - name: Isolate publication tooling from image context
-        run: mv .publication-tooling "$RUNNER_TEMP/publication-tooling"
-
       - name: Prepare image source context
         id: source_context
         env:
@@ -176,7 +173,7 @@ jobs:
           DOCKERFILE: ${{ inputs.docker_file }}
           IMAGE_CONTEXT: ${{ inputs.image_context }}
         run: |
-          python3 "$RUNNER_TEMP/publication-tooling/.github/resources/scripts/image-build-provenance.py" prepare \
+          python3 "$GITHUB_WORKSPACE/.publication-tooling/.github/resources/scripts/image-build-provenance.py" prepare \
             --source "$GITHUB_WORKSPACE" --sha "$SOURCE_SHA" --dockerfile "$DOCKERFILE" \
             --context "$IMAGE_CONTEXT" --destination "$RUNNER_TEMP/publication-context" > "$RUNNER_TEMP/publication-context.json"
           jq -r '"context=\(.context)\ndockerfile=\(.dockerfile)"' \
@@ -299,7 +296,7 @@ jobs:
             config=$(tar -xOf "$RUNNER_TEMP/publication-image.tar" manifest.json | jq -r '.[0].Config' | sed 's/\.json$//; s|.*/||')
             image="sha256:$config"
           fi
-          python3 "$RUNNER_TEMP/publication-tooling/.github/resources/scripts/image-build-provenance.py" verify \
+          python3 "$GITHUB_WORKSPACE/.publication-tooling/.github/resources/scripts/image-build-provenance.py" verify \
             --source "$GITHUB_WORKSPACE" --sha "$SOURCE_SHA" --dockerfile "$DOCKERFILE" \
             --platform "$PLATFORM" --image "$image" \
             --output "$RUNNER_TEMP/publication-provenance"
