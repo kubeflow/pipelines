@@ -81,10 +81,12 @@ class ActionlintCompatibilityTest(unittest.TestCase):
         paths = (
             '.github/workflows/release-qualification.yml',
             '.github/workflows/image-builds-release.yml',
+            '.github/workflows/release-landed-ci.yml',
         )
         patterns = self.config['paths'][paths[0]]['ignore']
         self.assertEqual(len(patterns), 1)
-        self.assertEqual(self.config['paths'][paths[1]]['ignore'], patterns)
+        for path in paths[1:]:
+            self.assertEqual(self.config['paths'][path]['ignore'], patterns)
         diagnostic = (
             'unexpected key "cache-mode" for "workflow" section. expected one of '
             '"concurrency", "defaults", "env", "jobs", "name", "on", '

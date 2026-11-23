@@ -299,6 +299,59 @@ checkpoints from the previous candidate. Reverify merge/CI and requalify. A
 published tag is immutable: selecting a different candidate after publication
 requires a new release version, not a forced tag update.
 
+### Verify CI on an already merged release commit
+
+On `release-2.18`, if the version PR's `ci-passed` is still pending and its tested tree differs
+from the landed tree, verify CI for the exact landed commit. Run the following
+with a separate checkout of the reviewed upstream tooling on `main`. This
+mode also uses the repository's CI workflow policy scripts. Install the tool
+in editable mode from that fixed checkout, with Node.js and `gh` on the path.
+Keep the tooling checkout at its reviewed revision and run kfpr from the
+release checkout. Keep the original version PR URL in the checkpoint.
+
+```bash
+/tmp/kfpr-tools/bin/pip install -e /path/to/reviewed-main-checkout/release
+export PATH="/tmp/kfpr-tools/bin:$PATH"
+```
+
+1. Create temporary upstream refs `ci/release-replay/<sha>` at the landed
+   commit's sole parent and `ci/release-candidate/<sha>` at the landed commit.
+   Use the full 40-character SHA. Open a draft PR from the candidate ref to
+   the replay ref and leave both refs fixed throughout publication. The PR
+   runs the automatic test matrices. In particular, a manual 2.18 E2E run
+   can replace every matrix lane's label with the same test filter.
+2. Wait for the repository's `ci-passed` status on the test-only PR and the
+   required release-branch tests. Then dispatch the read-only verifier on
+   `main`. Supply the original merged version PR and the test-only PR
+   separately. The verifier also checks branch-specific workflows that the
+   temporary PR base does not trigger.
+
+   If the latest green came from a `pull_request_target` event (for example,
+   after a maintainer removed a test hold), rerun a required automatic test
+   from the **test-only PR**. Pick its manifests test when applicable.
+   Use `gh run rerun "$REPLAY_TEST_RUN_ID" --repo kubeflow/pipelines` and
+   wait for the test and the resulting upstream `CI Check` run to finish.
+   The test's start and completion events trigger a fresh evaluation on
+   `main`. Then dispatch the verifier.
+
+   ```bash
+   gh workflow run release-landed-ci.yml --repo kubeflow/pipelines --ref main \
+     -f pr_number="$VERSION_PR" -f release_sha="$LANDED_SHA" -f replay_pr="$REPLAY_PR"
+   ```
+
+3. Use the verifier's successful **run ID** in the existing checkpoint.
+
+   ```bash
+   kfpr run merge-version-pr --state-file "$STATE_FILE" --landed-ci-run "$RUN_ID" --done
+   kfpr run qualify-release --state-file "$STATE_FILE" --done
+   ```
+
+The verifier's `ci-passed` job records the supporting test runs in an
+attempt-specific artifact. kfpr checks it against current GitHub evidence
+when it validates the release PR. Rerunning a constituent can invalidate
+the receipt. After publication, close the test-only PR and delete its
+temporary refs.
+
 ## Scan an open release candidate before merge
 
 Use the current upstream `kfpr` to build and scan an open version PR without

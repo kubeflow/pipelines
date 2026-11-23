@@ -155,6 +155,7 @@ def _context(
     security_policy: Optional[str] = None,
     security_exceptions: Optional[Path] = None,
     image_qualification: Optional[str] = None,
+    landed_ci_run: Optional[int] = None,
 ) -> ReleaseContext:
     state = _load_state_for_update(state_file)
     _set_answer(state, 'release_type', release_type)
@@ -172,6 +173,11 @@ def _context(
     _set_answer(state, 'previous_release', previous_release)
     _set_answer(state, 'previous_sdk_release', previous_sdk_release)
     _set_answer(state, 'release_target', release_target)
+    if landed_ci_run is not None and landed_ci_run != state.answers.get(
+        'landed_ci_run'
+    ):
+        state.answers['landed_ci_run'] = landed_ci_run
+        state.answers.pop('landed_ci_attempt', None)
     if qualification_pythons:
         raise typer.BadParameter(
             'CI selects Python versions from the release source',
@@ -385,6 +391,11 @@ def run(
         None,
         help='JSON exception file with exact findings, justifications and UTC expiries or an exact release bound; selects approved-exceptions.',
     ),
+    landed_ci_run: Optional[int] = typer.Option(
+        None,
+        min=1,
+        help='Upstream landed CI attestation run for the merged version PR.',
+    ),
     image_qualification: Optional[ImageQualification] = typer.Option(
         None,
         help='Qualification scans run in upstream CI; local scanning is unsupported.',
@@ -419,6 +430,7 @@ def run(
         qualification_pythons=qualification_pythons,
         security_policy=security_policy,
         security_exceptions=security_exceptions,
+        landed_ci_run=landed_ci_run,
         image_qualification=image_qualification,
     )
     run_steps(context)
@@ -947,6 +959,11 @@ def _make_step_command(step_id: str):
             None,
             help='JSON exception file with exact findings, justifications and UTC expiries or an exact release bound; selects approved-exceptions.',
         ),
+        landed_ci_run: Optional[int] = typer.Option(
+            None,
+            min=1,
+            help='Upstream landed CI attestation run for the merged version PR.',
+        ),
         image_qualification: Optional[ImageQualification] = typer.Option(
             None,
             help='Qualification scans run in upstream CI; local scanning is unsupported.',
@@ -974,6 +991,7 @@ def _make_step_command(step_id: str):
             qualification_pythons=qualification_pythons,
             security_policy=security_policy,
             security_exceptions=security_exceptions,
+            landed_ci_run=landed_ci_run,
             image_qualification=image_qualification,
             save_state=done,
             require_previous_release=step_id
