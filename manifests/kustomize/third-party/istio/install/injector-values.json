@@ -107,7 +107,7 @@
       "servicePort": 0
     },
     "tag": "1.31.4",
-    "variant": "distroless",
+    "variant": "",
     "waypoint": {
       "affinity": {},
       "nodeSelector": {},
