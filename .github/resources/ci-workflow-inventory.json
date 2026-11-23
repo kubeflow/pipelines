@@ -974,7 +974,7 @@
     {
       "path": ".github/workflows/postgresql-main-upgrade.yml",
       "name": "Main PostgreSQL image retained-data upgrade",
-      "header_sha256": "12d4b2b80a9f7ddf8acb8a39498f0203219e75bbabbd8ff8e410f21b69f4875f",
+      "header_sha256": "c8d5428aafe5f4ea68b14d41b0f4b549a928689051039cdac4518abd9a5a752a",
       "pull_request": {
         "branches": [
           "master",
@@ -1002,7 +1002,8 @@
         ],
         "branches": [
           "master",
-          "main"
+          "main",
+          "release-2.18"
         ]
       }
     },

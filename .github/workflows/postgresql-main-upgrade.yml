@@ -36,7 +36,7 @@ on:
       - .github/actions/setup-python-pip-cache/**
   merge_group:
     types: [checks_requested]
-    branches: [master, main]
+    branches: [master, main, release-2.18]
 
 permissions:
   contents: read
