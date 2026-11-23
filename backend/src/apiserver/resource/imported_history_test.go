@@ -136,7 +136,7 @@ func TestImportedHistoryRejectsArtifactTaskWrites(t *testing.T) {
 				_, _, err = manager.FindOrCreateArtifactWithTask(&model.Artifact{}, link)
 			case "bulk artifacts":
 				_, _, err = manager.CreateArtifactsWithTasks(
-					[]*model.Artifact{},
+					[]*model.Artifact{{}},
 					[]*model.ArtifactTask{link},
 					[]string{""},
 				)

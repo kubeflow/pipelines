@@ -1660,7 +1660,7 @@ func TestCreateArtifactWithTask_DifferentRunUUIDCreatesDistinctWrite(t *testing.
 	second, secondArtifactTask, err := store.CreateArtifactWithTask(
 		newArtifact(),
 		secondLink,
-		"operation-run-scope-1",
+		"operation-task-scope-1",
 	)
 	require.NoError(t, err)
 

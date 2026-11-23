@@ -16,6 +16,7 @@ package server
 
 import (
 	"context"
+	"strings"
 
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
@@ -911,6 +912,9 @@ func validateOperationID(operationID string) error {
 			maxOperationIDLength,
 			len(operationID),
 		)
+	}
+	if strings.ContainsRune(operationID, 0) {
+		return util.NewInvalidInputError("operation_id must not contain NUL characters")
 	}
 	return nil
 }

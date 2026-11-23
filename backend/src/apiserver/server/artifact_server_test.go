@@ -2641,6 +2641,11 @@ func TestArtifactServer_RejectsOverlongOperationID(t *testing.T) {
 	require.IsType(t, &util.UserError{}, err)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 
+	_, err = s.CreateArtifact(context.Background(), newRequest("op\x00id", "nul"))
+	require.Error(t, err)
+	require.IsType(t, &util.UserError{}, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+
 	_, err = s.CreateArtifactsBulk(context.Background(), &apiv2.CreateArtifactsBulkRequest{
 		Artifacts: []*apiv2.CreateArtifactRequest{newRequest(strings.Repeat("b", 192), "bulk-too-long")},
 	})

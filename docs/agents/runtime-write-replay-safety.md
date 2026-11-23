@@ -79,7 +79,10 @@ write identity.
 
 Replay resolution locks the run row before the artifact and link rows, and
 retry cleanup locks the run row before deleting links. Keeping this order
-prevents index-order deadlocks between replays and cleanup on MySQL.
+prevents index-order deadlocks between replays and cleanup on MySQL. A bulk
+write that carries any `operation_id` locks every run in the batch, in sorted
+order, before its first insert, so two batches that replay each other's runs
+cannot deadlock on the foreign-key lock a fresh link insert takes.
 
 `TestCreateArtifactWithTask_ReplayAfterRetryCleanupFailsPrecondition`,
 `TestRetryRun_ReplayedArtifactWriteAfterCleanupIsStaleAttempt`,

@@ -408,37 +408,30 @@ func (s *ArtifactStore) getArtifactWriteResult(
 	return existingArtifact, existingArtifactTask, nil
 }
 
-// lockRunsOfReplayedWrites locks, in a stable order, the runs of batch items
-// whose write identity already exists, before the batch inserts any row. A
-// replayed item otherwise locks its run after earlier items have inserted
-// links, which inverts the run-then-links order used by retry cleanup.
-func (s *ArtifactStore) lockRunsOfReplayedWrites(
+// lockRunsOfReplayableBatch locks every run of a batch that carries an
+// operation ID, in a stable order, before the batch inserts any row. Locking
+// only the runs of replayed items is not enough: a fresh link insert takes a
+// foreign-key lock on its run, so two batches that replay each other's runs
+// would deadlock. Batches without operation IDs keep the legacy path.
+func (s *ArtifactStore) lockRunsOfReplayableBatch(
 	tx *sql.Tx,
-	artifacts []*model.Artifact,
 	artifactTasks []*model.ArtifactTask,
 	operationIDs []string,
 ) error {
+	replayable := false
+	for _, operationID := range operationIDs {
+		if operationID != "" {
+			replayable = true
+			break
+		}
+	}
+	if !replayable {
+		return nil
+	}
+
 	runUUIDs := map[string]struct{}{}
-	for index, operationID := range operationIDs {
-		if operationID == "" {
-			continue
-		}
-		identity, err := computeArtifactWriteIdentity(
-			artifacts[index].Namespace,
-			artifactTasks[index].RunUUID,
-			artifactTasks[index].TaskID,
-			operationID,
-		)
-		if err != nil {
-			return util.Wrap(err, fmt.Sprintf("Failed to compute artifact write identity %d", index))
-		}
-		existingIdentity, err := s.getArtifactWriteIdentity(tx, identity)
-		if err != nil {
-			return util.Wrap(err, fmt.Sprintf("Failed to look up artifact write identity %d", index))
-		}
-		if existingIdentity != nil {
-			runUUIDs[existingIdentity.RunUUID] = struct{}{}
-		}
+	for _, artifactTask := range artifactTasks {
+		runUUIDs[artifactTask.RunUUID] = struct{}{}
 	}
 
 	sortedRunUUIDs := make([]string, 0, len(runUUIDs))
@@ -752,7 +745,7 @@ func (s *ArtifactStore) CreateArtifactsWithTasks(
 		}
 	}()
 
-	if err := s.lockRunsOfReplayedWrites(tx, artifacts, artifactTasks, operationIDs); err != nil {
+	if err := s.lockRunsOfReplayableBatch(tx, artifactTasks, operationIDs); err != nil {
 		return nil, nil, err
 	}
 
@@ -1243,6 +1236,9 @@ func (s *ArtifactStore) getArtifactTaskByUniqueLinkWithExecutor(
 	defer rows.Close()
 
 	if !rows.Next() {
+		if err := rows.Err(); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to read artifact-task by unique link: %v", err.Error())
+		}
 		return nil, nil
 	}
 

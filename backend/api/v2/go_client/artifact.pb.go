@@ -228,10 +228,6 @@ type CreateArtifactRequest struct {
 	RunId string `protobuf:"bytes,2,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// The Task that is associated with the creation of this artifact.
 	TaskId string `protobuf:"bytes,3,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	// Optional. A caller-generated operation ID used to make artifact creation
-	// idempotent across RPC retries. The same operation ID is scoped to the
-	// namespace, run, and task.
-	OperationId string `protobuf:"bytes,4,opt,name=operation_id,json=operationId,proto3" json:"operation_id,omitempty"`
 	// The outgoing parameter name of this Artifact within this task's component spec.
 	// For example:
 	// def preprocess(my_output: dsl.Outputs[dsl.Artifact]):
@@ -249,6 +245,10 @@ type CreateArtifactRequest struct {
 	// new artifact row so reimport=true and ordinary outputs may intentionally
 	// create duplicates.
 	ReuseIfExists bool `protobuf:"varint,7,opt,name=reuse_if_exists,json=reuseIfExists,proto3" json:"reuse_if_exists,omitempty"`
+	// Optional. A caller-generated operation ID used to make artifact creation
+	// idempotent across RPC retries. The same operation ID is scoped to the
+	// namespace, run, and task.
+	OperationId   string `protobuf:"bytes,4,opt,name=operation_id,json=operationId,proto3" json:"operation_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -304,13 +304,6 @@ func (x *CreateArtifactRequest) GetTaskId() string {
 	return ""
 }
 
-func (x *CreateArtifactRequest) GetOperationId() string {
-	if x != nil {
-		return x.OperationId
-	}
-	return ""
-}
-
 func (x *CreateArtifactRequest) GetProducerKey() string {
 	if x != nil {
 		return x.ProducerKey
@@ -330,6 +323,13 @@ func (x *CreateArtifactRequest) GetReuseIfExists() bool {
 		return x.ReuseIfExists
 	}
 	return false
+}
+
+func (x *CreateArtifactRequest) GetOperationId() string {
+	if x != nil {
+		return x.OperationId
+	}
+	return ""
 }
 
 type CreateArtifactsBulkRequest struct {
@@ -1197,10 +1197,10 @@ const file_backend_api_v2_artifact_proto_rawDesc = "" +
 	"\bartifact\x18\x01 \x01(\v2+.kubeflow.pipelines.backend.api.v2.ArtifactR\bartifact\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\tR\x05runId\x12\x17\n" +
 	"\atask_id\x18\x03 \x01(\tR\x06taskId\x12!\n" +
-	"\foperation_id\x18\x04 \x01(\tR\voperationId\x12!\n" +
 	"\fproducer_key\x18\x05 \x01(\tR\vproducerKey\x12,\n" +
 	"\x0fiteration_index\x18\x06 \x01(\x03H\x00R\x0eiterationIndex\x88\x01\x01\x12&\n" +
-	"\x0freuse_if_exists\x18\a \x01(\bR\rreuseIfExistsB\x12\n" +
+	"\x0freuse_if_exists\x18\a \x01(\bR\rreuseIfExists\x12!\n" +
+	"\foperation_id\x18\x04 \x01(\tR\voperationIdB\x12\n" +
 	"\x10_iteration_index\"t\n" +
 	"\x1aCreateArtifactsBulkRequest\x12V\n" +
 	"\tartifacts\x18\x01 \x03(\v28.kubeflow.pipelines.backend.api.v2.CreateArtifactRequestR\tartifacts\"h\n" +
