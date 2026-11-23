@@ -158,11 +158,29 @@ class PatchPublicationTest(unittest.TestCase):
                 )
                 self.assertIn(expected, call.args[0])
 
-    def test_patch_website_checklist_preserves_latest(self):
+    def test_patch_website_command_tracks_published_latest(self):
         checklist = steps.manual_checklist(
             'confirm-website-and-slack', self.context.metadata
         )
-        self.assertNotIn('echo -n 2.17.3', checklist)
-        self.assertIn('Preserve', checklist)
-        self.assertIn('latest-version.html', checklist)
-        self.assertIn('releases/tag/2.17.3', checklist)
+        command = next(
+            line.strip()
+            for line in checklist.splitlines()
+            if line.strip().startswith('latest_tag=')
+        )
+        shortcode = (
+            self.root / 'layouts/shortcodes/pipelines/latest-version.html'
+        )
+        shortcode.parent.mkdir(parents=True)
+        for latest, previous, expected in (
+            ('2.17.3', '2.17.0', '2.17.3'),
+            ('2.18.0', '2.18.0', '2.18.0'),
+        ):
+            with self.subTest(latest=latest):
+                shortcode.write_text(previous)
+                subprocess.run(
+                    ['sh', '-c', 'gh() { echo "$LATEST_TAG"; }; ' + command],
+                    cwd=self.root,
+                    env={'LATEST_TAG': latest},
+                    check=True,
+                )
+                self.assertEqual(shortcode.read_text(), expected)

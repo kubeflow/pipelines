@@ -1106,8 +1106,9 @@ Malformed or unavailable discovery stops publication; dry runs perform no query.
 SDK GitHub releases always use `--latest=false` to preserve the shared backend designation.
 
 Maintenance patches still leave development-branch version files, changelog and Read the Docs
-defaults unchanged. The final website checklist preserves its existing latest-version
-pointer; these separate maintenance safeguards are not part of latest selection.
+defaults unchanged. At the final website checkpoint, update the installation shortcode to the published
+backend release when GitHub marks it Latest. A patch on an older maintenance line
+leaves the installation version at the newer release.
 
 SDK publication checks PyPI before each upload. Split SDK releases publish missing
 packages in dependency order: pipeline spec, server API, KFP, then Kubernetes.
