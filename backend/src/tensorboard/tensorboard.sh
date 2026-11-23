@@ -13,5 +13,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Older TensorFlow readers accepted a bare host and a separate transport flag.
+case ${S3_ENDPOINT:-} in
+    ''|*://*) ;;
+    *)
+        case ${S3_USE_HTTPS:-} in
+            0*) S3_ENDPOINT=http://$S3_ENDPOINT ;;
+            *) S3_ENDPOINT=https://$S3_ENDPOINT ;;
+        esac
+        export S3_ENDPOINT
+        ;;
+esac
+
+# The controller's first argument contains the UI-generated Series1, Series2,
+# ... specification when users select more than one run.
+case ${1:-} in
+    --logdir=Series1:*,Series2:*)
+        logdirs=${1#--logdir=}
+        shift
+        set -- "--logdir_spec=$logdirs" "$@"
+        ;;
+esac
+
 # Keep remote event reads on the Python filesystem clients shipped in this image.
 exec tensorboard-cli --load_fast=false "$@"

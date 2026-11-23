@@ -15,12 +15,14 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -66,13 +68,24 @@ const (
 	mlPipelineAPIServerTLSEnabledFlagName = "mlPipelineServiceTLSEnabled"
 	caCertPathFlagName                    = "caCertPath"
 	apiTokenFile                          = "/var/run/secrets/kubeflow/tokens/scheduledworkflow-sa-token"
+	leaseName                             = "kfp-scheduledworkflow"
 )
 
 func main() {
 	flag.Parse()
 
+	leaderElect, leaderElectError := leaderElectionEnabled(os.Getenv("LEADER_ELECT"))
+	if leaderElectError != nil {
+		log.Fatal(leaderElectError)
+	}
+
+	// Register before the informers and leader election start: they use the
+	// scheme, and the controller is created later, when this replica leads.
+	registerScheme()
+
 	// set up signals so we handle the first shutdown signal gracefully
-	stopCh := signals.SetupSignalHandler().Done()
+	shutdownContext := signals.SetupSignalHandler()
+	stopCh := shutdownContext.Done()
 
 	cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
@@ -143,32 +156,88 @@ func main() {
 
 	log.Info("Successfully connected to the API server")
 
-	controller, err := NewController(
-		kubeClient,
-		scheduleClient,
-		execClient,
-		runClient,
-		scheduleInformerFactory,
-		execInformer,
-		commonutil.NewRealTime(),
-		location,
-		tokenSrc,
-		userIdentityHeader,
-		userIdentityValue,
-		multiUser,
-	)
-	if err != nil {
-		log.Fatalf("Failed to instantiate the controller: %v", err)
+	newController := func() *Controller {
+		controller, controllerError := NewController(
+			kubeClient,
+			scheduleClient,
+			execClient,
+			runClient,
+			scheduleInformerFactory,
+			execInformer,
+			commonutil.NewRealTime(),
+			location,
+			tokenSrc,
+			userIdentityHeader,
+			userIdentityValue,
+			multiUser,
+		)
+		if controllerError != nil {
+			log.Fatalf("Failed to instantiate the controller: %v", controllerError)
+		}
+		return controller
 	}
+
+	// Request both informers so that the factories start them now: with leader
+	// election, the controller is created only when this replica becomes leader.
+	scheduleInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows().Informer()
+	execInformer.HasSynced()
 
 	go scheduleInformerFactory.Start(stopCh)
 	go execInformer.InformerFactoryStart(stopCh)
 
 	go startMetricsServer()
 
-	if err = controller.Run(2, stopCh); err != nil {
-		log.Fatalf("Error running controller: %s", err.Error())
+	if !leaderElect {
+		if runError := newController().Run(2, stopCh); runError != nil {
+			log.Fatalf("Error running controller: %s", runError.Error())
+		}
+		return
 	}
+
+	leaseNamespace := os.Getenv("POD_NAMESPACE")
+	if leaseNamespace == "" {
+		log.Fatal("LEADER_ELECT is true but POD_NAMESPACE is not set: set POD_NAMESPACE from the Pod's metadata.namespace, or set LEADER_ELECT to false")
+	}
+	identity, identityError := commonutil.LeaderElectionIdentity()
+	if identityError != nil {
+		log.Fatalf("Error getting the leader election identity: %v", identityError)
+	}
+	electionError := commonutil.RunWithLeaderElection(shutdownContext, kubeClient, commonutil.LeaderElectionConfig{
+		LeaseName: leaseName,
+		Namespace: leaseNamespace,
+		Identity:  identity,
+		Run: func(leaderContext context.Context) {
+			// A standby creates no controller, so it queues no work. Adding the
+			// event handlers to the running informers replays every current
+			// object, so the new leader starts with all schedules queued.
+			if runError := newController().Run(2, leaderContext.Done()); runError != nil {
+				log.Fatalf("Error running controller: %s", runError.Error())
+			}
+		},
+		OnLost: func() {
+			// Exit so that Kubernetes restarts the container as a standby. The
+			// work queue has been shut down and cannot be reused, and workers
+			// may still have requests in flight.
+			log.Fatal("Lost the leader lease, exiting")
+		},
+	})
+	if electionError != nil {
+		log.Fatalf("Error running leader election: %v", electionError)
+	}
+}
+
+// leaderElectionEnabled parses the LEADER_ELECT environment variable. It is
+// read from the environment instead of a flag so that it also applies when a
+// deployment overrides the image command, as the TLS install does.
+func leaderElectionEnabled(value string) (bool, error) {
+	if value == "" {
+		return false, nil
+	}
+	enabled, parseError := strconv.ParseBool(value)
+	if parseError != nil {
+		return false, fmt.Errorf("invalid LEADER_ELECT value %q: set it to \"true\" or \"false\"", value)
+	}
+	return enabled, nil
 }
 
 func startMetricsServer() {

@@ -33,6 +33,7 @@ ROOT = Path(__file__).resolve().parents[3]
 WRAPPER = './.github/actions/download-artifact-with-retry'
 WRAPPERS = {WRAPPER, './tooling/.github/actions/download-artifact-with-retry'}
 CALLERS = [
+    ('.github/actions/deploy/action.yml', 'composite'),
     ('.github/actions/shared-ci-images/action.yml', 'composite'),
     ('.github/workflows/build-tools-images.yml', 'compare-generated'),
     ('.github/workflows/build-tools-images.yml', 'publish-tools'),
@@ -40,6 +41,7 @@ CALLERS = [
     ('.github/workflows/image-builds-master.yml', 'arm64-smoke'),
     ('.github/workflows/image-builds-release.yml', 'validate-release-images'),
     ('.github/workflows/image-builds.yml', 'runtime-base-images'),
+    ('.github/workflows/image-builds.yml', 'image-bundle'),
     ('.github/workflows/release-qualification.yml', 'aggregate'),  # Images
     ('.github/workflows/release-qualification.yml', 'aggregate'),  # Source/SDK
     ('.github/workflows/release-qualification.yml', 'aggregate'),  # Third-party
@@ -263,6 +265,7 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                 {
                     'identity': {
                         'run_id': 1234,
+                        'run_attempt': 1,
                         'repository': 'upstream/pipelines',
                     },
                     'sets': {kind: records},

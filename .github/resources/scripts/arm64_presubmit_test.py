@@ -67,7 +67,7 @@ class Arm64PresubmitTest(unittest.TestCase):
             (workflows / 'arm64-presubmit.yml').read_text()
         )
         smoke = workflow['jobs']['smoke']
-        self.assertNotIn('needs', smoke)
+        self.assertEqual(smoke['needs'], 'image-artifacts-ready')
         self.assertEqual(smoke['timeout-minutes'], 60)
         self.assertEqual(smoke['runs-on'], 'ubuntu-24.04-arm')
         download = next(

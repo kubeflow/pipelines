@@ -1,0 +1,46 @@
+name: Shared CI image readiness
+
+on:
+  workflow_call:
+    inputs:
+      architecture:
+        description: Native image architecture
+        type: string
+        default: amd64
+      include_tensorboard:
+        description: Also resolve the optional viewer image before cluster setup
+        type: boolean
+        default: false
+    outputs:
+      state:
+        description: Exact source and producer attempt with immutable artifact IDs
+        value: ${{ jobs.ready.outputs.state }}
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  ready:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      state: ${{ steps.resolve.outputs.state }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Ensure GitHub CLI is available
+        run: bash .github/resources/scripts/setup-github-cli.sh
+      - name: Resolve required image artifacts once for all consumer jobs
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE_ARCHITECTURE: ${{ inputs.architecture }}
+          INCLUDE_TENSORBOARD: ${{ inputs.include_tensorboard }}
+        run: |
+          extra=()
+          if [[ "$INCLUDE_TENSORBOARD" == true ]]; then extra+=(--include-tensorboard); fi
+          python3 .github/resources/scripts/shared_ci_images.py prepare "${extra[@]}" \
+            --architecture "$IMAGE_ARCHITECTURE" \
+            --state "$RUNNER_TEMP/kfp-shared-images.json" --output "$GITHUB_OUTPUT"

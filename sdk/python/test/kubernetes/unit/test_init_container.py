@@ -328,6 +328,38 @@ class TestAddInitContainer:
                     volume_mounts={'config-volume': 'config'},
                 )
 
+    @pytest.mark.parametrize('argument', ['command', 'args'])
+    @pytest.mark.parametrize('bad', ['echo hi', ''])
+    def test_plain_string_command_or_args_raises(self, argument, bad):
+        with pytest.raises(TypeError, match='must be a list of strings'):
+
+            @dsl.pipeline
+            def my_pipeline():
+                kubernetes.add_init_container(
+                    print_greeting(),
+                    name='init',
+                    image='busybox',
+                    **{argument: bad},
+                )
+
+    def test_command_and_args_lists_still_work(self):
+        @dsl.pipeline
+        def my_pipeline():
+            kubernetes.add_init_container(
+                print_greeting(),
+                name='init',
+                image='busybox',
+                command=['echo', 'hi'],
+                args=['foo'],
+            )
+
+        executor = json_format.MessageToDict(my_pipeline.platform_spec)[
+            'platforms'
+        ]['kubernetes']['deploymentSpec']['executors']['exec-print-greeting']
+        init = executor['initContainers'][0]
+        assert init['command'] == ['echo', 'hi']
+        assert init['args'] == ['foo']
+
 
 @dsl.component
 def print_greeting():

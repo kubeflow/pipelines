@@ -268,33 +268,72 @@ describe('Tensorboard', () => {
   });
 
   it.each([
-    [undefined, 'ghcr.io/kubeflow/kfp-tensorboard:master'],
-    ['example.com/custom-tensorboard:stable', 'example.com/custom-tensorboard:stable'],
-  ])('restarts an existing viewer using the configured image %s', async (image, expectedImage) => {
-    vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_FOUND);
-    vi.spyOn(Apis, 'deleteTensorboardApp').mockResolvedValue('');
-    const startAppSpy = vi.spyOn(Apis, 'startTensorboardApp').mockResolvedValue('');
-    const config = { ...DEFAULT_CONFIG, image };
-    render(<TensorboardViewer configs={[config]} />);
-    await flushPromisesInAct();
-    expect(
-      screen.getByText('Tensorboard tensorflow/tensorflow:1.14.0 is running for this output.'),
-    ).toBeInTheDocument();
+    {
+      runningImage: GET_APP_FOUND.image,
+      configuredImage: undefined,
+      expectedImage: 'ghcr.io/kubeflow/kfp-tensorboard:master',
+    },
+    {
+      runningImage: GET_APP_FOUND.image,
+      configuredImage: 'example.com/pipeline-image:stable',
+      expectedImage: 'example.com/pipeline-image:stable',
+    },
+    {
+      runningImage: 'example.com/custom-tensorboard:stable',
+      configuredImage: undefined,
+      expectedImage: 'example.com/custom-tensorboard:stable',
+    },
+    {
+      runningImage: 'example.com/custom-tensorboard:stable',
+      configuredImage: 'example.com/pipeline-image:stable',
+      expectedImage: 'example.com/custom-tensorboard:stable',
+    },
+    {
+      runningImage: GET_APP_FOUND.image,
+      configuredImage: GET_APP_FOUND.image,
+      expectedImage: GET_APP_FOUND.image,
+    },
+  ])(
+    'restarts $runningImage with $expectedImage when the configured image is $configuredImage',
+    async ({ runningImage, configuredImage, expectedImage }) => {
+      vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue({
+        ...GET_APP_FOUND,
+        image: runningImage,
+      });
+      vi.spyOn(Apis, 'deleteTensorboardApp').mockResolvedValue('');
+      const startAppSpy = vi.spyOn(Apis, 'startTensorboardApp').mockResolvedValue('');
+      const config = { ...DEFAULT_CONFIG, image: configuredImage };
+      render(<TensorboardViewer configs={[config]} />);
+      await flushPromisesInAct();
+      expect(
+        screen.getByText(`Tensorboard ${runningImage} is running for this output.`),
+      ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('Stop Tensorboard'));
-    await invokeAndFlush(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
-    });
-    await invokeAndFlush(() => {
-      fireEvent.click(screen.getByRole('button', { name: 'Start Tensorboard' }));
-    });
-    expect(startAppSpy).toHaveBeenCalledWith({
-      logdir: config.url,
-      image: expectedImage,
-      namespace: config.namespace,
-      podTemplateSpec: undefined,
-    });
-  });
+      fireEvent.click(screen.getByText('Stop Tensorboard'));
+      await invokeAndFlush(() => {
+        fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
+      });
+      const label = expectedImage.startsWith('ghcr.io/kubeflow/')
+        ? 'KFP TensorBoard (default)'
+        : expectedImage;
+      expect(screen.getByRole('combobox')).toHaveTextContent(label);
+      fireEvent.mouseDown(screen.getByRole('combobox'));
+      expect(screen.getByRole('option', { name: label, selected: true })).toBeInTheDocument();
+      if (configuredImage) {
+        expect(screen.getByRole('option', { name: configuredImage })).toBeInTheDocument();
+      }
+      fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' });
+      await invokeAndFlush(() => {
+        fireEvent.click(screen.getByRole('button', { name: 'Start Tensorboard' }));
+      });
+      expect(startAppSpy).toHaveBeenCalledWith({
+        logdir: config.url,
+        image: expectedImage,
+        namespace: config.namespace,
+        podTemplateSpec: undefined,
+      });
+    },
+  );
 
   it('shows version info in delete confirming dialog if a tensorboard instance exists', async () => {
     vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_FOUND);

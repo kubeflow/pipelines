@@ -76,6 +76,8 @@ def poll(description: str, check: Callable[[], T], timeout: int = 180) -> T:
             ValueError,
             KeyError,
             AssertionError,
+            RuntimeError,
+            subprocess.TimeoutExpired,
         ) as error:
             last = str(error)
         time.sleep(2)
@@ -489,12 +491,33 @@ def create(logdir: str, image: str) -> tuple[str, str, str, str]:
         'deployment/' + name + '-deployment',
         '--timeout=180s',
     )
-    pods = json.loads(
-        kube(
-            '-n', NAMESPACE, 'get', 'pods', '-l', 'viewer=' + name, '-o', 'json'
-        )
-    )['items']
-    pod = next(p for p in pods if p['status'].get('phase') == 'Running')
+
+    def ready_pod():
+        pods = json.loads(
+            kube(
+                '-n',
+                NAMESPACE,
+                'get',
+                'pods',
+                '-l',
+                'viewer=' + name,
+                '-o',
+                'json',
+            )
+        )['items']
+        candidates = [
+            pod
+            for pod in pods
+            if not pod['metadata'].get('deletionTimestamp')
+            and pod['status'].get('phase') == 'Running'
+            and pod['spec']['containers'][0]['image'] == image
+            and pod['status'].get('containerStatuses')
+            and pod['status']['containerStatuses'][0].get('ready')
+            and pod['status']['containerStatuses'][0].get('imageID')
+        ]
+        return candidates[0] if len(candidates) == 1 else None
+
+    pod = poll('ready viewer pod with requested image', ready_pod)
     assert pod['spec']['containers'][0]['image'] == image, pod['spec']
     assert pod['spec']['securityContext']['runAsUser'] == 1000
     status = pod['status']['containerStatuses'][0]
@@ -575,6 +598,25 @@ def delete(logdir: str, name: str) -> None:
         kube(
             '-n', NAMESPACE, 'wait', '--for=delete', resource, '--timeout=180s'
         )
+
+    # Deployment deletion returns before background garbage collection of pods.
+    poll(
+        'viewer pod deletion',
+        lambda: (
+            not json.loads(
+                kube(
+                    '-n',
+                    NAMESPACE,
+                    'get',
+                    'pods',
+                    '-l',
+                    'viewer=' + name,
+                    '-o',
+                    'json',
+                )
+            )['items']
+        ),
+    )
 
 
 def exercise_scheme(scheme: str) -> dict:

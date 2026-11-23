@@ -42,10 +42,9 @@ const fs = require('node:fs');
       if (await page.getByText('Failed to fetch runs', {exact:false}).count()) throw Error('Failed to fetch runs');
       const element = {scalars:'tf-scalar-dashboard', images:'tf-image-dashboard', graphs:'tf-graph-dashboard'}[plugin];
       await page.locator(element).waitFor({state:'visible'});
-      const deadline = Date.now() + 30000;
-      while (![...successfulData].some(url => url.includes(`/data/plugin/${plugin}/`))) {
-        if (Date.now() >= deadline) throw Error(`No successful ${plugin} data request`);
-        await page.waitForTimeout(100);
+      const pluginPath = `/data/plugin/${plugin}/`;
+      if (![...successfulData].some(url => url.includes(pluginPath))) {
+        await page.waitForResponse(r => r.ok() && r.url().includes(pluginPath), {timeout: 30000});
       }
     }
     if (failures.length) throw Error(JSON.stringify(failures));

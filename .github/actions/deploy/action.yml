@@ -2,6 +2,9 @@ name: "Set up KFP on KinD"
 description: "Step to start and configure KFP on Kind"
 
 inputs:
+  image_ready_state:
+    description: Validated state from this workflow's shared image readiness job
+    default: ''
   cluster_name:
     description: "Kind cluster name"
     default: 'kfp'
@@ -92,16 +95,44 @@ runs:
         IMAGE_DIRECTORY: ${{ inputs.image_path }}/runtime-base-images
       run: bash .github/resources/scripts/stage-runtime-image-cache.sh
 
-    # Start the largest transfer while the branch images are still building.
-    # Keep the same archive and Kind image verification as the combined path.
-    - name: Download shared runtime base images
-      if: steps.runtime-image-cache-files.outputs.ready != 'true'
+    # Validate both sets against one fresh producer snapshot before any image load.
+    - name: Download and verify shared images
+      id: shared-images
       uses: ./.github/actions/shared-ci-images
       with:
-        kind: runtime
+        ready-state: ${{ inputs.image_ready_state }}
+        kind: ${{ steps.runtime-image-cache-files.outputs.ready == 'true' && 'images' || 'all' }}
         architecture: amd64
-        layout: flat
-        path: "${{ inputs.image_path }}/runtime-base-images"
+        layout: nested
+        path: "${{ inputs.image_path }}"
+
+    - name: Download pinned Argo manifests
+      uses: ./.github/actions/download-artifact-with-retry
+      with:
+        name: argo-manifests-attempt-${{ steps.shared-images.outputs.run-attempt }}
+        repository: ${{ steps.shared-images.outputs.repository }}
+        run-id: ${{ steps.shared-images.outputs.run-id }}
+        github-token: ${{ github.token }}
+        path: ${{ inputs.image_path }}/argo-manifests
+        required-files: |
+          argo-manifests.tar
+          argo-manifests.json
+
+    - name: Verify pinned Argo manifests
+      id: argo-manifests
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        ARGO_MANIFESTS_DIRECTORY: ${{ inputs.image_path }}/argo-manifests
+        PRODUCER_STATE: ${{ steps.shared-images.outputs.state }}
+      run: |
+        python3 .github/resources/scripts/argo_manifest_artifacts.py verify \
+          --directory "$ARGO_MANIFESTS_DIRECTORY" --state "$PRODUCER_STATE"
+        python3 - <<'PYTHON' >> "$GITHUB_OUTPUT"
+        import os
+        from pathlib import Path
+        print(f"directory={Path(os.environ['ARGO_MANIFESTS_DIRECTORY']).resolve()}")
+        PYTHON
 
     - name: Load Runtime Base Images Into Kind
       shell: bash
@@ -134,13 +165,6 @@ runs:
         retry 3 10 kind --name "${{ inputs.cluster_name }}" \
           load image-archive "${MODELCAR_IMAGE_ARCHIVE}"
         rm "${MODELCAR_IMAGE_ARCHIVE}"
-
-    - name: Download shared branch images
-      uses: ./.github/actions/shared-ci-images
-      with:
-        architecture: amd64
-        layout: nested
-        path: "${{ inputs.image_path }}"
 
     - name: Load Control Plane Images Into Kind
       shell: bash
@@ -178,6 +202,7 @@ runs:
       uses: ./.github/actions/shared-ci-images
       with:
         kind: tensorboard
+        ready-state: ${{ inputs.image_ready_state }}
         architecture: amd64
         path: "${{ inputs.image_path }}/tensorboard"
         layout: flat
@@ -250,6 +275,8 @@ runs:
       id: deploy-kfp
       if: ${{ steps.configure.outcome == 'success' }}
       uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60
+      env:
+        KFP_ARGO_MANIFESTS_DIRECTORY: ${{ steps.argo-manifests.outputs.directory }}
       with:
         max_attempts: 2
         timeout_minutes: 15

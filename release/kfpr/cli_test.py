@@ -858,7 +858,7 @@ class CliTest(unittest.TestCase):
                 root = Path(tmpdir)
                 state_file = root / 'state.json'
                 with mock.patch.object(
-                    core.subprocess, 'check_output', return_value=str(root)
+                    subprocess, 'check_output', return_value=str(root)
                 ) as git_read:
                     result = CliRunner().invoke(
                         app,

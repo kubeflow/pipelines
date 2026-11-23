@@ -18,6 +18,34 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class TensorBoardDeployedTest(unittest.TestCase):
+    def test_standalone_lanes_retry_image_setup_before_local_runs(self) -> None:
+        jobs = yaml.safe_load(
+            (ROOT / '.github/workflows/tensorboard-acceptance.yml').read_text()
+        )['jobs']
+        for name in ('runtime', 'arm64'):
+            with self.subTest(job=name):
+                commands = '\n'.join(
+                    step.get('run', '') for step in jobs[name]['steps']
+                )
+                mirror = 'configure-docker-hub-mirror.sh'
+                build = 'docker-buildx-build-with-retry.sh --load'
+                self.assertIn(mirror, commands)
+                self.assertIn(build, commands)
+                self.assertLess(commands.index(mirror), commands.index(build))
+                for line in commands.splitlines():
+                    if 'docker run ' in line:
+                        self.assertTrue(
+                            line.strip().startswith('docker run --pull=never '),
+                            line,
+                        )
+                if name == 'runtime':
+                    for image in ('MOTO_IMAGE', 'GCS_IMAGE'):
+                        pull = f'docker-pull-with-retry.sh "${image}"'
+                        self.assertIn(pull, commands)
+                        self.assertLess(
+                            commands.index(pull), commands.index('docker run ')
+                        )
+
     def test_browser_lanes_use_playwright_supported_runner(self):
         workflow = yaml.safe_load(
             (ROOT / '.github/workflows/tensorboard-acceptance.yml').read_text()

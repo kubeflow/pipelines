@@ -76,12 +76,29 @@ interface TensorboardViewerState {
   deleteDialogOpen: boolean;
   proxyPath: string;
   tfImage: string;
+  existingCustomImage?: string;
   // When proxyPath is not null, we need to further tell whether the TensorBoard pod is accessible or not
   tensorboardReady: boolean;
   errorMessage?: string;
 }
 
 const DEFAULT_TF_IMAGE = 'ghcr.io/kubeflow/kfp-tensorboard:master';
+
+// Only migrate the exact images offered by the previous built-in selector.
+const LEGACY_TF_IMAGES = new Set([
+  'tensorflow/tensorflow:1.7.1',
+  'tensorflow/tensorflow:1.8.0',
+  'tensorflow/tensorflow:1.9.0',
+  'tensorflow/tensorflow:1.10.1',
+  'tensorflow/tensorflow:1.11.0',
+  'tensorflow/tensorflow:1.12.3',
+  'tensorflow/tensorflow:1.13.2',
+  'tensorflow/tensorflow:1.14.0',
+  'tensorflow/tensorflow:1.15.5',
+  'tensorflow/tensorflow:2.0.4',
+  'tensorflow/tensorflow:2.1.2',
+  'tensorflow/tensorflow:2.2.2',
+]);
 
 class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewerState> {
   timerID: NodeJS.Timeout;
@@ -130,6 +147,8 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   };
 
   public render(): React.JSX.Element {
+    const configuredImage = this._image();
+    const { existingCustomImage } = this.state;
     return (
       <div>
         {this.state.errorMessage && <div className={css.errorText}>{this.state.errorMessage}</div>}
@@ -216,8 +235,11 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                   input={<Input id='viewer-tb-image-select' />}
                   onChange={this.handleImageSelect}
                 >
-                  {this._image() && this._image() !== DEFAULT_TF_IMAGE && (
-                    <MenuItem value={this._image()}>{this._image()}</MenuItem>
+                  {configuredImage && configuredImage !== DEFAULT_TF_IMAGE && (
+                    <MenuItem value={configuredImage}>{configuredImage}</MenuItem>
+                  )}
+                  {existingCustomImage && existingCustomImage !== configuredImage && (
+                    <MenuItem value={existingCustomImage}>{existingCustomImage}</MenuItem>
                   )}
                   <MenuItem value={DEFAULT_TF_IMAGE}>KFP TensorBoard (default)</MenuItem>
                 </Select>
@@ -280,13 +302,18 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   private async _checkTensorboardApp(): Promise<void> {
     this.setStateSafe({ busy: true }, async () => {
       try {
-        // TODO: parse tfImage here
         const { proxyPath, image } = await Apis.getTensorboardApp(
           this._buildUrl(),
           this._getNamespace(),
         );
         if (proxyPath) {
-          this.setStateSafe({ busy: false, proxyPath, tfImage: image });
+          this.setStateSafe({
+            busy: false,
+            proxyPath,
+            tfImage: image,
+            existingCustomImage:
+              image !== DEFAULT_TF_IMAGE && !LEGACY_TF_IMAGES.has(image) ? image : undefined,
+          });
         } else {
           // No existing pod
           this.setStateSafe({ busy: false });
@@ -331,7 +358,10 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
           busy: false,
           deleteDialogOpen: false,
           proxyPath: '',
-          tfImage: this._image() || DEFAULT_TF_IMAGE,
+          tfImage:
+            !this.state.tfImage || LEGACY_TF_IMAGES.has(this.state.tfImage)
+              ? this._image() || DEFAULT_TF_IMAGE
+              : this.state.tfImage,
           tensorboardReady: false,
         });
       } catch (err) {

@@ -65,13 +65,13 @@ describe('GCS credential compatibility with the real Google auth library', () =>
       'https://storage.googleapis.com/storage/v1/b/test/o',
     );
 
-    expect(headers.Authorization).toBe('Bearer test-access-token');
+    expect(headers.get('authorization')).toBe('Bearer test-access-token');
     expect(request).toHaveBeenCalledTimes(1);
     const options = request.mock.calls[0][0];
-    expect(options.url).toBe('https://www.googleapis.com/oauth2/v4/token');
-    const data = options.data as { grant_type: string; assertion: string };
-    expect(data.grant_type).toBe('urn:ietf:params:oauth:grant-type:jwt-bearer');
-    const [header, payload, signature] = data.assertion.split('.');
+    expect(options.url).toBe('https://oauth2.googleapis.com/token');
+    const data = options.data as URLSearchParams;
+    expect(data.get('grant_type')).toBe('urn:ietf:params:oauth:grant-type:jwt-bearer');
+    const [header, payload, signature] = (data.get('assertion') ?? '').split('.');
     expect(
       verify(
         'RSA-SHA256',

@@ -17,14 +17,26 @@ import { readFileSync } from 'node:fs';
 import { satisfies } from 'semver';
 import { describe, expect, it } from 'vitest';
 
-it('patches every selector parser, including nested Tailwind/PostCSS copies', () => {
+it('rejects vulnerable selector parsers if a dependency reintroduces them', () => {
   const lock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'));
   const parsers = Object.entries(lock.packages).filter(([path]) =>
     path.endsWith('/postcss-selector-parser'),
   );
-  expect(parsers.length).toBeGreaterThan(0);
+  // Tailwind 4 removes this dependency; any future copies must stay patched.
   for (const [path, dependency] of parsers) {
     expect(satisfies(dependency.version, '>=7.1.6'), `${path}@${dependency.version}`).toBe(true);
+  }
+});
+
+// GHSA-3g3m-2fjr-6pw4 and GHSA-g3hv-75wg-m249 require patched major releases.
+it('keeps glob traversal and minimatch optimization on patched releases', () => {
+  const lock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'));
+  for (const [name, minimum] of Object.entries({ glob: '>=14.0.2', minimatch: '>=11.0.1' })) {
+    const packages = Object.entries(lock.packages).filter(([path]) => path.endsWith(`/${name}`));
+    expect(packages.length, name).toBeGreaterThan(0);
+    for (const [path, dependency] of packages) {
+      expect(satisfies(dependency.version, minimum), `${path}@${dependency.version}`).toBe(true);
+    }
   }
 });
 

@@ -15,6 +15,7 @@
 
 import copy
 import json
+import runpy
 import shutil
 import subprocess
 import tempfile
@@ -54,8 +55,6 @@ class YqReleaseTest(unittest.TestCase):
                 HACK.parents[2] / 'hack/update_tensorboard_image.py',
                 repository / 'hack/update_tensorboard_image.py',
             )
-            import runpy
-
             for source in runpy.run_path(
                 str(repository / 'hack/update_tensorboard_image.py')
             )['REQUIRED_PATHS']:

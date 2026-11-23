@@ -9,9 +9,21 @@ const AMD64_CONSUMERS = new Set([
 ]);
 
 function architectures(inventory, eventName, event, files) {
+  if (eventName === 'merge_group') {
+    if (!['refs/heads/master', 'refs/heads/main', 'refs/heads/release-2.18'].includes(event.merge_group?.base_ref)) {
+      throw new Error('Shared queue images require master, main, or release-2.18');
+    }
+    return {amd64: true, arm64: true};
+  }
   if (eventName === 'push') return {amd64: true, arm64: false};
   if (eventName === 'workflow_dispatch') return {amd64: true, arm64: true};
   if (eventName !== 'pull_request') throw new Error(`Unsupported event: ${eventName}`);
+  const provenanceTooling = new Set([
+    'release/kfpr/go_build_provenance.py',
+    'release/kfpr/read_go_buildinfo.go',
+    '.github/resources/scripts/image-build-provenance.py',
+  ]);
+  if (files.some(file => provenanceTooling.has(file))) return {amd64: true, arm64: true};
   const branch = event.pull_request.base.ref;
   const selected = {amd64: false, arm64: false};
   for (const workflow of inventory.workflows) {

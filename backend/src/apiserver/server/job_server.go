@@ -63,7 +63,7 @@ var (
 		Help: "The total number of EnableJob requests",
 	})
 
-	// TODO(jingzhang36): error count and success count.
+	// Note: Request success and error counts per method are tracked via gRPC middleware metrics (grpc_server_handled_total). See api-server-metrics.md.
 
 	jobCount = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "job_server_job_count",
@@ -118,6 +118,9 @@ func (s *BaseJobServer) createJob(ctx context.Context, job *model.Job) (*model.J
 	}
 	if err := s.canAccessJob(ctx, "", resourceAttributes); err != nil {
 		return nil, util.Wrapf(err, "Failed to create a recurring run due to authorization error. Check if you have write permission to namespace %s", job.Namespace)
+	}
+	if err := resolvePipelineNameRef(ctx, s.resourceManager, &job.PipelineSpec, job.Namespace); err != nil {
+		return nil, util.Wrap(err, "Failed to create a recurring run due to an invalid pipeline reference")
 	}
 	if err := canAccessReferencedPipeline(ctx, s.resourceManager, &job.PipelineSpec, job.Namespace); err != nil {
 		return nil, util.Wrap(err, "Failed to create a recurring run due to authorization error on the referenced pipeline")

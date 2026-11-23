@@ -129,12 +129,18 @@ prefix = '/tensorboard/viewer-acceptance'
 process = subprocess.Popen(
     [
         'tensorboard',
-        '--logdir=' + str(root),
+        f'--logdir=Series1:{root / "legacy"},Series2:s3://tensorboard-fixtures/events',
         '--path_prefix=' + prefix + '/',
         '--bind_all',
         '--port=6006',
         '--reload_interval=1',
-    ]
+    ],
+    # Exercise the historical MinIO configuration on the actual viewer process.
+    env={
+        **os.environ,
+        'S3_ENDPOINT': os.environ['S3_ENDPOINT'].removeprefix('http://'),
+        'S3_USE_HTTPS': '0',
+    },
 )
 try:
     base = 'http://127.0.0.1:6006' + prefix
@@ -150,6 +156,8 @@ try:
                 plugins['scalars']['enabled']
                 and plugins['images']['enabled']
                 and plugins['graphs']['enabled']
+                and {'Series1/.', 'Series2/.'}
+                <= json.loads(get('/data/plugin/scalars/tags')).keys()
             ):
                 break
         except Exception:
@@ -159,9 +167,8 @@ try:
         raise AssertionError(
             'TensorBoard did not ingest scalar, image and graph fixtures'
         )
-    assert 'legacy' in json.loads(get('/data/plugin/scalars/tags'))
-    assert 'legacy' in json.loads(get('/data/plugin/graphs/info'))
-    assert b'input' in get('/data/plugin/graphs/graph?run=legacy')
+    assert 'Series1/.' in json.loads(get('/data/plugin/graphs/info'))
+    assert b'input' in get('/data/plugin/graphs/graph?run=Series1/.')
     assert get('/')
     print('Event ingestion and prefixed endpoints passed', flush=True)
     pathlib.Path('/tmp/tensorboard-ready').write_text(json.dumps(schemes))

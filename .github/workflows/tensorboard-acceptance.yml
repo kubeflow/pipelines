@@ -16,13 +16,32 @@ name: TensorBoard runtime acceptance
     - .github/resources/scripts/ci-image-artifacts.sh
     - .github/resources/scripts/load-tensorboard-image.sh
     - .github/workflows/image-builds.yml
+    - .github/workflows/shared-ci-images-ready.yml
+    - .github/actions/shared-ci-images/**
+    - .github/resources/scripts/shared_ci_images.py
+    - '!**/*.md'
+    - '!**/OWNERS'
   merge_group:
     types:
     - checks_requested
     branches:
     - master
     - main
-  workflow_dispatch: null
+    - release-2.18
+  workflow_dispatch:
+    inputs:
+      queue_head_sha:
+        description: Exact queue candidate SHA (internal queue dispatch)
+        type: string
+        required: false
+      queue_base_ref:
+        description: Queue target branch (internal queue dispatch)
+        type: string
+        required: false
+      queue_base_sha:
+        description: Exact queue base SHA (internal queue dispatch)
+        type: string
+        required: false
 permissions:
   contents: read
   actions: read
@@ -33,6 +52,24 @@ concurrency:
   group: tensorboard-acceptance-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
+  queue-dispatch-guard:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/queue-dispatch-guard.yml
+    with:
+      queue_head_sha: ${{ inputs.queue_head_sha }}
+      queue_base_ref: ${{ inputs.queue_base_ref }}
+      queue_base_sha: ${{ inputs.queue_base_sha }}
+
+  image-artifacts-ready:
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/shared-ci-images-ready.yml
+    with:
+      include_tensorboard: true
+
   runtime:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -42,14 +79,22 @@ jobs:
         persist-credentials: false
     - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
       with:
-        node-version: 24.22.1
+        node-version-file: frontend/.nvmrc
+    - name: Configure Docker Hub mirror
+      run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
+    - name: Build viewer image
+      run: bash ./.github/resources/scripts/docker-buildx-build-with-retry.sh --load -f backend/Dockerfile.tensorboard -t kfp-tensorboard:test .
     - name: Start actual viewer image
+      env:
+        MOTO_IMAGE: motoserver/moto:5.1.15@sha256:8860b18917e1ee4d067df19a406ae95dc26037e6965d5b499e1cffd33755b914
+        GCS_IMAGE: fsouza/fake-gcs-server:1.54.0@sha256:3730da0e31f7e5186a90ec4899dc2c336104e7599df400411392ef17e684c31f
       run: |
         set -euo pipefail
-        docker build -f backend/Dockerfile.tensorboard -t kfp-tensorboard:test .
-        docker run -d --name s3 --network host motoserver/moto:5.1.15@sha256:8860b18917e1ee4d067df19a406ae95dc26037e6965d5b499e1cffd33755b914
-        docker run -d --name gcs --network host fsouza/fake-gcs-server:1.54.0@sha256:3730da0e31f7e5186a90ec4899dc2c336104e7599df400411392ef17e684c31f -scheme http -port 4443 -external-url http://127.0.0.1:4443
-        docker run -d --name tensorboard --network host -e S3_ENDPOINT=http://127.0.0.1:5000 -e STORAGE_EMULATOR_HOST=http://127.0.0.1:4443 -e AWS_ACCESS_KEY_ID=test -e AWS_SECRET_ACCESS_KEY=test -e AWS_DEFAULT_REGION=us-east-1 -v "$PWD/test/tensorboard/runtime.py:/acceptance.py:ro" kfp-tensorboard:test python /acceptance.py
+        bash ./.github/resources/scripts/docker-pull-with-retry.sh "$MOTO_IMAGE"
+        bash ./.github/resources/scripts/docker-pull-with-retry.sh "$GCS_IMAGE"
+        docker run --pull=never -d --name s3 --network host "$MOTO_IMAGE"
+        docker run --pull=never -d --name gcs --network host "$GCS_IMAGE" -scheme http -port 4443 -external-url http://127.0.0.1:4443
+        docker run --pull=never -d --name tensorboard --network host -e S3_ENDPOINT=http://127.0.0.1:5000 -e STORAGE_EMULATOR_HOST=http://127.0.0.1:4443 -e AWS_ACCESS_KEY_ID=test -e AWS_SECRET_ACCESS_KEY=test -e AWS_DEFAULT_REGION=us-east-1 -v "$PWD/test/tensorboard/runtime.py:/acceptance.py:ro" kfp-tensorboard:test python /acceptance.py
         for _ in $(seq 1 120); do
           if docker exec tensorboard test -f /tmp/tensorboard-ready; then break; fi
           if [[ $(docker inspect -f '{{.State.Running}}' tensorboard) != true ]]; then docker logs tensorboard; exit 1; fi
@@ -91,12 +136,16 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with:
         persist-credentials: false
+    - name: Configure Docker Hub mirror
+      run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
+    - name: Build viewer image
+      run: bash ./.github/resources/scripts/docker-buildx-build-with-retry.sh --load -f backend/Dockerfile.tensorboard -t kfp-tensorboard:test .
     - run: |-
-        docker build -f backend/Dockerfile.tensorboard -t kfp-tensorboard:test .
-        docker run --rm kfp-tensorboard:test tensorboard --version
-        docker run --rm kfp-tensorboard:test python -c "import boto3,gcsfs; from tensorboard.compat import tf; print(tf.io.gfile.__name__)"
+        docker run --pull=never --rm kfp-tensorboard:test tensorboard --version
+        docker run --pull=never --rm kfp-tensorboard:test python -c "import boto3,gcsfs; from tensorboard.compat import tf; print(tf.io.gfile.__name__)"
 
   deployed:
+    needs: image-artifacts-ready
     permissions:
       actions: read
       contents: read
@@ -122,6 +171,7 @@ jobs:
         image_registry: kind-registry:5000
         forward_port: 'false'
         load_tensorboard_image: 'true'
+        image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
     - name: Load explicit custom-image alias of the candidate
       run: |
         docker exec kfp-tensorboard-control-plane ctr --namespace k8s.io images tag \
@@ -136,7 +186,9 @@ jobs:
     - name: Verify deployed storage, reload, authorization and lifecycle
       env:
         NODE_PATH: /tmp/browser/node_modules
-      run: python3 test/tensorboard/deployed.py
+      run: |
+        python3 -m unittest discover -s test/tensorboard -p "*_test.py"
+        python3 test/tensorboard/deployed.py
     - name: Preserve deployed diagnostics
       if: always()
       run: |

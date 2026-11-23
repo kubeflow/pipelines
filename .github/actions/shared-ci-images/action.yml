@@ -5,7 +5,7 @@ inputs:
     description: Native image architecture
     default: amd64
   kind:
-    description: Branch images, runtime dependencies, or optional viewer (images, runtime, tensorboard)
+    description: Branch images, runtime dependencies, both, or optional viewer (images, runtime, all, tensorboard)
     default: images
   path:
     description: Local destination for verified archives
@@ -13,6 +13,9 @@ inputs:
   layout:
     description: Use nested directories for deploy or flat files for ARM smoke
     default: nested
+  ready-state:
+    description: Validated state from this workflow's shared image readiness job
+    default: ''
   state:
     description: Pin one producer run and attempt across runtime and branch downloads
     default: ${{ runner.temp }}/kfp-shared-images.json
@@ -20,6 +23,15 @@ outputs:
   run-id:
     description: Validated producer run ID
     value: ${{ steps.resolve.outputs.run-id }}
+  run-attempt:
+    description: Validated producer run attempt
+    value: ${{ steps.resolve.outputs.run-attempt }}
+  repository:
+    description: Validated producer repository
+    value: ${{ steps.resolve.outputs.repository }}
+  state:
+    description: Local state pinning the verified source and producer attempt
+    value: ${{ inputs.state }}
   artifact-ids:
     description: Exact immutable artifact IDs consumed
     value: ${{ steps.resolve.outputs.artifact-ids }}
@@ -37,8 +49,13 @@ runs:
         IMAGE_ARCHITECTURE: ${{ inputs.architecture }}
         IMAGE_KIND: ${{ inputs.kind }}
         PRODUCER_STATE: ${{ inputs.state }}
+        SHARED_IMAGE_READY_STATE: ${{ inputs.ready-state }}
       run: |
-        python3 .github/resources/scripts/shared_ci_images.py resolve \
+        command=resolve
+        if [[ -n "$SHARED_IMAGE_READY_STATE" ]]; then
+          command=import-ready
+        fi
+        python3 .github/resources/scripts/shared_ci_images.py "$command" \
           --architecture "$IMAGE_ARCHITECTURE" --kind "$IMAGE_KIND" \
           --state "$PRODUCER_STATE" --output "$GITHUB_OUTPUT"
     - name: Download exact shared image artifacts

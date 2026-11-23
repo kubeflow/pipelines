@@ -14,6 +14,9 @@ env:
   MLFLOW_TRACKING_INSECURE_TLS: "true"
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [master, main, release-2.18]
   push:
     branches: [master, main]
 
@@ -24,6 +27,7 @@ on:
       - '.github/workflows/e2e-test.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/workflows/ci-images.yml'
+      - '.github/workflows/shared-ci-images-ready.yml'
       - '.github/actions/shared-ci-images/**'
       - '.github/actions/create-cluster/**'
       - '.github/actions/setup-python/**'
@@ -56,6 +60,21 @@ on:
 
   workflow_dispatch:
     inputs:
+      queue_head_sha:
+        description: Exact queue candidate SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_ref:
+        description: Queue target branch, master, main, or release-2.18 (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_sha:
+        description: Current target branch SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
       test_label:
         description: "Test label that you want to filter on and run"
         default: 'ApiServerTests'
@@ -80,7 +99,24 @@ permissions:
   contents: read
 
 jobs:
+  queue-dispatch-guard:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/queue-dispatch-guard.yml
+    with:
+      queue_head_sha: ${{ inputs.queue_head_sha }}
+      queue_base_ref: ${{ inputs.queue_base_ref }}
+      queue_base_sha: ${{ inputs.queue_base_sha }}
+
+  image-artifacts-ready:
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/shared-ci-images-ready.yml
+
   end-to-end-scenario-tests:
+    needs: image-artifacts-ready
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -93,7 +129,7 @@ jobs:
         proxy: [ "false" ]
         # Automatic runs split the dominant Critical suite across two Kind
         # runners. Manual dispatch retains the historical unsharded labels.
-        test_label: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["E2ECritical", "E2EEssential", "E2EParallelNested"]' || '["E2ECriticalShardA", "E2ECriticalShardB", "E2EEssential", "E2EParallelNested"]') }}
+        test_label: ${{ fromJSON((github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/heads/gh-readonly-queue/')) && '["E2ECritical", "E2EEssential", "E2EParallelNested"]' || '["E2ECriticalShardA", "E2ECriticalShardB", "E2EEssential", "E2EParallelNested"]') }}
         pod_to_pod_tls_enabled: [ "false" ]
         include:
           - k8s_version: "v1.33.12"
@@ -203,6 +239,7 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' && steps.install-dra-driver.outcome != 'failure' }}
         id: deploy
         with:
+          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
           proxy: ${{ matrix.proxy }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
@@ -257,7 +294,7 @@ jobs:
           fi
 
           # Explicit dispatch inputs take precedence over automatic lane caps.
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          if [ "${{ (github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/heads/gh-readonly-queue/')) }}" == "true" ]; then
             NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
             TEST_LABEL=$DISPATCH_TEST_LABEL
             NAMESPACE=$DISPATCH_NAMESPACE
@@ -286,6 +323,7 @@ jobs:
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
   dag-scale-test:
+    needs: image-artifacts-ready
     name: DAG Scale Test - 120 nodes
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -307,6 +345,7 @@ jobs:
       - name: Deploy KFP
         uses: ./.github/actions/deploy
         with:
+          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
           cache_enabled: "false"
           argo_version: "v4.1.6"
           image_path: images_${{ github.run_id }}
@@ -325,6 +364,7 @@ jobs:
           report_name: DAGScale120Nodes
 
   end-to-end-critical-scenario-multi-user-tests:
+    needs: image-artifacts-ready
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -335,7 +375,7 @@ jobs:
         cache_enabled: ["true", "false"]
         multi_user: [ "true" ]
         db_type: ["mysql", "pgx"]
-        test_label: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["E2ECritical"]' || '["E2ECriticalShardA", "E2ECriticalShardB"]') }}
+        test_label: ${{ fromJSON((github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/heads/gh-readonly-queue/')) && '["E2ECritical"]' || '["E2ECriticalShardA", "E2ECriticalShardB"]') }}
         exclude:
           # PostgreSQL has no cache-disabled multi-user overlay.
           - db_type: "pgx"
@@ -364,6 +404,7 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' }}
         id: deploy
         with:
+          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: "true"
           # The cache-enabled multi-user variant is the artifact-proxy
@@ -392,7 +433,7 @@ jobs:
           if [ "$TEST_LABEL" == "E2ECriticalShardA" ] || [ "$TEST_LABEL" == "E2ECriticalShardB" ]; then
             TEST_LABEL="E2ECritical && $TEST_LABEL"
           fi
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          if [ "${{ (github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/heads/gh-readonly-queue/')) }}" == "true" ]; then
             NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
             TEST_LABEL=$DISPATCH_TEST_LABEL
             NAMESPACE=$DISPATCH_NAMESPACE
@@ -439,6 +480,7 @@ jobs:
 
 
   end-to-end-critical-mlflow-tests:
+    needs: image-artifacts-ready
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -497,6 +539,7 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' }}
         id: deploy
         with:
+          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
@@ -510,7 +553,7 @@ jobs:
 
       - name: Deploy MLflow with Kubernetes auth
         id: deploy-mlflow
-        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@8cce38d303a578fb17e0a00ca82c227a06eb74f5
+        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@a29d50819db0de097632829aa534427865c89e89
         if: ${{ steps.create-cluster.outcome == 'success' && matrix.mlflow_auth_type == 'kubernetes' }}
         with:
           namespace: 'opendatahub'
@@ -573,7 +616,7 @@ jobs:
           NUMBER_OF_NODES=2
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          if [ "${{ (github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/heads/gh-readonly-queue/')) }}" == "true" ]; then
             NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
             TEST_LABEL=$DISPATCH_TEST_LABEL
             NAMESPACE=$DISPATCH_NAMESPACE

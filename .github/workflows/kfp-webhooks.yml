@@ -1,6 +1,26 @@
 name: KFP Webhook Integration
 
 on:
+  workflow_dispatch:
+    inputs:
+      queue_head_sha:
+        description: Exact queue candidate SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_ref:
+        description: Queue target branch, master, main, or release-2.18 (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_sha:
+        description: Current target branch SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+  merge_group:
+    types: [checks_requested]
+    branches: [master, main, release-2.18]
   push:
     branches:
       - master
@@ -14,6 +34,7 @@ on:
       - '.github/workflows/kfp-webhooks.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/workflows/ci-images.yml'
+      - '.github/workflows/shared-ci-images-ready.yml'
       - '.github/actions/shared-ci-images/**'
       - 'backend/**'
       - '!**/*.md'
@@ -28,7 +49,24 @@ permissions:
   contents: read
 
 jobs:
+  queue-dispatch-guard:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/queue-dispatch-guard.yml
+    with:
+      queue_head_sha: ${{ inputs.queue_head_sha }}
+      queue_base_ref: ${{ inputs.queue_base_ref }}
+      queue_base_sha: ${{ inputs.queue_base_sha }}
+
+  image-artifacts-ready:
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/shared-ci-images-ready.yml
+
   webhook-tests:
+    needs: image-artifacts-ready
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -56,6 +94,7 @@ jobs:
         uses: ./.github/actions/deploy
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         with:
+          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000

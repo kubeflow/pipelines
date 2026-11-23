@@ -8,23 +8,16 @@ from typing import Optional
 
 import typer
 
-from .core import (
-    STATE_FILE,
-    CommandRunner,
-    ReleaseContext,
-    ReleaseMetadata,
-    ReleaseState,
-    collect_context,
-    doctor_errors,
-    emphasize_prompt,
-    normalize_fork_remote,
-    validate_answers,
-    validate_state,
-    watch_latest_workflow_run,
-)
+from .context import ReleaseContext, collect_context
 from .editorial import validate_notes
+from .github_api import watch_latest_workflow_run
 from .inventory import build_inventory, review_warnings, write_bundle
+from .metadata import ReleaseMetadata
+from .preflight import doctor_errors
+from .prompts import emphasize_prompt
 from .ranges import resolve_range
+from .runner import CommandRunner
+from .state import STATE_FILE, ReleaseState
 from .steps import (
     STEP_HANDLERS,
     Step,
@@ -32,6 +25,11 @@ from .steps import (
     manual_checklist,
     regenerate_release_notes,
     run_steps,
+)
+from .validation import (
+    normalize_fork_remote,
+    validate_answers,
+    validate_state,
 )
 
 HELP_OPTION_NAMES = ['-h', '--help']
@@ -57,8 +55,78 @@ run_app = typer.Typer(
 )
 
 
+@app.command('scan-candidate')
+def scan_candidate_command(
+    pr: int = typer.Option(
+        ..., min=1, help='Open kubeflow/pipelines PR number.'
+    ),
+    expected_head: str = typer.Option(
+        ..., help='Exact expected 40-character PR head SHA.'
+    ),
+    version: str = typer.Option(..., help='Candidate release version (X.Y.Z).'),
+    output_dir: Path = typer.Option(
+        ..., help='Separate candidate evidence directory; empty for a new scan.'
+    ),
+    include_backend: bool = typer.Option(
+        True, '--include-backend/--no-include-backend'
+    ),
+    include_sdk: bool = typer.Option(True, '--include-sdk/--no-include-sdk'),
+    resume: bool = typer.Option(
+        False,
+        help='Recollect the recorded request and attempt without redispatching.',
+    ),
+) -> None:
+    """Build and scan an open PR without publication or release approval."""
+    from .candidate import scan_candidate
+
+    try:
+        report = scan_candidate(
+            pr=pr,
+            expected_head=expected_head,
+            version=version,
+            output_dir=output_dir,
+            include_backend=include_backend,
+            include_sdk=include_sdk,
+            resume=resume,
+        )
+    except (
+        OSError,
+        ValueError,
+        RuntimeError,
+        subprocess.CalledProcessError,
+    ) as error:
+        typer.echo(
+            f'Candidate scan incomplete: {error}; evidence: {output_dir}'
+        )
+        raise typer.Exit(2) from error
+    typer.echo(f'Candidate evidence: {output_dir / "candidate.json"}')
+    typer.echo(
+        f'{report["blocking_count"]} fixable blocking findings; {report["residual_count"]} residual findings. Not release approval.'
+    )
+    if not report['passed']:
+        raise typer.Exit(1)
+
+
 def _load_state(path: Path) -> ReleaseState:
     return ReleaseState.load(path)
+
+
+def _load_state_for_update(path: Path) -> ReleaseState:
+    """Load a checkpoint that a command will change, refusing invalid files.
+
+    Saving a checkpoint that could not be read would replace the
+    operator's file, so stop before any prompt or release step runs.
+    """
+    state = _load_state(path)
+    if state.load_errors:
+        for error in state.load_errors:
+            typer.echo(error)
+        typer.echo(
+            f'Fix {path} or delete it with '
+            f'`kfpr clear --state-file {path}` before continuing.'
+        )
+        raise typer.Exit(1)
+    return state
 
 
 def _set_answer(state: ReleaseState, key: str, value: object | None) -> None:
@@ -88,7 +156,7 @@ def _context(
     security_exceptions: Optional[Path] = None,
     image_qualification: Optional[str] = None,
 ) -> ReleaseContext:
-    state = _load_state(state_file)
+    state = _load_state_for_update(state_file)
     _set_answer(state, 'release_type', release_type)
     _set_answer(state, 'version', version)
     _set_answer(
@@ -185,6 +253,8 @@ def _all_steps() -> list[Step]:
 def _state_steps(
     state: ReleaseState,
 ) -> tuple[list[Step], ReleaseMetadata | None, list[str]]:
+    if state.load_errors:
+        return [], None, validate_state(state)
     metadata, errors = validate_answers(state.answers)
     if metadata is None:
         return [], None, errors
@@ -324,7 +394,7 @@ def run(
     if ctx.invoked_subcommand is not None:
         return
     if state_file.exists() and not force:
-        _print_state_status(_load_state(state_file))
+        _print_state_status(_load_state_for_update(state_file))
         if not typer.confirm(
             emphasize_prompt('Continue from this checkpoint?')
         ):
@@ -466,6 +536,43 @@ def validate_notes_command(
 
 
 @app.command(
+    'review-notes', context_settings={'help_option_names': HELP_OPTION_NAMES}
+)
+def review_notes_command(
+    state_file: Path = typer.Option(
+        Path(STATE_FILE),
+        exists=True,
+        dir_okay=False,
+        help='Existing release checkpoint.',
+    ),
+) -> None:
+    """Preview all selected release pages and check public advisory
+    coverage."""
+    from .steps import review_release_notes
+
+    try:
+        context = _context(
+            state_file,
+            dry_run=False,
+            release_type=None,
+            version=None,
+            fork_remote=None,
+            patch_prs=None,
+            include_backend=None,
+            include_sdk=None,
+            save_state=False,
+        )
+        issues = review_release_notes(context)
+    except (ValueError, OSError, subprocess.CalledProcessError) as error:
+        typer.echo(f'Unable to review release notes: {error}', err=True)
+        raise typer.Exit(1) from error
+    if issues:
+        for issue in issues:
+            typer.echo(issue, err=True)
+        raise typer.Exit(1)
+
+
+@app.command(
     'regenerate-notes',
     context_settings={'help_option_names': HELP_OPTION_NAMES},
 )
@@ -598,7 +705,7 @@ def next_command(
     ),
 ) -> None:
     """Run the next incomplete checkpoint step."""
-    state = _load_state(state_file)
+    state = _load_state_for_update(state_file)
     steps, _, errors = _state_steps(state)
     if errors:
         for error in errors:
@@ -673,7 +780,7 @@ def done_command(
     """Mark one release step complete in the checkpoint."""
     if step_id not in STEP_HANDLERS:
         raise typer.BadParameter(f'unknown step: {step_id}')
-    state = _load_state(state_file)
+    state = _load_state_for_update(state_file)
     state.mark_done(step_id)
     state.save()
     typer.echo(f'marked done: {step_id}')
@@ -691,7 +798,7 @@ def reset_step_command(
     """Remove one release step from the completed checkpoint list."""
     if step_id not in STEP_HANDLERS:
         raise typer.BadParameter(f'unknown step: {step_id}')
-    state = _load_state(state_file)
+    state = _load_state_for_update(state_file)
     state.reset_step(step_id)
     state.save()
     typer.echo(f'reset step: {step_id}')
@@ -705,7 +812,7 @@ def goto_command(
     ),
 ) -> None:
     """Mark all steps before STEP_ID complete so the flow resumes there."""
-    state = _load_state(state_file)
+    state = _load_state_for_update(state_file)
     steps, _, errors = _state_steps(state)
     if errors:
         for error in errors:

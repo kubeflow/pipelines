@@ -40,7 +40,52 @@ def workflow(name):
 
 
 class SharedImageProducerTest(unittest.TestCase):
-    def test_only_shared_producer_calls_image_builder(self):
+    def test_queue_architectures_accept_only_supported_base_branches(
+        self,
+    ) -> None:
+        script = """
+const {architectures} = require('./.github/resources/scripts/shared_ci_image_plan');
+const assert = require('node:assert/strict');
+for (const branch of ['master', 'main', 'release-2.18']) {
+  assert.deepEqual(architectures({}, 'merge_group',
+    {merge_group: {base_ref: `refs/heads/${branch}`}}, []),
+    {amd64: true, arm64: true});
+}
+assert.throws(() => architectures({}, 'merge_group',
+  {merge_group: {base_ref: 'refs/heads/release-2.19'}}, []));
+"""
+        subprocess.run(['node', '-e', script], cwd=ROOT, check=True)
+
+    def test_tensorboard_filters_match_producer_for_docs_and_runtime(
+        self,
+    ) -> None:
+        triggers = {
+            name: workflow(name)[True]['pull_request']
+            for name in ('ci-images.yml', 'tensorboard-acceptance.yml')
+        }
+        script = """
+const {applicable} = require('./.github/resources/scripts/ci_expected_workflows');
+const assert = require('node:assert/strict');
+const triggers = JSON.parse(process.argv[1]);
+for (const file of ['backend/src/tensorboard/README.md',
+                    'backend/src/tensorboard/OWNERS', 'test/tensorboard/README.md']) {
+  for (const [name, trigger] of Object.entries(triggers)) {
+    assert.equal(applicable(trigger, 'main', [file]), false, name + ':' + file);
+  }
+}
+for (const files of [['backend/src/tensorboard/tensorboard.sh'],
+                     ['test/tensorboard/deployed.py'],
+                     ['backend/src/tensorboard/README.md', 'test/tensorboard/deployed.py']]) {
+  for (const [name, trigger] of Object.entries(triggers)) {
+    assert.equal(applicable(trigger, 'main', files), true, name + ':' + files);
+  }
+}
+"""
+        subprocess.run(
+            ['node', '-e', script, json.dumps(triggers)], cwd=ROOT, check=True
+        )
+
+    def test_only_shared_producer_calls_image_builder(self) -> None:
         callers = []
         for path in WORKFLOWS.glob('*.y*ml'):
             for name, job in yaml.safe_load(path.read_text())['jobs'].items():
@@ -73,7 +118,7 @@ class SharedImageProducerTest(unittest.TestCase):
 
     def test_source_identity_precedes_plan_and_revision_cancellation_is_disabled(
         self,
-    ):
+    ) -> None:
         definition = workflow('ci-images.yml')
         concurrency = definition['concurrency']
         self.assertIn('github.sha', concurrency['group'])
@@ -93,7 +138,7 @@ class SharedImageProducerTest(unittest.TestCase):
             'ci-image-source-attempt-${{ github.run_attempt }}',
         )
 
-    def test_producer_filters_cover_every_active_consumer(self):
+    def test_producer_filters_cover_every_active_consumer(self) -> None:
         producer = workflow('ci-images.yml')[True]['pull_request']['paths']
         for name in CONSUMERS:
             if name == 'upgrade-test.yml':
@@ -104,20 +149,48 @@ class SharedImageProducerTest(unittest.TestCase):
         self.assertIn('!**/*.md', producer)
         self.assertIn('!**/OWNERS', producer)
 
-    def test_bundled_provenance_precedes_upload_without_aggregate_barrier(self):
+    def test_bundled_provenance_precedes_upload_and_bundle(self) -> None:
         definition = workflow('image-builds.yml')
         self.assertFalse(
             definition[True]['workflow_call']['inputs']['shared']['default']
         )
         self.assertEqual(
-            set(definition['jobs']), {'image-build', 'runtime-base-images'}
+            set(definition['jobs']),
+            {'image-build', 'runtime-base-images', 'image-bundle'},
         )
+        bundle = definition['jobs']['image-bundle']
+        self.assertEqual(bundle['needs'], 'image-build')
+        self.assertEqual(bundle['if'], 'inputs.shared')
+        download = next(
+            step
+            for step in bundle['steps']
+            if step.get('uses')
+            == './.github/actions/download-artifact-with-retry'
+        )
+        self.assertNotIn('github-token', download['with'])
+        self.assertIn('github.run_attempt', download['with']['pattern'])
+        self.assertIn('inputs.architecture', download['with']['pattern'])
+        verify = next(
+            step
+            for step in bundle['steps']
+            if 'shared_ci_images.py bundle' in step.get('run', '')
+        )
+        upload = next(
+            step
+            for step in bundle['steps']
+            if step.get('uses', '').startswith('actions/upload-artifact@')
+        )
+        self.assertLess(
+            bundle['steps'].index(verify), bundle['steps'].index(upload)
+        )
+        self.assertNotIn('continue-on-error', verify)
         for name in ('image-build', 'runtime-base-images'):
             steps = definition['jobs'][name]['steps']
             uploads = [
                 step
                 for step in steps
                 if step.get('uses', '').startswith('actions/upload-artifact@')
+                and step.get('id') != 'upload-go-provenance'
             ]
             self.assertEqual(len(uploads), 1)
             upload = uploads[0]
@@ -167,7 +240,54 @@ class SharedImageProducerTest(unittest.TestCase):
             image_steps.index(arm_record), image_steps.index(record)
         )
 
-    def test_live_pr_revision_changes_cannot_skip_an_architecture(self):
+    def test_native_builds_and_retry_use_verified_git_context(self) -> None:
+        steps = workflow('image-builds.yml')['jobs']['image-build']['steps']
+        prepare = next(s for s in steps if s.get('id') == 'go-context')
+        self.assertIn('image-build-provenance.py prepare', prepare['run'])
+        self.assertIn('--sha "$GITHUB_SHA"', prepare['run'])
+        for name in ('save-image', 'rebuild'):
+            build = next(s for s in steps if s.get('id') == name)
+            self.assertEqual(
+                build['with']['context'],
+                '${{ steps.go-context.outputs.context }}',
+            )
+            self.assertEqual(
+                build['with']['file'],
+                '${{ steps.go-context.outputs.dockerfile }}',
+            )
+            self.assertLess(steps.index(prepare), steps.index(build))
+        verify = next(
+            s
+            for s in steps
+            if s.get('name') == 'Verify native Go image provenance'
+        )
+        self.assertIn('docker load --input', verify['run'])
+        self.assertIn('image-build-provenance.py verify', verify['run'])
+        self.assertIn('--platform "linux/$TARGET_ARCH"', verify['run'])
+        self.assertNotIn('continue-on-error', verify)
+        for name in (
+            'Record ARM image identity',
+            'Record shared image identity',
+            'Upload artifact',
+        ):
+            record = next(s for s in steps if s.get('name') == name)
+            self.assertLess(steps.index(verify), steps.index(record))
+            self.assertNotIn('always()', record['if'])
+        upload = next(s for s in steps if s.get('id') == 'upload-image')
+        self.assertNotIn('.go-provenance/', upload['with']['path'])
+        evidence = next(
+            s for s in steps if s.get('id') == 'upload-go-provenance'
+        )
+        self.assertIn('.go-provenance/', evidence['with']['path'])
+        self.assertIn('github.run_attempt', evidence['with']['name'])
+        self.assertIn('env.ARTIFACT_NAME', evidence['with']['name'])
+        self.assertEqual(
+            evidence['if'], "${{ steps.verify-go.outcome == 'success' }}"
+        )
+        self.assertEqual(evidence['with']['if-no-files-found'], 'error')
+        self.assertLess(steps.index(verify), steps.index(evidence))
+
+    def test_live_pr_revision_changes_cannot_skip_an_architecture(self) -> None:
         script = """
 const assert = require('node:assert/strict');
 const {pullRequestArchitectures} = require('./.github/resources/scripts/shared_ci_image_plan');
@@ -207,7 +327,7 @@ assert.deepEqual(calls, ['pulls/23', 'pulls/23/files?per_page=100', 'pulls/23'])
 
     def test_architecture_plan_reuses_consumer_filters_and_preserves_pause(
         self,
-    ):
+    ) -> None:
         definitions = []
         for name in CONSUMERS:
             definitions.append(
@@ -245,6 +365,14 @@ assert.deepEqual(calls, ['pulls/23', 'pulls/23/files?per_page=100', 'pulls/23'])
             ('push', 'docs/example.md', {'amd64': True, 'arm64': False}),
             ('workflow_dispatch', '', {'amd64': True, 'arm64': True}),
         ]
+        fixtures.extend(
+            ('pull_request', path, {'amd64': True, 'arm64': True})
+            for path in (
+                'release/kfpr/go_build_provenance.py',
+                'release/kfpr/read_go_buildinfo.go',
+                '.github/resources/scripts/image-build-provenance.py',
+            )
+        )
         script = """
 const {architectures} = require('./.github/resources/scripts/shared_ci_image_plan');
 const data = JSON.parse(process.argv[1]);

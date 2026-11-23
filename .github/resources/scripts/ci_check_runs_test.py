@@ -411,6 +411,7 @@ class CheckRunsTest(unittest.TestCase):
         names = [
             'check_ci_status',
             'check_ci_status (17, sha)',
+            'queue_admission',
             'Cleanup artifacts',
             'Upload results',
             'Agent',
