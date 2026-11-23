@@ -77,7 +77,7 @@ class ActionlintCompatibilityTest(unittest.TestCase):
             if path != WORKFLOW:
                 self.assertFalse(set(self.patterns) & set(settings['ignore']))
 
-    def test_cache_mode_exception_only_matches_qualification_workflow_syntax(
+    def test_cache_mode_exception_only_matches_release_verifier_syntax(
         self,
     ):
         path = '.github/workflows/release-qualification.yml'
@@ -96,7 +96,9 @@ class ActionlintCompatibilityTest(unittest.TestCase):
         ):
             self.assertIsNone(re.search(patterns[0], invalid))
         for other_path, settings in self.config['paths'].items():
-            if other_path != path:
+            if other_path == '.github/workflows/release-landed-ci.yml':
+                self.assertEqual(patterns, settings['ignore'])
+            elif other_path != path:
                 self.assertNotIn(patterns[0], settings['ignore'])
 
     def test_generated_fields_have_supported_values(self):

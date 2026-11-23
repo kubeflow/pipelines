@@ -1,4 +1,5 @@
-"""Verify landed 2.18 CI using an exact-tree PR replay and branch-only tests."""
+"""Verify landed 2.18 CI using an exact-tree PR replay and branch-only
+tests."""
 
 import argparse
 import datetime
@@ -370,7 +371,8 @@ def verify_jobs(path, run, jobs):
 
 
 def verify_aggregate(sha, replay):
-    """Bind the most recent ci-passed to the official publisher and replay base."""
+    """Bind the most recent ci-passed to the official publisher and replay
+    base."""
     status = next(
         (
             s
