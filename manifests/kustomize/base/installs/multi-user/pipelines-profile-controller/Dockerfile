@@ -18,9 +18,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Apply the available Debian security update for the base image's zlib.
+# Apply same-suite security updates without changing the Python runtime.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends --only-upgrade zlib1g \
+    && apt-get install -y --no-install-recommends --only-upgrade libc6 libc-bin zlib1g \
+    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' libc6)" ge '2.41-12+deb13u5' \
+    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' libc-bin)" ge '2.41-12+deb13u5' \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /tmp/requirements.txt

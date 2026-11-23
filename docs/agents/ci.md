@@ -490,3 +490,11 @@ With `SETUP_ENV=true`, generate the pipeline spec and prepare these wheels befor
 installing SDK requirements. Run `sdk_nested_dependencies_test.py`,
 `sdk_timing_reports_test.py`, and `release_merge_group_workflows_test.py` when
 changing this boundary.
+
+The release profile-controller image keeps its Python 3.13 runtime and upgrades
+only the installed Debian glibc (`libc6`, `libc-bin`) and zlib packages from its
+existing Debian 13 repositories. Both glibc runtime packages must be at least
+`2.41-12+deb13u5`; the image build fails if that floor cannot be installed.
+Keep the hashed Python lock and existing native AMD64/ARM64 qualification lanes.
+Run `profile_controller_runtime_test.py` and the controller's HTTP tests after
+changing this recipe, then verify the exact candidate image's OSV evidence.

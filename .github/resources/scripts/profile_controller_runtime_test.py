@@ -71,6 +71,18 @@ class ProfileControllerRuntimeTests(unittest.TestCase):
                 name, version = line.split("==")
                 self.assertEqual(packages[name], version)
 
+    def test_runtime_upgrades_glibc_with_a_verified_security_floor(self):
+        recipe = (COMPONENT / "Dockerfile").read_text().replace("\\\n", " ")
+        install = re.search(r"apt-get install ([^&]+)", recipe).group(1).split()
+        self.assertIn("--only-upgrade", install)
+        self.assertIn("libc6", install)
+        self.assertIn("libc-bin", install)
+        self.assertIn("zlib1g", install)
+        self.assertIn("dpkg --compare-versions", recipe)
+        self.assertIn("dpkg-query -W", recipe)
+        self.assertIn("2.41-12+deb13u5", recipe)
+        self.assertLess(recipe.index("apt-get install"), recipe.index("USER "))
+
     def test_runtime_identity_and_command_match_the_mounted_controller(self):
         self.assertTrue(
             (COMPONENT / "Dockerfile").is_file(),
