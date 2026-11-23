@@ -65,6 +65,9 @@ test('each profile can compare the metrics recorded before upgrade', async t => 
       const comparison = page.getByRole('table').filter({ has: metric });
       await comparison.getByRole('cell', { name: profile.names[0], exact: true }).waitFor();
       const headings = await comparison.getByRole('row').first().getByRole('cell').allTextContents();
+      assert.equal(headings[0], '', 'Expected a metric label column');
+      assert.deepEqual(headings.slice(1).sort(), [...profile.names].sort(),
+        'Compare must show exactly the selected runs');
       const values = await metric.getByRole('cell').allTextContents();
       for (const [i, name] of profile.names.entries()) {
         const column = headings.indexOf(name);

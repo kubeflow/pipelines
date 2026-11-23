@@ -57,7 +57,7 @@ async function openDataset(page, dataset) {
 }
 
 async function assertDenied(page, path) {
-  const response = await page.request.get(path);
+  const response = await page.request.get(path, { maxRedirects: 0 });
   assert.ok([403, 404].includes(response.status()), 'Expected denial for ' + path + ', got ' + response.status());
 }
 
@@ -146,7 +146,9 @@ test('native artifact catalog preserves each profile’s historical dataset and 
         const path = runPath + '/tasks/' + encodeURIComponent(taskId);
         const taskResponse = await page.request.get(path);
         assert.equal(taskResponse.status(), 200);
-        assert.equal((await taskResponse.json()).task_id, taskId);
+        const task = await taskResponse.json();
+        assert.equal(task.task_id, taskId);
+        assert.equal(task.display_name || task.name, name);
         taskPaths.push(path);
         taskLinks.push({ link, target });
       }
