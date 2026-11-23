@@ -563,6 +563,15 @@ def build(
         )
         raise sys.exit(1)
 
+    if kfp_package_path is not None and _has_unsafe_dependency_url(
+        kfp_package_path
+    ):
+        raise click.ClickException(
+            'KFP package paths with embedded credentials or query parameters '
+            'cannot be written to generated build files. Use a credential-free '
+            'URL or a separately managed Docker build with secrets.'
+        )
+
     kfp_package_path = (
         pathlib.Path(kfp_package_path) if kfp_package_path is not None else None
     )

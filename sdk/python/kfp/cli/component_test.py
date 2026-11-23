@@ -23,6 +23,7 @@ import unittest
 from typing import List, Optional, Union
 from unittest import mock
 
+import click
 import docker
 from click import testing
 
@@ -665,6 +666,27 @@ class Test(unittest.TestCase):
             (self._working_dir / 'runtime-requirements.txt').exists()
         )
         self._docker_client.api.build.assert_not_called()
+
+    def test_rejects_kfp_package_url_before_path_conversion(self):
+        # Call the callback directly because Click currently requires this
+        # option to be an existing local path.
+        with mock.patch('kfp.cli.component.ComponentBuilder') as builder:
+            with self.assertRaisesRegex(click.ClickException, 'credentials'):
+                component.build.callback(
+                    components_directory=str(self._working_dir),
+                    component_filepattern='**/*.py',
+                    engine='docker',
+                    kfp_package_path=(
+                        'git+https://user:dummy-password@example.invalid/'
+                        'repo.git'
+                    ),
+                    additional_package_paths=(),
+                    overwrite_dockerfile=False,
+                    build_image=False,
+                    platform='linux/amd64',
+                    push_image=False,
+                )
+        builder.assert_not_called()
 
     def test_rejects_credential_urls_hidden_by_url_syntax(self):
         cases = [
