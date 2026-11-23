@@ -323,7 +323,9 @@ func (s *RunServer) CreateRun(ctx context.Context, request *apiv2.CreateRunReque
 	if s.options.CollectMetrics {
 		runCount.Inc()
 	}
-	return toAPIRun(run), nil
+	apiRun := toAPIRun(run)
+	fillPipelineNames(s.resourceManager, apiRun)
+	return apiRun, nil
 }
 
 // Fetches a run.
@@ -346,7 +348,9 @@ func (s *RunServer) GetRun(ctx context.Context, request *apiv2.GetRunRequest) (*
 	// FULL view is used by runtime driver/launcher pods. Prefer an embedded
 	// pipeline_spec when the run stores a manifest so run-scoped tokens do not
 	// need a follow-up GetPipelineVersion call.
-	return toAPIRunWithPipelineSourcePreference(run, hydrateTasks), nil
+	apiRun := toAPIRunWithPipelineSourcePreference(run, hydrateTasks)
+	fillPipelineNames(s.resourceManager, apiRun)
+	return apiRun, nil
 }
 
 func (s *BaseRunServer) getRunWithHydration(ctx context.Context, runID string, hydrateTasks bool) (*model.Run, error) {
@@ -383,7 +387,9 @@ func (s *RunServer) ListRuns(ctx context.Context, r *apiv2.ListRunsRequest) (*ap
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list runs")
 	}
-	return &apiv2.ListRunsResponse{Runs: toAPIRuns(runs), TotalSize: int32(runsCount), NextPageToken: nextPageToken}, nil
+	apiRuns := toAPIRuns(runs)
+	fillPipelineNames(s.resourceManager, apiRuns...)
+	return &apiv2.ListRunsResponse{Runs: apiRuns, TotalSize: int32(runsCount), NextPageToken: nextPageToken}, nil
 }
 
 func listRunsPageSizeForView(pageSize int, view *apiv2.ListRunsRequest_ViewMode) int {

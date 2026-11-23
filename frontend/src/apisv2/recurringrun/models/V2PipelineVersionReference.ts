@@ -33,14 +33,15 @@ export interface V2PipelineVersionReference {
   pipeline_version_id?: string;
   /**
    * Input. Optional. Name of the parent pipeline in the run's namespace, used
-   * instead of pipeline_id. Not returned in responses.
+   * instead of pipeline_id. Returned in responses, empty if the pipeline was deleted.
    * @type {string}
    * @memberof V2PipelineVersionReference
    */
   pipeline_name?: string;
   /**
    * Input. Optional. Name of a version of the pipeline named by pipeline_name,
-   * used instead of pipeline_version_id. Not returned in responses.
+   * used instead of pipeline_version_id. Returned in responses, empty if the
+   * version was deleted.
    * @type {string}
    * @memberof V2PipelineVersionReference
    */

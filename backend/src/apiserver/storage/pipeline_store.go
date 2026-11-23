@@ -105,6 +105,11 @@ type PipelineStoreInterface interface {
 	GetPipelineVersionTags(pipelineVersionID string) (map[string]string, error)
 	GetPipelineVersionTagsForVersions(pipelineVersionIds []string) (map[string]map[string]string, error)
 	DeletePipelineVersionTags(pipelineVersionID string) error
+
+	// Name lookups for read paths. Both return one entry per found row, so an ID
+	// that no longer resolves is simply absent.
+	GetPipelineNamesForIds(pipelineIds []string) (map[string]string, error)
+	GetPipelineVersionNamesForIds(pipelineVersionIds []string) (map[string]string, error)
 }
 
 type PipelineStore struct {
@@ -1389,6 +1394,52 @@ func (s *PipelineStore) GetPipelineVersionTags(pipelineVersionID string) (map[st
 
 func (s *PipelineStore) GetPipelineVersionTagsForVersions(pipelineVersionIds []string) (map[string]map[string]string, error) {
 	return s.getTagsForEntities("pipeline_version_tags", "PipelineVersionId", pipelineVersionIds)
+}
+
+// GetPipelineNamesForIds returns the name of every ready pipeline in
+// pipelineIds, in one query. A pipeline that is missing or no
+// longer ready is absent from the result rather than an error: runs outlive the
+// pipelines they reference, and such a run reports empty names.
+func (s *PipelineStore) GetPipelineNamesForIds(pipelineIds []string) (map[string]string, error) {
+	return queryNamesForIds(s.db, s.dbDialect, "pipelines", pipelineIds, string(model.PipelineReady))
+}
+
+// GetPipelineVersionNamesForIds is GetPipelineNamesForIds for pipeline versions.
+func (s *PipelineStore) GetPipelineVersionNamesForIds(pipelineVersionIds []string) (map[string]string, error) {
+	return queryNamesForIds(s.db, s.dbDialect, "pipeline_versions", pipelineVersionIds, string(model.PipelineVersionReady))
+}
+
+// queryNamesForIds reads the UUID and Name of the given ids with a single IN
+// query, following queryTagsForEntities.
+func queryNamesForIds(querier sqlQuerier, dbDialect dialect.DBDialect, tableName string, ids []string, status string) (map[string]string, error) {
+	result := make(map[string]string)
+	if len(ids) == 0 {
+		return result, nil
+	}
+	qi := dbDialect.QuoteIdentifier
+	sqlStr, args, err := dbDialect.QueryBuilder().Select(qi("UUID"), qi("Name")).
+		From(qi(tableName)).
+		Where(sq.And{sq.Eq{qi("UUID"): ids}, sq.Eq{qi("Status"): status}}).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to get names for %v", tableName)
+	}
+	rows, err := querier.Query(sqlStr, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get names for %v", tableName)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var uuid, name string
+		if err := rows.Scan(&uuid, &name); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to scan name row for %v", tableName)
+		}
+		result[uuid] = name
+	}
+	if err := rows.Err(); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to iterate name rows for %v", tableName)
+	}
+	return result, nil
 }
 
 func (s *PipelineStore) DeletePipelineVersionTags(pipelineVersionID string) error {

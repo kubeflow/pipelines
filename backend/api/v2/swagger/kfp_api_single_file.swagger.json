@@ -3143,11 +3143,11 @@
         },
         "pipeline_name": {
           "type": "string",
-          "description": "Input. Optional. Name of the parent pipeline in the run's namespace, used\ninstead of pipeline_id. Not returned in responses."
+          "description": "Input. Optional. Name of the parent pipeline in the run's namespace, used\ninstead of pipeline_id. Returned in responses, empty if the pipeline was deleted."
         },
         "pipeline_version_name": {
           "type": "string",
-          "description": "Input. Optional. Name of a version of the pipeline named by pipeline_name,\nused instead of pipeline_version_id. Not returned in responses."
+          "description": "Input. Optional. Name of a version of the pipeline named by pipeline_name,\nused instead of pipeline_version_id. Returned in responses, empty if the\nversion was deleted."
         }
       },
       "description": "Reference to an existing pipeline version."

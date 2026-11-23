@@ -45,13 +45,16 @@ import (
 // Each spec owns an experiment. Schedules are removed before the global cleanup
 // deletes their children, so parallel specs never delete each other's resources.
 var _ = Describe("Migrated recurring run behavior", Label(constants.APIServerTests, "LegacyMigration", constants.PipelineCacheEnabled), func() {
-	var experimentID, pipelineID, versionID string
+	var experimentID, pipelineID, versionID, pipelineName, versionName string
 	var jobs map[string]bool
 	BeforeEach(func() {
 		experimentID = createExperiment("recurring-migration-" + randomName).ExperimentID
 		pipeline := uploadAPipeline("../resources/hello-world.yaml", &testContext.Pipeline.PipelineGeneratedName)
 		pipelineID = pipeline.PipelineID
-		versionID = testutil.GetLatestPipelineVersion(pipelineClient, &pipelineID).PipelineVersionID
+		pipelineName = pipeline.Name
+		latestVersion := testutil.GetLatestPipelineVersion(pipelineClient, &pipelineID)
+		versionID = latestVersion.PipelineVersionID
+		versionName = latestVersion.Name
 		jobs = map[string]bool{}
 		DeferCleanup(func() {
 			for id, deleted := range jobs {
@@ -82,7 +85,19 @@ var _ = Describe("Migrated recurring run behavior", Label(constants.APIServerTes
 		Expect(job.MaxConcurrency).To(Equal(req.MaxConcurrency))
 		Expect(job.Mode).To(Equal(req.Mode))
 		Expect(job.RuntimeConfig).To(Equal(req.RuntimeConfig))
-		Expect(job.PipelineVersionReference).To(Equal(req.PipelineVersionReference))
+		// Responses resolve the reference's names from its IDs. An unpinned
+		// schedule stores no version ID, so it reports no version name either.
+		// Inline pipeline specs have no reference to resolve.
+		if req.PipelineVersionReference == nil {
+			Expect(job.PipelineVersionReference).To(BeNil())
+		} else {
+			expectedRef := *req.PipelineVersionReference
+			expectedRef.PipelineName = pipelineName
+			if expectedRef.PipelineVersionID != "" {
+				expectedRef.PipelineVersionName = versionName
+			}
+			Expect(job.PipelineVersionReference).To(Equal(&expectedRef))
+		}
 		stored, err := recurringRunClient.Get(&recurringparams.RecurringRunServiceGetRecurringRunParams{RecurringRunID: job.RecurringRunID})
 		Expect(err).NotTo(HaveOccurred())
 		// Status may advance asynchronously between Create and Get.
@@ -226,7 +241,10 @@ var _ = Describe("Migrated recurring run behavior", Label(constants.APIServerTes
 			customPipelineName := "custom-account-" + randomName
 			pipeline := uploadAPipeline("../resources/arguments-parameters.yaml", &customPipelineName)
 			pipelineID = pipeline.PipelineID
-			versionID = testutil.GetLatestPipelineVersion(pipelineClient, &pipelineID).PipelineVersionID
+			pipelineName = pipeline.Name
+			latestVersion := testutil.GetLatestPipelineVersion(pipelineClient, &pipelineID)
+			versionID = latestVersion.PipelineVersionID
+			versionName = latestVersion.Name
 			req := request("authorized")
 			req.ServiceAccount = account
 			req.MaxConcurrency = 1

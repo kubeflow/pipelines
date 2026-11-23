@@ -983,6 +983,65 @@ func (k *PipelineStoreKubernetes) GetPipelineTagsForPipelines(pipelineIds []stri
 	return result, nil
 }
 
+// GetPipelineNamesForIds reads the names from one cached List rather than a Get
+// per ID: getK8sPipeline scans a full List for each ID and, for an ID that no
+// longer exists, repeats that List against the API server. An ID that no longer
+// resolves is left out, so the caller reports an empty name for it.
+func (k *PipelineStoreKubernetes) GetPipelineNamesForIds(pipelineIds []string) (map[string]string, error) {
+	result := make(map[string]string, len(pipelineIds))
+	if len(pipelineIds) == 0 {
+		return result, nil
+	}
+	wanted := idSet(pipelineIds)
+	pipelines := v2beta1.PipelineList{}
+	listOptions := []ctrlclient.ListOption{ctrlclient.UnsafeDisableDeepCopy}
+	if !common.IsMultiUserMode() && common.GetPodNamespace() != "" {
+		listOptions = append(listOptions, ctrlclient.InNamespace(common.GetPodNamespace()))
+	}
+	if err := k.client.List(context.TODO(), &pipelines, listOptions...); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to list the pipelines")
+	}
+	for _, pipeline := range pipelines.Items {
+		if id := string(pipeline.UID); wanted[id] {
+			result[id] = pipeline.Name
+		}
+	}
+	return result, nil
+}
+
+// GetPipelineVersionNamesForIds is GetPipelineNamesForIds for pipeline versions.
+// It reads the name the way PipelineVersion.ToModel does, without ToModel's
+// parse of the whole pipeline spec.
+func (k *PipelineStoreKubernetes) GetPipelineVersionNamesForIds(pipelineVersionIds []string) (map[string]string, error) {
+	result := make(map[string]string, len(pipelineVersionIds))
+	if len(pipelineVersionIds) == 0 {
+		return result, nil
+	}
+	wanted := idSet(pipelineVersionIds)
+	pipelineVersions, err := k.getK8sPipelineVersions(context.TODO(), "", "")
+	if err != nil {
+		return nil, err
+	}
+	for _, pipelineVersion := range pipelineVersions.Items {
+		if id := string(pipelineVersion.UID); wanted[id] {
+			name := pipelineVersion.Spec.VersionName
+			if name == "" {
+				name = pipelineVersion.Name
+			}
+			result[id] = name
+		}
+	}
+	return result, nil
+}
+
+func idSet(ids []string) map[string]bool {
+	set := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		set[id] = true
+	}
+	return set
+}
+
 func (k *PipelineStoreKubernetes) DeletePipelineTags(pipelineID string) error {
 	return k.CreateOrUpdatePipelineTags(pipelineID, nil)
 }
