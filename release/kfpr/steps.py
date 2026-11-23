@@ -36,6 +36,10 @@ from .github_api import (
     watch_pr_ci,
 )
 from .inventory import build_inventory, release_scaffolding
+from .landed_attestation import (
+    superseded_ci_bookkeeping,
+    verify_landed_attestation,
+)
 from .metadata import ReleaseMetadata
 from .notes import render_notes
 from .packages import clean_legacy_distributions, validate_legacy_wheels
@@ -435,6 +439,10 @@ def step_merge_version_pr(context: ReleaseContext) -> None:
     if recorded_pr:
         _wait_for_version_pr(context, recorded_pr)
         return
+    if context.state.answers.get('landed_ci_run') is not None:
+        raise ValueError(
+            'Record the merged version PR before selecting landed CI'
+        )
     metadata = context.metadata
     version_branch = f'{metadata.tag}-update-version-tags'
     upstream_remote = f'https://github.com/{REPO}.git'
@@ -593,8 +601,9 @@ def _wait_for_version_pr(context: ReleaseContext, pr_url: str) -> None:
         )
         return
     print(underline_links(f'Version PR: {pr_url}'))
-    watch_pr_ci(context.runner, pr_url)
-    wait_for_pr_merge(context.runner, pr_url)
+    if context.state.answers.get('landed_ci_run') is None:
+        watch_pr_ci(context.runner, pr_url)
+        wait_for_pr_merge(context.runner, pr_url)
     validate_release_pr(context)
     context.state.save()
 
@@ -640,11 +649,29 @@ def validate_release_pr(context: ReleaseContext) -> str:
         raise RuntimeError(
             'Version PR has no valid merged commit or tested head.'
         )
+    landed_run = context.state.answers.get('landed_ci_run')
+    if landed_run is not None:
+        verify_landed_attestation(
+            context,
+            landed_run,
+            int(url.rsplit('/', 1)[1]),
+            context.metadata.release_branch,
+            sha,
+        )
     checks = pr.get('statusCheckRollup') or []
     for check in checks:
         # Tide reports merge-queue eligibility, not a CI result. Its pending
         # status can remain on the tested head after the PR has been merged.
         if is_pending_merge_queue_check(check, merged_pr_url=pr.get('url')):
+            continue
+        if landed_run is not None and (
+            (
+                check.get('__typename') == 'StatusContext'
+                and check.get('context') == 'ci-passed'
+                and check.get('state') == 'PENDING'
+            )
+            or superseded_ci_bookkeeping(context, check, checks, head)
+        ):
             continue
         status = check.get('status') or check.get('state')
         result = check.get('conclusion') if status == 'COMPLETED' else status
@@ -652,7 +679,7 @@ def validate_release_pr(context: ReleaseContext) -> str:
             raise RuntimeError(
                 f'Latest version PR CI is not green: {check.get("name") or check.get("context")}'
             )
-    if not has_successful_ci_passed(checks):
+    if landed_run is None and not has_successful_ci_passed(checks):
         raise RuntimeError(
             'Version PR requires successful ci-passed status on its latest head.'
         )
