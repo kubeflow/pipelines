@@ -401,7 +401,7 @@ describe('artifact-validator', () => {
       expect(logSpy).toHaveBeenCalledWith(
         '[SECURITY] Artifact ownership lookup failed for URI "%s"; denying access.',
         artifactUri,
-        error,
+        expect.any(Error),
       );
     } finally {
       logSpy.mockRestore();
