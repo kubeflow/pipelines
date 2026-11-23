@@ -8,7 +8,7 @@ const { readFile } = require('node:fs/promises');
 const { test } = require('node:test');
 const { chromium } = require('playwright');
 const { startFixtureGateway } = require('./profile-auth-gateway');
-const { lookupReturnedRecord, scanCatalog } = require('./profile-catalog-assertions.cjs');
+const { assertProducerInCatalog, lookupReturnedRecord, scanCatalog } = require('./profile-catalog-assertions.cjs');
 
 const baseURL = process.env.PROFILE_UI_URL || 'http://127.0.0.1:3000';
 
@@ -51,7 +51,7 @@ async function openDataset(page, profile) {
   const row = page.getByTestId('table-row').filter({ hasText: profile.runId }).filter({
     has: page.getByRole('link', { name: 'output_gcs', exact: true }),
   });
-  assert.ok(await scanCatalog(page, () => row.count()), profile.namespace + ' catalog is missing ' + profile.runId);
+  assert.ok(await scanCatalog(page, 'artifacts', () => row.count()), profile.namespace + ' catalog is missing ' + profile.runId);
 
   const uri = await row.getByText(/^(?:s3|minio|gs):\/\//).innerText();
   const { pathname } = new URL(uri);
@@ -172,16 +172,14 @@ test('each profile can use its retained dataset after upgrade', async t => {
       let producerId;
       await t.test('follow both lineage edges to the original execution', async () => {
         producerId = await checkLineage(page, dataset);
-        await page.goto('/#/executions');
-        const executionName = page.getByRole('link', { name: 'component1', exact: true });
-        await page.locator('a[href$="/executions/' + producerId + '"]').and(executionName).waitFor();
+        await assertProducerInCatalog(page, producerId);
       });
       const otherPage = await openPage(browser, gateway, t, other);
       await t.test('exclude the first profile from the second profile catalog', async t => {
         const rows = otherPage.getByTestId('table-row');
         let ownVisible = false;
         let foreignVisible = false;
-        await scanCatalog(otherPage, async () => {
+        await scanCatalog(otherPage, 'artifacts', async () => {
           ownVisible = ownVisible || (await rows.filter({ hasText: other.runId }).count()) > 0;
           foreignVisible = foreignVisible || (await rows.filter({ hasText: profile.runId }).count()) > 0;
           return false;

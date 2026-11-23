@@ -4,7 +4,7 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { chromium } = require('playwright');
-const { lookupReturnedRecord, scanCatalog } = require('./profile-catalog-assertions.cjs');
+const { assertProducerInCatalog, lookupReturnedRecord, scanCatalog } = require('./profile-catalog-assertions.cjs');
 
 test('catalog finds the owner on page two and detects a foreign row on page three', async t => {
   const browser = await chromium.launch(process.env.PROFILE_TEST_CHROME_CHANNEL ?
@@ -29,15 +29,41 @@ test('catalog finds the owner on page two and detects a foreign row on page thre
       </script>`,
   }));
   const rows = page.getByTestId('table-row');
-  assert.equal(await scanCatalog(page, () => rows.filter({ hasText: 'owner' }).count()), true);
+  assert.equal(await scanCatalog(page, 'artifacts', () => rows.filter({ hasText: 'owner' }).count()), true);
   await page.goto('about:blank');
 
   const seen = [];
-  await scanCatalog(page, async () => {
+  await scanCatalog(page, 'artifacts', async () => {
     seen.push(await rows.first().innerText());
     return false;
   });
   assert.deepEqual(seen, ['unrelated', 'owner', 'foreign']);
+});
+
+test('execution catalog finds the linked producer on page two', async t => {
+  const browser = await chromium.launch(process.env.PROFILE_TEST_CHROME_CHANNEL ?
+    { channel: process.env.PROFILE_TEST_CHROME_CHANNEL } : {});
+  t.after(() => browser.close());
+  const page = await browser.newPage({ baseURL: 'http://catalog.test' });
+  page.setDefaultTimeout(3000);
+  const row = id => `<div data-testid="table-row" data-row-id="${id}">
+    <a href="/#/executions/${id}">component1</a></div>`;
+  await page.route('http://catalog.test/', route => route.fulfill({
+    contentType: 'text/html',
+    body: `<main id="rows">${Array.from({ length: 10 }, (_, index) => row(index + 1)).join('')}</main>
+      <button data-testid="next-page-btn">Next page</button>
+      <template id="second">${row(11)}${row(12)}</template>
+      <script>
+        document.querySelector('button').onclick = event => {
+          document.querySelector('#rows').replaceChildren(
+            document.querySelector('#second').content.cloneNode(true));
+          event.currentTarget.disabled = true;
+        };
+      </script>`,
+  }));
+  await assertProducerInCatalog(page, '12');
+  assert.equal(new URL(page.url()).hash, '#/executions');
+  assert.ok(await page.getByTestId('next-page-btn').isDisabled());
 });
 
 function frame(type, payload) {
