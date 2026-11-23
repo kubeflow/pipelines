@@ -424,8 +424,9 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   replicas at zero. Update both pins together after checking runtime provenance,
   operator-supported version, and all four file/S3 and cache-enabled/disabled
   combinations. The separate `red-hat-data-services` image selection is unchanged.
-- Multi-user CI pins Kubeflow Community Distribution at `c5e3896566d52e02090f15b476f4528605a9c35f`
-  (Istio 1.31.1), whose manifests use `docker.io/istio` for control-plane,
+- Multi-user CI uses the Kubeflow Community Distribution revision pinned in
+  `.github/resources/scripts/deploy-kfp.sh` for Dashboard v2.0.1 and Istio
+  1.31.3. Its manifests use `docker.io/istio` for control-plane,
   gateway, CNI and injected sidecar images. Apply the upstream manifests directly.
   When advancing this pin, review and render all four consumed paths, including
   the profile controller; the pin selects more than Istio images.
