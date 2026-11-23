@@ -19,7 +19,6 @@ const require = createRequire(import.meta.url);
 // patched top-level dependency.
 const kubernetesRequire = createRequire(require.resolve('@kubernetes/client-node'));
 const authRequire = createRequire(require.resolve('google-auth-library'));
-const gaxiosRequire = createRequire(authRequire.resolve('gaxios'));
 
 it('counts empty YAML merge sources against the Kubernetes parser budget', () => {
   const yaml = kubernetesRequire('js-yaml');
@@ -28,24 +27,31 @@ it('counts empty YAML merge sources against the Kubernetes parser budget', () =>
   expect(yaml.load(source, { maxTotalMergeKeys: 10 }).result).toEqual({});
 });
 
-it('rejects undersized output buffers in the UUID dependency used by gaxios', () => {
-  const { v5 } = gaxiosRequire('uuid');
-  expect(() => v5('probe', v5.DNS, new Uint8Array(8))).toThrow(RangeError);
+it('removes the external UUID dependency from the authentication transport', () => {
+  const transport = authRequire('gaxios/package.json');
+  expect(transport.dependencies).not.toHaveProperty('uuid');
 });
 
-it('preserves gaxios multipart generation with the patched UUID dependency', async () => {
+it('uses a native UUID consistently in multipart headers and body', async () => {
   const { Gaxios } = authRequire('gaxios') as typeof import('gaxios');
   const client = new Gaxios();
   const result = await client.request({
     url: 'https://example.invalid/',
     method: 'POST',
-    multipart: [{ headers: { 'Content-Type': 'text/plain' }, content: 'probe' }],
+    multipart: [{ headers: new Headers({ 'Content-Type': 'text/plain' }), content: 'probe' }],
     adapter: async (options) => {
-      expect(options.headers?.['Content-Type']).toMatch(/boundary=[0-9a-f-]{36}$/);
+      const contentType = options.headers.get('Content-Type');
+      expect(contentType).toMatch(/^multipart\/related; boundary=[0-9a-f-]{36}$/);
+      const boundary = contentType!.split('boundary=')[1];
       let body = '';
       for await (const chunk of options.body as AsyncIterable<Buffer>) body += chunk.toString();
-      expect(body).toContain('probe');
-      return { status: 200, statusText: 'OK', headers: {}, config: options, data: undefined };
+      expect(body).toBe(
+        `--${boundary}\r\nContent-Type: text/plain\r\n\r\nprobe\r\n--${boundary}--`,
+      );
+      return Object.assign(new Response(null, { status: 200 }), {
+        config: options,
+        data: undefined,
+      });
     },
   });
   expect(result.status).toBe(200);

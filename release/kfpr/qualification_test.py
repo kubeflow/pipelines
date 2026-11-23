@@ -315,6 +315,7 @@ class QualificationTest(unittest.TestCase):
             root = Path(tmp)
             (root / 'source').mkdir()
             context = self.context(root, backend=False, sdk=True)
+            context.state.answers.update(landed_ci_run=99, landed_ci_attempt=1)
             self.ci.qualify_ci.return_value = {
                 'images': [],
                 'wheels': {
@@ -343,6 +344,14 @@ class QualificationTest(unittest.TestCase):
             self.assertEqual(
                 self.ci.qualify_ci.call_args.args[1:3], ([], {'3.9', '3.11'})
             )
+            report = json.loads(
+                Path(context.state.answers['qualification_path']).read_text()
+            )
+            self.assertEqual(
+                report['landed_ci'], {'run_id': 99, 'run_attempt': 1}
+            )
+            # A fresh verified attestation for the same cut preserves the scan evidence.
+            context.state.answers['landed_ci_run'] = 100
             q.require_qualification(context)
             self.ci.verify_run.assert_called_once_with(context, {'id': 123})
 

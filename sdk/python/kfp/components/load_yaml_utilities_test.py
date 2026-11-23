@@ -107,6 +107,36 @@ implementation:
     tasks: {}
     outputValues: {}
 """,
+            # Shapes that crashed the removed v1 loader (#13756, #13745,
+            # #13781) now get the same rejection.
+            """name: legacy-yaml-boolean-input-name
+inputs:
+- {name: on, type: String}
+implementation:
+  container:
+    image: alpine
+    command: [echo, {inputValue: on}]
+""",
+            """name: legacy-empty-output-type
+outputs:
+- {name: out, type: ''}
+implementation:
+  container:
+    image: alpine
+    command: [sh, -c, 'echo hi > $0', {outputPath: out}]
+""",
+            """name: legacy-if-placeholder-with-else
+inputs:
+- {name: x, type: String, optional: true}
+implementation:
+  container:
+    image: alpine
+    command:
+    - if:
+        cond: {isPresent: x}
+        then: [--x, {inputValue: x}]
+        else: [--no-x]
+""",
             """apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:

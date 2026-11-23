@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # 1. Build api server application
-FROM golang:1.27.3-bookworm@sha256:972b4110ba0f47539a975c31e52c64765e1ff19f2d74469ae4a595c6676e80a5 AS builder
+FROM golang:1.27.4-bookworm@sha256:4fa7c968ba93f1635670522dbb01a2c78150443e1385746924566079f36570ea AS builder
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY ./go.mod ./
@@ -29,7 +29,7 @@ RUN GO111MODULE=on go mod download
 RUN go list -mod=readonly -m -f '{{.Version}}' github.com/argoproj/argo-workflows/v4 > /tmp/argo-version
 
 COPY . .
-RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
+RUN GO111MODULE=on go build -buildvcs=true -mod=readonly -o /bin/apiserver ./backend/src/apiserver
 
 # 2. Compile preloaded pipeline samples
 FROM python:3.14-slim AS compiler
@@ -95,7 +95,8 @@ ENV LOG_LEVEL=info
 WORKDIR /bin
 
 # Adding CA certificate so API server can download pipeline through URL and wget is used for liveness/readiness probe command
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates wget \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates wget zlib1g \
+    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' zlib1g)" ge '1:1.3.dfsg+really1.3.1-1+deb13u1' \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/src/apiserver/config/ /config

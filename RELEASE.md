@@ -18,3 +18,5 @@ Backend and SDK versions can advance independently. A similarly numbered tag is
 not a compatibility guarantee: consult the selected SDK and backend release notes
 before upgrading. The maintainer runbook covers backend-only, SDK-only, and
 combined releases, including unified SDK and split-package maintenance releases.
+
+Release editors should start with the [release-wide editorial inventory](release/README.md#build-a-release-wide-editorial-inventory) to review features, bug fixes, security, resilience, compatibility, and operator actions across the exact release range.

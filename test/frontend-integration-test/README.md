@@ -134,3 +134,8 @@ runner and Selenium browser share `/src` in the integration image; an external
 Selenium host must expose the same fixture paths. `setFiles` requires a BiDi
 session and does not transfer files to a remote host. The dependency regression
 executes the upload step from each pipeline spec to catch removed runner APIs.
+
+For pipeline cleanup after navigation, use `waitForPipelineListReady`. It checks
+the exact list route and the visible `Filter pipelines` input in one fresh DOM
+snapshot on each poll. The URL alone can change while the outgoing page still
+owns `#tableFilterBox`. Keep each caller's existing timeout.

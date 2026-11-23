@@ -1,0 +1,181 @@
+name: Shared CI Images
+
+on:
+  merge_group:
+    types: [checks_requested]
+    branches: [master, main, release-2.18]
+  push:
+    branches: [master, main]
+  pull_request:
+    paths:
+      - '**/pyproject.toml'
+      - '.dockerignore'
+      - '.github/actions/arm64-smoke/**'
+      - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
+      - '.github/actions/download-artifact-with-retry/**'
+      - '.github/actions/github-disk-cleanup/**'
+      - '.github/actions/install-dra-driver/**'
+      - '.github/actions/install-fgo-fake/**'
+      - '.github/actions/junit-summary/**'
+      - '.github/actions/protobuf/**'
+      - '.github/actions/setup-python/**'
+      - '.github/actions/shared-ci-images/**'
+      - '.github/actions/test-and-report/**'
+      - '.github/resources/**'
+      - '.github/resources/buildkitd.toml'
+      - '.github/resources/curl-retry/**'
+      - '.github/resources/scripts/**'
+      - '.github/workflows/api-server-tests.yml'
+      - '.github/workflows/arm64-presubmit.yml'
+      - '.github/workflows/ci-images.yml'
+      - '.github/workflows/shared-ci-images-ready.yml'
+      - '.github/workflows/e2e-test-frontend.yml'
+      - '.github/workflows/e2e-test.yml'
+      - '.github/workflows/image-builds.yml'
+      - '.github/workflows/kfp-kubernetes-native-migration-tests.yaml'
+      - '.github/workflows/kfp-sdk-client-tests.yml'
+      - '.github/workflows/kfp-webhooks.yml'
+      - '.github/workflows/legacy-v2-api-integration-tests.yml'
+      - 'api/**'
+      - 'api/v2alpha1/**'
+      - 'backend/**'
+      - 'backend/src/apiserver/**'
+      - 'backend/src/common/**'
+      - 'backend/test/constants/**'
+      - 'frontend/**'
+      - 'frontend/server/handlers/artifacts.ts'
+      - 'go.mod'
+      - 'go.sum'
+      - 'kubernetes_platform/**'
+      - 'manifests/kustomize/**'
+      - 'proxy/**'
+      - 'release/kfpr/go_build_provenance.py'
+      - 'release/kfpr/read_go_buildinfo.go'
+      - 'pyproject.toml'
+      - 'samples/**'
+      - 'sdk/**'
+      - 'sdk/python/**'
+      - 'test/**'
+      - 'test/artifact-proxy/**'
+      - 'test/frontend-integration-test/**'
+      - 'test/kfp-kubernetes-native-migration-tests/**'
+      - 'test/seaweedfs/**'
+      - 'test/server-integration-test/**'
+      - 'test_data/pipeline_files/valid/**'
+      - 'test_data/sdk_compiled_pipelines/**'
+      - 'third_party/**'
+      - 'tools/k8s-native/**'
+      - 'uv.lock'
+      - 'backend/Dockerfile.tensorboard'
+      - 'backend/src/tensorboard/**'
+      - 'backend/src/crd/controller/viewer/**'
+      - 'frontend/src/components/viewers/Tensorboard*'
+      - 'frontend/server/handlers/tensorboard*'
+      - 'test/tensorboard/**'
+      - 'hack/update_tensorboard_image.py'
+      - '.github/workflows/tensorboard-acceptance.yml'
+      - '.github/resources/scripts/artifact-files.sh'
+      - '.github/resources/scripts/ci-image-artifacts.sh'
+      - '.github/resources/scripts/load-tensorboard-image.sh'
+      - '.github/resources/scripts/shared_ci_images.py'
+      - '!**/*.md'
+      - '!**/OWNERS'
+  workflow_dispatch:
+    inputs:
+      queue_head_sha:
+        description: Exact queue candidate SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_ref:
+        description: Queue target branch, master, main, or release-2.18 (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_sha:
+        description: Current target branch SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+# A newer PR revision must not cancel images still needed by an older consumer.
+concurrency:
+  group: shared-ci-images-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  queue-dispatch-guard:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/queue-dispatch-guard.yml
+    with:
+      queue_head_sha: ${{ inputs.queue_head_sha }}
+      queue_base_ref: ${{ inputs.queue_base_ref }}
+      queue_base_sha: ${{ inputs.queue_base_sha }}
+
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      amd64: ${{ steps.plan.outputs.amd64 }}
+      arm64: ${{ steps.plan.outputs.arm64 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Record checked-out source identity
+        run: python3 .github/resources/scripts/shared_ci_images.py source --output source.json
+      - name: Publish source identity before image builds
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ci-image-source-attempt-${{ github.run_attempt }}
+          path: source.json
+          if-no-files-found: error
+          retention-days: 1
+      - name: Prepare pinned Argo manifests
+        run: python3 .github/resources/scripts/argo_manifest_artifacts.py prepare --output argo-manifests
+      - name: Publish pinned Argo manifests
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: argo-manifests-attempt-${{ github.run_attempt }}
+          path: |
+            argo-manifests/argo-manifests.tar
+            argo-manifests/argo-manifests.json
+          if-no-files-found: error
+          retention-days: 1
+      - name: Select required architectures
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/resources/scripts/shared_ci_image_plan.js
+
+  amd64:
+    needs: source
+    if: needs.source.outputs.amd64 == 'true'
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/image-builds.yml
+    with:
+      architecture: amd64
+      shared: true
+      cache-write: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+
+  arm64:
+    needs: source
+    if: needs.source.outputs.arm64 == 'true'
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/image-builds.yml
+    with:
+      architecture: arm64
+      shared: true

@@ -48,6 +48,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/dbcreds"
+	"github.com/kubeflow/pipelines/backend/src/common/s3bucket"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	"gorm.io/driver/mysql"
@@ -60,7 +61,6 @@ import (
 
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob"
-	"gocloud.dev/blob/s3blob"
 )
 
 const (
@@ -896,7 +896,7 @@ func runLegacyUpgradeFlow(db *gorm.DB, dialect sqldrv.DBDialect) error {
 	if initializePipelineVersions {
 		initPipelineVersionsFromPipelines(db)
 	}
-	err := backfillExperimentIDToRunTable(db)
+	err := backfillExperimentIDToRunTable(db, dialect)
 	if err != nil {
 		return fmt.Errorf("failed to backfill experiment UUID in run_details table: %s", err)
 	}
@@ -1111,13 +1111,10 @@ func dropLegacyIndexesMySQL(db *gorm.DB) error {
 			if err != nil {
 				return fmt.Errorf("query pipeline_versions indices failed: %w", err)
 			}
-			has := false
+			has := rows.Next()
 			if err := rows.Err(); err != nil {
 				_ = rows.Close()
 				return fmt.Errorf("iterate pipeline_versions indices failed: %w", err)
-			}
-			if rows.Next() {
-				has = true
 			}
 			_ = rows.Close()
 			if has {
@@ -1606,7 +1603,7 @@ func openBucketWithRetry(ctx context.Context, config *blobStorageConfig, timeout
 			return err
 		}
 
-		bucket, err = s3blob.OpenBucketV2(ctx, s3Client, config.bucketName, nil)
+		bucket, err = s3bucket.Open(ctx, s3Client, config.bucketName, nil)
 		return err
 	}
 
@@ -1926,23 +1923,27 @@ func backfillPipelineIDFromVersionSQL(dialect sqldrv.DBDialect, table string) st
 	)
 }
 
-func backfillExperimentIDToRunTable(db *gorm.DB) error {
+func backfillExperimentIDToRunTable(db *gorm.DB, dialect sqldrv.DBDialect) error {
 	// check if there is any row in the run table has experiment ID being empty
 	sqlDB, err := db.DB()
 	if err != nil {
 		return err
 	}
-	rows, err := sqlDB.Query("SELECT \"ExperimentUUID\" FROM run_details WHERE \"ExperimentUUID\" = '' LIMIT 1")
+	// Double quotes would be a string literal on MySQL, and the check would
+	// never find a row.
+	quote := dialect.QuoteIdentifier
+	rows, err := sqlDB.Query(fmt.Sprintf(
+		"SELECT %s FROM run_details WHERE %s = '' LIMIT 1", quote("ExperimentUUID"), quote("ExperimentUUID")))
 	if err != nil {
-		return err
-	}
-	if err := rows.Err(); err != nil {
 		return err
 	}
 	defer rows.Close()
 
 	// no row in run_details table has empty ExperimentUUID
 	if !rows.Next() {
+		if err := rows.Err(); err != nil {
+			return err
+		}
 		return nil
 	}
 

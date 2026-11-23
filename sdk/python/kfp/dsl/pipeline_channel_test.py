@@ -153,6 +153,84 @@ class PipelineChannelTest(parameterized.TestCase):
         params = pipeline_channel.extract_pipeline_channels_from_any(payload)
         self.assertListEqual([p1, p2, p3], params)
 
+    def test_extract_pipeline_channels_with_complex_channel_types(self):
+        # regression test: channel types containing '.', '@', '[', ']'
+        # (e.g. typing.List[str] or system.Dataset@0.0.1) were previously
+        # silently dropped by _PIPELINE_CHANNEL_PLACEHOLDER_REGEX.
+        p1 = pipeline_channel.create_pipeline_channel(
+            name='channel1',
+            channel_type='typing.List[str]',
+            task_name='task1',
+        )
+        p2 = pipeline_channel.create_pipeline_channel(
+            name='channel2',
+            channel_type='system.Dataset@0.0.1',
+            task_name='task2',
+        )
+        # regression test: channel types containing '/' (e.g. MIME-type
+        # Literal values such as Literal['text/plain']) were previously
+        # dropped by the character-whitelist regex.
+        p3 = pipeline_channel.create_pipeline_channel(
+            name='channel3',
+            channel_type="typing.List[typing.Literal['text/plain', 'application/json']]",
+            task_name='task3',
+        )
+        stuff_chars = ' between '
+        payload = str(p1) + stuff_chars + str(p2) + stuff_chars + str(p3)
+        params = pipeline_channel.extract_pipeline_channels_from_string(payload)
+        self.assertListEqual([p1, p2, p3], params)
+
+    @parameterized.parameters(
+        "typing.List[typing.Literal[';}}']]",
+        "typing.List[typing.Literal['%3B']]",
+        "typing.List[typing.Literal['100%']]",
+        "typing.List[typing.Literal['{{x}}']]",
+        "typing.List[typing.Literal['a\nb']]",
+        'typing.Dict[str, typing.List[int]]',
+    )
+    def test_channel_type_round_trips_through_placeholder(self, channel_type):
+        channel = pipeline_channel.PipelineParameterChannel(
+            name='out', channel_type=channel_type, task_name='produce'
+        )
+        placeholder = str(channel)
+        # only one ';}}' in the escaped placeholder
+        self.assertEqual(placeholder.count(';}}'), 1)
+        self.assertTrue(placeholder.endswith(';}}'))
+        extracted = pipeline_channel.extract_pipeline_channels_from_string(
+            f'Items: {placeholder}'
+        )
+        self.assertLen(extracted, 1)
+        self.assertEqual(extracted[0].name, 'out')
+        self.assertEqual(extracted[0].task_name, 'produce')
+        self.assertEqual(extracted[0].channel_type, channel_type)
+
+    def test_adjacent_placeholders_with_delimiter_in_type(self):
+        a = pipeline_channel.PipelineParameterChannel(
+            name='a',
+            channel_type="typing.List[typing.Literal[';}}']]",
+            task_name='t1',
+        )
+        b = pipeline_channel.PipelineParameterChannel(
+            name='b', channel_type='String', task_name='t2'
+        )
+        extracted = pipeline_channel.extract_pipeline_channels_from_string(
+            f'{a} and {b}'
+        )
+        self.assertEqual(sorted(c.name for c in extracted), ['a', 'b'])
+        by_name = {c.name: c for c in extracted}
+        self.assertEqual(
+            by_name['a'].channel_type, "typing.List[typing.Literal[';}}']]"
+        )
+        self.assertEqual(by_name['b'].channel_type, 'String')
+
+    def test_types_without_special_characters_are_unchanged(self):
+        channel = pipeline_channel.PipelineParameterChannel(
+            name='out', channel_type='String', task_name='produce'
+        )
+        self.assertEqual(
+            str(channel), '{{channel:task=produce;name=out;type=String;}}'
+        )
+
 
 @dsl.component
 def string_comp() -> str:

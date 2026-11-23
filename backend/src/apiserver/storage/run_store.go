@@ -50,6 +50,7 @@ var runColumns = []string{
 	"Parameters",
 	"RuntimeParameters",
 	"PipelineRoot",
+	"EnableCaching",
 	"PipelineRuntimeManifest",
 	"WorkflowRuntimeManifest",
 	"JobUUID",
@@ -91,6 +92,7 @@ var runListColumns = []string{
 	"Parameters",
 	"RuntimeParameters",
 	"PipelineRoot",
+	"EnableCaching",
 	"'' AS PipelineRuntimeManifest",
 	"'' AS WorkflowRuntimeManifest",
 	"JobUUID",
@@ -647,6 +649,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextID, pipelineRunContextID, retryGeneration, retryClaimedAtInSec, archivedAtInSec sql.NullInt64
 		var resourceReferencesInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID, importedFrom, importDigest sql.NullString
+		var enableCaching sql.NullBool
 
 		// Scan the run columns and historical reference aggregate.
 		scanDest := []interface{}{
@@ -670,6 +673,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&parameters,
 			&runtimeParameters,
 			&pipelineRoot,
+			&enableCaching,
 			&pipelineRuntimeManifest,
 			&workflowRuntimeManifest,
 			&jobID,
@@ -716,7 +720,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 				jID = model.GetRefIdFromResourceReferences(resourceReferences, model.JobResourceType)
 			}
 		}
-		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
+		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot, enableCaching)
 		var stateHistoryNew []*model.RuntimeStatus
 		if stateHistory.Valid {
 			err := json.Unmarshal([]byte(stateHistory.String), &stateHistoryNew)
@@ -778,7 +782,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 	return runs, nil
 }
 
-func parseRuntimeConfig(runtimeParameters sql.NullString, pipelineRoot sql.NullString) model.RuntimeConfig {
+func parseRuntimeConfig(runtimeParameters sql.NullString, pipelineRoot sql.NullString, enableCaching sql.NullBool) model.RuntimeConfig {
 	var runtimeParametersString, pipelineRootString string
 	if runtimeParameters.Valid {
 		runtimeParametersString = runtimeParameters.String
@@ -786,7 +790,11 @@ func parseRuntimeConfig(runtimeParameters sql.NullString, pipelineRoot sql.NullS
 	if pipelineRoot.Valid {
 		pipelineRootString = pipelineRoot.String
 	}
-	return model.RuntimeConfig{Parameters: model.LargeText(runtimeParametersString), PipelineRoot: model.LargeText(pipelineRootString)}
+	config := model.RuntimeConfig{Parameters: model.LargeText(runtimeParametersString), PipelineRoot: model.LargeText(pipelineRootString)}
+	if enableCaching.Valid {
+		config.EnableCaching = &enableCaching.Bool
+	}
+	return config
 }
 
 func parseResourceReferences(resourceRefString sql.NullString) ([]*model.ResourceReference, error) {
@@ -850,6 +858,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			q("Parameters"):              r.PipelineSpec.Parameters,
 			q("RuntimeParameters"):       r.PipelineSpec.RuntimeConfig.Parameters,
 			q("PipelineRoot"):            r.PipelineSpec.RuntimeConfig.PipelineRoot,
+			q("EnableCaching"):           r.PipelineSpec.RuntimeConfig.EnableCaching,
 			q("PipelineVersionId"):       r.PipelineSpec.PipelineVersionId,
 			q("JobUUID"):                 r.RecurringRunId,
 			q("ImportedFrom"):            r.ImportedFrom,
@@ -1019,16 +1028,25 @@ type runRuntimeManifestPrecondition struct {
 	state           *model.RuntimeState
 }
 
+// lockedRun is the state of a run row read under lockRunForRuntimeManifestWrite.
+type lockedRun struct {
+	exists             bool
+	preconditionsMatch bool
+	// stateHistory is the persisted history, which may be newer than the
+	// caller's snapshot when another transition committed in between.
+	stateHistory sql.NullString
+}
+
 func lockRunForRuntimeManifestWrite(
 	tx *sql.Tx,
 	d dialect.DBDialect,
 	runID string,
 	expected runRuntimeManifestPrecondition,
-) (bool, bool, error) {
+) (lockedRun, error) {
 	q := d.QuoteIdentifier
 	qb := d.QueryBuilder()
 
-	lockColumns := []string{"WorkflowRuntimeManifest"}
+	lockColumns := []string{"StateHistory", "WorkflowRuntimeManifest"}
 	checkPipelineRuntimeManifest := expected.workflow == ""
 	if checkPipelineRuntimeManifest {
 		lockColumns = append(lockColumns, "PipelineRuntimeManifest")
@@ -1046,15 +1064,16 @@ func lockRunForRuntimeManifestWrite(
 		Where(sq.Eq{q("UUID"): runID}).
 		ToSql()
 	if err != nil {
-		return false, false, err
+		return lockedRun{}, err
 	}
+	var locked lockedRun
 	var currentWorkflowRuntimeManifest model.LargeText
 	var currentPipelineRuntimeManifest model.LargeText
 	var currentNamespace string
 	var currentState sql.NullString
 	var currentConditions sql.NullString
 	var currentRetryGeneration sql.NullInt64
-	lockScanTargets := []any{&currentWorkflowRuntimeManifest}
+	lockScanTargets := []any{&locked.stateHistory, &currentWorkflowRuntimeManifest}
 	if checkPipelineRuntimeManifest {
 		lockScanTargets = append(lockScanTargets, &currentPipelineRuntimeManifest)
 	}
@@ -1067,22 +1086,23 @@ func lockRunForRuntimeManifestWrite(
 	lockScanTargets = append(lockScanTargets, &currentRetryGeneration)
 	if err := tx.QueryRow(d.SelectForUpdate(lockSQL), lockArgs...).Scan(lockScanTargets...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, false, nil
+			return lockedRun{}, nil
 		}
-		return false, false, err
+		return lockedRun{}, err
 	}
+	locked.exists = true
 	effectiveState := model.RuntimeStateUnspecified
 	if currentState.Valid && currentState.String != "" {
 		effectiveState = model.RuntimeState(currentState.String).ToV2()
 	} else if currentConditions.Valid {
 		effectiveState = model.RuntimeState(currentConditions.String).ToV2()
 	}
-	matches := currentWorkflowRuntimeManifest == expected.workflow &&
+	locked.preconditionsMatch = currentWorkflowRuntimeManifest == expected.workflow &&
 		(!checkPipelineRuntimeManifest || currentPipelineRuntimeManifest == expected.pipeline) &&
 		(expected.namespace == nil || currentNamespace == *expected.namespace) &&
 		(expected.state == nil || effectiveState == expected.state.ToV2()) &&
 		currentRetryGeneration.Int64 == expected.retryGeneration
-	return true, matches, nil
+	return locked, nil
 }
 
 func (s *RunStore) updateRun(
@@ -1098,7 +1118,7 @@ func (s *RunStore) updateRun(
 	}
 	defer tx.Rollback()
 	if expectedRuntimeManifests != nil {
-		runExists, preconditionMatches, lockError := lockRunForRuntimeManifestWrite(
+		locked, lockError := lockRunForRuntimeManifestWrite(
 			tx,
 			s.dbDialect,
 			run.UUID,
@@ -1112,17 +1132,29 @@ func (s *RunStore) updateRun(
 				run.UUID,
 			)
 		}
-		if !runExists {
+		if !locked.exists {
 			tx.Rollback()
 			return false, util.Wrap(
 				util.NewResourceNotFoundError("Run", run.UUID),
 				"Failed to update run",
 			)
 		}
-		if !preconditionMatches {
+		if !locked.preconditionsMatch {
 			tx.Rollback()
 			return false, nil
 		}
+		// The preconditions don't cover StateHistory, so a transition that
+		// committed after the caller loaded the run (such as TerminateRun
+		// recording CANCELING) would be lost if the snapshot's history were
+		// written back. Build on the persisted history instead.
+		var persistedHistory []*model.RuntimeStatus
+		if locked.stateHistory.Valid && locked.stateHistory.String != "" {
+			if err := json.Unmarshal([]byte(locked.stateHistory.String), &persistedHistory); err != nil {
+				tx.Rollback()
+				return false, util.NewInternalServerError(err, "Failed to parse state history of run %s", run.UUID)
+			}
+		}
+		run.StateHistory = persistedHistory
 	}
 	if len(run.StateHistory) == 0 || run.StateHistory[len(run.StateHistory)-1].State != run.State {
 		run.StateHistory = append(run.StateHistory, &model.RuntimeStatus{
@@ -1780,32 +1812,76 @@ func NewRunStore(db *sql.DB, time util.TimeInterface, d dialect.DBDialect) *RunS
 }
 
 func (s *RunStore) TerminateRun(runId string) error {
-	// TODO(gkcalat): append CANCELLING to StateHistory
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 
-	sql, args, err := qb.
-		Update(q("run_details")).
-		SetMap(sq.Eq{
-			q("Conditions"): string(model.RuntimeStateCancelling.ToExecutionPhase()),
-			q("State"):      model.RuntimeStateCancelling.ToString(),
-		}).
-		Where(sq.And{
-			sq.Eq{q("UUID"): runId},
-			effectiveStatePredicate(
-				q,
-				model.RuntimeStatePaused,
-				model.RuntimeStatePending,
-				model.RuntimeStateRunning,
-				model.RuntimeStateUnspecified,
-				model.RuntimeStateCancelling,
-			),
-		}).
+	terminable := sq.And{
+		sq.Eq{q("UUID"): runId},
+		effectiveStatePredicate(
+			q,
+			model.RuntimeStatePaused,
+			model.RuntimeStatePending,
+			model.RuntimeStateRunning,
+			model.RuntimeStateUnspecified,
+			model.RuntimeStateCancelling,
+		),
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to start transaction for terminating run %s", runId)
+	}
+	defer tx.Rollback()
+
+	// Lock the row so the history read below and the update cannot interleave
+	// with another state transition.
+	selectSQL, selectArgs, err := qb.
+		Select(q("StateHistory")).
+		From(q("run_details")).
+		Where(terminable).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to build query for terminating run %s", runId)
 	}
-	result, err := s.db.Exec(sql, args...)
+	var stateHistoryString sql.NullString
+	if err := tx.QueryRow(s.dbDialect.SelectForUpdate(selectSQL), selectArgs...).Scan(&stateHistoryString); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return util.NewInvalidInputError("Failed to terminate a run %s. Row not found", runId)
+		}
+		return util.NewInternalServerError(err, "Failed to read run %s for termination", runId)
+	}
+	var stateHistory []*model.RuntimeStatus
+	if stateHistoryString.Valid && stateHistoryString.String != "" {
+		if err := json.Unmarshal([]byte(stateHistoryString.String), &stateHistory); err != nil {
+			return util.NewInternalServerError(err, "Failed to parse state history of run %s", runId)
+		}
+	}
+	// Terminating an already-canceling run is idempotent, so record the
+	// transition only once.
+	if len(stateHistory) == 0 || stateHistory[len(stateHistory)-1].State != model.RuntimeStateCancelling {
+		stateHistory = append(stateHistory, &model.RuntimeStatus{
+			UpdateTimeInSec: s.time.Now().Unix(),
+			State:           model.RuntimeStateCancelling,
+		})
+	}
+	updatedHistory, err := json.Marshal(stateHistory)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to serialize state history of run %s", runId)
+	}
+
+	updateSQL, updateArgs, err := qb.
+		Update(q("run_details")).
+		SetMap(sq.Eq{
+			q("Conditions"):   string(model.RuntimeStateCancelling.ToExecutionPhase()),
+			q("State"):        model.RuntimeStateCancelling.ToString(),
+			q("StateHistory"): string(updatedHistory),
+		}).
+		Where(terminable).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to build query for terminating run %s", runId)
+	}
+	result, err := tx.Exec(updateSQL, updateArgs...)
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to terminate a run %s. Error: '%v'", runId, err.Error())
@@ -1818,6 +1894,9 @@ func (s *RunStore) TerminateRun(runId string) error {
 	}
 	if r != 1 {
 		return util.NewInvalidInputError("Failed to terminate a run %s. Row not found", runId)
+	}
+	if err := tx.Commit(); err != nil {
+		return util.NewInternalServerError(err, "Failed to commit termination of run %s", runId)
 	}
 	return nil
 }
@@ -1880,6 +1959,9 @@ func (s *RunStore) GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayN
 			return "", util.NewInternalServerError(err, "Failed to scan existing run UUID")
 		}
 		return uuid, nil
+	}
+	if err := rows.Err(); err != nil {
+		return "", util.NewInternalServerError(err, "Failed to check for existing run")
 	}
 	return "", nil
 }

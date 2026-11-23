@@ -1,6 +1,26 @@
 name: Check uv.lock sync
 
 on:
+  workflow_dispatch:
+    inputs:
+      queue_head_sha:
+        description: Exact queue candidate SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_ref:
+        description: Queue target branch, master, main, or release-2.18 (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_sha:
+        description: Current target branch SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+  merge_group:
+    types: [checks_requested]
+    branches: [master, main, release-2.18]
   push:
     branches: [master, main, 'release-*']
   pull_request:
@@ -13,6 +33,16 @@ permissions:
   contents: read
 
 jobs:
+  queue-dispatch-guard:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/queue-dispatch-guard.yml
+    with:
+      queue_head_sha: ${{ inputs.queue_head_sha }}
+      queue_base_ref: ${{ inputs.queue_base_ref }}
+      queue_base_sha: ${{ inputs.queue_base_sha }}
+
   check-lockfile:
     runs-on: ubuntu-latest
     steps:
@@ -22,7 +52,7 @@ jobs:
           persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
         with:
           version: "0.13.4"
 

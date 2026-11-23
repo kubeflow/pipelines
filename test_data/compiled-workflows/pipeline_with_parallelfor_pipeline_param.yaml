@@ -86,6 +86,8 @@ spec:
     metadata: {}
     name: system-container-executor
     outputs: {}
+    retryStrategy:
+      limit: 0
   - container:
       command:
       - should-be-overridden-during-runtime
@@ -233,6 +235,8 @@ spec:
     metadata: {}
     name: comp-for-loop-1
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -265,6 +269,8 @@ spec:
     metadata: {}
     name: comp-for-loop-2
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -297,6 +303,8 @@ spec:
     metadata: {}
     name: comp-for-loop-5
     outputs: {}
+    retryStrategy:
+      limit: 0
   - inputs:
       parameters:
       - default: ""
@@ -378,6 +386,8 @@ spec:
     metadata: {}
     name: comp-for-loop-5-for-loop-5-iterator
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -396,6 +406,8 @@ spec:
     metadata: {}
     name: comp-for-loop-4
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -424,6 +436,8 @@ spec:
     name: comp-for-loop-1-for-loop-1-iterator
     outputs: {}
     parallelism: 1
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -451,6 +465,8 @@ spec:
     metadata: {}
     name: comp-for-loop-2-for-loop-2-iterator
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -479,6 +495,8 @@ spec:
     name: comp-for-loop-4-for-loop-4-iterator
     outputs: {}
     parallelism: 2
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -524,6 +542,8 @@ spec:
     metadata: {}
     name: root
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -547,6 +567,8 @@ spec:
     metadata: {}
     name: entrypoint
     outputs: {}
+    retryStrategy:
+      limit: 0
 status:
   finishedAt: null
   startedAt: null

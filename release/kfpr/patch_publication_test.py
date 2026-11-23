@@ -12,6 +12,13 @@ from kfpr.ranges import ReleaseRange
 
 class PatchPublicationTest(unittest.TestCase):
     def setUp(self):
+        evidence = mock.patch.object(
+            steps,
+            '_editorial_evidence',
+            return_value='## Contributors\n\nFixture contributors.\n\n## Assets\n\nFixture source archives.\n',
+        )
+        evidence.start()
+        self.addCleanup(evidence.stop)
         directory = TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.root = Path(directory.name)
@@ -39,6 +46,7 @@ class PatchPublicationTest(unittest.TestCase):
             ('read_commits', []),
             ('_remote_release_sha', 'a' * 40),
             ('confirm', None),
+            ('review_release_notes', []),
         ):
             patcher = mock.patch('kfpr.steps.' + target, return_value=result)
             patcher.start()

@@ -31,10 +31,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/common/s3bucket"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/gcsblob"
-	"gocloud.dev/blob/s3blob"
 	"gocloud.dev/gcp"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -57,19 +57,21 @@ func OpenBucket(
 	if sessionInfo != nil {
 		switch sessionInfo.Provider {
 		case "minio", "s3":
-			s3Client, err1 := createS3BucketSession(ctx, namespace, sessionInfo, k8sClient)
-			if err1 != nil {
-				return nil, fmt.Errorf("failed to retrieve credentials for bucket %s: %w", config.BucketName, err1)
-			}
-			if s3Client != nil {
-				// Use s3blob.OpenBucketV2 with the configured S3 client to leverage retry logic.
-				openedBucket, err2 := s3blob.OpenBucketV2(ctx, s3Client, config.BucketName, nil)
-				if err2 != nil {
-					return nil, err2
+			if config.QueryString == "" {
+				s3Client, err1 := createS3BucketSession(ctx, namespace, sessionInfo, k8sClient)
+				if err1 != nil {
+					return nil, fmt.Errorf("failed to retrieve credentials for bucket %s: %w", config.BucketName, err1)
 				}
-				// Directly calling s3blob.OpenBucketV2 does not allow overriding prefix via bucketConfig.BucketURL().
-				// Therefore, we need to explicitly configure the prefixed bucket.
-				return blob.PrefixedBucket(openedBucket, config.Prefix), nil
+				if s3Client != nil {
+					// Use the configured S3 client to leverage retry logic.
+					openedBucket, err2 := s3bucket.Open(ctx, s3Client, config.BucketName, nil)
+					if err2 != nil {
+						return nil, err2
+					}
+					// Opening the bucket from a client does not allow overriding prefix via bucketConfig.BucketURL().
+					// Therefore, we need to explicitly configure the prefixed bucket.
+					return blob.PrefixedBucket(openedBucket, config.Prefix), nil
+				}
 			}
 		case "gs":
 			client, err1 := getGCSTokenClient(ctx, namespace, sessionInfo, k8sClient)
@@ -97,7 +99,7 @@ func OpenBucket(
 		if err1 != nil {
 			return nil, err1
 		}
-		openedBucket, err2 := s3blob.OpenBucketV2(ctx, s3Client, config.BucketName, nil)
+		openedBucket, err2 := s3bucket.Open(ctx, s3Client, config.BucketName, nil)
 		if err2 != nil {
 			return nil, err2
 		}

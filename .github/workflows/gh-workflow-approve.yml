@@ -98,55 +98,57 @@ jobs:
             let totalApproved = 0;
 
             for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-              const {data: current} = await github.rest.pulls.get({
-                ...context.repo, pull_number: number,
-              });
-              if (current.state !== 'open' || current.head.sha !== headSha ||
-                  current.head.repo?.id !== headRepoId ||
-                  current.head.ref !== headBranch) {
-                core.notice('PR head changed or closed; skipping old-head approval.');
-                return;
-              }
-              const labels = new Set(current.labels.map(label => label.name));
-              if (!isMember && (!labels.has('ok-to-test') ||
-                  labels.has('needs-ok-to-test'))) {
-                core.notice('PR approval label changed; skipping workflow approval.');
-                return;
-              }
-              const headPRs = await github.paginate(github.rest.pulls.list, {
-                ...context.repo, state: 'open',
-                head: `${headOwner}:${headBranch}`, per_page: 100,
-              });
-              const matches = headPRs.filter(pr =>
-                pr.head.sha === headSha &&
-                pr.head.repo?.id === headRepoId &&
-                pr.head.ref === headBranch);
-              if (matches.length !== 1 || matches[0].number !== number) {
-                core.setFailed('PR head does not identify exactly one open PR; ' +
-                  'pending workflow runs need manual approval.');
-                return;
-              }
-
               core.info(`[Attempt ${attempt}/${maxAttempts}] Querying action_required runs for ${headSha}`);
               const runs = (await github.paginate(
                 github.rest.actions.listWorkflowRunsForRepo, listRequest
-              )).filter(matchesHead);
+              )).filter(run => matchesHead(run) && !approvedRunIds.has(run.id));
 
-              let newRunsFound = false;
-              for (const run of runs) {
-                if (!approvedRunIds.has(run.id)) {
-                  core.info(`Approving workflow run ${run.id} (${run.name})`);
-                  try {
-                    await github.rest.actions.approveWorkflowRun({
-                      owner: context.repo.owner,
-                      repo: context.repo.repo,
-                      run_id: run.id,
-                    });
-                    approvedRunIds.add(run.id);
-                    totalApproved++;
-                    newRunsFound = true;
-                  } catch (err) {
-                    core.error(`Failed to approve run ${run.id}: ${err.message}`);
+              // Empty discovery cannot authorize a write. Read live admission and
+              // uniqueness only when there is a new run to approve.
+              if (runs.length > 0) {
+                const {data: current} = await github.rest.pulls.get({
+                  ...context.repo, pull_number: number,
+                });
+                if (current.state !== 'open' || current.head.sha !== headSha ||
+                    current.head.repo?.id !== headRepoId ||
+                    current.head.ref !== headBranch) {
+                  core.notice('PR head changed or closed; skipping old-head approval.');
+                  return;
+                }
+                const labels = new Set(current.labels.map(label => label.name));
+                if (!isMember && (!labels.has('ok-to-test') ||
+                    labels.has('needs-ok-to-test'))) {
+                  core.notice('PR approval label changed; skipping workflow approval.');
+                  return;
+                }
+                const headPRs = await github.paginate(github.rest.pulls.list, {
+                  ...context.repo, state: 'open',
+                  head: `${headOwner}:${headBranch}`, per_page: 100,
+                });
+                const matches = headPRs.filter(pr =>
+                  pr.head.sha === headSha &&
+                  pr.head.repo?.id === headRepoId &&
+                  pr.head.ref === headBranch);
+                if (matches.length !== 1 || matches[0].number !== number) {
+                  core.setFailed('PR head does not identify exactly one open PR; ' +
+                    'pending workflow runs need manual approval.');
+                  return;
+                }
+
+                for (const run of runs) {
+                  if (!approvedRunIds.has(run.id)) {
+                    core.info(`Approving workflow run ${run.id} (${run.name})`);
+                    try {
+                      await github.rest.actions.approveWorkflowRun({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        run_id: run.id,
+                      });
+                      approvedRunIds.add(run.id);
+                      totalApproved++;
+                    } catch (err) {
+                      core.error(`Failed to approve run ${run.id}: ${err.message}`);
+                    }
                   }
                 }
               }

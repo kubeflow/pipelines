@@ -27,6 +27,7 @@ MODULE = ROOT / '.github/resources/scripts/ci_expected_workflows.js'
 ACTIONS = {
     './.github/actions/deploy',
     './.github/actions/download-artifact-with-retry',
+    './.github/actions/shared-ci-images',
 }
 
 
@@ -40,6 +41,9 @@ class ArtifactDownloadTriggersTest(unittest.TestCase):
             if 'pull_request' not in workflow.get('on', {}):
                 continue
             if any(
+                job.get('uses') == './.github/workflows/image-builds.yml'
+                for job in workflow['jobs'].values()
+            ) or any(
                 step.get('uses') in ACTIONS
                 for job in workflow['jobs'].values()
                 for step in job.get('steps', [])
@@ -48,6 +52,7 @@ class ArtifactDownloadTriggersTest(unittest.TestCase):
         self.assertIn('.github/workflows/e2e-test-frontend.yml', consumers)
         self.assertIn('.github/workflows/arm64-presubmit.yml', consumers)
         self.assertIn('.github/workflows/build-tools-images.yml', consumers)
+        self.assertIn('.github/workflows/ci-images.yml', consumers)
 
         for branch in ('master', 'release-2.17'):
             for changed_path in (

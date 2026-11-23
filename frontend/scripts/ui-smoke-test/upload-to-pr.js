@@ -103,7 +103,7 @@ The comparison images are available in the CI artifacts. To view them:
 \`\`\`bash
 cd frontend/scripts/ui-smoke-test
 npm ci
-node smoke-test-runner.js --compare master --pr ${PR_NUMBER} --skip-upload
+node smoke-test-runner.js --compare main --pr ${PR_NUMBER} --skip-upload
 \`\`\`
 
 </details>

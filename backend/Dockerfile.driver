@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.27.3-alpine@sha256:f2c872bcee949b7be9c490efd02b48a8a2fbf947cdf533f1c58525ec9d8170fd AS builder
+FROM golang:1.27.4-alpine@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf AS builder
 
 ARG GCFLAGS=""
 
@@ -35,9 +35,12 @@ RUN GO111MODULE=on go mod download
 
 COPY . .
 
-RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -tags netgo -gcflags="${GCFLAGS}" -ldflags '-extldflags "-static"' -o /bin/driver ./backend/src/driver/*.go
+RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -buildvcs=true -mod=readonly -tags netgo -gcflags="${GCFLAGS}" -ldflags '-extldflags "-static"' -o /bin/driver ./backend/src/driver
 
 FROM alpine:3.21
+
+# Refresh the runtime library even when the base tag still contains an older package.
+RUN apk add --no-cache 'zlib>=1.4-r0'
 
 RUN adduser -S -u 65532 appuser
 USER 65532

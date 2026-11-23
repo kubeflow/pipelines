@@ -135,6 +135,11 @@ class QualifiedPublicationTest(unittest.TestCase):
     """Isolate existing layout/notes tests from the separately tested gates."""
 
     def setUp(self):
+        review = mock.patch.object(
+            steps, 'review_release_notes', return_value=[]
+        )
+        review.start()
+        self.addCleanup(review.stop)
         for target in (
             'qualification.require_qualification',
             '_ensure_release_tag',
@@ -237,6 +242,13 @@ class ReleaseLayoutTest(QualifiedPublicationTest):
 
     def setUp(self) -> None:
         super().setUp()
+        evidence = mock.patch.object(
+            steps,
+            '_editorial_evidence',
+            return_value='## Contributors\n\nFixture contributors.\n\n## Assets\n\nFixture source archives.\n',
+        )
+        evidence.start()
+        self.addCleanup(evidence.stop)
         """Mock external operations without changing the current checkout."""
         for name, value in (
             ('_notes_range', SELECTED_RANGE),
@@ -898,6 +910,13 @@ class CreateSdkReleaseStepTest(QualifiedPublicationTest):
 class CreateBackendReleaseStepTest(QualifiedPublicationTest):
     def setUp(self):
         super().setUp()
+        evidence = mock.patch.object(
+            steps,
+            '_editorial_evidence',
+            return_value='## Contributors\n\nFixture contributors.\n\n## Assets\n\nFixture source archives.\n',
+        )
+        evidence.start()
+        self.addCleanup(evidence.stop)
         patcher = mock.patch.object(
             steps,
             'resolve_range',
@@ -1589,6 +1608,15 @@ class OrchestrationTest(unittest.TestCase):
 
 
 class StepPRCreationTest(unittest.TestCase):
+    OPEN_PR_GREEN_CI = json.dumps(
+        {
+            'state': 'OPEN',
+            'statusCheckRollup': [
+                {'name': 'ci', 'status': 'COMPLETED', 'conclusion': 'SUCCESS'}
+            ],
+        }
+    )
+
     def setUp(self):
         patch = mock.patch(
             'kfpr.steps.validate_release_pr', return_value='a' * 40
@@ -1632,7 +1660,7 @@ class StepPRCreationTest(unittest.TestCase):
                     if 'view' in command and any(
                         'statusCheckRollup' in part for part in command
                     ):
-                        return '[{"name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]'
+                        return StepPRCreationTest.OPEN_PR_GREEN_CI
                     if 'view' in command and any(
                         'mergeStateStatus' in part for part in command
                     ):
@@ -1698,7 +1726,7 @@ class StepPRCreationTest(unittest.TestCase):
                     if 'view' in command and any(
                         'statusCheckRollup' in part for part in command
                     ):
-                        return '[{"name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]'
+                        return StepPRCreationTest.OPEN_PR_GREEN_CI
                     if 'view' in command and any(
                         'mergeStateStatus' in part for part in command
                     ):
@@ -1773,7 +1801,7 @@ class StepPRCreationTest(unittest.TestCase):
                     if 'view' in command and any(
                         'statusCheckRollup' in part for part in command
                     ):
-                        return '[{"name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]'
+                        return StepPRCreationTest.OPEN_PR_GREEN_CI
                     if 'view' in command and any(
                         'mergeStateStatus' in part for part in command
                     ):
@@ -1839,7 +1867,7 @@ class StepPRCreationTest(unittest.TestCase):
                     if 'view' in command and any(
                         'statusCheckRollup' in part for part in command
                     ):
-                        return '[{"name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]'
+                        return StepPRCreationTest.OPEN_PR_GREEN_CI
                     if 'view' in command and any(
                         'mergeStateStatus' in part for part in command
                     ):
@@ -1926,7 +1954,7 @@ class StepPRCreationTest(unittest.TestCase):
                     if 'view' in command and any(
                         'statusCheckRollup' in part for part in command
                     ):
-                        return '[{"name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]'
+                        return StepPRCreationTest.OPEN_PR_GREEN_CI
                     if 'view' in command and any(
                         'mergeStateStatus' in part for part in command
                     ):
@@ -3402,6 +3430,13 @@ class DryRunOutputTest(unittest.TestCase):
 class ReleaseNotesPreviewTest(QualifiedPublicationTest):
     def setUp(self):
         super().setUp()
+        evidence = mock.patch.object(
+            steps,
+            '_editorial_evidence',
+            return_value='## Contributors\n\nFixture contributors.\n\n## Assets\n\nFixture source archives.\n',
+        )
+        evidence.start()
+        self.addCleanup(evidence.stop)
         layout = mock.patch.object(
             steps, '_sdk_release_is_consolidated', return_value=True
         )

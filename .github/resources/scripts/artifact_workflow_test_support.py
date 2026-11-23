@@ -24,7 +24,7 @@ EXPRESSION = re.compile(r'\$\{\{(.*?)\}\}', re.DOTALL)
 TOKEN = re.compile(
     r"\s+|(?P<literal>'(?:[^']|'')*')|"
     r'(?P<reference>(?:inputs|steps|github|env|needs|matrix)(?:\.[\w-]+)+)|'
-    r'(?P<word>true|false|null|always|cancelled|success|failure|format)\b|'
+    r'(?P<word>true|false|null|always|cancelled|success|failure|format|startsWith)\b|'
     r'(?P<operator>==|!=|&&|\|\||!|\(|\)|,)'
 )
 
@@ -73,7 +73,7 @@ def evaluate(expression, context, statuses=None):
                 raise AssertionError(f'Unsupported expression value: {token}')
             return value
         if kind == 'word':
-            if token == 'format':
+            if token in ('format', 'startsWith'):
                 if not take('('):
                     raise AssertionError('Missing format opening parenthesis')
                 arguments = [disjunction()]
@@ -84,6 +84,14 @@ def evaluate(expression, context, statuses=None):
                 ):
                     raise AssertionError(
                         'Only string format arguments are supported'
+                    )
+                if token == 'startsWith':
+                    if len(arguments) != 2:
+                        raise AssertionError('startsWith requires two strings')
+                    return (
+                        arguments[0]
+                        .casefold()
+                        .startswith(arguments[1].casefold())
                     )
                 return arguments[0].format(*arguments[1:])
             if token in ('true', 'false', 'null'):

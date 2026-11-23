@@ -14,6 +14,45 @@
 
 'use strict';
 
+const {missingReleasePreCommit} = require('./merge_queue_policy');
+const {workflowAttempts} = require('./ci_workflow_attempts');
+
+// Only these trusted publisher jobs use this runner-local cache. Never restore it
+// from Actions artifacts/caches or populate it with PR-executed code. Mutable PR,
+// timeline, PR file lists and workflow-run evidence must be fetched at every boundary.
+async function immutableEvidence(kind, identity, root, runId, fetch, validate) {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const crypto = require('node:crypto');
+  const digest = value => crypto.createHash('sha256').update(value).digest('hex');
+  const {RUNNER_TEMP, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT} = process.env;
+  let filename;
+  if (RUNNER_TEMP && GITHUB_RUN_ID && GITHUB_RUN_ATTEMPT && root &&
+      String(runId) === GITHUB_RUN_ID) {
+    const revision = digest(Buffer.concat([fs.readFileSync(__filename),
+      fs.readFileSync(path.join(root, '.github/resources/scripts/generate_ci_workflow_inventory.py'))]));
+    const key = digest(JSON.stringify([kind, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT, revision, identity]));
+    filename = path.join(RUNNER_TEMP, 'kfp-ci-evidence', `${key}.json`);
+    try {
+      const envelope = JSON.parse(fs.readFileSync(filename, 'utf8'));
+      if (envelope.digest !== digest(JSON.stringify(envelope.value))) throw Error('Corrupt evidence cache');
+      validate(envelope.value);
+      return envelope.value;
+    } catch (error) {
+      // Missing, interrupted or corrupt cache entries are misses, never evidence.
+    }
+  }
+  const value = await fetch();
+  validate(value);
+  if (filename) {
+    fs.mkdirSync(path.dirname(filename), {recursive: true, mode: 0o700});
+    const temporary = `${filename}.${process.pid}.tmp`;
+    fs.writeFileSync(temporary, JSON.stringify({value, digest: digest(JSON.stringify(value))}), {mode: 0o600});
+    fs.renameSync(temporary, filename);
+  }
+  return value;
+}
+
 // Support only the glob subset used in this repository. Reject unsupported
 // syntax instead of silently omitting an expected workflow.
 function globRegex(pattern) {
@@ -181,7 +220,7 @@ async function baseArrivedAt({github, owner, repo, baseSha, baseRef}) {
 }
 
 async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSha, liveBase, inventory,
-  workflowFiles, freshAfter = null, registrationStartedAt = null, now = Date.now()}) {
+  workflowFiles, freshAfter = null, registrationStartedAt = null, now = Date.now(), bindAttempts = false}) {
   validateInventory(inventory, workflowFiles);
   const cutoff = freshAfter === null ? null : Date.parse(freshAfter);
   if (cutoff !== null && !Number.isFinite(cutoff)) throw new Error('Invalid CI freshness cutoff');
@@ -223,6 +262,9 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
     }
   }
   const expected = applicableWorkflows.filter(workflow => !disabled.some(item => item.path === workflow.path));
+  if (missingReleasePreCommit(pullRequest.base.ref, expected.map(workflow => workflow.path))) {
+    failures.push('release-2.18 requires an applicable pre-commit PR workflow');
+  }
   const pending = [];
   const missing = [];
   let documentation = null;
@@ -320,11 +362,20 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
     }
   }
   const state = failures.length ? 'failure' : pending.length ? 'pending' : 'success';
-  return {state, passed: state === 'success', reasons: [...failures, ...pending],
+  const attempts = bindAttempts && state === 'success' ? workflowAttempts(runs, pullRequest.head.sha) : undefined;
+  return {state, passed: state === 'success', reasons: [...failures, ...pending], attempts,
     expected: expected.map(workflow => workflow.path), disabled, missing, documentation};
 }
 
-async function loadBaseInventory({github, owner, repo, pullRequest, baseSha, root}) {
+async function loadBaseInventory(options) {
+  const {owner, repo, pullRequest, baseSha, root, cacheRunId} = options;
+  const base = pullRequest.base;
+  return immutableEvidence('inventory', [owner, repo, base?.repo?.full_name, base?.ref, baseSha ?? base?.sha],
+    root, cacheRunId, () => fetchBaseInventory(options),
+    value => validateInventory(value.inventory, value.workflowFiles));
+}
+
+async function fetchBaseInventory({github, owner, repo, pullRequest, baseSha, root}) {
   const base = pullRequest.base;
   const fullName = `${owner}/${repo}`;
   const sha = baseSha ?? base?.sha;
@@ -431,5 +482,5 @@ function loadLocalInventory(root) {
   return {inventory, workflowFiles};
 }
 
-module.exports = {globRegex, matchesPatterns, applicable, validateInventory,
-  verifyExpectedWorkflows, loadLocalInventory, loadBaseInventory, triggerHeader};
+module.exports = {globRegex, matchesPatterns, applicable, validateInventory, invalidRunMetadata,
+  verifyExpectedWorkflows, loadLocalInventory, loadBaseInventory, baseArrivedAt, triggerHeader};

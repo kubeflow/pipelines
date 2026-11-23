@@ -12,7 +12,11 @@ ARG DATE
 
 WORKDIR ./src
 
-COPY . .
+# Install all three dependency trees before copying source so source-only changes
+# reuse the dependency layer. The root postinstall installs the nested packages.
+COPY frontend/package.json frontend/package-lock.json frontend/.npmrc ./frontend/
+COPY frontend/server/package.json frontend/server/package-lock.json ./frontend/server/
+COPY frontend/mock-backend/package.json frontend/mock-backend/package-lock.json ./frontend/mock-backend/
 
 WORKDIR ./frontend
 
@@ -23,6 +27,10 @@ RUN npm install --global "$(node -p 'require("./package.json").packageManager')"
 # npm ci runs the root postinstall script, which installs server and mock-backend deps.
 RUN (npm ci || (npm cache clean --force && npm ci)) && \
     echo "Frontend build dependencies installed"
+
+WORKDIR ..
+COPY . .
+WORKDIR ./frontend
 RUN npm run build
 
 RUN mkdir -p ./server/dist && \
@@ -31,6 +39,11 @@ RUN mkdir -p ./server/dist && \
     echo ${TAG_NAME} > ./server/dist/TAG_NAME
 
 FROM node:${NODE_VERSION}-${BASE_IMAGE}
+
+RUN if command -v apk >/dev/null; then apk add --no-cache 'zlib>=1.4-r0'; \
+    else apt-get update && apt-get install -y --no-install-recommends zlib1g \
+        && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' zlib1g)" ge '1:1.3.dfsg+really1.3.1-1+deb13u1' \
+        && rm -rf /var/lib/apt/lists/*; fi
 
 COPY --from=build ./src/frontend/package.json /tmp/frontend-package.json
 RUN npm install --global "$(node -p 'require("/tmp/frontend-package.json").packageManager')" && \

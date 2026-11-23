@@ -97,6 +97,21 @@ def _make_name(code: str) -> str:
     return f'{LOOP_ITEM_PARAM_NAME_BASE}-{code}'
 
 
+# Attributes the compiler reads from a loop argument. Dict item keys become
+# attributes of the same object, so these keys would overwrite them.
+_RESERVED_DICT_ITEM_KEYS = frozenset(
+    {
+        'channel_type',
+        'full_name',
+        'items_or_pipeline_channel',
+        'name',
+        'pattern',
+        'task',
+        'task_name',
+    }
+)
+
+
 class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
     """Represents the parameter arguments that are looped over in a ParallelFor
     loop.
@@ -163,6 +178,13 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
 
         if isinstance(items, list) and isinstance(items[0], dict):
             subvar_names = set(items[0].keys())
+            reserved_keys = sorted(subvar_names & _RESERVED_DICT_ITEM_KEYS)
+            if reserved_keys:
+                raise ValueError(
+                    f'ParallelFor item key {reserved_keys[0]!r} is reserved because the '
+                    'loop item uses an attribute with that name. Rename the key in '
+                    f'every item, for example to {reserved_keys[0] + "_value"!r}.'
+                )
             # then this block creates loop_arg.variable_a and loop_arg.variable_b
             for subvar_name in subvar_names:
                 loop_arg_var = LoopArgumentVariable(
