@@ -248,6 +248,23 @@ class PublishImagesStepTest(unittest.TestCase):
             self.assertIn(['gh', 'run', 'watch', '12345', '--exit-status'],
                           context.runner.commands)
 
+    def test_failed_image_workflow_stops_publication(self):
+        runner = mock.Mock(spec=core.CommandRunner, dry_run=False)
+        runner.capture.return_value = '123\thttps://example.org/run/123\t2026-07-08T19:05:01Z'
+        failed_watch = ['gh', 'run', 'watch', '123', '--exit-status']
+        runner.run.side_effect = [
+            None, subprocess.CalledProcessError(1, failed_watch)
+        ]
+        context = mock.Mock(
+            runner=runner,
+            metadata=core.ReleaseMetadata.from_version('patch', '2.18.2'))
+
+        with mock.patch(
+                'time.time', return_value=1783537500), self.assertRaises(
+                    subprocess.CalledProcessError):
+            steps.step_publish_images(context)
+        self.assertEqual(runner.run.call_args, mock.call(failed_watch))
+
 
 class CreateSdkReleaseStepTest(unittest.TestCase):
 
@@ -464,26 +481,6 @@ class CreateBackendReleaseStepTest(unittest.TestCase):
             self.assertIn(
                 'https://github.com/kubeflow/pipelines/compare/3.1.0...3.2.0',
                 release_notes)
-
-
-class PublishImagesStepTest(unittest.TestCase):
-
-    def test_failed_image_workflow_stops_publication(self):
-        runner = mock.Mock(spec=core.CommandRunner, dry_run=False)
-        runner.capture.return_value = '123\thttps://example.org/run/123\t2026-07-08T19:05:01Z'
-        failed_watch = ['gh', 'run', 'watch', '123', '--exit-status']
-        runner.run.side_effect = [
-            None, subprocess.CalledProcessError(1, failed_watch)
-        ]
-        context = mock.Mock(
-            runner=runner,
-            metadata=core.ReleaseMetadata.from_version('patch', '2.18.2'))
-
-        with mock.patch(
-                'time.time', return_value=1783537500), self.assertRaises(
-                    subprocess.CalledProcessError):
-            steps.step_publish_images(context)
-        self.assertEqual(runner.run.call_args, mock.call(failed_watch))
 
 
 class PublishSdksStepTest(unittest.TestCase):
