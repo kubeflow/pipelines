@@ -34,6 +34,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
@@ -129,6 +130,7 @@ func main() {
 	} else {
 		scheduleInformerFactory = swfinformers.NewFilteredSharedInformerFactory(scheduleClient, defaultResync, namespace, nil)
 	}
+	commonutil.RegisterScheduledWorkflowInformer(scheduleInformerFactory, dynamic.NewForConfigOrDie(cfg), namespace)
 
 	grpcAddress := fmt.Sprintf("%s:%s", mlPipelineAPIServerName, mlPipelineServiceGRPCPort)
 

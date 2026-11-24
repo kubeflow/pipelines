@@ -27,6 +27,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
@@ -143,6 +144,7 @@ func NewExecutionInformerOrFatal(execType ExecutionType, namespace string,
 				argoInformer = argoinformer.NewFilteredSharedInformerFactory(
 					argoProjClient, time.Second*30, namespace, nil)
 			}
+			registerWorkflowInformer(argoInformer, dynamic.NewForConfigOrDie(restConfig), namespace)
 			return nil
 		}
 
