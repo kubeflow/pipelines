@@ -4,6 +4,8 @@ import os
 import subprocess
 import sys
 
+import yaml
+
 
 def get_venv_python():
     """Locates the project's local virtual environment Python interpreter."""
@@ -93,12 +95,11 @@ except Exception as e:
     sys.exit(1)
 
 # Instantiate the KFP Client
-client = kfp.Client(host=host, namespace=namespace)
+client_kwargs = {"host": host}
+if namespace:
+    client_kwargs["namespace"] = namespace
+client = kfp.Client(**client_kwargs)
 try:
-    if client.get_kfp_healthz().multi_user:
-        if namespace:
-           client.set_user_namespace(namespace)
-
         for api_attr in ('_experiment_api', '_pipelines_api', '_run_api', '_upload_api'):
            api_obj = getattr(client, api_attr, None)
            if api_obj and hasattr(api_obj, 'api_client'):
@@ -262,9 +263,6 @@ def main():
         sys.stderr.write('\n------------------------------------\n')
         sys.exit(1)
 
-    print(
-        '\n[✓] STATIC VALIDATION PASSED: The pipeline compiles into a valid KFP v2 YAML workflow specification.'
-    )
     expected_yaml = args.pipeline_file + '.yaml'
     if not os.path.exists(expected_yaml):
         sys.stderr.write(
@@ -275,6 +273,26 @@ def main():
             f"       compiler.Compiler().compile(pipeline_file={args.pipeline_file.split('.')[0]}, __file__ + '.yaml')\n\n"
         )
         sys.exit(1)
+    try:
+        with open(expected_yaml, 'r', encoding='utf-8') as f:
+            spec = yaml.safe_load(f)
+    except Exception as exc:
+        sys.stderr.write(
+            f'[!] VALIDATION FAILED: Could not parse YAML at {expected_yaml}: {exc}\n'
+        )
+        sys.exit(1)
+
+    if not isinstance(spec, dict) or not (
+        {'pipelineInfo', 'deploymentSpec', 'components'} & set(spec.keys())
+    ):
+        sys.stderr.write(
+            f'[!] VALIDATION FAILED: {expected_yaml} does not contain a valid KFP pipeline specification.\n'
+        )
+        sys.exit(1)
+
+    print(
+        '\n[✓] STATIC VALIDATION PASSED: The pipeline compiles into a valid KFP v2 YAML workflow specification.'
+    )
     print(f'[✓] Output specification saved successfully at: {expected_yaml}')
 
     if is_success and args.run_e2e:
@@ -319,7 +337,11 @@ def main():
             )
 
     pipeline_path = args.pipeline_file
-    output_dir = os.path.dirname(os.path.abspath(pipeline_path))
+    if args.output_dir:
+        output_dir = os.path.abspath(args.output_dir)
+        os.makedirs(output_dir, exist_ok=True)
+    else:
+        output_dir = os.path.dirname(os.path.abspath(pipeline_path))
     yaml_exists = os.path.exists(expected_yaml)
     assertions = [
         {
