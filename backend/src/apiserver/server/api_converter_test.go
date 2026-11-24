@@ -1575,8 +1575,8 @@ func TestToModelRun_PipelineInfoName(t *testing.T) {
 	tests := []struct {
 		name         string
 		pipelineInfo *structpb.Value
-		wantExpId    string
-		wantRunId    string
+		wantExpID    string
+		wantRunID    string
 	}{
 		{
 			"resource name",
@@ -1639,8 +1639,8 @@ func TestToModelRun_PipelineInfoName(t *testing.T) {
 				got, err = toModelRun(apiRun)
 			})
 			require.NoError(t, err)
-			assert.Equal(t, tt.wantExpId, got.ExperimentId)
-			assert.Equal(t, tt.wantRunId, got.UUID)
+			assert.Equal(t, tt.wantExpID, got.ExperimentId)
+			assert.Equal(t, tt.wantRunID, got.UUID)
 		})
 	}
 }
