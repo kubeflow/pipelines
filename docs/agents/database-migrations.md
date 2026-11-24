@@ -77,7 +77,10 @@ and empty-schema tests cannot establish online upgrade behavior.
 
 1. Seed representative prior-release schemas and populated tables, including long
    values and supported historical schema variants. Exercise the actual migration
-   entrypoint, not just a hand-written approximation of its SQL.
+   entrypoint, not just a hand-written approximation of its SQL. For tables with
+   large manifests or other off-page values, measure candidate discovery on wide
+   rows and verify the write bound with production logging settings. MySQL FULL
+   row images can log both copies of a manifest when only a key changes.
 2. Capture generated DDL and verify the required algorithm. Where avoiding a table
    rebuild is part of the claim, check engine evidence (for example, InnoDB table
    identity before/after) as well as successful execution.
