@@ -111,15 +111,61 @@ func (s *CronSchedule) getNextScheduledTimeImp(lastJobTime time.Time, catchup bo
 
 	// When we don't need to catch up, find the last schedule we need to run
 	// now and skip others in between.
-	next := result
-	var nextNext time.Time
-	for {
-		nextNext = schedule.Next(next)
-		if !nextNext.After(nowTime) && !nextNext.After(endTime) {
-			next = nextNext
+	if result.IsZero() {
+		// The schedule has no activation to skip to (e.g. February 30th).
+		return maxTime.In(location)
+	}
+	limit := nowTime
+	if endTime.Before(limit) {
+		limit = endTime
+	}
+	return lastActivationNotAfter(schedule, result, limit)
+}
+
+// lastActivationNotAfter returns the last activation of the schedule that is
+// not after limit, given one of its activations. The activation is returned as
+// is when it is not before limit.
+//
+// The schedule may have started arbitrarily long ago, so the activations in
+// between are not visited one by one: the number of calls to schedule.Next
+// does not grow with the number of activations that are skipped.
+func lastActivationNotAfter(schedule cron.Schedule, activation time.Time, limit time.Time) time.Time {
+	low, high := activation.Unix(), limit.Unix()
+	if low >= high {
+		return activation
+	}
+	location := activation.Location()
+
+	// The activations of "@every <duration>" are evenly spaced, counting from
+	// the given one.
+	if every, ok := schedule.(cron.ConstantDelaySchedule); ok {
+		delay := int64(every.Delay / time.Second)
+		if delay <= 0 {
+			return activation
+		}
+		return time.Unix(low+(high-low)/delay*delay, 0).In(location)
+	}
+
+	// The activations of a cron expression are not evenly spaced, so bisect:
+	// last is the activation at low, and schedule.Next found no activation
+	// after high that is not after limit.
+	last := activation
+	for low < high {
+		middle := low + (high-low)/2
+		candidate := schedule.Next(time.Unix(middle, 0).In(location))
+		if !candidate.IsZero() && candidate.Unix() > middle && !candidate.After(limit) {
+			last, low = candidate, candidate.Unix()
+			if low > high {
+				// schedule.Next can pass over activations in an hour that
+				// repeats when the clocks are set back, so what it found
+				// after high does not hold: search up to limit again.
+				high = limit.Unix()
+			}
 		} else {
-			break
+			// schedule.Next found nothing to run after middle. It returns
+			// the zero time when it finds no activation within five years.
+			high = middle
 		}
 	}
-	return next
+	return last
 }
