@@ -845,6 +845,8 @@ func toAPIRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 		}
 	}
 
+	// A manifest parsing error below is not a *util.UserError, so one is built
+	// from it rather than asserted on the wrapped error.
 	pipelineSourceErr := util.NewInvalidInputError("Failed to parse the pipeline source")
 	if preferEmbeddedPipelineSpec && r.PipelineSpecManifest != "" {
 		spec, err1 := YamlStringToPipelineSpecStruct(string(r.PipelineSpecManifest))
@@ -853,7 +855,7 @@ func toAPIRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 				PipelineSpec: spec,
 			}
 		} else if apiRunErr == nil {
-			pipelineSourceErr = util.Wrap(err1, pipelineSourceErr.Error()).(*util.UserError)
+			pipelineSourceErr = util.NewInvalidInputErrorWithDetails(err1, "Failed to parse the pipeline source")
 		}
 	}
 	switch {
@@ -871,7 +873,7 @@ func toAPIRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 				PipelineSpec: spec,
 			}
 		} else if apiRunErr == nil {
-			pipelineSourceErr = util.Wrap(err1, pipelineSourceErr.Error()).(*util.UserError)
+			pipelineSourceErr = util.NewInvalidInputErrorWithDetails(err1, "Failed to parse the pipeline source")
 		}
 	case apiRunV2.PipelineSource == nil && r.WorkflowSpecManifest != "":
 		spec, err1 := YamlStringToPipelineSpecStruct(string(r.WorkflowSpecManifest))
@@ -880,7 +882,7 @@ func toAPIRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 				PipelineSpec: spec,
 			}
 		} else if apiRunErr == nil {
-			pipelineSourceErr = util.Wrap(err1, pipelineSourceErr.Error()).(*util.UserError)
+			pipelineSourceErr = util.NewInvalidInputErrorWithDetails(err1, "Failed to parse the pipeline source")
 		}
 	}
 
