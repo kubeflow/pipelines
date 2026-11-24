@@ -12,11 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google_cloud_pipeline_components.types import (
-    artifact_types as google_artifact_types,
-)
 from kfp import compiler, dsl
 from kfp.dsl import Artifact, Input
+
+
+class BQMLModel(dsl.Artifact):
+    """Represent the BigQuery ML model type in this compiler fixture."""
+
+    schema_title = 'google.BQMLModel'
+    schema_version = '0.0.1'
 
 
 @dsl.container_component
@@ -33,7 +37,7 @@ def upstream(
     output_6: dsl.Output[dsl.Artifact],
     output_7: dsl.Output[dsl.Artifact],
     output_8: dsl.Output[dsl.HTML],
-    output_9: dsl.Output[google_artifact_types.BQMLModel],
+    output_9: dsl.Output[BQMLModel],
 ):
     return dsl.ContainerSpec(
         image='gcr.io/image',
@@ -67,7 +71,7 @@ def downstream(
     input_f: dsl.Input[dsl.Artifact],
     input_g: dsl.Input[dsl.Artifact],
     input_h: dsl.Input[dsl.HTML],
-    input_i: dsl.Input[google_artifact_types.BQMLModel],
+    input_i: dsl.Input[BQMLModel],
 ):
     return dsl.ContainerSpec(
         image='gcr.io/image',

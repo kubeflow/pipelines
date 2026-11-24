@@ -393,13 +393,13 @@ func TestStoragePropagatesRowsErr(t *testing.T) {
 	runScanRowsModes(t, "TaskStore.scanRows",
 		[]string{
 			"UUID", "Namespace", "RunUUID", "Pods", "CreatedAtInSec", "StartedInSec", "FinishedInSec",
-			"Fingerprint", "Name", "DisplayName", "ParentTaskUUID", "State", "StatusMetadata",
+			"Fingerprint", "CachedTaskUUID", "Name", "DisplayName", "ParentTaskUUID", "State", "StatusMetadata",
 			"StateHistory", "InputParameters", "OutputParameters", "Type", "TypeAttrs",
 			"ScopePath", "LogicalKey", "LifecycleMessage", "LifecycleCategory",
 		},
 		[]driver.Value{
 			"task-1", "ns", "run-1", nil, int64(1), nil, nil,
-			"fp", "tname", "tdisplay", nil, int64(1), nil,
+			"fp", nil, "tname", "tdisplay", nil, int64(1), nil,
 			nil, nil, nil, int64(1), nil,
 			nil, nil, nil, nil,
 		},

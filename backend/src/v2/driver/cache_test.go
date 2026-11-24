@@ -16,6 +16,10 @@ package driver
 
 import (
 	"context"
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -23,9 +27,65 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
+	"sigs.k8s.io/yaml"
 )
+
+func TestNativeCacheKeyForMigrated218Producer(t *testing.T) {
+	fixtureDir := "../../apiserver/migration/mlmd/testdata/release_218"
+	raw, err := os.ReadFile(filepath.Join(fixtureDir, "migration_fixture.json"))
+	require.NoError(t, err)
+	type capturedRun struct {
+		UUID                 string
+		PipelineSpecManifest string
+		RuntimeParameters    string
+	}
+	var fixture struct {
+		Source struct {
+			KFP struct {
+				Runs []capturedRun `json:"run_details"`
+			}
+		}
+	}
+	require.NoError(t, json.Unmarshal(raw, &fixture))
+	var run capturedRun
+	for _, candidate := range fixture.Source.KFP.Runs {
+		if candidate.UUID == "277c4ec0-b50f-4775-a181-d68908d04346" {
+			run = candidate
+			break
+		}
+	}
+	require.NotEmpty(t, run.PipelineSpecManifest)
+	specJSON, err := yaml.YAMLToJSON([]byte(run.PipelineSpecManifest))
+	require.NoError(t, err)
+	var spec pipelinespec.PipelineSpec
+	require.NoError(t, protojson.Unmarshal(specJSON, &spec))
+	deploymentJSON, err := protojson.Marshal(spec.GetDeploymentSpec())
+	require.NoError(t, err)
+	var deployment pipelinespec.PipelineDeploymentConfig
+	require.NoError(t, protojson.Unmarshal(deploymentJSON, &deployment))
+	const taskName = "produce"
+	task := spec.GetRoot().GetDag().GetTasks()[taskName]
+	require.NotNil(t, task)
+	component := spec.GetComponents()[task.GetComponentRef().GetName()]
+	container := deployment.GetExecutors()[component.GetExecutorLabel()].GetContainer()
+	require.NotNil(t, container)
+	var parameters structpb.Struct
+	require.NoError(t, protojson.Unmarshal([]byte(run.RuntimeParameters), &parameters))
+	input := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{ParameterValues: parameters.GetFields()},
+		// The captured Workflow enables log publishing.
+		Outputs: provisionOutputs("s3://fixture", taskName, component.GetOutputDefinitions(), "cache-parity", "true"),
+	}
+	opts := common.Options{Task: task, Component: component, Container: container, PipelineName: spec.GetPipelineInfo().GetName()}
+	key, err := getFingerPrint(opts, input, nil)
+	require.NoError(t, err)
+	want, err := os.ReadFile(filepath.Join(fixtureDir, "produce_native_fingerprint.txt"))
+	require.NoError(t, err)
+	require.Equal(t, strings.TrimSpace(string(want)), key)
+}
 
 func TestGetFingerPrintIsDeterministicForEquivalentPVCSets(t *testing.T) {
 	opts := common.Options{

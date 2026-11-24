@@ -112,10 +112,7 @@ class QueueDispatchWorkflowsTest(unittest.TestCase):
             if path.suffix not in ('.yaml', '.yml'):
                 continue
             definition = workflow(path.name)
-            if (
-                'merge_group' not in definition['on']
-                or path.name == 'upgrade-test.yml'
-            ):
+            if 'merge_group' not in definition['on']:
                 continue
             lanes.append(path.name)
             with self.subTest(workflow=path.name):

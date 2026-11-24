@@ -425,15 +425,7 @@ class ReadinessWorkflowTest(unittest.TestCase):
                         self.assertEqual(
                             step['with'][CONSUMERS[step['uses']]], READY_OUTPUT
                         )
-            if path.name == 'upgrade-test.yml':
-                self.assertEqual(ready['if'], '${{ false }}')
-                self.assertTrue(
-                    all(
-                        jobs[name]['if'] == '${{ false }}' for name in consuming
-                    )
-                )
-            else:
-                self.assertNotIn('if', ready)
+            self.assertNotIn('if', ready)
             events = workflow.get('on', workflow.get(True))
             self.assertIn(
                 '.github/workflows/shared-ci-images-ready.yml',

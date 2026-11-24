@@ -1245,8 +1245,10 @@ type PipelineTask struct {
 	// One of image-pull, scheduling, runtime, admission, or unknown.
 	// Empty when lifecycle_message is empty.
 	LifecycleCategory *string `protobuf:"bytes,20,opt,name=lifecycle_category,json=lifecycleCategory,proto3,oneof" json:"lifecycle_category,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// ID of the source task whose result this task reused.
+	CachedTaskId  *string `protobuf:"bytes,21,opt,name=cached_task_id,json=cachedTaskId,proto3,oneof" json:"cached_task_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PipelineTask) Reset() {
@@ -1415,6 +1417,13 @@ func (x *PipelineTask) GetLifecycleMessage() string {
 func (x *PipelineTask) GetLifecycleCategory() string {
 	if x != nil && x.LifecycleCategory != nil {
 		return *x.LifecycleCategory
+	}
+	return ""
+}
+
+func (x *PipelineTask) GetCachedTaskId() string {
+	if x != nil && x.CachedTaskId != nil {
+		return *x.CachedTaskId
 	}
 	return ""
 }
@@ -3125,7 +3134,7 @@ const file_backend_api_v2_run_proto_rawDesc = "" +
 	"\n" +
 	"RunDetails\x12.\n" +
 	"\x13pipeline_context_id\x18\x01 \x01(\x03R\x11pipelineContextId\x125\n" +
-	"\x17pipeline_run_context_id\x18\x02 \x01(\x03R\x14pipelineRunContextIdJ\x04\b\x03\x10\x04R\ftask_details\"\xd1\x19\n" +
+	"\x17pipeline_run_context_id\x18\x02 \x01(\x03R\x14pipelineRunContextIdJ\x04\b\x03\x10\x04R\ftask_details\"\x8f\x1a\n" +
 	"\fPipelineTask\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x17\n" +
@@ -3150,7 +3159,8 @@ const file_backend_api_v2_run_proto_rawDesc = "" +
 	"\n" +
 	"scope_path\x18\x12 \x01(\tR\tscopePath\x120\n" +
 	"\x11lifecycle_message\x18\x13 \x01(\tH\x01R\x10lifecycleMessage\x88\x01\x01\x122\n" +
-	"\x12lifecycle_category\x18\x14 \x01(\tH\x02R\x11lifecycleCategory\x88\x01\x01\x1a\x80\x01\n" +
+	"\x12lifecycle_category\x18\x14 \x01(\tH\x02R\x11lifecycleCategory\x88\x01\x01\x12)\n" +
+	"\x0ecached_task_id\x18\x15 \x01(\tH\x03R\fcachedTaskId\x88\x01\x01\x1a\x80\x01\n" +
 	"\aTaskPod\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n" +
 	"\x03uid\x18\x02 \x01(\tR\x03uid\x12O\n" +
@@ -3220,7 +3230,8 @@ const file_backend_api_v2_run_proto_rawDesc = "" +
 	"\x03DAG\x10\bB\x11\n" +
 	"\x0f_parent_task_idB\x14\n" +
 	"\x12_lifecycle_messageB\x15\n" +
-	"\x13_lifecycle_category\"\x93\x01\n" +
+	"\x13_lifecycle_categoryB\x11\n" +
+	"\x0f_cached_task_id\"\x93\x01\n" +
 	"\x10CreateRunRequest\x12'\n" +
 	"\rexperiment_id\x18\x01 \x01(\tB\x02\x18\x01R\fexperimentId\x128\n" +
 	"\x03run\x18\x02 \x01(\v2&.kubeflow.pipelines.backend.api.v2.RunR\x03run\x12\x1c\n" +

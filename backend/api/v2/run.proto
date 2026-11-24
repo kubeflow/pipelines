@@ -593,6 +593,9 @@ message PipelineTask {
   // One of image-pull, scheduling, runtime, admission, or unknown.
   // Empty when lifecycle_message is empty.
   optional string lifecycle_category = 20;
+
+  // ID of the source task whose result this task reused.
+  optional string cached_task_id = 21;
 }
 
 message CreateRunRequest {

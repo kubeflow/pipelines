@@ -1,0 +1,195 @@
+{
+  "tasks": [
+    {
+      "source_execution_id": 11,
+      "UUID": "d1c04c1d-5442-5dbb-808b-f1530382ef0b",
+      "Namespace": "kubeflow",
+      "RunUUID": "2ec7ad3b-d821-4b1d-8355-190393a06ddc",
+      "Name": "",
+      "Type": 1,
+      "State": 1,
+      "CreatedAtInSec": 1793737723,
+      "Pods": [],
+      "TypeAttrs": {}
+    },
+    {
+      "source_execution_id": 13,
+      "UUID": "4edaa889-0b08-5797-8806-e00aa3e621df",
+      "Namespace": "kubeflow",
+      "RunUUID": "2ec7ad3b-d821-4b1d-8355-190393a06ddc",
+      "Name": "for-loop-2",
+      "Type": 5,
+      "State": 2,
+      "ParentTaskUUID": "d1c04c1d-5442-5dbb-808b-f1530382ef0b",
+      "CreatedAtInSec": 1793737732,
+      "Pods": [],
+      "TypeAttrs": {"iterationCount": "3"}
+    },
+    {
+      "source_execution_id": 15,
+      "UUID": "07d71166-b77e-50a0-880e-2ee731a8f6cf",
+      "Namespace": "kubeflow",
+      "RunUUID": "2ec7ad3b-d821-4b1d-8355-190393a06ddc",
+      "Name": "for-loop-2",
+      "Type": 8,
+      "State": 2,
+      "ParentTaskUUID": "4edaa889-0b08-5797-8806-e00aa3e621df",
+      "CreatedAtInSec": 1793737743,
+      "Pods": [],
+      "TypeAttrs": {"iterationIndex": "0"}
+    },
+    {
+      "source_execution_id": 19,
+      "UUID": "50c36f8f-7c03-50f1-bce1-c114870d2a8d",
+      "Fingerprint": "",
+      "StatusMetadata": {"customProperties": {"legacy_cache_fingerprint": "78f8bc3791ff083f52854e558b59d1a64efd7f8a1d810be25e7f335cfeda2fa0"}},
+      "Namespace": "kubeflow",
+      "RunUUID": "2ec7ad3b-d821-4b1d-8355-190393a06ddc",
+      "Name": "double",
+      "Type": 2,
+      "State": 2,
+      "ParentTaskUUID": "07d71166-b77e-50a0-880e-2ee731a8f6cf",
+      "CreatedAtInSec": 1793737768,
+      "StartedInSec": 1793737768,
+      "FinishedInSec": 1793737773,
+      "Pods": [{"name": "math-pipeline-k948h-system-container-impl-942327361", "type": "EXECUTOR"}],
+      "TypeAttrs": {}
+    },
+    {
+      "source_execution_id": 23,
+      "UUID": "f72a07ba-0b7b-507e-bbbf-2d48a04e4089",
+      "Namespace": "kubeflow",
+      "RunUUID": "5dedb489-f0c5-496e-b2e3-eaf46a5fcc74",
+      "Name": "",
+      "Type": 1,
+      "State": 1,
+      "CreatedAtInSec": 1793737820,
+      "Pods": [],
+      "TypeAttrs": {}
+    },
+    {
+      "source_execution_id": 24,
+      "UUID": "d4e11517-3c71-56a8-ba71-90e42103d4fc",
+      "Namespace": "kubeflow",
+      "RunUUID": "5dedb489-f0c5-496e-b2e3-eaf46a5fcc74",
+      "Name": "for-loop-2",
+      "Type": 5,
+      "State": 1,
+      "ParentTaskUUID": "f72a07ba-0b7b-507e-bbbf-2d48a04e4089",
+      "CreatedAtInSec": 1793737830,
+      "Pods": [],
+      "TypeAttrs": {"iterationCount": "3"}
+    },
+    {
+      "source_execution_id": 25,
+      "UUID": "b01f75be-d40e-5336-bf24-dd19f58d8392",
+      "Namespace": "kubeflow",
+      "RunUUID": "5dedb489-f0c5-496e-b2e3-eaf46a5fcc74",
+      "Name": "for-loop-2",
+      "Type": 8,
+      "State": 1,
+      "ParentTaskUUID": "d4e11517-3c71-56a8-ba71-90e42103d4fc",
+      "CreatedAtInSec": 1793737841,
+      "Pods": [],
+      "TypeAttrs": {"iterationIndex": "0"}
+    },
+    {
+      "source_execution_id": 28,
+      "UUID": "d7ea1d3f-78be-5e29-abee-d2b72a0e0b92",
+      "Fingerprint": "",
+      "Namespace": "kubeflow",
+      "RunUUID": "5dedb489-f0c5-496e-b2e3-eaf46a5fcc74",
+      "Name": "double",
+      "Type": 2,
+      "State": 5,
+      "ParentTaskUUID": "b01f75be-d40e-5336-bf24-dd19f58d8392",
+      "CreatedAtInSec": 1793737852,
+      "StatusMetadata": {"customProperties": {"cached_task_id": "50c36f8f-7c03-50f1-bce1-c114870d2a8d", "legacy_cache_fingerprint": "78f8bc3791ff083f52854e558b59d1a64efd7f8a1d810be25e7f335cfeda2fa0"}},
+      "Pods": [],
+      "TypeAttrs": {}
+    },
+    {
+      "source_execution_id": 12,
+      "UUID": "da2d5baf-b047-519b-b208-f4dcae55ab1b",
+      "Namespace": "kubeflow",
+      "RunUUID": "be2ae7cc-da75-4cbb-bdb6-25145b26ae52",
+      "Name": "",
+      "Type": 1,
+      "State": 1,
+      "CreatedAtInSec": 1793737730,
+      "Pods": [],
+      "TypeAttrs": {}
+    },
+    {
+      "source_execution_id": 14,
+      "UUID": "f2c4a81b-0659-57db-a256-38f83003d939",
+      "Fingerprint": "",
+      "StatusMetadata": {"customProperties": {"legacy_cache_fingerprint": "2751cfa0408eb6bd4e2e30ddbc56fbe11a07694de7cb64a3744e34e7d8682481"}},
+      "Namespace": "kubeflow",
+      "RunUUID": "be2ae7cc-da75-4cbb-bdb6-25145b26ae52",
+      "Name": "output-metrics",
+      "Type": 2,
+      "State": 2,
+      "ParentTaskUUID": "da2d5baf-b047-519b-b208-f4dcae55ab1b",
+      "CreatedAtInSec": 1793737752,
+      "StartedInSec": 1793737752,
+      "FinishedInSec": 1793737760,
+      "Pods": [{"name": "output-metrics-59hc2-system-container-impl-2782546728", "type": "EXECUTOR"}],
+      "TypeAttrs": {}
+    }
+  ],
+  "artifacts": [
+    {
+      "source_artifact_id": 4,
+      "UUID": "aa95be70-c1dd-5ac2-b814-0d719478c7b2",
+      "Namespace": "kubeflow",
+      "Name": "accuracy",
+      "Type": 6,
+      "URI": "minio://mlpipeline/v2/artifacts/output-metrics/be2ae7cc-da75-4cbb-bdb6-25145b26ae52/output-metrics/2664471b-52fd-4239-a72b-87dfa1c7d737/metrics",
+      "URIHash": "b9d915af0e8f31b454902e525e9983a8df51e60298fb78c7d2e1b2fb5ca9733b",
+      "NumberValue": 4,
+      "CreatedAtInSec": 1793737760,
+      "LastUpdateInSec": 1793737760,
+      "Metadata": {"display_name": "metrics"}
+    },
+    {
+      "source_artifact_id": 6,
+      "UUID": "5c95098f-946b-5f11-83d1-ea1fc346ecd9",
+      "Namespace": "kubeflow",
+      "Name": "executor-logs",
+      "Type": 1,
+      "URI": "minio://mlpipeline/v2/artifacts/math-pipeline/2ec7ad3b-d821-4b1d-8355-190393a06ddc/double/b76cb61e-dcfa-41d0-b4cf-f95372a83018/executor-logs-0",
+      "URIHash": "17ff9433438fbe098ebc6194d6b74dffc4759847fa23e31ca0836e086ca45c28",
+      "CreatedAtInSec": 1793737772,
+      "LastUpdateInSec": 1793737772,
+      "Metadata": {"display_name": "executor-logs"}
+    }
+  ],
+  "links": [
+    {
+      "source_event_id": 4,
+      "UUID": "2d0d180b-1f74-5074-9767-23d287635b6c",
+      "ArtifactID": "aa95be70-c1dd-5ac2-b814-0d719478c7b2",
+      "TaskID": "f2c4a81b-0659-57db-a256-38f83003d939",
+      "RunUUID": "be2ae7cc-da75-4cbb-bdb6-25145b26ae52",
+      "Type": 9,
+      "Iteration": -1,
+      "ArtifactKey": "metrics"
+    },
+    {
+      "source_event_id": 6,
+      "UUID": "14b6533a-8c14-5b90-80c8-7b80fb3c9411",
+      "ArtifactID": "5c95098f-946b-5f11-83d1-ea1fc346ecd9",
+      "TaskID": "50c36f8f-7c03-50f1-bce1-c114870d2a8d",
+      "RunUUID": "2ec7ad3b-d821-4b1d-8355-190393a06ddc",
+      "Type": 9,
+      "Iteration": 0,
+      "Producer": {"taskName": "double", "iteration": "0"},
+      "ArtifactKey": "executor-logs"
+    }
+  ],
+  "legacy_provenance": {
+    "50c36f8f-7c03-50f1-bce1-c114870d2a8d": {"cache_fingerprint": "78f8bc3791ff083f52854e558b59d1a64efd7f8a1d810be25e7f335cfeda2fa0"},
+    "d7ea1d3f-78be-5e29-abee-d2b72a0e0b92": {"cached_execution_id": "19"}
+  }
+}

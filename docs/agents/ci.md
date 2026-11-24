@@ -84,7 +84,7 @@ once before its deployment jobs. That job resolves the required runtime and
 application artifacts together and passes the exact immutable IDs and producer
 identity to every dependent lane. ARM readiness selects only ARM application
 images. Cluster setup starts after this barrier; the existing runtime fingerprint
-cache is unchanged. The paused upgrade workflow and its readiness job remain paused.
+cache is unchanged. The pinned upgrade workflow uses the same image readiness barrier.
 
 The producer publishes checkout identity before builds, then immutable
 attempt-specific image archives. Each archive includes its source identity and
@@ -401,8 +401,7 @@ render namespace, cluster-scoped, and cluster-install overlays for both versions
 
 - `sdk-upgrade.yml` uses a fresh environment with all four split distributions at 2.17.0, uninstalls the three retired distributions, then force-reinstalls the single source-built `kfp` wheel. The order prevents old installation records from deleting newly installed shared modules. Check imports, absence of retired distribution metadata, and `pip check`; never use the already-installed uv workspace as an upgrade fixture.
 
-- Upgrade preparation explicitly sets `-useLegacyAPIPrefix=true` so current Go clients and readiness checks reach the old server through `/apis/v2beta1`. Verification uses the default `/apis/v2` transport. Port-forward or preparation failure blocks branch deployment and verification; cleanup still runs.
-- Upgrade jobs are explicitly paused in the workflow pending #14029. Once the MLMD-to-native migration and startup gate are implemented, remove both checked-in false conditions and their scoped `.github/actionlint.yaml` exception in a reviewed PR, then regenerate the workflow inventory. Update open PR branches to the enabling base commit before requiring upgrade coverage. Repository variables do not control this pause.
+- `upgrade-test.yml` restores the paired KFP and MLMD databases from the pinned 2.18.0 fixture and uses the shared image producer for the target API. The CLI-first and startup-only jobs verify native API history, restart without MLMD, then restore the KFP backup and verify legacy API reads with the original MLMD source. The runner is `.github/resources/scripts/run-mlmd-upgrade.sh`.
 
 - Pre-commit requires uv, provisioned in its CI workflow. When hook configuration, `pyproject.toml`, or `uv.lock` changes, run both the base-to-head check and the representative-file smoke command from `pre-commit.yml`; the smoke command includes files outside the PR diff. Run the hook chain twice to confirm docformatter and Ruff agree.
 - Keep docformatter on v1.7.7 until its v1.7.8 tokenization regression is fixed: v1.7.8 crashes on explicit continuations and corrupts blank-line handling. Dependabot ignores only v1.7.8, and the configuration smoke test includes the updater and SDK structures files. Verify formatter upgrades by running the full hook chain twice on these files.

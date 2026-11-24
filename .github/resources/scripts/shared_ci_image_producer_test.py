@@ -113,8 +113,6 @@ for (const files of [['backend/src/tensorboard/tensorboard.sh'],
         )
         for name in CONSUMERS:
             self.assertNotIn('build', workflow(name)['jobs'])
-        for job in workflow('upgrade-test.yml')['jobs'].values():
-            self.assertEqual(job['if'], '${{ false }}')
 
     def test_source_identity_precedes_plan_and_revision_cancellation_is_disabled(
         self,
@@ -141,8 +139,6 @@ for (const files of [['backend/src/tensorboard/tensorboard.sh'],
     def test_producer_filters_cover_every_active_consumer(self) -> None:
         producer = workflow('ci-images.yml')[True]['pull_request']['paths']
         for name in CONSUMERS:
-            if name == 'upgrade-test.yml':
-                continue
             paths = workflow(name)[True]['pull_request']['paths']
             for pattern in paths:
                 self.assertIn(pattern, producer, (name, pattern))

@@ -331,6 +331,10 @@ class PreCommitWorkflowTest(unittest.TestCase):
         self.assertIsNone(
             hook_exclude.search('sdk/python/kfp/dsl/structures.py')
         )
+        self.assertNotRegex(
+            'backend/src/apiserver/migration/mlmd/fixturetools/build_migration_fixture.py',
+            hook_exclude,
+        )
         self.assertTrue(ruff['force-exclude'])
         self.assertEqual(ruff['include'], ['*.py', '*.pyi'])
         self.assertEqual(

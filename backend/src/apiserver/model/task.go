@@ -142,6 +142,7 @@ type Task struct {
 	StartedInSec     int64      `gorm:"column:StartedInSec; default:0; index:idx_task_started_timestamp;"`
 	FinishedInSec    int64      `gorm:"column:FinishedInSec; default:0; index:idx_task_finished_timestamp;"`
 	Fingerprint      string     `gorm:"column:Fingerprint; not null; type:varchar(255); index:idx_task_cache_lookup,priority:1;"`
+	CachedTaskUUID   *string    `gorm:"column:CachedTaskUUID;type:varchar(191)"`
 	Name             string     `gorm:"column:Name; type:varchar(128); default:null;"`
 	DisplayName      string     `gorm:"column:DisplayName; type:varchar(128); default:null;"`
 	ParentTaskUUID   *string    `gorm:"column:ParentTaskUUID; type:varchar(191); default:null; index:idx_parent_task_uuid; index:idx_parent_run,priority:2;"`
