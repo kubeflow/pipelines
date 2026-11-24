@@ -71,6 +71,18 @@ create_run() {
   }' | post runs | uuid run_id
 }
 
+mixed_run_pages() {
+  local first_api=$1 next_api=$2 token
+  local request=(curl --fail-with-body --silent --show-error --max-time 5 --get
+    --data-urlencode "experiment_id=$experiment" --data-urlencode 'page_size=1')
+  # display_name asc orders backfill-concurrent before backfill-legacy.
+  token=$("${request[@]}" --data-urlencode 'sort_by=display_name asc' "$first_api/runs" |
+    jq -er --arg id "$writer" 'select(.total_size == 2 and [.runs[].run_id] == [$id]) |
+      .next_page_token | select(type == "string" and length > 0)')
+  "${request[@]}" --data-urlencode "page_token=$token" "$next_api/runs" |
+    jq -e --arg id "$legacy" '.total_size == 2 and [.runs[].run_id] == [$id] and (.next_page_token // "") == ""' > /dev/null
+}
+
 # The checked-out image has already initialized the test DB. Retain an
 # independently addressable source replica before removing the disposable
 # completion marker, so its own startup cannot consume the pending fixture.
@@ -136,12 +148,14 @@ receipt="SELECT COUNT(*) FROM run_details WHERE UUID='$writer' AND CASE WHEN JSO
 [[ "$(sql -e "$receipt")" == 0 ]]
 "${k[@]}" get workflow "$workflow" -o json | jq -c 'tojson' | post workflows
 [[ "$(sql -e "$receipt")" == 1 ]]
+mixed_run_pages "$old_api" "$new_api"
+mixed_run_pages "$new_api" "$old_api"
 [[ "$(sql -e "$pending")" == 1 ]]
 release_batch
 for ((i=0; i<120; i++)); do
   if [[ "$(sql -e "SELECT EXISTS (SELECT 1 FROM migration_statuses WHERE Name='backfill_pipeline_refs')
     AND EXISTS (SELECT 1 FROM run_details WHERE UUID='$legacy' AND PipelineId='$pipeline')")" == 1 ]]; then
-    echo "Source API $source_sha created run $writer and persisted its report while the candidate was Ready and repairing $legacy."
+    echo "Source API $source_sha created run $writer and persisted its report while the candidate was Ready and repairing $legacy. Both APIs consumed the other replica's run-list token."
     exit 0
   fi
   sleep 1
