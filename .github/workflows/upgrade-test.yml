@@ -175,6 +175,10 @@ jobs:
           ' | kubectl apply -f -
           kubectl -n kubeflow rollout status deployment/pagination-source --timeout=180s
 
+      - name: Prepare legacy pipeline reference and batch barrier
+        id: prepare-backfill
+        run: bash .github/resources/scripts/upgrade-backfill.sh source
+
       - name: Stop port forwarding
         run: |
           pkill -f "port-forward"
@@ -191,7 +195,7 @@ jobs:
           image_registry: kind-registry:5000
           forward_port: 'true'
 
-      - name: Verify upgraded and mixed-version filtered pagination
+      - name: Verify old-replica writes during backfill and mixed-version pagination
         shell: bash
         run: |
           kubectl -n kubeflow port-forward --address=127.0.0.1 deployment/pagination-source 8889:8888 > "$RUNNER_TEMP/pagination-forward.log" 2>&1 &
@@ -209,7 +213,12 @@ jobs:
           grep -Fq 'Forwarding from 127.0.0.1:8889' "$RUNNER_TEMP/pagination-forward.log"
           curl --max-time 2 --fail --silent http://127.0.0.1:8889/apis/v2beta1/healthz > /dev/null
           kill -0 "$OLD_API_FORWARD_PID"
+          bash .github/resources/scripts/upgrade-backfill.sh verify
           python3 tools/upgrade-readiness/live_pagination.py target --state "$RUNNER_TEMP/pagination-source.json" --report "$RUNNER_TEMP/pagination-report.json"
+
+      - name: Release backfill barrier and remove fixture workflows
+        if: ${{ always() && steps.prepare-backfill.outcome != 'skipped' }}
+        run: bash .github/resources/scripts/upgrade-backfill.sh cleanup
 
       - name: Upload pagination acceptance evidence
         if: ${{ always() }}

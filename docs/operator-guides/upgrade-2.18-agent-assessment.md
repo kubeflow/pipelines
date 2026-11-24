@@ -337,13 +337,12 @@ updates are supported, but isolation is not fully effective while old writers re
 Audit-to-enforce can produce another cold transition.
 
 Distinguish the [database migration paths](upgrade-2.18.md#database-migration-paths).
-Schema changes and the pipeline-reference backfill run synchronously before the new
-API process serves requests. Inspect engine/version, `run_details`/`jobs` sizes,
-backup/recovery readiness and evidence of migration/lock duration. Large-table DDL
-and updates can block writes; the backfill's transactional completion marker does
-not serialize all schema changes. Background schedule adoption is a later step,
-not proof of a lock-free or zero-downtime database upgrade. Do not run DDL or mutate
-migration markers as part of this read-only assessment.
+Identify the API image and whether it contains the background pipeline-reference
+backfill fix. The original 2.18.0 image repairs historical rows before serving
+and can block existing run writers during that transaction. With the fix, API
+readiness is independent of the repair and the marker records completed batches
+after the final pass. Inspect database size, engine/version, lock waits, worker
+progress and backup readiness. Keep the assessment read-only.
 
 For the recurring-run lookup index, verify the deployed image includes the
 online JobUUID-index helper delivered by [#14874](https://github.com/kubeflow/pipelines/pull/14874). Inspect the existing `JobUUID` type and

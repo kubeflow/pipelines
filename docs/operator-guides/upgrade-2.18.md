@@ -45,7 +45,7 @@ its image versions.
 
 | Component | Expected behavior | What to check |
 | --- | --- | --- |
-| API server and database | New API Pods finish startup schema checks, lookup-index preparation, and any pending reference backfill before becoming ready. Retention indexes are prepared afterward in the background. | New Pod readiness and database load. Online index construction does not require stopping existing API replicas. See [database migration paths](#database-migration-paths). |
+| API server and database | New API Pods finish startup schema checks and lookup-index preparation before serving. Images with the background backfill fix can serve while pipeline references are repaired. Retention indexes are prepared in the background. | New Pod readiness and database load. Online index construction does not require stopping existing API replicas. See [database migration paths](#database-migration-paths). |
 | Multi-user recurring runs | The API and controller coordinate the writer handoff and adopt eligible stored schedules in the background. Enabled/disabled state and retained execution progress are preserved. | Enabled schedules resume, disabled schedules stay disabled, and no duplicate execution appears. Schedule changes may wait up to 30 seconds during handoff. |
 | UI and TensorBoard | The initializer creates the signing key if absent; the UI starts when it is available. Existing valid keys are preserved. | Wait for UI rollout, then reopen TensorBoard if an old URL no longer works. |
 
@@ -170,20 +170,33 @@ on the same row count completed both builds in **27.71 seconds**, with **772 and
 of **1.51 seconds**. These measurements demonstrate continued database access
 during index construction, not guaranteed timings for every installation.
 
-**The pipeline-reference backfill runs once.** When its completion marker is
-absent, startup fills missing pipeline and version IDs from historical references
-in one transaction. A [MySQL 8.4 reproduction with 100,000 runs and 10,000 references](https://github.com/kubeflow/pipelines/pull/13680#discussion_r3918298200)
-measured **1.286 seconds for one backfill UPDATE**, not the complete transaction.
-The same reproduction found that repeating the UPDATE, even with no rows to
-change, could cause concurrent writes to time out on locks.
+**The pipeline-reference backfill runs once.** In 2.18.0 the first API startup
+repairs missing pipeline and version IDs in one transaction. On a large
+MySQL database, even an update that changes zero rows can lock out run creation
+and status reporting. For affected images, see the
+[MySQL recovery and upgrade procedure](mysql-2.18-upgrade.md).
 
-The [completion-marker fix](https://github.com/kubeflow/pipelines/pull/13680#discussion_r3941696759)
-eliminates those repeated scans and locks on later startups and coordinates
-replicas. The marker commits with the updates, so an interrupted transaction can
-retry safely. The initial transaction still holds locks and may delay
-conflicting writes and the new API Pod's readiness; its duration depends on the
-database and workload. It runs automatically; do not rerun it manually or remove
-its marker.
+With the background backfill fix, one API replica reads up to 500 candidate keys
+at a time without locking and repairs jobs before runs. On MySQL with binary
+logging enabled and `binlog_row_image=FULL`, it commits one candidate per
+transaction because the binary log can include the full manifests before and
+after each update. One large row can still be expensive. Other configurations
+can commit up to 500 candidates at a time. Existing nonempty IDs are preserved.
+After a `SIGKILL` or node loss, the worker cannot send `KILL QUERY`, so the active
+MySQL batch can finish on the server and the advisory lock can remain held
+until MySQL detects the disconnect. A restart resumes pending repairs.
+
+The `backfill_pipeline_refs` marker in `migration_statuses` records completion
+of these historical passes. A reporting request on an older
+replica can still insert a run afterward using a version-only job it read
+before the repair. The new API resolves that run’s missing pipeline ID for
+retrieval, filtering, counts and pagination from its direct pipeline reference,
+the version’s parent, or the owning job if it still has the same version.
+If all three sources are absent, the historical parent cannot be recovered.
+Other legacy rows may be absent from filtered results until repaired.
+
+Monitor API logs for batch progress and retries, and
+`pipeline_ref_backfill_updates_total` for committed column updates by table.
 
 Upgrades from a pre-2.15 schema also take the older column-conversion and backfill
 path. That is a different starting state from the normal 2.17-to-2.18 upgrade;
