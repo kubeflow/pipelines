@@ -60,7 +60,7 @@ func TestTolerantInformer_SkipsUndecodableObjects(t *testing.T) {
 			undecodableSpec: map[string]interface{}{"activeDeadlineSeconds": "not-a-number"},
 			expectedType:    &workflowapi.Workflow{},
 			newInformer: func(client dynamic.Interface) (cache.SharedIndexInformer, func(stopCh <-chan struct{})) {
-				factory := argoinformer.NewSharedInformerFactory(argofake.NewSimpleClientset(), 0)
+				factory := argoinformer.NewSharedInformerFactory(&argofake.Clientset{}, 0)
 				registerWorkflowInformer(factory, client, "")
 				return factory.Argoproj().V1alpha1().Workflows().Informer(), factory.Start
 			},
