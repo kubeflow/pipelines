@@ -15,6 +15,7 @@
 package clientmanager
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -22,10 +23,14 @@ import (
 	"testing"
 	"time"
 
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
@@ -129,6 +134,118 @@ func TestBackfillPipelineRefs_ConcurrentWrites(t *testing.T) {
 			}
 			resume()
 			require.NoError(t, <-finished)
+		})
+	}
+}
+
+// A retained replica can snapshot a legacy job, pause during report processing,
+// and insert its recurring execution after the migration has marked completion.
+func TestBackfillPipelineRefs_InFlightRecurringReport(t *testing.T) {
+	for _, engine := range []string{"mysql", "postgres"} {
+		t.Run(engine, func(t *testing.T) {
+			db, d := setupBackfillTestDB(t, engine)
+			require.NoError(t, db.Create(&model.Experiment{UUID: "exp", Name: "experiment", Namespace: "ns"}).Error)
+			require.NoError(t, db.Create(&model.Pipeline{UUID: "parent", Name: "parent", DisplayName: "parent", Status: model.PipelineReady, Namespace: "ns"}).Error)
+			require.NoError(t, db.Create(&model.PipelineVersion{UUID: "version", Name: "version", DisplayName: "version", PipelineId: "parent", Status: model.PipelineVersionReady, PipelineSpec: "spec"}).Error)
+			require.NoError(t, db.Create(&model.Job{
+				UUID: "legacy-job", DisplayName: "legacy", K8SName: "legacy", Namespace: "ns", ExperimentId: "exp",
+				PipelineSpec: model.PipelineSpec{PipelineVersionId: "version"},
+			}).Error)
+
+			pool, err := db.DB()
+			require.NoError(t, err)
+			clock := util.NewRealTime()
+			jobs := storage.NewJobStore(pool, clock, nil, d)
+			snapshot, err := jobs.GetJob("legacy-job")
+			require.NoError(t, err)
+			require.Empty(t, snapshot.PipelineId)
+			require.Equal(t, "version", snapshot.PipelineVersionId)
+
+			require.NoError(t, backfillPipelineRefsToRunTable(db, d))
+			repaired, err := jobs.GetJob("legacy-job")
+			require.NoError(t, err)
+			require.Equal(t, "parent", repaired.PipelineId)
+
+			// Insert the payload retained by the older reporter, independently of
+			// any normalization performed by a newer RunStore.CreateRun.
+			insert := func(id, pipelineID string) {
+				spec := snapshot.PipelineSpec
+				spec.PipelineId = pipelineID
+				require.NoError(t, db.Create(&model.Run{
+					UUID: id, DisplayName: id, K8SName: id, StorageState: model.StorageStateAvailable,
+					ExperimentId: snapshot.ExperimentId, Namespace: snapshot.Namespace,
+					RecurringRunId: snapshot.UUID, PipelineSpec: spec,
+				}).Error)
+			}
+			insert("stale", "")
+			insert("explicit", "z-explicit")
+			insert("referenced", "")
+			ref := &model.ResourceReference{ResourceUUID: "referenced", ResourceType: model.RunResourceType,
+				ReferenceUUID: "a-direct", ReferenceType: model.PipelineResourceType, Relationship: model.OwnerRelationship}
+			payload, err := json.Marshal(ref)
+			require.NoError(t, err)
+			ref.Payload = model.LargeText(payload)
+			require.NoError(t, db.Create(ref).Error)
+			require.NoError(t, backfillPipelineRefsToRunTable(db, d))
+			runs := storage.NewRunStore(pool, clock, d)
+			for id, want := range map[string]string{"stale": "parent", "explicit": "z-explicit", "referenced": "a-direct"} {
+				got, err := runs.GetRun(id)
+				require.NoError(t, err)
+				assert.Equal(t, want, got.PipelineId, id)
+			}
+			for _, tt := range []struct {
+				op   api.Predicate_Op
+				want []string
+			}{
+				{api.Predicate_EQUALS, []string{"stale"}},
+				{api.Predicate_NOT_EQUALS, []string{"referenced", "explicit"}},
+			} {
+				pred, err := filter.New(&api.Filter{Predicates: []*api.Predicate{{
+					Key: "pipeline_id", Op: tt.op, Value: &api.Predicate_StringValue{StringValue: "parent"},
+				}}})
+				require.NoError(t, err)
+				opts, err := list.NewOptions(&model.Run{}, 10, "pipeline_id", pred)
+				require.NoError(t, err)
+				matches, count, _, err := runs.ListRuns(&model.FilterContext{}, opts)
+				require.NoError(t, err)
+				assert.Equal(t, len(tt.want), count, tt.op)
+				var ids []string
+				for _, run := range matches {
+					ids = append(ids, run.UUID)
+				}
+				assert.Equal(t, tt.want, ids, tt.op)
+			}
+
+			opts, err := list.NewOptions(&model.Run{}, 1, "pipeline_id", nil)
+			require.NoError(t, err)
+			for _, want := range []string{"a-direct", "parent", "z-explicit"} {
+				page, _, token, err := runs.ListRuns(&model.FilterContext{}, opts)
+				require.NoError(t, err)
+				require.Len(t, page, 1)
+				assert.Equal(t, want, page[0].PipelineId)
+				if want == "z-explicit" {
+					require.Empty(t, token)
+				} else {
+					opts, err = list.NewOptionsFromToken(token, 1)
+					require.NoError(t, err)
+				}
+			}
+
+			// The version record is authoritative while present. If it is
+			// deleted, only a job still pointing at that exact version can
+			// supply the missing ID for an old execution.
+			job := db.Model(&model.Job{}).Where(map[string]any{"UUID": snapshot.UUID})
+			require.NoError(t, job.Update("PipelineId", "job-parent").Error)
+			getPipelineID := func() string {
+				got, err := runs.GetRun("stale")
+				require.NoError(t, err)
+				return got.PipelineId
+			}
+			assert.Equal(t, "parent", getPipelineID())
+			require.NoError(t, db.Where(map[string]any{"UUID": "version"}).Delete(&model.PipelineVersion{}).Error)
+			assert.Equal(t, "job-parent", getPipelineID())
+			require.NoError(t, job.Update("PipelineVersionId", "different-version").Error)
+			assert.Empty(t, getPipelineID())
 		})
 	}
 }

@@ -350,14 +350,38 @@ func (s *RunStore) ListRuns(
 	return runs[:opts.PageSize], totalSize, npt, err
 }
 
-func getRunListColumns(opts *list.Options) []string {
+// A reporter from a rolling upgrade can insert its copy of a version-only
+// recurring job after the backfill has finished. Resolve those rows consistently
+// for filtering, ordering and display. Each lookup uses its source primary key.
+func recurringRunPipelineID(q dialect.QuoteFunction, table string) string {
+	run := dialect.QualifiedColumn(q, table)
+	id, version := run("PipelineId"), run("PipelineVersionId")
+	ref := dialect.QualifiedColumn(q, "resource_references")
+	pv := dialect.QualifiedColumn(q, "pipeline_versions")
+	directRef := fmt.Sprintf("SELECT %s FROM %s WHERE %s = %s AND %s = '%s' AND %s = '%s' AND %s <> ''",
+		ref("ReferenceUUID"), q("resource_references"), ref("ResourceUUID"), run("UUID"),
+		ref("ResourceType"), model.RunResourceType, ref("ReferenceType"), model.PipelineResourceType, ref("ReferenceUUID"))
+	versionParent := fmt.Sprintf("SELECT %s FROM %s WHERE %s = %s AND %s <> ''",
+		pv("PipelineId"), q("pipeline_versions"), pv("UUID"), version, pv("PipelineId"))
+	// A version can be deleted while its repaired source job still exists.
+	job := dialect.QualifiedColumn(q, "jobs")
+	jobParent := fmt.Sprintf("SELECT %s FROM %s WHERE %s = %s AND %s = %s",
+		job("PipelineId"), q("jobs"), job("UUID"), run("JobUUID"), job("PipelineVersionId"), version)
+	return fmt.Sprintf("CASE WHEN (%s = '' OR %s IS NULL) AND %s <> '' AND %s <> '' THEN COALESCE((%s), (%s), (%s), '') ELSE %s END",
+		id, id, run("JobUUID"), version, directRef, versionParent, jobParent, id)
+}
+
+func getRunListColumns(opts *list.Options, q dialect.QuoteFunction) []string {
 	columns := make([]string, len(runListColumns))
 	copy(columns, runListColumns)
 
-	if opts != nil && opts.SortByFieldName == "PipelineRuntimeManifest" {
+	if opts != nil {
 		for i, col := range columns {
-			if col == "'' AS PipelineRuntimeManifest" {
+			switch {
+			case col == "'' AS PipelineRuntimeManifest" && opts.SortByFieldName == "PipelineRuntimeManifest":
 				columns[i] = "PipelineRuntimeManifest"
+			case col == "PipelineId" && opts.SortBySQLColumn == "PipelineId":
+				columns[i] = recurringRunPipelineID(q, "run_details") + " AS " + q(col)
 			}
 		}
 	}
@@ -377,19 +401,24 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	if refKey != nil && refKey.Type == model.ExperimentResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
 		// for performance reasons need to special treat experiment ID filter on runs
 		// currently only the run table have experiment UUID column
-		filteredSelectBuilder, err = FilterByExperiment(qb, q, "run_details", getRunListColumns(opts), selectCount, refKey.ID)
+		filteredSelectBuilder, err = FilterByExperiment(qb, q, "run_details", getRunListColumns(opts, q), selectCount, refKey.ID)
 	} else if refKey != nil && refKey.Type == model.NamespaceResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
-		filteredSelectBuilder, err = FilterByNamespace(qb, q, "run_details", getRunListColumns(opts),
+		filteredSelectBuilder, err = FilterByNamespace(qb, q, "run_details", getRunListColumns(opts, q),
 			selectCount, refKey.ID)
 	} else {
-		filteredSelectBuilder, err = FilterByResourceReference(qb, q, "run_details", getRunListColumns(opts),
+		filteredSelectBuilder, err = FilterByResourceReference(qb, q, "run_details", getRunListColumns(opts, q),
 			model.RunResourceType, selectCount, filterContext)
 	}
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
 
-	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder, q)
+	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder, func(column string) string {
+		if column == "PipelineId" {
+			return recurringRunPipelineID(q, "run_details")
+		}
+		return q(column)
+	})
 
 	if !selectCount {
 		// Convert metric value (string) to float64 for numeric comparison in SQL, generic for all DBs.
@@ -578,7 +607,12 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	// Final layer: JOIN back to run_details to get all runColumns
 	// We wrap this in a subquery to avoid column ambiguity issues with ORDER BY
 	joinedColumns := append(
-		dialect.QuoteAll(func(column string) string { return fmt.Sprintf("rd.%s", q(column)) }, runColumns),
+		dialect.QuoteAll(func(column string) string {
+			if column == "PipelineId" {
+				return recurringRunPipelineID(q, "rd") + " AS " + q(column)
+			}
+			return "rd." + q(column)
+		}, runColumns),
 		"withmetrics."+q("refs"),
 		"withmetrics."+q("taskDetails"),
 		"withmetrics."+q("metrics"))

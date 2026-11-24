@@ -177,12 +177,18 @@ and status reporting. For affected images, see the
 [MySQL recovery and upgrade procedure](mysql-2.18-upgrade.md).
 
 With the background backfill fix, one API replica selects candidates with
-nonlocking reads and commits repairs in batches of up to 500 keys. Existing
-nonempty IDs are preserved. A restart resumes pending repairs, and the
-`backfill_pipeline_refs` marker in `migration_statuses` records completion.
-Run and job reads can reconstruct IDs from historical references during this
-period. Filters on the stored IDs can omit legacy rows until their repair
-commits. Monitor API logs for batch progress and retries, and
+nonlocking reads and commits job repairs before run repairs, in batches of up to
+500 keys. Existing nonempty IDs are preserved. A restart resumes pending
+repairs. The `backfill_pipeline_refs` marker in `migration_statuses` records
+completion of these historical passes. A reporting request on an older
+replica can still insert a run afterward using a version-only job it read
+before the repair. The new API resolves that run’s missing pipeline ID for
+retrieval, filtering, counts and pagination from its direct pipeline reference,
+the version’s parent, or the owning job if it still has the same version.
+If all three sources are absent, the historical parent cannot be recovered.
+Other legacy rows may be absent from filtered results until repaired.
+
+Monitor API logs for batch progress and retries, and
 `pipeline_ref_backfill_updates_total` for committed column updates by table.
 
 Upgrades from a pre-2.15 schema also take the older column-conversion and backfill

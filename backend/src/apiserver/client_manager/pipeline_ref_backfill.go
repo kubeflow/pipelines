@@ -42,7 +42,10 @@ func backfillPipelineRefsToRunTable(db *gorm.DB, dialect sqldrv.DBDialect) error
 		return err
 	}
 
-	for _, table := range []string{"run_details", "jobs"} {
+	// Repair the source jobs first so new recurring executions inherit their
+	// pipeline IDs. Reports that already read an old job can still commit
+	// after this historical sweep; RunStore resolves those rows on read.
+	for _, table := range []string{"jobs", "run_details"} {
 		// Direct pipeline references take precedence over the version's parent.
 		for _, pass := range []pipelineRefPass{
 			backfillRefColumnSQL(dialect, table, "PipelineId", model.PipelineResourceType),
