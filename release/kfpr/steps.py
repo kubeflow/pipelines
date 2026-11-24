@@ -79,6 +79,13 @@ def manual_checklist(
 3. Review the architecture support policy before publishing the backend GitHub release:
    https://github.com/kubeflow/pipelines/blob/{metadata.release_branch}/docs/operator-guides/supported-platforms.md"""
         )
+    if step_id == 'publish-backend-docs':
+        return underline_links(f"""Backend documentation checkpoint:
+1. Activate the bare {metadata.tag} tag and build it in the kubeflow-pipelines project:
+   https://app.readthedocs.org/projects/kubeflow-pipelines/
+2. Run kfpr run publish-backend-docs to verify the successful build at the qualified
+   release commit and https://kubeflow-pipelines.readthedocs.io/en/{metadata.tag}/.
+   With RTD_TOKEN set, kfpr activates and builds the tag before verifying it.""")
     if step_id == 'confirm-rtd':
         checklist = f"""ReadTheDocs manual checkpoint:
 1. Open https://app.readthedocs.org/projects/kubeflow-pipelines/
@@ -1970,6 +1977,24 @@ def step_confirm_rtd(context: ReleaseContext) -> None:
         )
 
 
+def step_publish_backend_docs(context: ReleaseContext) -> None:
+    """Publish and verify the version-pinned backend documentation."""
+    checklist = manual_checklist('publish-backend-docs', context.metadata)
+    if context.runner.dry_run:
+        print(checklist)
+        return
+    sha = str(context.state.answers.get('release_sha', ''))
+    if not re.fullmatch(r'[0-9a-f]{40}', sha):
+        raise RuntimeError('No qualified merged release commit is recorded.')
+    try:
+        rtd.publish_backend_docs(
+            context.metadata.tag, sha, os.environ.get('RTD_TOKEN', '').strip()
+        )
+    except rtd.ReadTheDocsError:
+        print(checklist)
+        raise
+
+
 def _backend_release_body(
     context: ReleaseContext, selected: ReleaseRange
 ) -> str:
@@ -2034,6 +2059,8 @@ def step_create_backend_release(context: ReleaseContext) -> None:
 
     _verify_release_target(context, metadata.tag, selected)
     _require_release_notes_review(context, 'backend', display=False)
+    # An empty token selects read-only verification, including for standalone runs.
+    rtd.publish_backend_docs(metadata.tag, selected.target_sha, token='')
     context.runner.run(
         [
             'gh',
@@ -2253,6 +2280,11 @@ def build_steps(
     if include_backend:
         steps.extend(
             [
+                Step(
+                    'publish-backend-docs',
+                    'Publish and verify the backend tag documentation',
+                    'step_publish_backend_docs',
+                ),
                 Step(
                     'create-backend-release',
                     'Create backend GitHub release',

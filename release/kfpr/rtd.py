@@ -33,14 +33,14 @@ class ReadTheDocsClient:
         expected: tuple[int, ...] = (200,),
     ) -> Any:
         data = None if body is None else json.dumps(body).encode()
+        headers = {'Content-Type': 'application/json'}
+        if self.token:
+            headers['Authorization'] = f'Token {self.token}'
         request = urllib.request.Request(
             f'{self.base_url}{path}',
             data=data,
             method=method,
-            headers={
-                'Authorization': f'Token {self.token}',
-                'Content-Type': 'application/json',
-            },
+            headers=headers,
         )
         try:
             response = urllib.request.urlopen(request, timeout=30)
@@ -100,14 +100,14 @@ def wait_for_build(
     project: str,
     build_id: int,
     sleep: Callable[[float], None] = time.sleep,
-) -> None:
+) -> dict[str, Any]:
     for _ in range(60):
         build = client.get_build(project, build_id)
         state = build.get('state', {}).get('code')
         print(f'{project} build {build_id} is {state}.')
         if state == 'finished':
             if build.get('success'):
-                return
+                return build
             raise ReadTheDocsError(
                 str(build.get('error') or f'{project} build {build_id} failed')
             )
@@ -183,3 +183,44 @@ def update_release_docs(
         print('Setting ReadTheDocs defaults...')
         for project, _, defaults in projects:
             client.patch_project(project, defaults)
+
+
+def publish_backend_docs(tag: str, sha: str, token: str) -> None:
+    """Build the backend tag or verify a maintainer's build without a token."""
+    project = 'kubeflow-pipelines'
+    client = ReadTheDocsClient(token)
+    if token:
+        client.sync_versions(project)
+        wait_for_version(client, project, tag)
+        client.activate_version(project, tag)
+        build_id = client.trigger_build(project, tag)
+        build = wait_for_build(client, project, build_id)
+    else:
+        builds = client.request(
+            'GET', f'/projects/{project}/versions/{tag}/builds/?limit=1'
+        )
+        build = next(iter(builds['results']), {})
+
+    if (
+        build.get('state', {}).get('code') != 'finished'
+        or build.get('success') is not True
+        or build.get('version') != tag
+        or build.get('commit') != sha
+    ):
+        raise ReadTheDocsError(
+            f'No successful {project} build for tag {tag} at {sha}.'
+        )
+
+    url = f'https://{project}.readthedocs.io/en/{tag}/'
+    request = urllib.request.Request(
+        url,
+        method='HEAD',
+        headers={'User-Agent': 'kfpr (https://github.com/kubeflow/pipelines)'},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            if response.status != 200 or response.geturl() != url:
+                raise ReadTheDocsError(f'Expected the tagged docs at {url}.')
+    except urllib.error.URLError as error:
+        raise ReadTheDocsError(f'Cannot open {url}: {error}') from error
+    print(f'Verified {url} at {sha} (Read the Docs build {build["id"]}).')
