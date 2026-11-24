@@ -79,7 +79,7 @@ const fixture = {json.dumps(fixture)};
 const writes = [], requests = [], inventoryRequests = [], infos = [];
 const refCounts = new Map();
 let runCount = 0, triggerCount = 0;
-let queueCount = 0, prCount = 0;
+let queueCount = 0, prCount = 0, defaultBranchCount = 0;
 const github = {{
   rest: {{
     pulls: {{get: async () => ({{data: fixture.queuePRs[Math.min(prCount++, fixture.queuePRs.length - 1)]}})}},
@@ -88,7 +88,7 @@ const github = {{
       const count = refCounts.get(options.ref) || 0;
       refCounts.set(options.ref, count + 1);
       const values = fixture.refs[options.ref] ||
-        [['heads/master', 'heads/main'].includes(options.ref) ? {json.dumps(BASE)} : {json.dumps(HEAD)}];
+        [['heads/master', 'heads/main', 'heads/release-2.18'].includes(options.ref) ? {json.dumps(BASE)} : {json.dumps(HEAD)}];
       const sha = values[Math.min(count, values.length - 1)];
       if (sha === null) throw Object.assign(new Error('Ref not found'), {{status: 404}});
       return {{data: {{ref: 'refs/' + options.ref, object: {{type: 'commit', sha}}}}}};
@@ -99,7 +99,13 @@ const github = {{
       const snapshots = fixture.triggerSnapshots || [fixture.context.payload.workflow_run];
       return {{data: snapshots[Math.min(triggerCount++, snapshots.length - 1)]}};
     }}}},
-    repos: {{createCommitStatus: async options => {{
+    repos: {{get: async options => {{
+      requests.push({{route: 'repository', options}});
+      const defaults = fixture.defaultBranches || ['master'];
+      return {{data: {{full_name: 'owner/repo',
+        default_branch: defaults[Math.min(defaultBranchCount++, defaults.length - 1)]}}}};
+    }}, createCommitStatus: async options => {{
+      requests.push({{route: 'write', state: options.state}});
       writes.push(options);
       return {{data: options}};
     }}}},
@@ -117,7 +123,11 @@ const github = {{
     }}
     return fixture.runs;
   }},
-  graphql: async query => {{
+  graphql: async (query, options) => {{
+    if (query.includes('query RecoveryStatuses')) {{
+      if (options.sha0 !== {json.dumps(HEAD)}) throw new Error('Wrong candidate SHA');
+      return {{repository: {{nameWithOwner: 'owner/repo', head0: {{__typename: 'Commit', oid: options.sha0, status: {{context: fixture.priorStatus || null}}}}}}}};
+    }}
     if (query.includes('query QueuePolicies')) {{
       const repository = {{nameWithOwner: 'owner/repo'}};
       for (const match of query.matchAll(/pr([0-9]+): pullRequest/g)) {{
@@ -136,6 +146,7 @@ const github = {{
   }},
 }};
 const loadInventory = async options => {{
+  requests.push({{route: 'inventory'}});
   inventoryRequests.push(options.pullRequest);
   if (fixture.inventoryError) throw new Error('Invalid trusted inventory');
   return {{inventory: fixture.inventory, workflowFiles: fixture.workflowFiles}};
@@ -143,18 +154,25 @@ const loadInventory = async options => {{
 const core = {{info: value => infos.push(value), warning: value => infos.push(value),
   setOutput: () => {{}}, error: value => infos.push(value)}};
 gate.reconcile({{github, context: fixture.context, core, loadInventory,
-  root: fixture.policyRoot || {json.dumps(str(ROOT))}, group: fixture.group}})
+  root: fixture.policyRoot || process.argv[2], group: fixture.group}})
   .then(result => console.log(JSON.stringify({{result, writes, requests, inventoryRequests, infos}})))
   .catch(error => console.log(JSON.stringify({{error: error.message, writes, requests, inventoryRequests, infos}})));
 """
-    completed = subprocess.run(
-        ['node'],
-        input=script,
-        text=True,
-        capture_output=True,
-        check=True,
-        cwd=ROOT,
-    )
+    # Native merge-group fixtures model the preactivation publisher. Explicit
+    # policyRoot cases below exercise enabled admission and queue membership.
+    with tempfile.TemporaryDirectory() as directory:
+        policy = Path(directory) / '.github/merge-queue-policy.json'
+        policy.parent.mkdir()
+        policy.write_text(json.dumps({'version': 1, 'enabled_branches': []}))
+        completed = subprocess.run(
+            ['node', '-', directory],
+            input=script,
+            text=True,
+            capture_output=True,
+            check=True,
+            cwd=ROOT,
+        )
+
     return json.loads(completed.stdout)
 
 
@@ -166,11 +184,207 @@ class MergeGroupTest(unittest.TestCase):
             result,
         )
 
+    def test_release_candidate_requires_pre_commit(self):
+        base = 'release-2.18'
+        branch = f'gh-readonly-queue/{base}/pr-7-abcdef'
+        triggers = {
+            'pull_request': {'branches': [base]},
+            'merge_group': {'branches': [base]},
+        }
+        other = good_run(head_branch=branch)
+        pre_commit = '.github/workflows/pre-commit.yml'
+        required = lane(path=pre_commit, **triggers)
+        passing = good_run(id=101, path=pre_commit, head_branch=branch)
+        for extra_lanes, extra_runs, state in [
+            ([], [], 'failure'),
+            ([required], [], 'pending'),
+            ([required], [{**passing, 'conclusion': 'failure'}], 'failure'),
+            ([required], [passing], 'success'),
+        ]:
+            with self.subTest(extra_lanes=extra_lanes, state=state):
+                result = reconcile(
+                    event=other,
+                    lanes=[lane(**triggers), *extra_lanes],
+                    runs=[other, *extra_runs],
+                )
+                self.assertEqual(result['writes'][-1]['state'], state, result)
+
+    def test_release_image_companions_require_exact_queue_coverage(self):
+        for producer in ['build-tools-images', 'runtime-base-images']:
+            with self.subTest(producer=producer):
+                path = f'.github/workflows/{producer}.yml'
+                companion = f'.github/workflows/{producer}-merge-group.yml'
+                run = good_run(
+                    path=companion,
+                    head_branch='gh-readonly-queue/release-2.18/pr-7-abcdef',
+                )
+                original = lane(
+                    path=path,
+                    pull_request={'branches': ['release-2.18']},
+                    merge_group=None,
+                )
+                queue_lane = lane(
+                    path=companion,
+                    pull_request=None,
+                    merge_group={'branches': ['release-2.18']},
+                )
+                pre_commit = '.github/workflows/pre-commit.yml'
+                pre_commit_lane = {**queue_lane, 'path': pre_commit}
+                pre_commit_run = {**run, 'id': 101, 'path': pre_commit}
+
+                def check(lanes):
+                    return reconcile(
+                        event=run,
+                        runs=[run, pre_commit_run],
+                        lanes=[*lanes, pre_commit_lane],
+                    )
+
+                result = check([original, queue_lane])
+                self.assertNotIn('error', result)
+                self.assertTrue(result['writes'], result)
+                self.assertEqual(
+                    result['writes'][-1]['state'], 'success', result
+                )
+                self.assert_not_successful(check([original]))
+                self.assert_not_successful(
+                    check(
+                        [
+                            original,
+                            {
+                                **queue_lane,
+                                'merge_group': {'branches': ['main']},
+                            },
+                        ],
+                    )
+                )
+                self.assert_not_successful(
+                    check(
+                        [
+                            {
+                                **original,
+                                'path': '.github/workflows/unmapped.yml',
+                            },
+                            queue_lane,
+                        ],
+                    )
+                )
+
+    def test_verified_success_survives_unchanged_reconciliation(self):
+        initial = reconcile()['writes'][-1]
+        prior = {
+            'state': 'SUCCESS',
+            'context': 'ci-passed',
+            'description': initial['description'],
+            'targetUrl': initial['target_url'],
+            'creator': {'__typename': 'Bot', 'login': 'github-actions'},
+        }
+        repeated = reconcile(priorStatus=prior)
+        self.assertNotIn('error', repeated)
+        self.assertEqual([], repeated['writes'])
+
+        rerun = good_run(run_attempt=2, status='in_progress', conclusion=None)
+        changed = reconcile(event=rerun, runs=[rerun], priorStatus=prior)
+        self.assertEqual('pending', changed['writes'][-1]['state'])
+        routes = [request['route'] for request in changed['requests']]
+        self.assertLess(routes.index('trigger'), routes.index('write'))
+        self.assertLess(routes.index('write'), routes.index('inventory'))
+
+        # A delayed active event for an already green run leaves it green.
+        latest = good_run()
+        stale_event = good_run(status='in_progress', conclusion=None)
+        delayed = reconcile(
+            event=stale_event, triggerSnapshots=[latest], priorStatus=prior
+        )
+        self.assertEqual([], delayed['writes'], delayed)
+
+        # A nonrequired active run on the queue ref is conservatively
+        # invalidated, then the full inventory check restores the same receipt.
+        extra = good_run(
+            id=101,
+            path='.github/workflows/extra.yml',
+            status='in_progress',
+            conclusion=None,
+        )
+        extra_result = reconcile(
+            event=extra, runs=[latest, extra], priorStatus=prior
+        )
+        self.assertEqual(
+            ['pending', 'success'], [w['state'] for w in extra_result['writes']]
+        )
+        self.assertEqual(
+            initial['target_url'], extra_result['writes'][-1]['target_url']
+        )
+        rerun = good_run(run_attempt=2)
+        completed = reconcile(event=rerun, runs=[rerun], priorStatus=prior)
+        self.assertEqual(
+            ['pending', 'success'], [w['state'] for w in completed['writes']]
+        )
+        self.assertNotEqual(
+            initial['target_url'], completed['writes'][-1]['target_url']
+        )
+
+    def test_existing_success_requires_current_attempts_and_trusted_writer(
+        self,
+    ):
+        initial = reconcile()['writes'][-1]
+        prior = {
+            'context': 'ci-passed',
+            'state': 'SUCCESS',
+            'description': initial['description'],
+            'targetUrl': initial['target_url'],
+            'creator': {'__typename': 'Bot', 'login': 'github-actions'},
+        }
+        for stale in [
+            {**prior, 'targetUrl': initial['target_url'].split('#')[0]},
+            {**prior, 'creator': {'__typename': 'User', 'login': 'other'}},
+        ]:
+            with self.subTest(stale=stale):
+                writes = reconcile(priorStatus=stale)['writes']
+                self.assertEqual(
+                    ['pending', 'success'], [w['state'] for w in writes]
+                )
+
+        result = reconcile(priorStatus=prior, refs={'heads/master': [REBUILT]})
+        self.assertEqual('success', result['writes'][-1]['state'])
+        self.assertNotEqual(
+            initial['target_url'], result['writes'][-1]['target_url']
+        )
+
+        finished = [good_run()]
+        rerun = [good_run(run_attempt=2, status='queued', conclusion=None)]
+        # Each evidence read lists both merge_group and workflow_dispatch.
+        result = reconcile(
+            priorStatus=prior, runSnapshots=[finished, [], rerun, []]
+        )
+        self.assertEqual(['pending'], [w['state'] for w in result['writes']])
+
+    def test_verified_receipt_rechecks_attempts_after_current_refs(self):
+        initial = reconcile()['writes'][-1]
+        prior = {
+            'context': 'ci-passed',
+            'state': 'SUCCESS',
+            'description': initial['description'],
+            'targetUrl': initial['target_url'],
+            'creator': {'__typename': 'Bot', 'login': 'github-actions'},
+        }
+        finished = [good_run()]
+        for changed in [
+            good_run(run_attempt=2, status='in_progress', conclusion=None),
+            good_run(run_attempt=2),
+        ]:
+            with self.subTest(changed=changed):
+                result = reconcile(
+                    priorStatus=prior,
+                    runSnapshots=[finished, [], finished, [], [changed], []],
+                )
+                self.assertEqual(
+                    ['pending'], [w['state'] for w in result['writes']]
+                )
+
     def test_success_is_bound_to_queue_sha_and_trusted_master_policy(self):
         result = reconcile()
         self.assertNotIn('error', result)
-        self.assertEqual(result['writes'][0]['state'], 'pending')
-        self.assertEqual(result['writes'][-1]['state'], 'success')
+        self.assertEqual([w['state'] for w in result['writes']], ['success'])
         for status in result['writes']:
             self.assertEqual(status['sha'], HEAD)
             self.assertEqual(status['context'], 'ci-passed')
@@ -186,6 +400,47 @@ class MergeGroupTest(unittest.TestCase):
                     ['merge_group', 'workflow_dispatch'],
                 )
                 self.assertEqual(request['options']['head_sha'], HEAD)
+
+    def test_default_branch_change_before_initial_snapshot_never_publishes_success(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as directory:
+            policy = Path(directory) / '.github/merge-queue-policy.json'
+            policy.parent.mkdir()
+            policy.write_text(
+                json.dumps(
+                    {'version': 1, 'enabled_branches': ['~DEFAULT_BRANCH']}
+                )
+            )
+            for branch in ['master', 'main']:
+                for event in ['merge_group', 'workflow_dispatch']:
+                    with self.subTest(branch=branch, event=event):
+                        other = 'main' if branch == 'master' else 'master'
+                        run = good_run(
+                            event=event,
+                            head_branch=f'gh-readonly-queue/{branch}/pr-7-abcdef',
+                        )
+                        result = reconcile(
+                            runs=[run],
+                            event=run,
+                            policyRoot=directory,
+                            defaultBranches=[branch, other],
+                            lanes=[
+                                lane(
+                                    pull_request={'branches': [branch]},
+                                    merge_group={
+                                        'types': ['checks_requested'],
+                                        'branches': [branch],
+                                    },
+                                )
+                            ],
+                        )
+                        self.assert_not_successful(result)
+                        self.assertNotIn(
+                            'success',
+                            [write['state'] for write in result['writes']],
+                            result,
+                        )
 
     def test_dispatch_evidence_requires_enabled_queue_and_latest_attempt(self):
         from merge_queue_admission_test import entry, pr, queue
@@ -323,7 +578,7 @@ class MergeGroupTest(unittest.TestCase):
     def test_enabled_queue_policy_blocks_or_revokes_unapproved_candidates(self):
         from merge_queue_admission_test import entry, pr, queue
 
-        for branch in ['master', 'main']:
+        for branch in ['master', 'main', 'release-2.18']:
             with (
                 self.subTest(branch=branch),
                 tempfile.TemporaryDirectory() as directory,
@@ -333,8 +588,10 @@ class MergeGroupTest(unittest.TestCase):
                 policy.write_text(
                     json.dumps({'version': 1, 'enabled_branches': [branch]})
                 )
+                path = '.github/workflows/pre-commit.yml'
                 run = good_run(
-                    head_branch=f'gh-readonly-queue/{branch}/pr-7-abcdef'
+                    path=path,
+                    head_branch=f'gh-readonly-queue/{branch}/pr-7-abcdef',
                 )
                 member = entry(branch=branch, headCommit={'oid': HEAD})
                 eligible = pr(branch=branch)
@@ -345,6 +602,7 @@ class MergeGroupTest(unittest.TestCase):
                     runs=[run],
                     lanes=[
                         lane(
+                            path=path,
                             pull_request={'branches': [branch]},
                             merge_group={'branches': [branch]},
                         )
@@ -352,6 +610,16 @@ class MergeGroupTest(unittest.TestCase):
                     queues=[queue([member])],
                 )
                 result = reconcile(**options, queuePRs=[eligible])
+                self.assertEqual(
+                    result['writes'][-1]['state'], 'success', result
+                )
+                # A later PR is outside this candidate. Its policy must not be
+                # read or turn this candidate's successful CI into a failure.
+                later = entry(
+                    8, branch=branch, position=2, headCommit={'oid': REBUILT}
+                )
+                extended = dict(options, queues=[queue([member, later])])
+                result = reconcile(**extended, queuePRs=[eligible])
                 self.assertEqual(
                     result['writes'][-1]['state'], 'success', result
                 )
@@ -433,7 +701,7 @@ class MergeGroupTest(unittest.TestCase):
     def test_non_queue_events_do_not_publish(self):
         for changes in [
             {'event': 'pull_request'},
-            {'head_branch': 'gh-readonly-queue/release-2.18/pr-7-abcdef'},
+            {'head_branch': 'gh-readonly-queue/release-2.19/pr-7-abcdef'},
             {'head_branch': 'feature'},
             {'head_repository': {'full_name': 'fork/repo'}},
             {'head_sha': 'not-a-sha'},

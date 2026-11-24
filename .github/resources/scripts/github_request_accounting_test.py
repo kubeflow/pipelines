@@ -87,7 +87,7 @@ const original = Object.assign(Error('secret-body'), {
         self.assertEqual(summary['rate_limits']['core']['observations'], 1)
         self.assertNotIn('secret', json.dumps(result))
 
-    def test_branch_refs_and_attempt_jobs_have_specific_categories(self):
+    def test_queue_and_workflow_endpoints_have_specific_categories(self):
         result = self.exercise(r"""
 const {withRequestAccounting} = require(process.argv[1]);
 let hook;
@@ -97,6 +97,10 @@ const github = {hook: {wrap: (_, fn) => {hook = fn;}, remove: () => {}}};
  await withRequestAccounting({github, scope: 'finalize',
   core: {info: line => summaries.push(JSON.parse(line))}}, async () => {
   for (const url of [
+   '/repos/{owner}/{repo}',
+   '/repos/{owner}/{repo}/rules/branches/{branch}?page=2',
+   '/repos/o/r/rules/branches/release-2.18',
+   '/repos/o/r/actions/workflows/42',
    '/repos/o/r/git/ref/heads/master',
    '/repos/o/r/git/refs/heads/release-2.18',
    '/repos/o/r/branches/master',
@@ -105,14 +109,24 @@ const github = {hook: {wrap: (_, fn) => {hook = fn;}, remove: () => {}}};
    '/repos/o/r/actions/runs/42/attempts/2/jobs?page=2',
    '/repos/o/r/actions/runs/42/attempts/2',
   ]) await hook(async () => ({status: 200}), {method: 'GET', url});
+  await hook(async () => ({status: 204}), {method: 'POST',
+   url:'/repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches'});
  });
  process.stdout.write(JSON.stringify(summaries[0]));
 })();
 """)
-        self.assertEqual(result['requests'], 7)
+        self.assertEqual(result['requests'], 12)
         self.assertEqual(
             {item['category']: item['count'] for item in result['counts']},
-            {'branches': 3, 'run_jobs': 3, 'workflow_runs': 1},
+            {
+                'branches': 3,
+                'branch_rules': 2,
+                'repository_metadata': 1,
+                'run_jobs': 3,
+                'workflow_definitions': 1,
+                'workflow_dispatches': 1,
+                'workflow_runs': 1,
+            },
         )
 
     def test_transport_errors_and_logging_errors_preserve_original_error(self):
@@ -186,6 +200,53 @@ const core = {info: line => summaries.push(JSON.parse(line))};
                                 'return await withRequestAccounting', script
                             )
 
+    def test_queue_controllers_account_for_success_and_failure(self):
+        for filename, job_name, scope in (
+            ('ci-checks.yml', 'check_merge_group_status', 'merge_group'),
+            ('ci-checks.yml', 'queue_admission', 'queue_admission'),
+            ('merge-queue-recovery.yml', 'queue_recovery', 'queue_recovery'),
+        ):
+            workflow = yaml.safe_load(
+                (ROOT / '.github/workflows' / filename).read_text()
+            )
+            script = workflow['jobs'][job_name]['steps'][-1]['with']['script']
+            for fails in (False, True):
+                with self.subTest(job=job_name, fails=fails):
+                    result = self.exercise(
+                        r"""
+const vm = require('node:vm');
+const accounting = require(process.argv[1]);
+let hook, calls = 0;
+const records = [];
+const failure = Error('controller failure');
+const github = {hook: {wrap: (_, fn) => {hook = fn;}, remove: () => {hook = null;}}};
+const core = {info: line => records.push(JSON.parse(line))};
+const operation = async () => {
+  calls++;
+  const request = async () => ({status: 200});
+  if (hook) await hook(request, {method: 'GET', url: '/repos/o/r/pulls/1'});
+  else await request();
+  if (FAILS) throw failure;
+};
+const execute = vm.runInNewContext('(async () => {\n' + SCRIPT + '\n})', {
+  github, context: {repo: {owner: 'o', repo: 'r'}}, core,
+  require: name => name.endsWith('github_request_accounting') ? accounting :
+    {reconcile: operation, reconcileQueue: operation},
+});
+(async () => {
+  let preserved = false;
+  try {await execute();} catch (error) {preserved = error === failure;}
+  process.stdout.write(JSON.stringify({calls, records, preserved, removed: !hook}));
+})();
+""".replace('FAILS', json.dumps(fails)).replace('SCRIPT', json.dumps(script))
+                    )
+                    self.assertEqual(result['calls'], 1)
+                    self.assertEqual(result['preserved'], fails)
+                    self.assertTrue(result['removed'])
+                    self.assertEqual(len(result['records']), 1)
+                    self.assertEqual(result['records'][0]['scope'], scope)
+                    self.assertEqual(result['records'][0]['requests'], 1)
+
     def test_parallel_gate_evidence_drains_pagination_after_early_error(self):
         result = self.exercise(r"""
 const fs = require('node:fs');
@@ -223,6 +284,8 @@ async function exercise(timelineFailsFirst) {
    return pagination;
  };
  const sandbox = {module: {exports: {}}, process, require: name => {
+   // Exercise evidence accounting independently of the checked-in activation policy.
+   if (name === './merge_queue_policy') return {queueEnabled: async () => false};
    if (name === './ci_expected_workflows') return {
      loadBaseInventory: () => request('/graphql', async () => {
        if (timelineFailsFirst) {await delayed; throw later;}

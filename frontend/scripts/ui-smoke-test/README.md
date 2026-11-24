@@ -33,25 +33,47 @@ npx playwright install chromium
 open -a Docker  # macOS
 
 # 5. Run your first comparison
-node smoke-test-runner.js --compare master
+node smoke-test-runner.js --compare main
 ```
 
 The first `--compare` run takes 5-10 minutes because it creates a Kind cluster and deploys Kubeflow Pipelines. Subsequent runs reuse the existing cluster and are much faster.
 
+### Existing clones after the default branch rename
+
+The smoke tools default to `main`. GitHub's rename does not rename local branches.
+If your local default branch is still `master`, update it once from the repository root:
+
+```bash
+git fetch origin
+git branch -m master main
+git branch --set-upstream-to=origin/main main
+git remote set-head origin -a
+```
+
+If `main` already exists, skip the rename and update that branch normally. To keep
+local branch names unchanged, pass `--compare origin/main` (or `--base origin/main`
+to `detect-changes.js`) after fetching. Explicit tags, SHAs, and release refs still work.
+The comparison creates a detached base worktree, so `main` may remain checked out
+in your primary checkout.
+
+Legacy mode reuses `.ui-smoke-test/main`. If that cache still contains `master`, the
+runner stops before building or serving it. Move the cache directory aside and rerun
+to clone the requested branch; this also applies with `--skip-build`.
+
 ## Quick Reference
 
 ```bash
-# Most common: compare your branch against master with live backend
-node smoke-test-runner.js --compare master
+# Most common: compare your branch against main with live backend
+node smoke-test-runner.js --compare main
 
 # Frontend-only PR? Skip the slow backend rebuild
-node smoke-test-runner.js --compare master --skip-backend
+node smoke-test-runner.js --compare main --skip-backend
 
 # Fail if any non-zero visual diff is detected (default behavior)
-node smoke-test-runner.js --compare master --fail-threshold 0
+node smoke-test-runner.js --compare main --fail-threshold 0
 
 # Keep local HEAD but label screenshots as a specific PR
-node smoke-test-runner.js --compare master --pr-number 12793
+node smoke-test-runner.js --compare main --pr-number 12793
 
 # Screenshot your running dev server (fastest)
 node smoke-test-runner.js --current-only --use-existing --url http://localhost:3000
@@ -63,8 +85,8 @@ The primary workflow. Compares your working tree (or a specific PR) against a ba
 By default, any non-zero visual diff fails (`--fail-threshold 0`) so every change is reviewed.
 
 ```bash
-# Compare against master (most common)
-node smoke-test-runner.js --compare master
+# Compare against main (most common)
+node smoke-test-runner.js --compare main
 
 # Compare against the latest release tag
 node smoke-test-runner.js --compare release
@@ -73,10 +95,10 @@ node smoke-test-runner.js --compare release
 node smoke-test-runner.js --compare 2.15.0
 
 # Skip backend rebuild for frontend-only changes
-node smoke-test-runner.js --compare master --skip-backend
+node smoke-test-runner.js --compare main --skip-backend
 
 # Label local HEAD comparisons as a PR in screenshot headers
-node smoke-test-runner.js --compare master --pr-number 12793
+node smoke-test-runner.js --compare main --pr-number 12793
 
 # Delete the Kind cluster when done
 node smoke-test-runner.js --teardown
@@ -106,11 +128,11 @@ Steps that aren't needed (e.g., no backend changes) are shown as `[4/12] Backend
 Use `--pr` with `--compare` to test a PR you don't have checked out locally:
 
 ```bash
-# Fetch PR #12756 and compare it against master
-node smoke-test-runner.js --compare master --pr 12756
+# Fetch PR #12756 and compare it against main
+node smoke-test-runner.js --compare main --pr 12756
 
 # Same but skip backend rebuild
-node smoke-test-runner.js --compare master --pr 12756 --skip-backend
+node smoke-test-runner.js --compare main --pr 12756 --skip-backend
 ```
 
 This fetches the PR ref via `git fetch origin pull/<N>/head:pr-<N>`, creates a git worktree for the PR code, builds its frontend, and uses it as the "PR" side of the comparison. The change detection diff is also done against the PR ref (not your local HEAD).
@@ -133,7 +155,7 @@ This fetches the PR ref via `git fetch origin pull/<N>/head:pr-<N>`, creates a g
 | `--url <url>` | URL of existing server (requires `--use-existing`) | `http://localhost:3000` |
 | `--proxy` | Proxy API calls to a real backend when serving static builds | off |
 | `--backend <url>` | Backend URL for proxy mode | `http://localhost:3000` |
-| `--base <branch>` | Base branch for legacy comparison | `master` |
+| `--base <branch>` | Base branch for legacy comparison | `main` |
 | `--repo <owner/repo>` | GitHub repository | `kubeflow/pipelines` |
 | `--mode <mode>` | Backend mode: `auto`, `cluster`, `mock`, `static` | `auto` |
 | `--start-cluster` | Start a Kind cluster if none is running (legacy mode) | off |
@@ -160,8 +182,8 @@ This fetches the PR ref via `git fetch origin pull/<N>/head:pr-<N>`, creates a g
 Each script can be run standalone:
 
 ```bash
-# Detect which backend components changed vs master
-node detect-changes.js --base master
+# Detect which backend components changed vs main
+node detect-changes.js --base main
 
 # Capture screenshots from a running server
 node capture-screenshots.js --port 3000 --output ./my-screenshots --label "my-branch"
@@ -224,7 +246,7 @@ The `--compare` workflow requires Docker for Kind. Start Docker Desktop or your 
 Backend rebuilds (`make image_apiserver`, etc.) can take several minutes each. If your PR only changes frontend code:
 
 ```bash
-node smoke-test-runner.js --compare master --skip-backend
+node smoke-test-runner.js --compare main --skip-backend
 ```
 
 This forces steps 4-5 (build/deploy, manifests) to be skipped. Note: these steps auto-skip when change detection finds no backend changes, so you typically only need `--skip-backend` when change detection incorrectly flags backend files (e.g., during a rebase).
@@ -235,7 +257,7 @@ If the cluster is misbehaving, tear it down and start fresh:
 
 ```bash
 node smoke-test-runner.js --teardown
-node smoke-test-runner.js --compare master
+node smoke-test-runner.js --compare main
 ```
 
 ### Ctrl+C doesn't clean up
@@ -374,7 +396,7 @@ Run your dev server (`npm start` in `frontend/`), then point the tool at it. No 
 
 ### `--compare` is the most useful full workflow
 
-For PR review, `--compare master` gives you the full picture: change detection, selective backend rebuild, both frontends built and screenshotted against a live backend. It uses `git worktree` (fast, offline) instead of `git clone`.
+For PR review, `--compare main` gives you the full picture: change detection, selective backend rebuild, both frontends built and screenshotted against a live backend. It uses `git worktree` (fast, offline) instead of `git clone`.
 
 ### Cleanup must be guaranteed, not conditional
 

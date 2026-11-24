@@ -207,6 +207,8 @@ spec:
             'ghcr.io/kubeflow/kfp-visualization-server:2.18.0',
             'ghcr.io/kubeflow/kfp-tensorboard:2.18.0',
             'ghcr.io/kubeflow/kfp-inverse-proxy-agent:2.18.0',
+            'ghcr.io/kubeflow/kfp-profile-controller:2.18.1',
+            'ghcr.io/kubeflow/kfp-profile-controller@sha256:' + 'a' * 64,
             'gcr.io/ml-pipeline/api-server:2.17.1',
             'gcr.io/ml-pipeline/frontend:2.17.1',
         }

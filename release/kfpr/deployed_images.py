@@ -68,6 +68,18 @@ def _local_istio(sources, sha):
         raise ValueError(
             'Istio injected sidecar version differs from runtime images'
         )
+    global_values = values['global']
+    if (
+        any(
+            not isinstance(global_values.get(selector), dict)
+            or global_values[selector].get('image') != 'proxyv2'
+            for selector in ('proxy', 'proxy_init')
+        )
+        or global_values.get('variant', '') != ''
+    ):
+        raise ValueError(
+            'Istio injected image selectors must use proxyv2 without a variant'
+        )
     if overlay.get('configMapGenerator') != [
         {
             'name': 'istio-sidecar-injector',

@@ -20,6 +20,7 @@ import os
 import pathlib
 import shutil
 import site
+import sys
 import sysconfig
 import tempfile
 import unittest
@@ -38,6 +39,12 @@ _LOCAL_KFP_PACKAGE_PATH = os.path.join(
     os.path.dirname(__file__),
     os.path.pardir,
     os.path.pardir,
+)
+
+# NumPy 1.24.3 has no Python 3.12 wheels, and building it from source fails
+# there because pkgutil.ImpImporter was removed.
+NUMPY_PACKAGE_SPEC = (
+    'numpy>=1.26.0' if sys.version_info >= (3, 12) else 'numpy==1.24.3'
 )
 
 

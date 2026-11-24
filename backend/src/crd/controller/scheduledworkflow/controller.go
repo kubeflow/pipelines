@@ -682,8 +682,9 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 
 	if swf.Spec.Workflow != nil {
 		runtimeConfig = &api.RuntimeConfig{
-			Parameters:   map[string]*structpb.Value{},
-			PipelineRoot: swf.Spec.Workflow.PipelineRoot,
+			Parameters:    map[string]*structpb.Value{},
+			PipelineRoot:  swf.Spec.Workflow.PipelineRoot,
+			EnableCaching: swf.Spec.Workflow.EnableCaching,
 		}
 
 		// Expand recurring-run macros such as [[ScheduledTime]], [[Index]] and

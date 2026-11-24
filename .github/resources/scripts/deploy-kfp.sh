@@ -110,7 +110,19 @@ if [ "${MULTI_USER}" == "true" ] && [ "${USE_PROXY}" == "true" ]; then
   exit 1
 fi
 
-if [ -n "${AWF_VERSION}"  ]; then
+if [ "${POD_TO_POD_TLS_ENABLED}" == "true" ] && { [ "${CACHE_DISABLED}" == "true" ] || [ "${USE_PROXY}" == "true" ] || [ "${MULTI_USER}" == "true" ]; }; then
+  echo "ERROR: POD_TO_POD_TLS_ENABLED cannot be combined with CACHE_DISABLED, USE_PROXY, or MULTI_USER (no TLS overlay exists for those deployments)." >&2
+  exit 1
+fi
+
+if [ -n "${KFP_ARGO_MANIFESTS_DIRECTORY:-}" ]; then
+  selected_argo_version="${AWF_VERSION:-$(cat third_party/argo/VERSION)}"
+  python3 "${C_DIR}/argo_manifest_artifacts.py" install \
+    --directory "$KFP_ARGO_MANIFESTS_DIRECTORY" --version "$selected_argo_version"
+elif [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+  echo "ERROR: CI deployment requires the verified pinned Argo manifest artifact. Use the deploy action."
+  exit 1
+elif [ -n "${AWF_VERSION}"  ]; then
   echo "NOTE: Argo version ${AWF_VERSION} specified, updating Argo Workflow manifests..."
   echo "${AWF_VERSION}" > third_party/argo/VERSION
   make -C ./third_party/argo update_manifests
@@ -139,7 +151,7 @@ fi
 
 # Pin kubeflow/community-distribution to a specific commit for reproducibility.
 # To upgrade: verify all four paths below exist at the new SHA before updating.
-KUBEFLOW_MANIFESTS_SHA="c5e3896566d52e02090f15b476f4528605a9c35f"
+KUBEFLOW_MANIFESTS_SHA="5f0edd216742560ba205775e17b6b522cee53ae2"
 
 # Deploy multi-user prerequisites if multi-user mode is enabled
 # wait_for_pods_ready waits for pods to reach condition=Ready and, on timeout,
@@ -261,11 +273,37 @@ fi
 
 echo "Deploying ${TEST_MANIFESTS}..."
 
-kubectl kustomize --load-restrictor LoadRestrictionsNone "${TEST_MANIFESTS}" | kubectl apply -f - || EXIT_CODE=$?
+apply_manifests() {
+  kubectl kustomize --load-restrictor LoadRestrictionsNone "${TEST_MANIFESTS}" | kubectl apply -f -
+}
+
+# Retry: the cert-manager webhook may briefly reject CRs after its pods are ready.
+retry 5 5 apply_manifests || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Deploy unsuccessful. Failure applying ${TEST_MANIFESTS}."
   exit 1
+fi
+
+# The TLS and kubernetes-native lanes apply Certificate resources above.
+# Wait here for cert-manager to finish issuing them, so pods that mount the
+# TLS secrets do not start before the secrets exist. Multi-user deployments
+# never apply Certificates, regardless of the store flag.
+if [ "${MULTI_USER}" == "false" ] && { [ "${PIPELINES_STORE}" == "kubernetes" ] || [ "${POD_TO_POD_TLS_ENABLED}" == "true" ]; }; then
+  kubectl wait --for=condition=Ready certificate --all -n kubeflow --timeout=180s || EXIT_CODE=$?
+  if [[ $EXIT_CODE -ne 0 ]]
+  then
+    echo "Deploy unsuccessful. TLS certificates did not become Ready."
+    echo "----- certificates -----"
+    kubectl -n kubeflow describe certificate || true
+    echo "----- issuers -----"
+    kubectl -n kubeflow describe issuer || true
+    echo "----- cert-manager logs -----"
+    kubectl -n cert-manager logs deployment/cert-manager --tail=100 --prefix=true || true
+    kubectl -n cert-manager logs deployment/cert-manager-webhook --tail=100 --prefix=true || true
+    kubectl -n cert-manager logs deployment/cert-manager-cainjector --tail=100 --prefix=true || true
+    exit 1
+  fi
 fi
 
 # Check if all pods are running - (10 minutes)

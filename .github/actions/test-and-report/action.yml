@@ -142,7 +142,7 @@ runs:
       continue-on-error: true
 
     - name: Set up Go
-      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+      uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5
       with:
         go-version-file: go.mod
         # Caching is handled by the dedicated test-lane cache below; the
@@ -311,7 +311,7 @@ runs:
         INPUT_DEPLOYMENT_NAME: ${{ inputs.deployment_name }}
         INPUT_DEFAULT_NAMESPACE: ${{ inputs.default_namespace }}
         INPUT_TEST_LABEL: ${{ inputs.test_label }}
-        TEST_SOURCE_REF: ${{ github.event.merge_group.head_sha || (github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/') && github.sha) || 'master' }}
+        TEST_SOURCE_REF: ${{ github.event.merge_group.head_sha || (github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/') && github.sha) || github.event.repository.default_branch }}
         INPUT_USE_LEGACY_API_PREFIX: ${{ inputs.use_legacy_api_prefix }}
       run: |
         USE_PROXY=${{ inputs.proxy }}
