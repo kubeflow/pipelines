@@ -77,7 +77,15 @@ jobs:
       - name: Install manifest parser
         run: python -m pip install PyYAML==6.0.3
       - name: Build real KFP database initialization helper
-        run: go build -o /tmp/kfp-schema .github/resources/postgresql-upgrade/kfp-schema.go
+        env:
+          CGO_ENABLED: '1'
+        run: |
+          # The shared dialect package links the SQLite driver even for PostgreSQL.
+          if ! command -v gcc >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y build-essential
+          fi
+          go build -o /tmp/kfp-schema .github/resources/postgresql-upgrade/kfp-schema.go
       - uses: ./.github/actions/create-cluster
         with:
           k8s_version: v1.36.1

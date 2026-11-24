@@ -134,11 +134,13 @@ class V2DeploymentContractTest(unittest.TestCase):
         steps = job['steps']
         script = '.github/resources/scripts/native-backfill-rollout.sh'
         index, step = next(
-            (index, step) for index, step in enumerate(steps)
+            (index, step)
+            for index, step in enumerate(steps)
             if step.get('run') == f'bash {script}'
         )
-        self.assertEqual(steps[index - 1].get('uses'),
-                         './.github/actions/test-and-report')
+        self.assertEqual(
+            steps[index - 1].get('uses'), './.github/actions/test-and-report'
+        )
         # Every dimension that varies across the matrix must be pinned to
         # one supported value, so other API suites keep their cluster intact.
         selectors = dict(re.findall(r"matrix\.(\w+) == '([^']+)'", step['if']))
@@ -151,8 +153,9 @@ class V2DeploymentContractTest(unittest.TestCase):
         self.assertEqual(selectors['pod_to_pod_tls_enabled'], 'false')
         self.assertNotIn(selectors, matrix['exclude'])
         for extra in matrix['include']:
-            self.assertFalse(all(extra.get(key) == value
-                                 for key, value in selectors.items()))
+            self.assertFalse(
+                all(extra.get(key) == value for key, value in selectors.items())
+            )
 
     def test_upgrade_preparation_uses_legacy_prefix_and_gates_verification(
         self,
