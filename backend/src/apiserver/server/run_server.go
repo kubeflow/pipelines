@@ -803,7 +803,7 @@ func (s *RunServer) FindCachedTask(ctx context.Context, request *apiv2.FindCache
 		}
 		if effectiveNamespace != "" && effectiveNamespace != namespace {
 			return nil, util.NewPermissionDeniedError(
-				nil,
+				fmt.Errorf("bound run namespace %q does not match requested namespace %q", effectiveNamespace, namespace),
 				"bound run %s is not in namespace %s",
 				boundRunID,
 				namespace,
