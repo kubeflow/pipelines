@@ -21,6 +21,10 @@ runs:
       with:
         k8s_version: v1.36.1
         cluster_name: kfp
+    - name: Set up Python for release deployment
+      uses: actions/setup-python@v7
+      with:
+        python-version: '3.11'
     - name: Deploy previous release
       shell: bash
       env:

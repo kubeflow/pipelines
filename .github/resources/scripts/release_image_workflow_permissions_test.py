@@ -110,6 +110,22 @@ class ReleaseImageWorkflowPermissionsTest(unittest.TestCase):
                     "vars.KFP_ENFORCE_PROFILE_ISOLATION == 'true') "
                     "&& 'enforce' || 'report' }}")
 
+    def test_profile_upgrade_sets_up_python_before_source_deploy(self):
+        action = WORKFLOWS.parent / 'actions/profile-upgrade/action.yml'
+        steps = yaml.safe_load(action.read_text())['runs']['steps']
+        before_deploy = []
+        for step in steps:
+            if 'deploy-profile-upgrade-source.sh' in step.get('run', ''):
+                break
+            before_deploy.append(step)
+        else:
+            self.fail('Source deployment step missing')
+        self.assertTrue(
+            any(
+                step.get('uses', '').startswith('actions/setup-python@') and
+                step.get('with', {}).get('python-version')
+                for step in before_deploy))
+
     def test_pr_and_release_use_the_same_upgrade_harness(self):
         profile = jobs('upgrade-test.yml')['profile-upgrade']
         self.assertIn('build', profile['needs'])
