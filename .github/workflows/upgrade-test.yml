@@ -33,7 +33,9 @@ on:
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
       - 'backend/test/v2/api/**'
+      - 'frontend/**'
       - 'manifests/kustomize/**'
+      - 'test/frontend-integration-test/**'
       - 'test_data/sdk_compiled_pipelines/**'
       - '!**/*.md'
       - '!**/OWNERS'
@@ -167,3 +169,77 @@ jobs:
           default_namespace: ${{ env.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
           report_name: "Upgrade Verification"
+
+  profile-upgrade-test:
+    needs: image-artifacts-ready
+    # TODO(#14029): Enable alongside the API upgrade job after wiring the supported migration below.
+    if: ${{ false }}
+    name: Two-profile browser upgrade
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Create a disposable cluster
+        uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: v1.36.1
+          cluster_name: kfp
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: frontend/.nvmrc
+
+      - name: Install browser test dependencies
+        working-directory: frontend/scripts/ui-smoke-test
+        run: |
+          npm ci
+          npx playwright install --with-deps --only-shell chromium
+          node --test profile-auth-gateway.unit.cjs profile-catalog-assertions.unit.cjs
+
+      - name: Deploy the latest published 2.18 MLMD source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/resources/scripts/deploy-profile-upgrade-source.sh
+
+      - name: Create runs in both profiles through the released UI
+        run: bash test/frontend-integration-test/run-profile-upgrade.sh source
+
+      # TODO(#14029): Run the supported MLMD migration on this cluster before
+      # starting the native candidate. Keep the source databases and storage.
+      - name: Deploy the CI candidate in place
+        uses: ./.github/actions/deploy
+        with:
+          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
+          cluster_name: kfp
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
+          cache_enabled: 'false'
+          multi_user: 'true'
+          db_type: mysql
+          forward_port: 'false'
+
+      - name: Verify retained UI journeys and submit new runs
+        run: bash test/frontend-integration-test/run-profile-upgrade.sh target
+
+      - name: Collect cluster diagnostics
+        if: failure()
+        run: |
+          kubectl -n kubeflow get pods -o wide || true
+          kubectl -n kubeflow get events --sort-by=.metadata.creationTimestamp | tail -40 || true
+
+      - name: Retain fixture evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: profile-upgrade-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/profile-upgrade/
+          if-no-files-found: ignore
