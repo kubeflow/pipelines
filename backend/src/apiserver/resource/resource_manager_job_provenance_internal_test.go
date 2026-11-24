@@ -171,7 +171,7 @@ func TestChangeJobMode_UsesSelectedPipelineProvenance(t *testing.T) {
 // schedules are generic. Seed that representation explicitly for migration checks.
 func seedHistoricalEmbeddedSchedule(t *testing.T, manager *ResourceManager, job *model.Job) {
 	t.Helper()
-	tmpl, _, err := manager.fetchTemplateFromPipelineSpec(&job.PipelineSpec)
+	tmpl, _, err := manager.fetchTemplateFromPipelineSpec(context.Background(), &job.PipelineSpec)
 	require.NoError(t, err)
 	rendered, err := tmpl.ScheduledWorkflow(job)
 	require.NoError(t, err)

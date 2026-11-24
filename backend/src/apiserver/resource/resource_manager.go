@@ -597,7 +597,7 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 	}
 
 	// Fetch pipeline spec, verify it, and parse parameters
-	pipelineSpecBytes, pipelineSpecURI, err := r.fetchTemplateFromPipelineVersion(pv)
+	pipelineSpecBytes, pipelineSpecURI, err := r.fetchTemplateFromPipelineVersion(context.Background(), pv)
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version as template is broken")
 	}
@@ -716,7 +716,7 @@ func (r *ResourceManager) GetPipelineLatestTemplate(pipelineId string) ([]byte, 
 	}
 
 	// Fetch template []byte array
-	if bytes, _, err := r.fetchTemplateFromPipelineVersion(latestPipelineVersion); err != nil {
+	if bytes, _, err := r.fetchTemplateFromPipelineVersion(context.Background(), latestPipelineVersion); err != nil {
 		return nil, util.Wrapf(err, "Failed to get the latest template for pipeline with id %v", pipelineId)
 	} else {
 		return bytes, nil
@@ -832,7 +832,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
 	// Update the run.PipelineSpec if an existing pipeline version is used.
-	tmpl, _, err := r.fetchTemplateFromPipelineSpec(&run.PipelineSpec)
+	tmpl, _, err := r.fetchTemplateFromPipelineSpec(ctx, &run.PipelineSpec)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a run due to error fetching manifest")
 	}
@@ -997,7 +997,7 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 			// Preserve API routing across restarts instead of restoring an embedded workflow.
 			newScheduledWorkflow, err = template.NewGenericScheduledWorkflow(jobs[i])
 		} else {
-			tmpl, _, templateErr := r.fetchTemplateFromPipelineSpec(&jobs[i].PipelineSpec)
+			tmpl, _, templateErr := r.fetchTemplateFromPipelineSpec(ctx, &jobs[i].PipelineSpec)
 			if templateErr != nil {
 				return failedToReconcileSwfCrsError(templateErr)
 			}
@@ -1896,7 +1896,7 @@ func (r *ResourceManager) prepareJobWorkflow(ctx context.Context, job *model.Job
 		var err error
 		// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
 		// Update the job.PipelineSpec if an existing pipeline version is used.
-		tmpl, _, err = r.fetchTemplateFromPipelineSpec(&job.PipelineSpec)
+		tmpl, _, err = r.fetchTemplateFromPipelineSpec(ctx, &job.PipelineSpec)
 		if err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
 		}
@@ -3374,7 +3374,7 @@ func (r *ResourceManager) ReportScheduledWorkflowResource(swf *util.ScheduledWor
 // 2. IR pipeline spec manifest provided by a user.
 // If an existing pipeline version is found, the referenced pipeline and pipeline version are updated.
 // Persist only the selected source manifest, not unused client-supplied alternatives.
-func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.PipelineSpec) (template.Template, string, error) {
+func (r *ResourceManager) fetchTemplateFromPipelineSpec(ctx context.Context, pipelineSpec *model.PipelineSpec) (template.Template, string, error) {
 	manifest := ""
 	pipelineVersion, err := r.fetchPipelineVersionFromPipelineSpec(*pipelineSpec)
 	if err != nil {
@@ -3385,7 +3385,7 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 		pipelineSpec.PipelineVersionId = pipelineVersion.UUID
 		pipelineSpec.PipelineName = pipelineVersion.Name
 		// Fetch the template from PipelineSpec field or the corresponding YAML file
-		tempBytes, _, err := r.fetchTemplateFromPipelineVersion(pipelineVersion)
+		tempBytes, _, err := r.fetchTemplateFromPipelineVersion(ctx, pipelineVersion)
 		if err != nil {
 			return nil, "", util.Wrapf(err, "Failed to fetch a template due invalid manifest in pipeline version %v", pipelineSpec.PipelineVersionId)
 		}
@@ -3471,20 +3471,20 @@ func (r *ResourceManager) allowsCompilerPodSpecPatch(pipelineSpec model.Pipeline
 //  2. Fetch a yaml file from object store based on pipeline versions's PipelineSpecURI field.
 //  3. Fetch a yaml file from object store based on pipeline versions's id.
 //  4. Fetch a yaml file from object store based on pipeline's id.
-func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *model.PipelineVersion) ([]byte, string, error) {
+func (r *ResourceManager) fetchTemplateFromPipelineVersion(ctx context.Context, pipelineVersion *model.PipelineVersion) ([]byte, string, error) {
 	if len(pipelineVersion.PipelineSpec) != 0 {
 		// Check pipeline spec string first
 		bytes := []byte(pipelineVersion.PipelineSpec)
 		return bytes, string(pipelineVersion.PipelineSpecURI), nil
 	} else {
 		// Try reading object store from pipeline_spec_uri
-		template, errURI := r.readPipelineSpecFromObjectStore(context.TODO(), string(pipelineVersion.PipelineSpecURI))
+		template, errURI := r.readPipelineSpecFromObjectStore(ctx, string(pipelineVersion.PipelineSpecURI))
 		if errURI != nil {
 			// Try reading object store from pipeline_version_id
-			template, errUUID := r.readPipelineSpecFromObjectStore(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
+			template, errUUID := r.readPipelineSpecFromObjectStore(ctx, r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
 			if errUUID != nil {
 				// Try reading object store from pipeline_id
-				template, errPipelineID := r.readPipelineSpecFromObjectStore(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
+				template, errPipelineID := r.readPipelineSpecFromObjectStore(ctx, r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
 				if errPipelineID != nil {
 					return nil, "", util.Wrap(
 						util.Wrap(
@@ -3695,7 +3695,7 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	}
 
 	// Fetch pipeline spec
-	pipelineSpecBytes, pipelineSpecURI, err := r.fetchTemplateFromPipelineVersion(pv)
+	pipelineSpecBytes, pipelineSpecURI, err := r.fetchTemplateFromPipelineVersion(context.Background(), pv)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version as template is broken")
 	}
@@ -3859,7 +3859,7 @@ func (r *ResourceManager) GetPipelineVersionTemplate(pipelineVersionId string) (
 	}
 
 	// Fetch template []byte array
-	if bytes, _, err := r.fetchTemplateFromPipelineVersion(pipelineVersion); err != nil {
+	if bytes, _, err := r.fetchTemplateFromPipelineVersion(context.Background(), pipelineVersion); err != nil {
 		return nil, util.Wrapf(err, "Failed to get a template for pipeline version with id %v", pipelineVersionId)
 	} else {
 		return bytes, nil

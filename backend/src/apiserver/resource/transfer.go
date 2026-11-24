@@ -83,12 +83,12 @@ func (r *ResourceManager) exportTransferCatalog(ctx context.Context, namespace s
 	if store, ok := r.pipelineStore.(*storage.PipelineStoreKubernetes); ok {
 		return r.exportTransferKubernetesCatalog(ctx, store, namespace, budget)
 	}
-	p, v, err := r.exportTransferCatalogScope(namespace, namespace, budget)
+	p, v, err := r.exportTransferCatalogScope(ctx, namespace, namespace, budget)
 	if err != nil {
 		return nil, nil, err
 	}
 	if namespace == "" {
-		shared, sharedVersions, err := r.exportTransferCatalogScope(namespace, model.NoNamespace, budget)
+		shared, sharedVersions, err := r.exportTransferCatalogScope(ctx, namespace, model.NoNamespace, budget)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -100,7 +100,7 @@ func (r *ResourceManager) exportTransferCatalog(ctx context.Context, namespace s
 	}
 	return p, v, nil
 }
-func (r *ResourceManager) exportTransferCatalogScope(namespace, scope string, budget *transfer.ExportBudget) ([]model.Pipeline, []model.PipelineVersion, error) {
+func (r *ResourceManager) exportTransferCatalogScope(ctx context.Context, namespace, scope string, budget *transfer.ExportBudget) ([]model.Pipeline, []model.PipelineVersion, error) {
 	opts, err := list.NewOptions(&model.Pipeline{}, 1, "", nil)
 	if err != nil {
 		return nil, nil, err
@@ -150,7 +150,7 @@ func (r *ResourceManager) exportTransferCatalogScope(namespace, scope string, bu
 				for _, row := range vrows {
 					v := *row
 					v.Status = model.PipelineVersionReady
-					data, _, err := r.fetchTemplateFromPipelineVersion(&v)
+					data, _, err := r.fetchTemplateFromPipelineVersion(ctx, &v)
 					if err != nil {
 						return nil, nil, err
 					}

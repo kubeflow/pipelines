@@ -467,6 +467,67 @@ func TestReadPipelineSpecConfiguredLimit(t *testing.T) {
 	require.ErrorContains(t, err, "Invalid pipeline size limit configuration")
 }
 
+func TestFetchTemplateFromPipelineVersionPropagatesCanceledContext(t *testing.T) {
+	objectStore := &cancelAwareObjectStore{
+		readerOnlyObjectStore: &readerOnlyObjectStore{
+			files: map[string][]byte{
+				"spec-uri.yaml": []byte(v2SpecHelloWorld),
+			},
+		},
+	}
+	manager := &ResourceManager{objectStore: objectStore}
+
+	pv := &model.PipelineVersion{
+		PipelineSpecURI: "spec-uri.yaml",
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, _, err := manager.fetchTemplateFromPipelineVersion(ctx, pv)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), context.Canceled.Error())
+}
+
+func TestFetchTemplateFromPipelineSpecPropagatesCanceledContext(t *testing.T) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	objectStore := &cancelAwareObjectStore{
+		readerOnlyObjectStore: &readerOnlyObjectStore{
+			files: map[string][]byte{
+				"spec-uri.yaml": []byte(v2SpecHelloWorld),
+			},
+		},
+	}
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	manager.objectStore = objectStore
+
+	p, err := store.PipelineStore().CreatePipeline(createPipelineV1("test-p"))
+	require.NoError(t, err)
+
+	pv := &model.PipelineVersion{
+		PipelineId:      p.UUID,
+		Name:            "v1",
+		Status:          model.PipelineVersionReady,
+		PipelineSpecURI: "spec-uri.yaml",
+	}
+	pvCreated, err := store.PipelineStore().CreatePipelineVersion(pv)
+	require.NoError(t, err)
+
+	spec := &model.PipelineSpec{
+		PipelineId:        p.UUID,
+		PipelineVersionId: pvCreated.UUID,
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, _, err = manager.fetchTemplateFromPipelineSpec(ctx, spec)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), context.Canceled.Error())
+}
+
 // Util function to create an initial state with pipeline uploaded
 func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Pipeline, *model.PipelineVersion) {
 	initEnvVars()
