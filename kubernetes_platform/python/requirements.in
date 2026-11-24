@@ -16,7 +16,7 @@ oauthlib>=4.0.1,<5
 # Keep this transitive TLS dependency above the GHSA-6q48-6c7w-9gw2 security floor.
 # 2026.10.19 retains the compromised emSign root removal while restoring unaffected
 # roots removed in 2026.10.18, preserving trust for unaffected certificate chains.
-certifi>=2026.10.19
+certifi>=2026.11.20
 
 # Match the SDK compatibility split when resolving the published kfp package.
 google-api-core>=2.30.3,<3; python_version < "3.10"

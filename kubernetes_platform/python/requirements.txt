@@ -2,7 +2,7 @@
 #    uv pip compile requirements.in -o requirements.txt --python-version 3.9 --universal --no-strip-extras --annotation-style split
 cachetools==6.2.2
     # via google-auth
-certifi==2026.10.23
+certifi==2026.11.20
     # via
     #   -r requirements.in
     #   kfp
@@ -17,17 +17,9 @@ click==8.1.8
     #   kfp
 click-option-group==0.5.7
     # via kfp
-colorama==0.4.6 ; sys_platform == 'win32'
-    # via click
 docstring-parser==0.17.0
     # via kfp
-google-api-core==2.30.3 ; python_full_version < '3.10'
-    # via
-    #   -r requirements.in
-    #   google-cloud-core
-    #   google-cloud-storage
-    #   kfp
-google-api-core==2.44.0 ; python_full_version >= '3.10'
+google-api-core==2.44.0 ; python_version >= "3.10"
     # via
     #   -r requirements.in
     #   google-cloud-core
@@ -68,7 +60,7 @@ oauthlib==4.0.1
     #   kfp
     #   kubernetes
     #   requests-oauthlib
-opentelemetry-api==1.45.2 ; python_full_version >= '3.10'
+opentelemetry-api==1.45.2
     # via google-api-core
 proto-plus==1.26.1
     # via google-api-core
@@ -83,6 +75,7 @@ protobuf==6.33.6
 pyasn1==0.6.5
     # via
     #   -r requirements.in
+    #   kfp
     #   pyasn1-modules
     #   rsa
 pyasn1-modules==0.4.2
@@ -95,16 +88,7 @@ pyyaml==6.0.3
     # via
     #   kfp
     #   kubernetes
-requests==2.32.5 ; python_full_version < '3.10'
-    # via
-    #   -r requirements.in
-    #   google-api-core
-    #   google-cloud-storage
-    #   kfp
-    #   kubernetes
-    #   requests-oauthlib
-    #   requests-toolbelt
-requests==2.33.0 ; python_full_version >= '3.10'
+requests==2.33.0 ; python_version >= "3.10"
     # via
     #   -r requirements.in
     #   google-api-core
@@ -126,16 +110,9 @@ six==1.17.0
     #   python-dateutil
 tabulate==0.9.0
     # via kfp
-typing-extensions==4.16.0 ; python_full_version >= '3.10'
+typing-extensions==4.16.0
     # via opentelemetry-api
-urllib3==2.6.3 ; python_full_version < '3.10'
-    # via
-    #   -r requirements.in
-    #   kfp
-    #   kfp-server-api
-    #   kubernetes
-    #   requests
-urllib3==2.8.0 ; python_full_version >= '3.10'
+urllib3==2.8.0 ; python_version >= "3.10"
     # via
     #   -r requirements.in
     #   kfp
