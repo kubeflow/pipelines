@@ -22,6 +22,20 @@ Do not commit exports. `hack/update-all-requirements.sh` updates the workspace l
 modern release preparation builds distributions without recreating exports. Older
 release source checkouts that contain tracked exports retain their original behavior.
 
+## Transitive dependency updates
+
+The default-branch gomod and uv entries set `allow: dependency-type: "all"`,
+so scheduled updates cover indirect (transitive) dependencies as well as
+direct ones. Without it, Dependabot updates direct requirements only, and a
+vulnerable transitive dependency with no direct-dep bump never reaches
+`go.sum` or `uv.lock`. `osv-scanner.yml` remains the detection surface.
+Transitive bumps flow through the same groups, commit prefix, labels, and
+`ignore` rules as direct bumps. Dependabot supports indirect updates only for
+bundler, pip, composer, cargo, gomod, and uv, so npm keeps direct-only updates
+(`package-lock.json` transitives move only through direct bumps or security
+updates); Docker, GitHub Actions, and pre-commit have no transitive concept.
+pip `requirements.txt` files are manifests without lockfile pinning.
+
 React, ReactDOM, and their typings are grouped together for both version and
 security updates. Grouping does not waive peer compatibility, source review,
 or the normal CI and merge requirements.
