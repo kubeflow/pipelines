@@ -144,8 +144,7 @@ func NewExecutionInformerOrFatal(execType ExecutionType, namespace string,
 				argoInformer = argoinformer.NewFilteredSharedInformerFactory(
 					argoProjClient, time.Second*30, namespace, nil)
 			}
-			registerWorkflowInformer(argoInformer, dynamic.NewForConfigOrDie(restConfig), namespace)
-			return nil
+			return registerWorkflowInformer(argoInformer, dynamic.NewForConfigOrDie(restConfig), namespace)
 		}
 
 		b := backoff.NewExponentialBackOff()

@@ -130,7 +130,9 @@ func main() {
 	} else {
 		scheduleInformerFactory = swfinformers.NewFilteredSharedInformerFactory(scheduleClient, defaultResync, namespace, nil)
 	}
-	commonutil.RegisterScheduledWorkflowInformer(scheduleInformerFactory, dynamic.NewForConfigOrDie(cfg), namespace)
+	if err := commonutil.RegisterScheduledWorkflowInformer(scheduleInformerFactory, dynamic.NewForConfigOrDie(cfg), namespace); err != nil {
+		log.Fatalf("Error registering the ScheduledWorkflow informer: %v", err)
+	}
 
 	grpcAddress := fmt.Sprintf("%s:%s", mlPipelineAPIServerName, mlPipelineServiceGRPCPort)
 

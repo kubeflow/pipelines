@@ -27,6 +27,7 @@ import (
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	swfinformers "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -47,30 +48,48 @@ import (
 // registered below list and watch through the dynamic client instead and
 // decode the objects one at a time, leaving out the ones that do not decode.
 
+// errInformerAlreadyRequested reports a registration that came too late: the
+// factory had already created its own informer, which decodes whole lists and
+// would be the one in use.
+var errInformerAlreadyRequested = errors.New("the informer was requested from the factory before the tolerant informer was registered")
+
 // registerWorkflowInformer makes factory serve Workflows from an informer that
 // tolerates undecodable objects. It must be called before the factory's
-// Workflow informer is first requested.
-func registerWorkflowInformer(factory argoinformer.SharedInformerFactory, client dynamic.Interface, namespace string) {
+// Workflow informer is first requested, and returns an error otherwise.
+func registerWorkflowInformer(factory argoinformer.SharedInformerFactory, client dynamic.Interface, namespace string) error {
+	registered := false
 	factory.InformerFor(&workflowapi.Workflow{},
 		func(_ argoclient.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+			registered = true
 			return newTolerantInformer(client,
 				workflowapi.SchemeGroupVersion.WithResource(workflowregister.WorkflowPlural), namespace, resyncPeriod,
 				func() runtime.Object { return &workflowapi.Workflow{} },
 				func() runtime.Object { return &workflowapi.WorkflowList{} })
 		})
+	if !registered {
+		return errors.Wrap(errInformerAlreadyRequested, "Failed to register the Workflow informer")
+	}
+	return nil
 }
 
 // RegisterScheduledWorkflowInformer makes factory serve ScheduledWorkflows
 // from an informer that tolerates undecodable objects. It must be called
-// before the factory's ScheduledWorkflow informer is first requested.
-func RegisterScheduledWorkflowInformer(factory swfinformers.SharedInformerFactory, client dynamic.Interface, namespace string) {
+// before the factory's ScheduledWorkflow informer is first requested, and
+// returns an error otherwise.
+func RegisterScheduledWorkflowInformer(factory swfinformers.SharedInformerFactory, client dynamic.Interface, namespace string) error {
+	registered := false
 	factory.InformerFor(&swfapi.ScheduledWorkflow{},
 		func(_ swfclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+			registered = true
 			return newTolerantInformer(client,
 				swfapi.SchemeGroupVersion.WithResource(swfregister.Plural), namespace, resyncPeriod,
 				func() runtime.Object { return &swfapi.ScheduledWorkflow{} },
 				func() runtime.Object { return &swfapi.ScheduledWorkflowList{} })
 		})
+	if !registered {
+		return errors.Wrap(errInformerAlreadyRequested, "Failed to register the ScheduledWorkflow informer")
+	}
+	return nil
 }
 
 // newTolerantInformer returns an informer for the typed objects of a custom

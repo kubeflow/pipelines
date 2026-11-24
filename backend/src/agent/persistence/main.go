@@ -129,7 +129,9 @@ func main() {
 	} else {
 		swfInformerFactory = swfinformers.NewFilteredSharedInformerFactory(swfClient, time.Second*30, namespace, nil)
 	}
-	util.RegisterScheduledWorkflowInformer(swfInformerFactory, dynamic.NewForConfigOrDie(cfg), namespace)
+	if err := util.RegisterScheduledWorkflowInformer(swfInformerFactory, dynamic.NewForConfigOrDie(cfg), namespace); err != nil {
+		log.Fatalf("Error registering the ScheduledWorkflow informer: %v", err)
+	}
 
 	tokenRefresher := tokenrefresher.NewTokenRefresher(time.Duration(saTokenRefreshIntervalInSecs)*time.Second, nil)
 	err = tokenRefresher.StartTokenRefreshTicker()
