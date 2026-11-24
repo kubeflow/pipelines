@@ -22,11 +22,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestArchiveKeyPolicy(t *testing.T) {
@@ -223,6 +226,69 @@ func TestArchiveContextResolvesLegacyNamespace(t *testing.T) {
 				require.Equal(t, "team-a", identity.Namespace)
 				require.Equal(t, "workflow-a", identity.WorkflowName)
 				require.Equal(t, run.UUID, identity.RunID)
+			}
+		})
+	}
+}
+
+// A namespace editor can rewrite the status of their own Workflow, and the
+// persistence agent reports what it finds. The reported main-logs key nominates
+// an object; it cannot widen a native run beyond its own namespace/workflow.
+func TestNativeArchiveLogsStayInReportedRunScope(t *testing.T) {
+	for _, scenario := range []string{"own workflow", "other workflow in namespace", "other namespace"} {
+		t.Run(scenario, func(t *testing.T) {
+			clients, manager, run := initWithOneTimeRun(t)
+			defer clients.Close()
+			previous := viper.Get(common.MultiUserMode)
+			viper.Set(common.MultiUserMode, true)
+			t.Cleanup(func() { viper.Set(common.MultiUserMode, previous) })
+			t.Setenv("KFP_LOG_ARCHIVE_KEY_FORMAT", "")
+			ctx := context.Background()
+
+			namespace, workflowName := run.Namespace, run.K8SName
+			switch scenario {
+			case "other workflow in namespace":
+				workflowName = "another-workflow"
+			case "other namespace":
+				namespace = "another-namespace"
+			}
+			key := fmt.Sprintf("private-artifacts/%s/%s/2026/11/12/pod-a/main.log", namespace, workflowName)
+
+			// The tenant's edit, as `kubectl edit workflow` sends it.
+			workflows := clients.ExecClient().Execution(run.Namespace)
+			live, err := workflows.Get(ctx, run.K8SName, metav1.GetOptions{})
+			require.NoError(t, err)
+			workflow := live.(*util.Workflow)
+			workflow.Status.Nodes = v1alpha1.Nodes{"pod-a": {ID: "pod-a", Outputs: &v1alpha1.Outputs{Artifacts: v1alpha1.Artifacts{{
+				Name:             "main-logs",
+				ArtifactLocation: v1alpha1.ArtifactLocation{S3: &v1alpha1.S3Artifact{Key: key}},
+			}}}}}
+			_, err = workflows.Update(ctx, workflow, metav1.UpdateOptions{})
+			require.NoError(t, err)
+
+			// The persistence agent stores the edited status with the run.
+			reported, err := workflows.Get(ctx, run.K8SName, metav1.GetOptions{})
+			require.NoError(t, err)
+			_, err = manager.ReportWorkflowResource(ctx, reported)
+			require.NoError(t, err)
+			stored, err := manager.GetRun(run.UUID)
+			require.NoError(t, err)
+			require.Contains(t, string(stored.WorkflowRuntimeManifest), key)
+
+			// No Pod exists, so the read falls back to the archive.
+			objects := &readerOnlyObjectStore{files: map[string][]byte{key: []byte("ARCHIVED_LOG\n")}}
+			manager.objectStore = objects
+			manager.logArchive = archive.NewLogArchive("/logs", "main.log")
+			var dst bytes.Buffer
+			err = manager.ReadLog(ctx, run.UUID, "pod-a", false, &dst)
+			if scenario == "own workflow" {
+				require.NoError(t, err)
+				require.Equal(t, "ARCHIVED_LOG\n", dst.String())
+				require.Equal(t, []string{key}, objects.getFileReaderPaths)
+			} else {
+				require.Error(t, err)
+				require.Empty(t, dst.String())
+				require.Empty(t, objects.getFileReaderPaths)
 			}
 		})
 	}
