@@ -367,25 +367,28 @@ func (s *RunStore) ListRuns(
 	return page, totalSize, npt, nil
 }
 
-// A reporter from a rolling upgrade can insert its copy of a version-only
-// recurring job after the backfill has finished. Resolve those rows consistently
-// for filtering, ordering and display. Each lookup uses its source primary key.
-func recurringRunPipelineID(q dialect.QuoteFunction, table string) string {
+// Use the same pipeline ID for display, filtering and pagination while the
+// worker repairs legacy rows. Old reporters can also insert version-only runs
+// after completion. Explicit stored IDs take precedence over legacy references.
+func effectiveRunPipelineID(q dialect.QuoteFunction, table string) string {
 	run := dialect.QualifiedColumn(q, table)
-	id, version := run("PipelineId"), run("PipelineVersionId")
 	ref := dialect.QualifiedColumn(q, "resource_references")
+	referenceID := func(kind model.ResourceType) string {
+		return fmt.Sprintf("(SELECT %s FROM %s WHERE %s = %s AND %s = '%s' AND %s = '%s' AND %s <> '')",
+			ref("ReferenceUUID"), q("resource_references"), ref("ResourceUUID"), run("UUID"),
+			ref("ResourceType"), model.RunResourceType, ref("ReferenceType"), kind, ref("ReferenceUUID"))
+	}
+	version := fmt.Sprintf("COALESCE(NULLIF(%s, ''), %s)", run("PipelineVersionId"), referenceID(model.PipelineVersionResourceType))
 	pv := dialect.QualifiedColumn(q, "pipeline_versions")
-	directRef := fmt.Sprintf("SELECT %s FROM %s WHERE %s = %s AND %s = '%s' AND %s = '%s' AND %s <> ''",
-		ref("ReferenceUUID"), q("resource_references"), ref("ResourceUUID"), run("UUID"),
-		ref("ResourceType"), model.RunResourceType, ref("ReferenceType"), model.PipelineResourceType, ref("ReferenceUUID"))
-	versionParent := fmt.Sprintf("SELECT %s FROM %s WHERE %s = %s AND %s <> ''",
+	versionParent := fmt.Sprintf("(SELECT %s FROM %s WHERE %s = %s AND %s <> '')",
 		pv("PipelineId"), q("pipeline_versions"), pv("UUID"), version, pv("PipelineId"))
-	// A version can be deleted while its repaired source job still exists.
+	// A deleted version's repaired source job is usable only if the job still
+	// identifies the same version as the run.
 	job := dialect.QualifiedColumn(q, "jobs")
-	jobParent := fmt.Sprintf("SELECT %s FROM %s WHERE %s = %s AND %s = %s",
+	jobParent := fmt.Sprintf("(SELECT %s FROM %s WHERE %s = %s AND %s = %s)",
 		job("PipelineId"), q("jobs"), job("UUID"), run("JobUUID"), job("PipelineVersionId"), version)
-	return fmt.Sprintf("CASE WHEN (%s = '' OR %s IS NULL) AND %s <> '' AND %s <> '' THEN COALESCE((%s), (%s), (%s), '') ELSE %s END",
-		id, id, run("JobUUID"), version, directRef, versionParent, jobParent, id)
+	return fmt.Sprintf("COALESCE(NULLIF(%s, ''), %s, %s, %s, '')",
+		run("PipelineId"), referenceID(model.PipelineResourceType), versionParent, jobParent)
 }
 
 func getRunListColumns(opts *list.Options, q dialect.QuoteFunction) []string {
@@ -398,7 +401,7 @@ func getRunListColumns(opts *list.Options, q dialect.QuoteFunction) []string {
 			case col == "'' AS PipelineRuntimeManifest" && opts.SortByFieldName == "PipelineRuntimeManifest":
 				columns[i] = "PipelineRuntimeManifest"
 			case col == "PipelineId" && opts.SortBySQLColumn == "PipelineId":
-				columns[i] = recurringRunPipelineID(q, "run_details") + " AS " + q(col)
+				columns[i] = effectiveRunPipelineID(q, "run_details") + " AS " + q(col)
 			}
 		}
 	}
@@ -432,7 +435,7 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 
 	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder, func(column string) string {
 		if column == "PipelineId" {
-			return recurringRunPipelineID(q, "run_details")
+			return effectiveRunPipelineID(q, "run_details")
 		}
 		return q(column)
 	})
@@ -653,7 +656,7 @@ func (s *RunStore) addResourceReferences(filteredSelectBuilder sq.SelectBuilder)
 	joinedColumns := append(
 		dialect.QuoteAll(func(column string) string {
 			if column == "PipelineId" {
-				return recurringRunPipelineID(q, "rd") + " AS " + q(column)
+				return effectiveRunPipelineID(q, "rd") + " AS " + q(column)
 			}
 			return "rd." + q(column)
 		}, runColumns),

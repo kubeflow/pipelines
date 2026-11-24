@@ -102,6 +102,7 @@ func TestBackfillPipelineRefs_ConcurrentWrites(t *testing.T) {
 			pool, err := db.DB()
 			require.NoError(t, err)
 			runs := storage.NewRunStore(pool, util.NewRealTime(), d)
+			checkStandaloneReads := prepareStandaloneBackfillReads(t, db, runs)
 			// This run also needs repair, but its key sorts after the first batch.
 			// A whole-table UPDATE locks it immediately and stalls its reporter.
 			reportedRun, err := runs.CreateRun(&model.Run{UUID: "run-999999", DisplayName: "report", Namespace: "ns", ExperimentId: "exp", RunDetails: model.RunDetails{State: model.RuntimeStatePending}})
@@ -160,9 +161,83 @@ func TestBackfillPipelineRefs_ConcurrentWrites(t *testing.T) {
 					t.Fatalf("writes blocked for 3s during backfill: CreateRun pending=%t, UpdateRunFromWorkflow pending=%t", createResult != nil, reportResult != nil)
 				}
 			}
+			checkStandaloneReads()
 			resume()
 			require.NoError(t, <-finished)
+			checkStandaloneReads()
 		})
+	}
+}
+
+// Read the same standalone runs while the first repair transaction is paused
+// and after it commits. Both the stored values and the API's resource-reference
+// fallback must produce the same filtered count and keyset traversal.
+func prepareStandaloneBackfillReads(t *testing.T, db *gorm.DB, runs *storage.RunStore) func() {
+	t.Helper()
+	const exp = "standalone"
+	require.NoError(t, db.Create(&model.Experiment{UUID: exp, Name: exp, Namespace: "ns"}).Error)
+	require.NoError(t, db.Create(&model.Pipeline{UUID: "a-parent", Name: "p", DisplayName: "p", Status: model.PipelineReady, Namespace: "ns"}).Error)
+	require.NoError(t, db.Create(&model.PipelineVersion{UUID: "version", Name: "v", DisplayName: "v", PipelineId: "a-parent", Status: model.PipelineVersionReady, PipelineSpec: "spec"}).Error)
+
+	fixtures := []struct {
+		id, storedID, storedVersion, directRef, versionRef, expected string
+	}{
+		{id: "legacy-version", versionRef: "version", expected: "a-parent"},
+		{id: "legacy-direct", directRef: "b-direct", versionRef: "version", expected: "b-direct"},
+		{id: "legacy-stored", storedID: "c-stored", directRef: "b-direct", expected: "c-stored"},
+		{id: "legacy-stored-version", storedVersion: "version", versionRef: "stale-version", expected: "a-parent"},
+	}
+	for _, row := range fixtures {
+		require.NoError(t, db.Create(&model.Run{UUID: row.id, DisplayName: row.id, K8SName: row.id, ExperimentId: exp,
+			Namespace: "ns", StorageState: model.StorageStateAvailable,
+			PipelineSpec: model.PipelineSpec{PipelineId: row.storedID, PipelineVersionId: row.storedVersion}}).Error)
+		for kind, id := range map[model.ResourceType]string{model.PipelineResourceType: row.directRef, model.PipelineVersionResourceType: row.versionRef} {
+			if id == "" {
+				continue
+			}
+			ref := model.ResourceReference{ResourceUUID: row.id, ResourceType: model.RunResourceType,
+				ReferenceUUID: id, ReferenceType: kind, Relationship: model.OwnerRelationship}
+			payload, err := json.Marshal(&ref)
+			require.NoError(t, err)
+			ref.Payload = model.LargeText(payload)
+			require.NoError(t, db.Create(&ref).Error)
+		}
+	}
+
+	return func() {
+		for _, row := range fixtures {
+			got, err := runs.GetRun(row.id, false)
+			require.NoError(t, err)
+			require.Equal(t, row.expected, got.PipelineId, row.id)
+		}
+		ctx := &model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: exp}}
+		for _, tt := range []struct {
+			op  api.Predicate_Operation
+			ids []string
+		}{
+			{api.Predicate_EQUALS, []string{"legacy-stored-version", "legacy-version"}},
+			{api.Predicate_NOT_EQUALS, []string{"legacy-direct", "legacy-stored"}},
+		} {
+			pred, err := filter.New(&api.Filter{Predicates: []*api.Predicate{{
+				Key: "pipeline_id", Operation: tt.op, Value: &api.Predicate_StringValue{StringValue: "a-parent"},
+			}}})
+			require.NoError(t, err)
+			opts, err := list.NewOptions(&model.Run{}, 1, "pipeline_id", pred)
+			require.NoError(t, err)
+			for i, id := range tt.ids {
+				page, count, token, err := runs.ListRuns(ctx, opts, false)
+				require.NoError(t, err)
+				require.Equal(t, len(tt.ids), count)
+				require.Len(t, page, 1)
+				require.Equal(t, id, page[0].UUID)
+				if i == len(tt.ids)-1 {
+					require.Empty(t, token)
+				} else {
+					opts, err = list.NewOptionsFromToken(token, 1)
+					require.NoError(t, err)
+				}
+			}
+		}
 	}
 }
 
