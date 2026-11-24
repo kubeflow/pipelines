@@ -17,6 +17,7 @@ package resource
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -29,8 +30,18 @@ import (
 // name-based run IDs are reserved for ticks claimed through the API, and the
 // run ID label of a Workflow is editable by namespace users. Such an ID is
 // therefore accepted only for the tick this recurring run claimed last.
-func (r *ResourceManager) validateRecurringRunReportID(jobID, runID string) error {
+//
+// Release 2.17 derived the ID of a scheduled run from its recurring run ID and
+// the run name, which it recorded on the Workflow. Such an execution can still
+// be in flight after an upgrade, so that form is accepted as well. The name is
+// editable too, but it only selects an ID under this recurring run's own
+// prefix, and names in the tick form stay reserved for claimed ticks.
+func (r *ResourceManager) validateRecurringRunReportID(jobID, runID, reportedRunName string) error {
 	if !common.IsMultiUserMode() || !util.IsDeterministicUUID(runID) {
+		return nil
+	}
+	if reportedRunName != "" && !strings.HasPrefix(reportedRunName, "tick/") &&
+		runID == util.NewDeterministicUUID(jobID+"/"+reportedRunName) {
 		return nil
 	}
 	claim, err := r.jobStore.GetRecurringRunState(jobID)

@@ -170,20 +170,33 @@ func TestRecurringRunReportCannotTakeUnclaimedTickID(t *testing.T) {
 	})
 	require.NoError(t, err)
 	for _, test := range []struct {
-		name     string
-		runID    string
+		name  string
+		runID string
+		// The run name annotation of the Workflow, which release 2.17 set.
+		runName  string
 		rejected bool
 	}{
 		{name: "tick of another recurring run", runID: util.NewDeterministicUUID("another-recurring-run/tick/1"), rejected: true},
 		{name: "unclaimed tick of its own recurring run", runID: util.NewDeterministicUUID(job.UUID + "/tick/1"), rejected: true},
 		{name: "random ID of a legacy execution", runID: "0b1f6f8e-4a4f-4a53-9d0c-5f5d0f6f7a11"},
+		// Release 2.17 derived run IDs from the recurring run ID and the run name.
+		{name: "name-based ID of a 2.17 execution", runID: util.NewDeterministicUUID(job.UUID + "/schedule-1-1234567890"), runName: "schedule-1-1234567890"},
+		{name: "name-based ID that is not derived from the run name", runID: util.NewDeterministicUUID(job.UUID + "/schedule-2-1234567890"), runName: "schedule-1-1234567890", rejected: true},
+		{name: "run name of another recurring run's 2.17 execution", runID: util.NewDeterministicUUID("another-recurring-run/schedule-1-1234567890"), runName: "schedule-1-1234567890", rejected: true},
+		{name: "run name in the tick form", runID: util.NewDeterministicUUID(job.UUID + "/tick/2"), runName: "tick/2", rejected: true},
+		{name: "run name in the tick form of another recurring run", runID: util.NewDeterministicUUID("another-recurring-run/tick/1"), runName: "tick/1", rejected: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			// Namespace users can create Workflows with any run ID label.
+			annotations := map[string]string{}
+			if test.runName != "" {
+				annotations[util.AnnotationKeyRunName] = test.runName
+			}
 			workflow, err := store.ExecClientFake.Execution(job.Namespace).Create(ctx, util.NewWorkflow(&v1alpha1.Workflow{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "hand-made-" + test.runID, Namespace: job.Namespace,
-					Labels: map[string]string{util.LabelKeyWorkflowRunId: test.runID},
+					Labels:      map[string]string{util.LabelKeyWorkflowRunId: test.runID},
+					Annotations: annotations,
 					OwnerReferences: []metav1.OwnerReference{{
 						APIVersion: "kubeflow.org/v1beta1", Kind: "ScheduledWorkflow", Name: job.K8SName, UID: types.UID(job.UUID),
 					}},
