@@ -4,7 +4,7 @@ Kubeflow Pipelines is a monorepo for compiling, running, and managing machine-le
 
 Read the guide relevant to the files or task you are changing:
 
-- [Conventions](docs/agents/conventions.md)
+- [Conventions](docs/agents/conventions.md), including [online data migrations](docs/agents/conventions.md#online-data-migrations) when changing backfills or database startup work
 - [Architecture and runtime](docs/agents/architecture.md)
 - [Development and deployment](docs/agents/development.md)
 - [Testing and formatting](docs/agents/testing.md)

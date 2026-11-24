@@ -70,6 +70,30 @@ When GORM cannot express the query (e.g., complex JOINs, subqueries, CTEs, UPSER
 
   `SetMap` is used instead of `Set` to match this codebase's established convention — every real UPDATE in `backend/src/apiserver/storage/` uses `SetMap`, even for single-column updates.
 
+## Online data migrations
+
+- Before putting work on the API startup path, check whether its cost grows
+  with retained history. When requests can serve correctly with legacy rows,
+  run the repair in a cancellable background worker. Document any dependency
+  that requires the repair to complete before readiness.
+- Find candidates with nonlocking reads that select only keys and required
+  values. Update by indexed keys in bounded transactions, recheck the repair
+  predicate at write time, and commit before reading the next batch. Inspect the
+  write plan on the target engine. A zero affected-row count can still hide a
+  locking table scan.
+- Coordinate replicas with the database's existing migration locking pattern.
+  Make committed batches safe to repeat, record completion after the last
+  batch, and bound lock waits. On shutdown, interrupt the active database
+  statement and release session-scoped locks before reusing a connection.
+  Expose progress and document recovery for an interrupted rollout.
+- For migrations of a live table, exercise the deployed database engine and
+  isolation level in CI. Hold a batch open and require representative writes
+  from a separate connection to finish within a deadline before releasing it.
+  Cover empty and partially migrated tables, interruption, and replica
+  contention. For startup changes, verify new-pod readiness and old-replica
+  writes during a mixed-version upgrade. Record failing baseline and passing
+  candidate results for a locking regression.
+
 ## Commits
 
 - Sign commits with `git commit -s`.
