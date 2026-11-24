@@ -31,6 +31,12 @@
 **Regression test and command:**
 <!-- Identify the retained automated test and the exact command used to run it. -->
 
+<!-- For migrations, startup DDL or backfills on live tables, follow
+     docs/agents/database-migrations.md. Identify the engine and isolation
+     level, where the test holds the operation open, the foreground request
+     and deadline, and the named engine subtest in CI. Describe readiness
+     during rollout and recovery after interruption where applicable. -->
+
 **Before-fix result:**
 
 **After-fix result / CI:**
