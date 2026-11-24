@@ -134,6 +134,30 @@ class WorkflowPermissionsTest(unittest.TestCase):
         workflow = self.workflows[workflow_name]
         return effective_permissions(workflow, workflow['jobs'][job_name])
 
+    def test_landed_release_verifier_executes_only_trusted_tooling(self):
+        workflow = self.workflows['release-landed-ci.yml']
+        self.assertEqual(
+            set(workflow.get('on', workflow.get(True))), {'workflow_dispatch'}
+        )
+        self.assertEqual(workflow['cache-mode'], 'none')
+        job = workflow['jobs']['ci-passed']
+        self.assertEqual(
+            job['if'],
+            "github.repository == 'kubeflow/pipelines' && github.ref == 'refs/heads/main'",
+        )
+        checkouts = [
+            step
+            for step in job['steps']
+            if step.get('uses', '').startswith('actions/checkout@')
+        ]
+        self.assertEqual(len(checkouts), 1)
+        self.assertEqual(
+            checkouts[0]['with'],
+            {'ref': '${{ github.workflow_sha }}', 'persist-credentials': False},
+        )
+        for step in job['steps']:
+            self.assertNotIn('${{ inputs.', step.get('run', ''))
+
     def test_every_job_has_explicit_permissions_and_only_expected_writes(self):
         actual_writers = {}
         for workflow_name, workflow in self.workflows.items():
