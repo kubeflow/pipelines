@@ -80,7 +80,10 @@ When GORM cannot express the query (e.g., complex JOINs, subqueries, CTEs, UPSER
   values. Update by indexed keys in bounded transactions, recheck the repair
   predicate at write time, and commit before reading the next batch. Inspect the
   write plan on the target engine. A zero affected-row count can still hide a
-  locking table scan.
+  locking table scan. For tables with large manifests, measure candidate
+  discovery on wide rows and verify the write bound with production logging
+  settings. MySQL FULL row images can log both copies of a manifest when only
+  a key changes.
 - Coordinate replicas with the database's existing migration locking pattern.
   Make committed batches safe to repeat, record completion after the last
   batch, and bound lock waits. On shutdown, interrupt the active database

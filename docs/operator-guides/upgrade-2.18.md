@@ -176,11 +176,18 @@ MySQL database, even an update that changes zero rows can lock out run creation
 and status reporting. For affected images, see the
 [MySQL recovery and upgrade procedure](mysql-2.18-upgrade.md).
 
-With the background backfill fix, one API replica selects candidates with
-nonlocking reads and commits job repairs before run repairs, in batches of up to
-500 keys. Existing nonempty IDs are preserved. A restart resumes pending
-repairs. The `backfill_pipeline_refs` marker in `migration_statuses` records
-completion of these historical passes. A reporting request on an older
+With the background backfill fix, one API replica reads up to 500 candidate keys
+at a time without locking and repairs jobs before runs. On MySQL with binary
+logging enabled and `binlog_row_image=FULL`, it commits one candidate per
+transaction because the binary log can include the full manifests before and
+after each update. One large row can still be expensive. Other configurations
+can commit up to 500 candidates at a time. Existing nonempty IDs are preserved.
+After a `SIGKILL` or node loss, the worker cannot send `KILL QUERY`, so the active
+MySQL batch can finish on the server and the advisory lock can remain held
+until MySQL detects the disconnect. A restart resumes pending repairs.
+
+The `backfill_pipeline_refs` marker in `migration_statuses` records completion
+of these historical passes. A reporting request on an older
 replica can still insert a run afterward using a version-only job it read
 before the repair. The new API resolves that run’s missing pipeline ID for
 retrieval, filtering, counts and pagination from its direct pipeline reference,

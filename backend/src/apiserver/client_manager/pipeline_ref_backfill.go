@@ -17,6 +17,7 @@ package clientmanager
 import (
 	"database/sql"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/golang/glog"
@@ -42,6 +43,7 @@ func backfillPipelineRefsToRunTable(db *gorm.DB, dialect sqldrv.DBDialect) error
 		return err
 	}
 
+	writeBatchSize := pipelineRefWriteBatchSize(db, dialect)
 	// Repair the source jobs first so new recurring executions inherit their
 	// pipeline IDs. Reports that already read an old job can still commit
 	// after this historical sweep; RunStore resolves those rows on read.
@@ -52,13 +54,31 @@ func backfillPipelineRefsToRunTable(db *gorm.DB, dialect sqldrv.DBDialect) error
 			backfillRefColumnSQL(dialect, table, "PipelineVersionId", model.PipelineVersionResourceType),
 			backfillPipelineIDFromVersionSQL(dialect, table),
 		} {
-			if err := pass.run(db, dialect, table); err != nil {
+			if err := pass.run(db, dialect, table, writeBatchSize); err != nil {
 				return fmt.Errorf("backfill %s.%s from %s: %w", table, pass.column, pass.source, err)
 			}
 		}
 	}
 	_, err = claimMigration(db, backfillPipelineRefsMigration)
 	return err
+}
+
+// MySQL FULL row events include the original and updated LOBs even when
+// only an ID changes. Keep these transactions to one target row on both
+// tables while still discovering candidates a page at a time.
+func pipelineRefWriteBatchSize(db *gorm.DB, dialect sqldrv.DBDialect) int {
+	if dialect.Name() != "mysql" {
+		return pipelineRefBatchSize
+	}
+	var fullImages bool
+	if err := db.Raw("SELECT @@GLOBAL.log_bin AND @@SESSION.sql_log_bin AND @@SESSION.binlog_row_image = 'FULL'").Row().Scan(&fullImages); err != nil {
+		glog.Warningf("Could not determine MySQL binlog row image, using single-row pipeline reference updates: %v", err)
+		return 1
+	}
+	if fullImages {
+		return 1
+	}
+	return pipelineRefBatchSize
 }
 
 type pipelineRefPass struct {
@@ -68,7 +88,7 @@ type pipelineRefPass struct {
 	updateSQL string
 }
 
-func (pass pipelineRefPass) run(db *gorm.DB, dialect sqldrv.DBDialect, table string) error {
+func (pass pipelineRefPass) run(db *gorm.DB, dialect sqldrv.DBDialect, table string, writeBatchSize int) error {
 	start := time.Now()
 	cursor := ""
 	var batches, updated int64
@@ -81,28 +101,37 @@ func (pass pipelineRefPass) run(db *gorm.DB, dialect sqldrv.DBDialect, table str
 		if len(ids) == 0 {
 			break
 		}
-		var affected int64
-		err := db.Transaction(func(tx *gorm.DB) error {
-			if dialect.Name() == "pgx" {
-				if err := tx.Exec("SET LOCAL lock_timeout = '2s'").Error; err != nil {
-					return err
-				}
+		var pageUpdates int64
+		for batch := range slices.Chunk(ids, writeBatchSize) {
+			affected, err := pass.update(db, dialect, batch)
+			if err != nil {
+				return err
 			}
-			result := tx.Exec(pass.updateSQL, ids)
-			affected = result.RowsAffected
-			return result.Error
-		}, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
-		if err != nil {
-			return err
+			batches++
+			pageUpdates += affected
+			pipelineRefBackfillUpdates.WithLabelValues(table).Add(float64(affected))
 		}
+		updated += pageUpdates
 		cursor = ids[len(ids)-1]
-		batches++
-		updated += affected
-		pipelineRefBackfillUpdates.WithLabelValues(table).Add(float64(affected))
-		glog.V(1).Infof("Pipeline reference backfill table=%s column=%s batch=%d rows_updated=%d elapsed=%s", table, pass.column, batches, affected, time.Since(selectStart))
+		glog.V(1).Infof("Pipeline reference backfill table=%s column=%s batches=%d page_rows_updated=%d elapsed=%s", table, pass.column, batches, pageUpdates, time.Since(selectStart))
 	}
 	glog.Infof("Pipeline reference backfill table=%s column=%s source=%s batches=%d rows_updated=%d elapsed=%s", table, pass.column, pass.source, batches, updated, time.Since(start))
 	return nil
+}
+
+func (pass pipelineRefPass) update(db *gorm.DB, dialect sqldrv.DBDialect, ids []string) (int64, error) {
+	var affected int64
+	err := db.Transaction(func(tx *gorm.DB) error {
+		if dialect.Name() == "pgx" {
+			if err := tx.Exec("SET LOCAL lock_timeout = '2s'").Error; err != nil {
+				return err
+			}
+		}
+		result := tx.Exec(pass.updateSQL, ids)
+		affected = result.RowsAffected
+		return result.Error
+	}, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	return affected, err
 }
 
 func backfillRefColumnSQL(dialect sqldrv.DBDialect, table, column string, refType model.ResourceType) pipelineRefPass {
