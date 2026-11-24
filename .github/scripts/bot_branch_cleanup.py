@@ -16,10 +16,11 @@
 
 Repository auto-delete covers merged pull requests only, so Dependabot
 and Copybara branches whose pull requests are closed unmerged stay
-behind. The branch is deleted only while it still points at the closed
-pull request's head and no open pull request uses it as its head or
-base. A deleted branch can be restored with the "Restore branch" button
-on the pull request.
+behind. The branch is deleted only if no open pull request uses it as
+its head or base, and the deletion is conditional on the branch still
+pointing at the closed pull request's head, so a newer push survives. A
+deleted branch can be restored with the "Restore branch" button on the
+pull request.
 """
 
 from __future__ import annotations
@@ -41,6 +42,18 @@ BOT_BRANCH_PREFIXES = {
 # log, which parses `::` commands, so only plain ref characters are accepted.
 BRANCH_PATTERN = re.compile(r'[A-Za-z0-9][A-Za-z0-9._/+-]*')
 SHA_PATTERN = re.compile(r'[0-9a-f]{40}')
+ZERO_SHA = '0' * 40
+# updateRefs applies the update only if the ref still points at beforeOid;
+# an afterOid of all zeros deletes the ref.
+DELETE_REF_IF_UNCHANGED = """
+mutation($repositoryId: ID!, $name: GitRefname!, $beforeOid: GitObjectID!,
+         $afterOid: GitObjectID!) {
+  updateRefs(input: {
+    repositoryId: $repositoryId,
+    refUpdates: [{name: $name, beforeOid: $beforeOid, afterOid: $afterOid}]
+  }) { clientMutationId }
+}
+"""
 
 
 class NotFoundError(Exception):
@@ -91,11 +104,18 @@ def gh_api(*args: str):
     return json.loads(result.stdout) if result.stdout.strip() else None
 
 
-def branch_path(repo: str, branch: str, *, lookup: bool = False) -> str:
-    # `git/ref` matches one branch exactly; `git/refs` is the delete endpoint
-    # and, for reads, would also return branches that share the prefix.
-    endpoint = 'git/ref' if lookup else 'git/refs'
-    return f'repos/{repo}/{endpoint}/heads/{urllib.parse.quote(branch)}'
+def branch_path(repo: str, branch: str) -> str:
+    # `git/ref` matches one branch exactly; `git/refs` would also return
+    # branches that share the prefix.
+    return f'repos/{repo}/git/ref/heads/{urllib.parse.quote(branch)}'
+
+
+def branch_tip(repo: str, branch: str) -> str | None:
+    """Return the branch's current commit SHA, or None if it is gone."""
+    try:
+        return gh_api(branch_path(repo, branch))['object']['sha']
+    except NotFoundError:
+        return None
 
 
 def has_open_pull_request(repo: str, **query: str) -> bool:
@@ -106,16 +126,35 @@ def has_open_pull_request(repo: str, **query: str) -> bool:
     return bool(gh_api(*args))
 
 
-def delete_branch(repo: str, branch: str) -> None:
-    """Delete the branch, treating an already deleted branch as success."""
+def delete_branch_if_unchanged(
+    repo: str, repo_id: str, branch: str, head_sha: str
+) -> bool:
+    """Delete the branch only if it still points at head_sha.
+
+    Returns True if the branch was deleted and False if it is already
+    gone or moved, so a push racing the cleanup always survives.
+    """
     try:
-        gh_api('--method', 'DELETE', branch_path(repo, branch))
-    except NotFoundError:
-        pass
-    except RuntimeError as error:
-        # A concurrent deletion can surface as 422 instead of 404.
-        if 'Reference does not exist' not in str(error):
-            raise
+        gh_api(
+            'graphql',
+            '-f',
+            f'query={DELETE_REF_IF_UNCHANGED}',
+            '-f',
+            f'repositoryId={repo_id}',
+            '-f',
+            f'name=refs/heads/{branch}',
+            '-f',
+            f'beforeOid={head_sha}',
+            '-f',
+            f'afterOid={ZERO_SHA}',
+        )
+    except RuntimeError:
+        # A rejected update does not say why, so read the branch again:
+        # gone or moved is an expected outcome, anything else is an error.
+        if branch_tip(repo, branch) != head_sha:
+            return False
+        raise
+    return True
 
 
 def cleanup(
@@ -143,11 +182,10 @@ def cleanup(
     if pull['state'] != 'closed' or pull['merged']:
         return f'#{pr_number} is no longer closed and unmerged; kept {branch}.'
 
-    try:
-        ref = gh_api(branch_path(repo, branch, lookup=True))
-    except NotFoundError:
+    tip = branch_tip(repo, branch)
+    if tip is None:
         return f'{branch} is already deleted.'
-    if ref['object']['sha'] != head_sha:
+    if tip != head_sha:
         return f'{branch} moved after #{pr_number} closed; kept it.'
 
     owner = repo.split('/')[0]
@@ -156,7 +194,9 @@ def cleanup(
     if has_open_pull_request(repo, base=branch):
         return f'{branch} is the base of an open pull request; kept it.'
 
-    delete_branch(repo, branch)
+    repo_id = pull['base']['repo']['node_id']
+    if not delete_branch_if_unchanged(repo, repo_id, branch, head_sha):
+        return f'{branch} moved or was deleted during cleanup; left it.'
     return (
         f'Deleted {branch} at {head_sha} (#{pr_number} closed without '
         'merging). Restore it from the pull request page if needed.'
