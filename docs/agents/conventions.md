@@ -93,6 +93,10 @@ When GORM cannot express the query (e.g., complex JOINs, subqueries, CTEs, UPSER
   contention. For startup changes, verify new-pod readiness and old-replica
   writes during a mixed-version upgrade. Record failing baseline and passing
   candidate results for a locking regression.
+- In the PR, link the CI test that exercises the changed operation and identify
+  its overlapping writer and timeout. Reviewers should check that the test runs
+  on the PR's target branch with the database service enabled. A green package
+  can include a skipped integration test.
 
 ## Commits
 
