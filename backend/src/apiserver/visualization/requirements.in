@@ -29,7 +29,7 @@ soupsieve>=4.0.0,<5
 # Security floors for runtime dependencies also pulled in transitively.
 Pillow>=13.0.0,<14
 aiohttp>=3.14.4,<4
-certifi>=2026.10.19
+certifi>=2026.11.20
 setuptools>=84.1.0
 
 # Reject malformed ASN.1 input with the patched runtime decoder.
