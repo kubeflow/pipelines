@@ -10,7 +10,7 @@ fixture="$RUNNER_TEMP/upgrade-backfill"
 mkdir -p "$fixture"
 
 mysql_sql() {
-  kubectl -n kubeflow exec -i deployment/mysql -- mysql --batch --skip-column-names -uroot mlpipeline "$@"
+  kubectl -n kubeflow exec -i deployment/mysql -c mysql -- mysql --protocol=TCP -h 127.0.0.1 --batch --skip-column-names -uroot mlpipeline "$@"
 }
 
 create_run() {
