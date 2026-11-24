@@ -26,7 +26,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         # Python and botocore only; controller code is mounted from the hooks ConfigMap.
-        image: ghcr.io/kubeflow/kfp-profile-controller:2.18.1
+        image: ghcr.io/kubeflow/kfp-profile-controller:2.18.2
         command: ["python", "/hooks/sync.py"]
         envFrom:
         - configMapRef:
