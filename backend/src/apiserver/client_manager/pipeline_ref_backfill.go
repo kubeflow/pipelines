@@ -43,7 +43,7 @@ func backfillPipelineRefsToRunTable(db *gorm.DB, dialect sqldrv.DBDialect) error
 		return err
 	}
 
-	writeBatchSize := pipelineRefWriteBatchSize(db, dialect)
+	writes := pipelineRefWrites(db, dialect)
 	// Repair the source jobs first so new recurring executions inherit their
 	// pipeline IDs. Reports that already read an old job can still commit
 	// after this historical sweep; RunStore resolves those rows on read.
@@ -54,7 +54,7 @@ func backfillPipelineRefsToRunTable(db *gorm.DB, dialect sqldrv.DBDialect) error
 			backfillRefColumnSQL(dialect, table, "PipelineVersionId", model.PipelineVersionResourceType),
 			backfillPipelineIDFromVersionSQL(dialect, table),
 		} {
-			if err := pass.run(db, dialect, table, writeBatchSize); err != nil {
+			if err := pass.run(db, dialect, table, writes); err != nil {
 				return fmt.Errorf("backfill %s.%s from %s: %w", table, pass.column, pass.source, err)
 			}
 		}
@@ -63,22 +63,33 @@ func backfillPipelineRefsToRunTable(db *gorm.DB, dialect sqldrv.DBDialect) error
 	return err
 }
 
-// MySQL FULL row events include the original and updated LOBs even when
-// only an ID changes. Keep these transactions to one target row on both
-// tables while still discovering candidates a page at a time.
-func pipelineRefWriteBatchSize(db *gorm.DB, dialect sqldrv.DBDialect) int {
+type pipelineRefWritePolicy struct {
+	batchSize int
+	isolation sql.IsolationLevel
+}
+
+func pipelineRefWrites(db *gorm.DB, dialect sqldrv.DBDialect) pipelineRefWritePolicy {
+	normal := pipelineRefWritePolicy{batchSize: pipelineRefBatchSize, isolation: sql.LevelReadCommitted}
 	if dialect.Name() != "mysql" {
-		return pipelineRefBatchSize
+		return normal
 	}
-	var fullImages bool
-	if err := db.Raw("SELECT @@GLOBAL.log_bin AND @@SESSION.sql_log_bin AND @@SESSION.binlog_row_image = 'FULL'").Row().Scan(&fullImages); err != nil {
-		glog.Warningf("Could not determine MySQL binlog row image, using single-row pipeline reference updates: %v", err)
-		return 1
+	var logging bool
+	var format, image string
+	err := db.Raw("SELECT @@GLOBAL.log_bin AND @@SESSION.sql_log_bin, @@SESSION.binlog_format, @@SESSION.binlog_row_image").
+		Row().Scan(&logging, &format, &image)
+	if err != nil {
+		glog.Warningf("Could not determine MySQL binlog settings, using single-row repeatable-read pipeline reference updates: %v", err)
 	}
-	if fullImages {
-		return 1
+	if err != nil || (logging && format == "STATEMENT") {
+		// InnoDB rejects READ COMMITTED writes with statement logging. Force
+		// one primary key per statement to avoid locking a range of candidates.
+		return pipelineRefWritePolicy{batchSize: 1, isolation: sql.LevelRepeatableRead}
 	}
-	return pipelineRefBatchSize
+	if logging && image == "FULL" {
+		// FULL row events include both images of every LOB even for ID-only changes.
+		normal.batchSize = 1
+	}
+	return normal
 }
 
 type pipelineRefPass struct {
@@ -88,7 +99,7 @@ type pipelineRefPass struct {
 	updateSQL string
 }
 
-func (pass pipelineRefPass) run(db *gorm.DB, dialect sqldrv.DBDialect, table string, writeBatchSize int) error {
+func (pass pipelineRefPass) run(db *gorm.DB, dialect sqldrv.DBDialect, table string, writes pipelineRefWritePolicy) error {
 	start := time.Now()
 	cursor := ""
 	var batches, updated int64
@@ -102,8 +113,8 @@ func (pass pipelineRefPass) run(db *gorm.DB, dialect sqldrv.DBDialect, table str
 			break
 		}
 		var pageUpdates int64
-		for batch := range slices.Chunk(ids, writeBatchSize) {
-			affected, err := pass.update(db, dialect, batch)
+		for batch := range slices.Chunk(ids, writes.batchSize) {
+			affected, err := pass.update(db, dialect, batch, writes.isolation)
 			if err != nil {
 				return err
 			}
@@ -119,7 +130,7 @@ func (pass pipelineRefPass) run(db *gorm.DB, dialect sqldrv.DBDialect, table str
 	return nil
 }
 
-func (pass pipelineRefPass) update(db *gorm.DB, dialect sqldrv.DBDialect, ids []string) (int64, error) {
+func (pass pipelineRefPass) update(db *gorm.DB, dialect sqldrv.DBDialect, ids []string, isolation sql.IsolationLevel) (int64, error) {
 	var affected int64
 	err := db.Transaction(func(tx *gorm.DB) error {
 		if dialect.Name() == "pgx" {
@@ -130,7 +141,7 @@ func (pass pipelineRefPass) update(db *gorm.DB, dialect sqldrv.DBDialect, ids []
 		result := tx.Exec(pass.updateSQL, ids)
 		affected = result.RowsAffected
 		return result.Error
-	}, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	}, &sql.TxOptions{Isolation: isolation})
 	return affected, err
 }
 

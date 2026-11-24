@@ -107,7 +107,7 @@ func runPipelineRefBackfillAttempt(ctx context.Context, db *gorm.DB, dialect sql
 		}()
 
 		if dialect.Name() == "mysql" {
-			if err := pinned.Exec("SET SESSION innodb_lock_wait_timeout = 2").Error; err != nil {
+			if err := pinned.Exec("SET SESSION innodb_lock_wait_timeout = 2, SESSION lock_wait_timeout = 2").Error; err != nil {
 				return err
 			}
 		}
