@@ -24,6 +24,27 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
+// validateRecurringRunReportID keeps a report from creating a run under the ID
+// of a scheduled tick that its recurring run does not hold. In multi-user mode
+// name-based run IDs are reserved for ticks claimed through the API, and the
+// run ID label of a Workflow is editable by namespace users. Such an ID is
+// therefore accepted only for the tick this recurring run claimed last.
+func (r *ResourceManager) validateRecurringRunReportID(jobID, runID string) error {
+	if !common.IsMultiUserMode() || !util.IsDeterministicUUID(runID) {
+		return nil
+	}
+	claim, err := r.jobStore.GetRecurringRunState(jobID)
+	if err != nil {
+		return err
+	}
+	if claim.LastRunIndex <= 0 || runID != util.NewDeterministicUUID(jobID+"/tick/"+strconv.FormatInt(claim.LastRunIndex, 10)) {
+		r.recordWorkflowReportRejection(workflowReportRejectionIdentityMismatch)
+		return util.NewInvalidInputError(
+			"Failed to report workflow: run ID is not the claimed tick of its recurring run")
+	}
+	return nil
+}
+
 // A report can insert the run before CreateRun does. Preserve the source already
 // selected for this execution rather than resolving the schedule's latest again.
 func (r *ResourceManager) recurringRunReportPipelineSpec(job *model.Job, execution util.ExecutionSpec, runID string) (model.PipelineSpec, error) {

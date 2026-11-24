@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	gc "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -26,9 +27,11 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 )
 
@@ -151,4 +154,55 @@ func TestRecurringRunReportRequiresExactPipelineSource(t *testing.T) {
 	workflow.SetAnnotations(recurringRunPipelineVersionAnnotation, version.UUID)
 	_, err = manager.recurringRunReportPipelineSpec(&model.Job{PipelineSpec: model.PipelineSpec{PipelineId: pipeline.UUID}}, workflow, "run-id")
 	require.ErrorContains(t, err, "Restore the manifest", "missing historical manifests must not use a pipeline-level latest fallback")
+}
+
+func TestRecurringRunReportCannotTakeUnclaimedTickID(t *testing.T) {
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+	previous := viper.Get(common.MultiUserMode)
+	viper.Set(common.MultiUserMode, true)
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, previous) })
+	ctx := multiUserContext()
+	job, err := manager.CreateJob(ctx, &model.Job{
+		DisplayName: "schedule", Namespace: "ns1", ExperimentId: experiment.UUID, Enabled: true, MaxConcurrency: 1,
+		Trigger:      model.Trigger{PeriodicSchedule: model.PeriodicSchedule{PeriodicScheduleStartTimeInSec: util.Int64Pointer(100), IntervalSecond: util.Int64Pointer(10)}},
+		PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`}},
+	})
+	require.NoError(t, err)
+	for _, test := range []struct {
+		name     string
+		runID    string
+		rejected bool
+	}{
+		{name: "tick of another recurring run", runID: util.NewDeterministicUUID("another-recurring-run/tick/1"), rejected: true},
+		{name: "unclaimed tick of its own recurring run", runID: util.NewDeterministicUUID(job.UUID + "/tick/1"), rejected: true},
+		{name: "random ID of a legacy execution", runID: "0b1f6f8e-4a4f-4a53-9d0c-5f5d0f6f7a11"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			// Namespace users can create Workflows with any run ID label.
+			workflow, err := store.ExecClientFake.Execution(job.Namespace).Create(ctx, util.NewWorkflow(&v1alpha1.Workflow{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "hand-made-" + test.runID, Namespace: job.Namespace,
+					Labels: map[string]string{util.LabelKeyWorkflowRunId: test.runID},
+					OwnerReferences: []metav1.OwnerReference{{
+						APIVersion: "kubeflow.org/v1beta1", Kind: "ScheduledWorkflow", Name: job.K8SName, UID: types.UID(job.UUID),
+					}},
+				},
+				Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+			}), metav1.CreateOptions{})
+			require.NoError(t, err)
+			_, err = manager.ReportWorkflowResource(ctx, workflow)
+			if !test.rejected {
+				require.NoError(t, err)
+				created, err := manager.GetRun(test.runID)
+				require.NoError(t, err)
+				require.Equal(t, job.UUID, created.RecurringRunId)
+				return
+			}
+			require.ErrorContains(t, err, "run ID is not the claimed tick of its recurring run")
+			require.True(t, util.IsUserErrorCodeMatch(err, codes.InvalidArgument))
+			_, err = manager.GetRun(test.runID)
+			require.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound), "the report must not create a run: %v", err)
+		})
+	}
 }

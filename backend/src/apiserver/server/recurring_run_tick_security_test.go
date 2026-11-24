@@ -30,6 +30,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -257,6 +258,35 @@ func TestRecurringRunResumesOnlyTheAuthorizedPendingTick(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1), completed.LastRunIndex)
 	require.False(t, completed.Pending)
+}
+
+func TestRecurringRunTickIDCannotBeTakenThroughCreateRun(t *testing.T) {
+	clients, manager, job, review := newAuthorizedSchedule(t)
+	review.controllerAllowed = true
+	server := createRunServer(manager)
+	tickID := util.NewDeterministicUUID(job.UUID + "/tick/1")
+	spec, err := YamlStringToPipelineSpecStruct(v2SpecHelloWorld)
+	require.NoError(t, err)
+	// Any caller who knows the recurring run ID can compute the ID of its next tick.
+	oneOff, err := server.CreateRun(scheduleContext("user@google.com"), &api.CreateRunRequest{Run: &api.Run{
+		RunId: tickID, DisplayName: "one-off", ExperimentId: job.ExperimentId, ServiceAccount: "custom-sa",
+		PipelineSource: &api.Run_PipelineSpec{PipelineSpec: spec},
+		RuntimeConfig:  &api.RuntimeConfig{Parameters: map[string]*structpb.Value{"param1": structpb.NewStringValue("one-off")}},
+	}})
+	require.NoError(t, err)
+	require.NotEmpty(t, oneOff.RunId)
+	require.NotEqual(t, tickID, oneOff.RunId, "run_id is output only")
+
+	tick, err := server.CreateRun(scheduleContext(scheduleControllerIdentity), &api.CreateRunRequest{Run: &api.Run{
+		DisplayName: "first-tick", RecurringRunId: job.UUID,
+	}})
+	require.NoError(t, err)
+	require.Equal(t, tickID, tick.RunId)
+	require.Equal(t, job.UUID, tick.RecurringRunId)
+	state, err := clients.JobStore().GetRecurringRunState(job.UUID)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), state.LastRunIndex)
+	require.False(t, state.Pending)
 }
 
 func TestRecurringRunReplayStillChecksEnabledStateAndAuthorization(t *testing.T) {
