@@ -138,8 +138,8 @@ func TestPipelineSpecStructToYamlString_NullPlatformSpec(t *testing.T) {
 	var pipelineSpec structpb.Struct
 
 	splitTemplate := strings.Split(template, "\n---\n")
-	pipelineSpecJson, _ := yaml.YAMLToJSON([]byte(splitTemplate[0]))
-	err := protojson.Unmarshal(pipelineSpecJson, &pipelineSpec)
+	pipelineSpecJSON, _ := yaml.YAMLToJSON([]byte(splitTemplate[0]))
+	err := protojson.Unmarshal(pipelineSpecJSON, &pipelineSpec)
 	assert.Nil(t, err)
 
 	pipeline := structpb.Struct{
