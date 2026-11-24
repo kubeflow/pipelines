@@ -6,4 +6,4 @@ requests>=2.33.0,<3
 protobuf>=6.33.6,<7
 oauthlib>=4.0.1,<5
 urllib3>=2.8.0,<3
-certifi>=2026.10.19
+certifi>=2026.11.20

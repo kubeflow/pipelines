@@ -2,7 +2,7 @@
 #    uv pip compile requirements.in -o requirements.txt --python-version 3.11 --python-platform x86_64-manylinux_2_39 --no-strip-extras --annotation-style split
 cachetools==5.5.2
     # via google-auth
-certifi==2026.10.23
+certifi==2026.11.20
     # via
     #   -r requirements.in
     #   kfp
