@@ -439,7 +439,9 @@ sleep() { if [[ "$TIMES_OUT" == 1 ]]; then SECONDS=$((SECONDS + 121)); fi; }
         names = list(steps)
         ordered = [
             'Capture 2.17.2 filtered pages and retain old API replica',
-            'Verify upgraded and mixed-version filtered pagination',
+            'Prepare legacy pipeline reference and batch barrier',
+            'Verify old-replica writes during backfill and mixed-version pagination',
+            'Release backfill barrier and remove fixture workflows',
             'Upload pagination acceptance evidence',
             'Remove retained pagination source API',
             'Remove suspended pagination workflows', 'Verify Upgrade'
