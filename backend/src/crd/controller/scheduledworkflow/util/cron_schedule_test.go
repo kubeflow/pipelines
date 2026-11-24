@@ -391,3 +391,61 @@ func TestLastActivationNotAfter_MatchesStepByStepWalk(t *testing.T) {
 	// The walk and the result agree except in those rare clock-change cases.
 	assert.Less(t, differences*100, cases, "%d of %d cases differ from the step by step walk", differences, cases)
 }
+
+func TestLastActivationNotAfter_ConstantDelayWithoutWholeSeconds(t *testing.T) {
+	// cron.Every never returns a delay below one second, but the type allows
+	// it, and dividing by such a delay must not be attempted.
+	activation := time.Unix(10*hour, 0).UTC()
+	limit := time.Unix(11*hour, 0).UTC()
+	for _, delay := range []time.Duration{0, 500 * time.Millisecond} {
+		assert.Equal(t, activation,
+			lastActivationNotAfter(cron.ConstantDelaySchedule{Delay: delay}, activation, limit), delay)
+	}
+}
+
+func TestCronSchedule_ActivationGapLongerThanNextSearches(t *testing.T) {
+	// February 29th is eight years away across 1900 and 2100, which are not
+	// leap years. cron's Next gives up after five years and returns the zero
+	// time, which does not mean that the schedule has no later activation.
+	leapDay := func(year int) time.Time {
+		return time.Date(year, time.February, 29, 12, 0, 0, 0, time.UTC)
+	}
+	schedule, err := cron.Parse("0 0 12 29 2 *")
+	assert.Nil(t, err)
+	assert.True(t, schedule.Next(leapDay(2096)).IsZero(), "the library limit this test is about")
+
+	// A search that starts inside the gap still finds what follows it.
+	assert.Equal(t, leapDay(2104), nextActivation(schedule, leapDay(2096), maxTime))
+	assert.Equal(t, time.Time{}, nextActivation(schedule, leapDay(2096), leapDay(2104).Add(-time.Second)))
+
+	// Skipping to the last activation crosses the gap, whichever side of it
+	// the search points fall on.
+	assert.Equal(t, leapDay(2024),
+		lastActivationNotAfter(schedule, leapDay(1768), time.Date(2026, time.March, 14, 12, 0, 0, 0, time.UTC)))
+	assert.Equal(t, leapDay(2108),
+		lastActivationNotAfter(schedule, leapDay(2096), time.Date(2110, time.January, 1, 0, 0, 0, 0, time.UTC)))
+	assert.Equal(t, leapDay(2096),
+		lastActivationNotAfter(schedule, leapDay(2092), time.Date(2103, time.January, 1, 0, 0, 0, 0, time.UTC)))
+
+	// A schedule that starts inside the gap is not suppressed, with or
+	// without catch-up.
+	cronSchedule := NewCronSchedule(&swfapi.CronSchedule{
+		StartTime: commonutil.Metav1TimePointer(v1.NewTime(time.Date(2097, time.January, 1, 0, 0, 0, 0, time.UTC))),
+		Cron:      "0 0 12 29 2 *",
+	})
+	defaultStartTime := time.Date(2097, time.January, 1, 0, 0, 0, 0, time.UTC)
+	assert.Equal(t, leapDay(2104),
+		cronSchedule.GetNextScheduledTime(nil, defaultStartTime, time.UTC))
+	assert.Equal(t, leapDay(2108),
+		cronSchedule.GetNextScheduledTimeNoCatchup(nil, defaultStartTime, time.Date(2110, time.January, 1, 0, 0, 0, 0, time.UTC), time.UTC))
+}
+
+func TestCronSchedule_GetNextScheduledTime_NeverMatchingCron(t *testing.T) {
+	// With catch-up as well, a schedule that can never match has no next time.
+	schedule := NewCronSchedule(&swfapi.CronSchedule{
+		Cron: "0 0 0 30 2 *",
+	})
+	lastJobTime := v1.NewTime(time.Unix(10*hour, 0).UTC())
+	assert.Equal(t, maxTime.UTC(),
+		schedule.GetNextScheduledTime(&lastJobTime, time.Unix(9*hour, 0).UTC(), time.UTC))
+}
