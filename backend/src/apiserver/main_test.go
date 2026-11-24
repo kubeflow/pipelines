@@ -29,11 +29,13 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -839,6 +841,39 @@ func TestBuildHTTPRouter_AllRoutesRegistered(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHealthzServedWhilePipelineRefBackfillIsRunning(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	viper.Set(common.MultiUserMode, "false")
+	t.Cleanup(viper.Reset)
+	proxy := &http.Server{Handler: buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), "database")}
+	started, release := make(chan struct{}), make(chan struct{})
+	var workers sync.WaitGroup
+	stopped := make(chan error, 1)
+	go func() {
+		stopped <- serveHTTPProxy(proxy, listener, func() {
+			close(started)
+			<-release
+		}, &workers)
+	}()
+	t.Cleanup(func() {
+		close(release)
+		proxy.Close()
+		assert.ErrorIs(t, <-stopped, http.ErrServerClosed)
+		workers.Wait()
+	})
+	select {
+	case <-started:
+	case <-time.After(3 * time.Second):
+		t.Fatal("backfill did not start")
+	}
+	client := &http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Get("http://" + listener.Addr().String() + "/apis/v2beta1/healthz")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
 func TestBuildHTTPRouter_HealthzResponses(t *testing.T) {

@@ -378,7 +378,9 @@ func main() {
 
 	go startRPCServer(resourceManager, tlsCfg)
 	// This is blocking
-	startHTTPProxy(resourceManager, *usePipelinesKubernetesStorage, tlsCfg)
+	startHTTPProxy(resourceManager, *usePipelinesKubernetesStorage, tlsCfg, func() {
+		clientManager.RunPipelineRefBackfill(backgroundCtx)
+	}, &wg)
 	backgroundCancel()
 	wg.Wait()
 }
@@ -556,7 +558,7 @@ func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Confi
 	glog.Info("RPC server started")
 }
 
-func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKubernetesStorage bool, tlsCfg *tls.Config) {
+func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKubernetesStorage bool, tlsCfg *tls.Config, runBackfill func(), wg *sync.WaitGroup) {
 	glog.Info("Starting Http Proxy")
 
 	ctx := context.Background()
@@ -614,24 +616,27 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 
 	topMux := buildHTTPRouter(handlerDeps, runtimeMux, pipelineStore)
 
-	if tlsCfg != nil {
-		glog.Info("Starting Https Proxy")
-		https := http.Server{
-			TLSConfig: tlsCfg,
-			Addr:      *httpPortFlag,
-			Handler:   topMux,
-		}
-		err := https.ListenAndServeTLS(*tlsCertPath, *tlsCertKeyPath)
-		if err != nil {
-			glog.Errorf("Error starting https server: %v", err)
-			return
-		}
-	} else {
-		glog.Info("Starting Http Proxy")
-		http.ListenAndServe(*httpPortFlag, topMux)
+	listener, err := net.Listen("tcp", *httpPortFlag)
+	if err != nil {
+		glog.Errorf("Failed to start HTTP proxy listener: %v", err)
+		return
 	}
+	proxy := &http.Server{Handler: topMux, TLSConfig: tlsCfg}
+	if err := serveHTTPProxy(proxy, listener, runBackfill, wg); err != nil {
+		glog.Errorf("HTTP proxy stopped: %v", err)
+	}
+}
 
-	glog.Info("Http Proxy started")
+func serveHTTPProxy(proxy *http.Server, listener net.Listener, runBackfill func(), wg *sync.WaitGroup) error {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		runBackfill()
+	}()
+	if proxy.TLSConfig != nil {
+		return proxy.ServeTLS(listener, *tlsCertPath, *tlsCertKeyPath)
+	}
+	return proxy.Serve(listener)
 }
 
 type healthzResponse struct {
