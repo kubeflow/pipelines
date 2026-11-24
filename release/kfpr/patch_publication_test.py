@@ -53,6 +53,7 @@ class PatchPublicationTest(unittest.TestCase):
             self.addCleanup(patcher.stop)
         for target in (
             'qualification.require_qualification',
+            'rtd.publish_backend_docs',
             '_ensure_release_tag',
         ):
             patcher = mock.patch('kfpr.steps.' + target)
