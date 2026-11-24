@@ -128,14 +128,12 @@ sdk/python/kfp/server_api):"""
    pipeline component images.
    https://github.com/kubeflow/pipelines/blob/{metadata.tag}/docs/operator-guides/supported-platforms.md"""
             slack_step += 1
-        website_steps = f"""1. Open https://github.com/kubeflow/website/edit/master/layouts/shortcodes/pipelines/latest-version.html
-2. Write the version without a trailing newline:
-   echo -n {metadata.tag} > layouts/shortcodes/pipelines/latest-version.html
-3. Open a PR titled: pipelines: release kfp {metadata.tag}"""
-        if metadata.release_type == 'patch':
-            website_steps = f"""1. Preserve layouts/shortcodes/pipelines/latest-version.html; do not change the latest release pointer.
-2. Review any documentation updates needed for KFP {metadata.tag}.
-3. If documentation changes are needed, open a PR titled: pipelines: release kfp {metadata.tag}"""
+        website_steps = f"""1. Check the published Latest backend release in kubeflow/pipelines.
+2. In the website checkout, update the installation version only if {metadata.tag} is Latest:
+   latest_tag=$(gh api repos/kubeflow/pipelines/releases/latest --jq .tag_name) && if [ "$latest_tag" = "{metadata.tag}" ]; then printf '%s' '{metadata.tag}' > layouts/shortcodes/pipelines/latest-version.html; fi
+   https://github.com/kubeflow/website/edit/master/layouts/shortcodes/pipelines/latest-version.html
+3. Review the website diff. For the Latest release, verify the shortcode contains {metadata.tag}.
+   Include the version bump and any guide changes in a PR titled: pipelines: release kfp {metadata.tag}"""
         return underline_links(f"""Manual final checkpoint:
 {website_steps}{compatibility_steps}
 {slack_step}. After the website PR merges, announce in #kubeflow-pipelines:
