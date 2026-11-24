@@ -284,6 +284,51 @@ describe('ExecutionNode', () => {
     expect(tooltip).toHaveTextContent('Back-off pulling image "nope:latest"');
   });
 
+  it('does not describe a focused node that has no lifecycle diagnostic', async () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{ label: 'healthy-step', state: PipelineTaskTaskState.RUNNING }}
+      />,
+    );
+    await userEvent.tab();
+    const button = screen.getByRole('button', { name: /healthy-step/ });
+    expect(button).toHaveFocus();
+    // There is no tooltip element for an id to point at, so the button must not claim one.
+    expect(button).not.toHaveAttribute('aria-describedby');
+    expect(screen.queryByTestId('lifecycle-tooltip')).not.toBeInTheDocument();
+  });
+
+  it('does not describe a debug-paused node whose pause icon replaces the lifecycle icon', async () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'paused-step',
+          state: PipelineTaskTaskState.RUNNING,
+          debugPauseBarrier: 'before',
+          lifecycleMessage: 'Insufficient cpu',
+          lifecycleCategory: 'scheduling',
+        }}
+      />,
+    );
+    await userEvent.tab();
+    // The node is not announced as having a lifecycle warning either: that icon is not rendered.
+    const button = screen.getByRole('button', { name: /paused-step/ });
+    expect(button).toHaveFocus();
+    expect(button).not.toHaveAccessibleName(/lifecycle warning/);
+    expect(button).not.toHaveAttribute('aria-describedby');
+    expect(screen.queryByTestId('lifecycle-tooltip')).not.toBeInTheDocument();
+  });
+
+  it('keeps a disabled tooltip closed and undescribed when focused', () => {
+    const { result } = renderHook(() => useLifecycleTooltip(false));
+    act(() => result.current.focusProps.onFocus());
+    act(() => result.current.onOpen());
+    expect(result.current.open).toBe(false);
+    expect(result.current.focusProps['aria-describedby']).toBeUndefined();
+  });
+
   it('keeps the tooltip open after a mouse leave while focus remains', () => {
     // onClose is MUI's mouse-leave callback; when the control is still focused the
     // tooltip must stay open. The hook owns that decision, so test it directly.

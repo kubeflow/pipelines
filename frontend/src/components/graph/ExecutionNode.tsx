@@ -41,15 +41,19 @@ export interface ExecutionNodeProps {
 function ExecutionNode({ id, data, selected }: ExecutionNodeProps) {
   // A lifecycle message is a status, not a failure: the node only turns red once the task
   // itself is FAILED, so the failed icon takes precedence over the lifecycle status.
-  const hasLifecycleStatus = !!data.lifecycleMessage && data.state !== PipelineTaskTaskState.FAILED;
-  const lifecycleTooltip = useLifecycleTooltip();
+  //
+  // The pause icon takes precedence over the lifecycle status icon, so while a task is parked there
+  // is no lifecycle tooltip to describe: the message only counts when its icon is rendered.
+  const lifecycleMessage = data.debugPauseBarrier ? undefined : data.lifecycleMessage;
+  const hasLifecycleStatus = !!lifecycleMessage && data.state !== PipelineTaskTaskState.FAILED;
+  const lifecycleTooltip = useLifecycleTooltip(!!lifecycleMessage);
   // Pause barrier is an overlay on the task's real state (still RUNNING
   // while parked) - render it instead of the state icon.
   let icon = data.debugPauseBarrier
     ? getDebugPauseIcon()
-    : data.lifecycleMessage
+    : lifecycleMessage
       ? getLifecycleStatusIcon(
-          data.lifecycleMessage,
+          lifecycleMessage,
           data.lifecycleCategory,
           data.state,
           lifecycleTooltip,
@@ -180,11 +184,15 @@ export interface LifecycleTooltipState {
 
 // The tooltip hangs off the status icon, which is not focusable, so keyboard focus on the
 // node's button is tracked here and opens the same tooltip. Escape closes it again.
-export function useLifecycleTooltip(): LifecycleTooltipState {
+//
+// enabled says whether the node renders a lifecycle tooltip at all. Without one, focusing the
+// button must not open anything or point aria-describedby at an id that is not in the DOM, so the
+// caller passes the same condition it uses to render the status icon.
+export function useLifecycleTooltip(enabled = true): LifecycleTooltipState {
   const tooltipId = React.useId();
   const [hovered, setHovered] = React.useState(false);
   const [focused, setFocused] = React.useState(false);
-  const open = hovered || focused;
+  const open = enabled && (hovered || focused);
   return {
     open,
     tooltipId,

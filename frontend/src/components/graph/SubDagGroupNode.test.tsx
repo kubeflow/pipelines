@@ -240,3 +240,24 @@ it('associates the sub-DAG title button with the tooltip content via aria-descri
   expect(tooltip).toHaveTextContent('Scheduling problem');
   expect(tooltip).toHaveTextContent('Insufficient cpu');
 });
+
+it('does not describe the focused sub-DAG title when there is no lifecycle diagnostic', async () => {
+  render(
+    <ReactFlowProvider>
+      <SubDagGroupNode
+        id='group'
+        selected={false}
+        data={{
+          label: 'Training',
+          state: PipelineTaskTaskState.RUNNING,
+          expand: vi.fn(),
+        }}
+      />
+    </ReactFlowProvider>,
+  );
+  await userEvent.tab();
+  const button = screen.getByRole('button', { name: 'Training' });
+  expect(button).toHaveFocus();
+  expect(button).not.toHaveAttribute('aria-describedby');
+  expect(screen.queryByTestId('lifecycle-tooltip')).not.toBeInTheDocument();
+});

@@ -37,7 +37,7 @@ export default function SubDagGroupNode({
   const collapsed = !!data.collapsed;
   // Same rule as ExecutionNode: a lifecycle message is shown as a status until the task is FAILED.
   const hasLifecycleStatus = !!data.lifecycleMessage && data.state !== PipelineTaskTaskState.FAILED;
-  const lifecycleTooltip = useLifecycleTooltip();
+  const lifecycleTooltip = useLifecycleTooltip(!!data.lifecycleMessage);
   const status = data.lifecycleMessage
     ? getLifecycleStatusIcon(
         data.lifecycleMessage,
