@@ -16,7 +16,9 @@ package util
 
 import (
 	"context"
+	"errors"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -146,4 +148,114 @@ func TestTolerantInformer_SkipsUndecodableObjects(t *testing.T) {
 			assert.ElementsMatch(t, []string{"tenant-b/ordinary-later"}, informer.GetStore().ListKeys())
 		})
 	}
+}
+
+// The informer must come back from failures that an API server can produce at
+// any time: a failed list, a watch that ends, and an object that stops and
+// later starts decoding again.
+func TestTolerantInformer_RecoversFromListAndWatchFailures(t *testing.T) {
+	resource := workflowapi.SchemeGroupVersion.WithResource(workflowregister.WorkflowPlural)
+	newWorkflow := func(namespace, name string, spec map[string]interface{}) *unstructured.Unstructured {
+		object := &unstructured.Unstructured{Object: map[string]interface{}{"spec": spec}}
+		object.SetAPIVersion(resource.GroupVersion().String())
+		object.SetKind(workflowregister.WorkflowKind)
+		object.SetNamespace(namespace)
+		object.SetName(name)
+		return object
+	}
+	undecodable := map[string]interface{}{"activeDeadlineSeconds": "not-a-number"}
+	client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(),
+		map[schema.GroupVersionResource]string{resource: workflowregister.WorkflowKind + "List"},
+		newWorkflow("tenant-b", "ordinary", map[string]interface{}{}))
+
+	// The first lists fail.
+	var failingLists atomic.Int32
+	failingLists.Store(2)
+	client.PrependReactor("list", "*", func(k8stesting.Action) (bool, runtime.Object, error) {
+		if failingLists.Add(-1) >= 0 {
+			return true, nil, errors.New("the API server is unavailable")
+		}
+		return false, nil, nil
+	})
+	// The fake client does not replay what happened before a watch started, so
+	// the test follows each watch the informer opens.
+	watchers := make(chan watch.Interface, 10)
+	client.PrependWatchReactor("*", func(action k8stesting.Action) (bool, watch.Interface, error) {
+		watcher, err := client.Tracker().Watch(action.GetResource(), action.GetNamespace())
+		if err == nil {
+			watchers <- watcher
+		}
+		return true, watcher, err
+	})
+
+	factory := argoinformer.NewSharedInformerFactory(&argofake.Clientset{}, 0)
+	registerWorkflowInformer(factory, client, "")
+	informer := factory.Argoproj().V1alpha1().Workflows().Informer()
+	deleted := make(chan interface{}, 10)
+	_, err := informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		DeleteFunc: func(object interface{}) { deleted <- object },
+	})
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	factory.Start(ctx.Done())
+	nextWatch := func() watch.Interface {
+		select {
+		case watcher := <-watchers:
+			return watcher
+		case <-ctx.Done():
+			require.FailNow(t, "The informer did not start watching")
+			return nil
+		}
+	}
+	isCached := func(key string) func() bool {
+		return func() bool {
+			_, exists, err := informer.GetStore().GetByKey(key)
+			return err == nil && exists
+		}
+	}
+	workflows := func(namespace string) dynamic.ResourceInterface {
+		return client.Resource(resource).Namespace(namespace)
+	}
+
+	// Failed lists are retried until one succeeds.
+	require.True(t, cache.WaitForCacheSync(ctx.Done(), informer.HasSynced))
+	assert.Negative(t, failingLists.Load())
+	assert.Equal(t, []string{"tenant-b/ordinary"}, informer.GetStore().ListKeys())
+
+	// A watch that ends is replaced, and the next one is tolerant as well.
+	nextWatch().Stop()
+	nextWatch()
+	_, err = workflows("tenant-a").Create(ctx, newWorkflow("tenant-a", "undecodable", undecodable), v1.CreateOptions{})
+	require.NoError(t, err)
+	_, err = workflows("tenant-b").Create(ctx, newWorkflow("tenant-b", "after-reconnect", map[string]interface{}{}), v1.CreateOptions{})
+	require.NoError(t, err)
+	require.Eventually(t, isCached("tenant-b/after-reconnect"), 20*time.Second, 10*time.Millisecond)
+	assert.False(t, isCached("tenant-a/undecodable")())
+
+	// An object that stops decoding is reported to handlers as a typed delete.
+	// Every undecodable event is reported that way, so handlers also get a
+	// delete for tenant-a/undecodable, which was never in the cache. They key
+	// their work by namespace and name, so such a delete finds nothing to do.
+	_, err = workflows("tenant-b").Update(ctx, newWorkflow("tenant-b", "ordinary", undecodable), v1.UpdateOptions{})
+	require.NoError(t, err)
+	deletedKeys := map[string]bool{}
+	for !deletedKeys["tenant-b/ordinary"] {
+		select {
+		case object := <-deleted:
+			workflow, ok := object.(*workflowapi.Workflow)
+			require.True(t, ok, "handlers receive typed Workflows, got %T", object)
+			deletedKeys[workflow.Namespace+"/"+workflow.Name] = true
+		case <-ctx.Done():
+			require.FailNow(t, "No delete was reported for the object that stopped decoding")
+		}
+	}
+	assert.True(t, deletedKeys["tenant-a/undecodable"])
+	assert.False(t, isCached("tenant-b/ordinary")())
+
+	// Once it decodes again it is back in the cache.
+	_, err = workflows("tenant-b").Update(ctx, newWorkflow("tenant-b", "ordinary", map[string]interface{}{}), v1.UpdateOptions{})
+	require.NoError(t, err)
+	require.Eventually(t, isCached("tenant-b/ordinary"), 20*time.Second, 10*time.Millisecond)
 }
