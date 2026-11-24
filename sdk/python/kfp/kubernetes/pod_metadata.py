@@ -35,7 +35,13 @@ def add_pod_label(
 
     Returns:
         Task object with an added metadata label.
+
+    Raises:
+        ValueError: If label_key is empty.
     """
+
+    if not label_key:
+        raise ValueError('label_key must be a non-empty string.')
 
     msg = common.get_existing_kubernetes_config_as_message(task)
     msg.pod_metadata.labels.update({label_key: label_value})
@@ -61,7 +67,13 @@ def add_pod_annotation(
 
     Returns:
         Task object with an added metadata annotation.
+
+    Raises:
+        ValueError: If annotation_key is empty.
     """
+
+    if not annotation_key:
+        raise ValueError('annotation_key must be a non-empty string.')
 
     msg = common.get_existing_kubernetes_config_as_message(task)
     msg.pod_metadata.annotations.update({annotation_key: annotation_value})

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
 from google.protobuf import json_format
 from kfp import dsl, kubernetes
 
@@ -169,6 +170,62 @@ class TestPodMetadata:
                     }
                 }
             }
+        }
+
+    def test_add_pod_label_empty_key_raises(self):
+
+        with pytest.raises(
+            ValueError, match=r'label_key must be a non-empty string'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                task = comp()
+                kubernetes.add_pod_label(
+                    task,
+                    label_key='',
+                    label_value='val',
+                )
+
+    def test_add_pod_annotation_empty_key_raises(self):
+
+        with pytest.raises(
+            ValueError, match=r'annotation_key must be a non-empty string'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                task = comp()
+                kubernetes.add_pod_annotation(
+                    task,
+                    annotation_key='',
+                    annotation_value='val',
+                )
+
+    def test_empty_values_and_valid_keys_still_allowed(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.add_pod_label(
+                task,
+                label_key='app',
+                label_value='',
+            )
+            kubernetes.add_pod_annotation(
+                task,
+                annotation_key='app.kubernetes.io/name',
+                annotation_value='',
+            )
+
+        pod_metadata = json_format.MessageToDict(my_pipeline.platform_spec)[
+            'platforms'
+        ]['kubernetes']['deploymentSpec']['executors']['exec-comp'][
+            'podMetadata'
+        ]
+        assert pod_metadata == {
+            'labels': {'app': ''},
+            'annotations': {'app.kubernetes.io/name': ''},
         }
 
 

@@ -97,6 +97,10 @@
   instead of passing it through to Kubernetes. `Gt` and `Lt` are accepted as
   operators, and `None` or an empty string still means the field is omitted.
 
+* `kfp.kubernetes.add_pod_label` and `add_pod_annotation` now raise
+  `ValueError` at compile time when the key is an empty string, instead of
+  writing it into the platform spec. Empty values are still allowed.
+
 # 2.15.2
 
 ## Bug fixes and other changes
