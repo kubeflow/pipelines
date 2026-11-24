@@ -284,3 +284,31 @@ test("experiment list readiness uses a unique selector with multiple rows", asyn
   );
   await cases.get("displays both experiments in the list")();
 });
+
+// GHSA-3g3m-2fjr-6pw4 and GHSA-g3hv-75wg-m249 require patched major releases.
+test("glob and minimatch stay on patched traversal and optimization releases", async () => {
+  const lock = JSON.parse(
+    await readFile(new URL("./package-lock.json", import.meta.url), "utf8"),
+  );
+  for (const [name, minimum] of Object.entries({
+    glob: [14, 0, 2],
+    minimatch: [11, 0, 1],
+  })) {
+    const packages = Object.entries(lock.packages).filter(([entry]) =>
+      entry.endsWith(`/${name}`),
+    );
+    assert.ok(packages.length > 0, name);
+    for (const [entry, dependency] of packages) {
+      assert.match(dependency.version, /^\d+\.\d+\.\d+$/);
+      const version = dependency.version.split(".").map(Number);
+      const firstDifference = version.findIndex(
+        (part, index) => part !== minimum[index],
+      );
+      assert.ok(
+        firstDifference === -1 ||
+          version[firstDifference] > minimum[firstDifference],
+        `${entry}@${dependency.version}`,
+      );
+    }
+  }
+});

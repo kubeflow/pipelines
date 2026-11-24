@@ -5,7 +5,7 @@ inputs:
     description: Native image architecture
     default: amd64
   kind:
-    description: Branch images or runtime dependencies (images or runtime)
+    description: Branch images, runtime dependencies, both, or optional viewer (images, runtime, all, tensorboard)
     default: images
   path:
     description: Local destination for verified archives
@@ -23,6 +23,15 @@ outputs:
   run-id:
     description: Validated producer run ID
     value: ${{ steps.resolve.outputs.run-id }}
+  run-attempt:
+    description: Validated producer run attempt
+    value: ${{ steps.resolve.outputs.run-attempt }}
+  repository:
+    description: Validated producer repository
+    value: ${{ steps.resolve.outputs.repository }}
+  state:
+    description: Local state pinning the verified source and producer attempt
+    value: ${{ inputs.state }}
   artifact-ids:
     description: Exact immutable artifact IDs consumed
     value: ${{ steps.resolve.outputs.artifact-ids }}

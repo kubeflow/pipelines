@@ -9,7 +9,14 @@ NAMESPACE="${1:-${USER_NAMESPACE:-kubeflow-user-example-com}}"
 # Create curl pod for testing
 kubectl -n "$NAMESPACE" run kfp-proxy-curl --image=curlimages/curl:8.7.1 --restart=Never \
   --annotations="sidecar.istio.io/inject=false" --command -- sleep 3600
-kubectl -n "$NAMESPACE" wait --for=condition=Ready pod/kfp-proxy-curl --timeout=300s
+kubectl -n "$NAMESPACE" wait --for=condition=Ready pod/kfp-proxy-curl --timeout=300s || {
+  wait_status=$?
+  kubectl -n "$NAMESPACE" describe pod/kfp-proxy-curl --show-events=false --request-timeout=10s || true
+  # Events may still be available even if the pod can no longer be described.
+  kubectl -n "$NAMESPACE" get events --request-timeout=10s \
+    --field-selector=involvedObject.kind=Pod,involvedObject.name=kfp-proxy-curl || true
+  exit "$wait_status"
+}
 
 # Test 1: Verify artifact proxy health endpoint
 HEALTH_RESPONSE=""

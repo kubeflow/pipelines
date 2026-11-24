@@ -21,6 +21,16 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class ContributorReportWorkflowTest(unittest.TestCase):
+    def test_reports_refresh_on_lifecycle_events_not_every_push(self):
+        workflow = (
+            ROOT / '.github/workflows/contributor-report.yml'
+        ).read_text(encoding='utf-8')
+        event_types = re.search(r'types: \[([^\]]+)\]', workflow).group(1)
+        self.assertEqual(
+            [event.strip() for event in event_types.split(',')],
+            ['opened', 'reopened', 'ready_for_review'],
+        )
+
     def test_script_checkout_uses_trusted_workflow_revision(self):
         workflow = (
             ROOT / '.github/workflows/contributor-report.yml'

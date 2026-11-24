@@ -61,6 +61,34 @@ query ContributorReport(
 }
 """
 
+COMMENT_HISTORY_QUERY = """
+query ContributorCommentHistory($username: String!, $issueCommentCursor: String) {
+  user(login: $username) {
+    issueComments(
+      first: 100
+      after: $issueCommentCursor
+      orderBy: { field: UPDATED_AT, direction: DESC }
+    ) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        issue {
+          url
+          repository {
+            owner {
+              login
+            }
+            name
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
 
 @dataclass(frozen=True)
 class ContributorStats:
@@ -181,15 +209,18 @@ def fetch_contributor_stats(username: str) -> ContributorStats:
     merged_prs = None
 
     while True:
-        result = github_graphql(
-            CONTRIBUTOR_QUERY,
-            {
-                'username': username,
-                'issueCountQuery': issue_count_query,
-                'mergedPrQuery': merged_pr_query,
-                'issueCommentCursor': issue_comment_cursor,
-            },
-        )
+        variables = {
+            'username': username,
+            'issueCommentCursor': issue_comment_cursor,
+        }
+        query = COMMENT_HISTORY_QUERY
+        if created_at is None:
+            query = CONTRIBUTOR_QUERY
+            variables.update(
+                issueCountQuery=issue_count_query,
+                mergedPrQuery=merged_pr_query,
+            )
+        result = github_graphql(query, variables)
         data = result['data']
         user = data.get('user')
         if not user:
@@ -315,10 +346,15 @@ def build_comment(
     username: str, rows: list[MarkdownRow], title: str | None = None
 ) -> str:
     resolved_title = title or f'#### Contributor Report for @{username}'
+    snapshot_date = datetime.now(timezone.utc).date().isoformat()
     return '\n'.join(
         [
             REPORT_MARKER,
             resolved_title,
+            '',
+            f'Snapshot as of {snapshot_date} (UTC). Refreshed when this PR is '
+            'opened, reopened, or marked ready for review; '
+            'not an authorization decision.',
             '',
             *render_table(rows),
         ]
@@ -354,6 +390,8 @@ def upsert_comment(owner: str, repo: str, issue_number: int, body: str) -> str:
         (comment for comment in comments if is_report_comment(comment)), None
     )
     if existing:
+        if existing.get('body') == body:
+            return 'unchanged'
         github_request(
             f'/repos/{owner}/{repo}/issues/comments/{existing["id"]}',
             method='PATCH',

@@ -32,6 +32,7 @@ on:
         default: false
         description: 'Dry run mode - build images without pushing to registry or creating tags.'
         required: false
+cache-mode: none
 permissions: {}
 
 jobs:
@@ -86,6 +87,9 @@ jobs:
           - name: kfp-viewer-crd-controller
             dockerfile: backend/Dockerfile.viewercontroller
             context: .
+          - name: kfp-tensorboard
+            dockerfile: backend/Dockerfile.tensorboard
+            context: .
           - name: kfp-launcher
             dockerfile: backend/Dockerfile.launcher
             context: .
@@ -131,6 +135,7 @@ jobs:
           - image: kfp-persistence-agent
           - image: kfp-scheduled-workflow-controller
           - image: kfp-viewer-crd-controller
+          - image: kfp-tensorboard
           - image: kfp-launcher
           - image: kfp-driver
     uses: ./.github/workflows/create-manifest.yml

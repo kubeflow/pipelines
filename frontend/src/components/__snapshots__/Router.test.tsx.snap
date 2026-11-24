@@ -15,7 +15,7 @@ exports[`Router > initial render 1`] = `
         id="sideNav"
       >
         <div
-          style="flex-grow: 1; min-height: 0px; overflow-x: hidden; overflow-y: auto; position: relative;"
+          style="flex-grow: 1; min-height: 0px; overflow: hidden auto; position: relative;"
         >
           <div
             class="indicator_f1itm870 indicatorHidden_fnu5k6u"

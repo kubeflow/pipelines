@@ -212,11 +212,16 @@ def verify_payload(s3, key):
 def verify_state(s3):
     verify_payload(s3, 'shared/before-upgrade')
     rules = s3.get_bucket_lifecycle_configuration(Bucket=BUCKET)['Rules']
-    if not any(
-        rule['Status'] == 'Enabled' and rule['Expiration']['Days'] == 30
-        for rule in rules
+    if (
+        len(rules) != 1
+        or rules[0].get('ID') != 'private-artifacts'
+        or rules[0].get('Status') != 'Enabled'
+        or rules[0].get('Filter') != {'Prefix': 'private-artifacts'}
+        or rules[0].get('Expiration') != {'Days': 30}
     ):
-        raise AssertionError('Lifecycle configuration did not survive upgrade')
+        raise AssertionError(
+            'Lifecycle configuration changed; inspect the private-artifacts rule scope and retention'
+        )
 
 
 def seed_old_store(storage, baseline_image, evidence):

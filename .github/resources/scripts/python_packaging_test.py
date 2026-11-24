@@ -49,7 +49,7 @@ class PythonPackagingTest(unittest.TestCase):
         sdk = tomllib.loads((ROOT / 'sdk/python/pyproject.toml').read_text())
         lock = tomllib.loads((ROOT / 'uv.lock').read_text())
         self.assertIn(
-            'google-cloud-pipeline-components>=2.22.0',
+            'google-cloud-pipeline-components>=2.23.0',
             workspace['project']['optional-dependencies']['test'],
         )
         for requirements in (
@@ -69,7 +69,7 @@ class PythonPackagingTest(unittest.TestCase):
                     int, versions['google-cloud-pipeline-components'].split('.')
                 )
             ),
-            (2, 22, 0),
+            (2, 23, 0),
         )
         self.assertEqual(versions['protobuf'].split('.')[0], '6')
 
@@ -475,6 +475,10 @@ class PythonPackagingTest(unittest.TestCase):
                 api.mkdir(parents=True)
                 generator = api / 'build_kfp_server_api_python_package.sh'
                 shutil.copy(ROOT / 'backend/api' / generator.name, generator)
+                shutil.copy(
+                    ROOT / 'backend/api/download_openapi_generator.sh',
+                    api / 'download_openapi_generator.sh',
+                )
                 (api / 'hack').mkdir()
                 shutil.copy(
                     ROOT / 'backend/api/hack/generate_python_compat.py',
@@ -501,7 +505,12 @@ class PythonPackagingTest(unittest.TestCase):
                 fake_bin = root / 'bin'
                 fake_bin.mkdir()
                 curl = fake_bin / 'curl'
-                curl.write_text('#!/bin/sh\nexit 0\n')
+                curl.write_text(
+                    f'#!{sys.executable}\n'
+                    'from pathlib import Path\n'
+                    'import sys\n'
+                    "Path(sys.argv[sys.argv.index('--output') + 1]).write_bytes(b'fake jar')\n"
+                )
                 curl.chmod(0o755)
                 java = fake_bin / 'java'
                 java.write_text(
@@ -538,6 +547,7 @@ class PythonPackagingTest(unittest.TestCase):
                         **os.environ,
                         'PATH': f'{fake_bin}{os.pathsep}{os.environ["PATH"]}',
                         'API_VERSION': api_version,
+                        'TMPDIR': str(root),
                     },
                     capture_output=True,
                     text=True,

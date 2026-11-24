@@ -53,6 +53,10 @@ inputs:
     description: "If KFP should be deployed with TLS pod-to-pod communication."
     required: false
     default: 'false'
+  load_tensorboard_image:
+    description: "Wait for and load the candidate TensorBoard image for viewer tests."
+    required: false
+    default: 'false'
   load_modelcar_fixture:
     description: "Load the prebuilt Modelcar test fixture image into Kind."
     required: false
@@ -91,17 +95,44 @@ runs:
         IMAGE_DIRECTORY: ${{ inputs.image_path }}/runtime-base-images
       run: bash .github/resources/scripts/stage-runtime-image-cache.sh
 
-    # Start the largest transfer while the branch images are still building.
-    # Keep the same archive and Kind image verification as the combined path.
-    - name: Download shared runtime base images
-      if: steps.runtime-image-cache-files.outputs.ready != 'true'
+    # Validate both sets against one fresh producer snapshot before any image load.
+    - name: Download and verify shared images
+      id: shared-images
       uses: ./.github/actions/shared-ci-images
       with:
         ready-state: ${{ inputs.image_ready_state }}
-        kind: runtime
+        kind: ${{ steps.runtime-image-cache-files.outputs.ready == 'true' && 'images' || 'all' }}
         architecture: amd64
-        layout: flat
-        path: "${{ inputs.image_path }}/runtime-base-images"
+        layout: nested
+        path: "${{ inputs.image_path }}"
+
+    - name: Download pinned Argo manifests
+      uses: ./.github/actions/download-artifact-with-retry
+      with:
+        name: argo-manifests-attempt-${{ steps.shared-images.outputs.run-attempt }}
+        repository: ${{ steps.shared-images.outputs.repository }}
+        run-id: ${{ steps.shared-images.outputs.run-id }}
+        github-token: ${{ github.token }}
+        path: ${{ inputs.image_path }}/argo-manifests
+        required-files: |
+          argo-manifests.tar
+          argo-manifests.json
+
+    - name: Verify pinned Argo manifests
+      id: argo-manifests
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        ARGO_MANIFESTS_DIRECTORY: ${{ inputs.image_path }}/argo-manifests
+        PRODUCER_STATE: ${{ steps.shared-images.outputs.state }}
+      run: |
+        python3 .github/resources/scripts/argo_manifest_artifacts.py verify \
+          --directory "$ARGO_MANIFESTS_DIRECTORY" --state "$PRODUCER_STATE"
+        python3 - <<'PYTHON' >> "$GITHUB_OUTPUT"
+        import os
+        from pathlib import Path
+        print(f"directory={Path(os.environ['ARGO_MANIFESTS_DIRECTORY']).resolve()}")
+        PYTHON
 
     - name: Load Runtime Base Images Into Kind
       shell: bash
@@ -135,14 +166,6 @@ runs:
           load image-archive "${MODELCAR_IMAGE_ARCHIVE}"
         rm "${MODELCAR_IMAGE_ARCHIVE}"
 
-    - name: Download shared branch images
-      uses: ./.github/actions/shared-ci-images
-      with:
-        ready-state: ${{ inputs.image_ready_state }}
-        architecture: amd64
-        layout: nested
-        path: "${{ inputs.image_path }}"
-
     - name: Load Control Plane Images Into Kind
       shell: bash
       run: |
@@ -173,6 +196,25 @@ runs:
           docker image rm "${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}"
           docker image rm "${{ inputs.image_registry }}/$app:ci"
         done
+
+    - name: Download shared TensorBoard image
+      if: ${{ inputs.load_tensorboard_image == 'true' }}
+      uses: ./.github/actions/shared-ci-images
+      with:
+        kind: tensorboard
+        ready-state: ${{ inputs.image_ready_state }}
+        architecture: amd64
+        path: "${{ inputs.image_path }}/tensorboard"
+        layout: flat
+
+    - name: Load TensorBoard Default Image Into Kind
+      if: ${{ inputs.load_tensorboard_image == 'true' }}
+      shell: bash
+      run: |
+        ./.github/resources/scripts/load-tensorboard-image.sh \
+          "${{ inputs.image_path }}/tensorboard/tensorboard.tar" \
+          "${{ inputs.image_registry }}/tensorboard:${{ inputs.image_tag }}" \
+          "${{ inputs.cluster_name }}" "$(python3 hack/update_tensorboard_image.py --print-default)"
 
     - name: Deploy Tinyproxy
       id: deploy-tinyproxy
@@ -233,6 +275,8 @@ runs:
       id: deploy-kfp
       if: ${{ steps.configure.outcome == 'success' }}
       uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60
+      env:
+        KFP_ARGO_MANIFESTS_DIRECTORY: ${{ steps.argo-manifests.outputs.directory }}
       with:
         max_attempts: 2
         timeout_minutes: 15

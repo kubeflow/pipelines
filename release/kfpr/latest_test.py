@@ -46,6 +46,7 @@ class LatestReleaseTest(unittest.TestCase):
             ('read_commits', []),
             ('_remote_release_sha', 'a' * 40),
             ('confirm', None),
+            ('review_release_notes', []),
         ):
             patcher = mock.patch('kfpr.steps.' + target, return_value=result)
             patcher.start()
@@ -53,6 +54,7 @@ class LatestReleaseTest(unittest.TestCase):
         self.releases('2.17.2')
         for target in (
             'qualification.require_qualification',
+            'rtd.publish_backend_docs',
             '_ensure_release_tag',
             'watch_latest_workflow_run',
         ):

@@ -68,15 +68,16 @@ async function currentStatus(github, context, head) {
   return null;
 }
 
-async function baseRevision(github, context, pr) {
+async function baseRevision(github, context, pr, queueAdmission = false) {
   // ONE validated base revision for policy loading, execution freshness,
   // publication, and the post-publication check. GitHub freezes pr.base.sha at
   // the PR's last sync, so any use of the frozen sha leaves a stale green
   // untouched as the base advances. Key every use off the LIVE base branch tip
   // instead, so an advance revokes the green and forces fresh CI against the
-  // new base. Release branches keep their frozen base.sha behavior.
+  // new base. Release branches keep their frozen base.sha behavior until queue admission
+  // is explicitly enabled; queued releases also load policy from the live tip.
   let sha = pr.base.sha;
-  if (isDevelopmentBranch(pr.base.ref)) {
+  if (isDevelopmentBranch(pr.base.ref) || queueAdmission) {
     const {data} = await github.rest.git.getRef({
       ...context.repo, ref: `heads/${pr.base.ref}`,
     });
@@ -124,7 +125,7 @@ async function recoveryCandidates({github, context, root = process.env.GITHUB_WO
       continue;
     }
     if (status?.state === 'success' &&
-        status.description === successDescription(pr, await baseRevision(github, context, pr), queueAdmission) &&
+        status.description === successDescription(pr, await baseRevision(github, context, pr, queueAdmission), queueAdmission) &&
         (!queueAdmission || publishedAttempts(status, `${context.repo.owner}/${context.repo.repo}`))) continue;
     if (await remainsBlocked(pr, status, queueAdmission)) continue;
     candidates.push({number: pr.number, head: pr.head.sha});
@@ -189,7 +190,7 @@ async function revokeStaleGreens({github, context, tip, root = process.env.GITHU
   return revoked;
 }
 
-async function resolve(github, context, recovery) {
+async function resolve(github, context, recovery, {allowListedWorkflowPR = false} = {}) {
   if (context.eventName === 'schedule') {
     if (!Number.isSafeInteger(recovery?.number) || recovery.number <= 0 || !recovery.head) {
       throw new Error('Scheduled recovery requires a PR number and head SHA');
@@ -215,6 +216,7 @@ async function resolve(github, context, recovery) {
     pr.head.repo?.full_name === run.head_repository.full_name);
   if (matches.length === 0) return null;
   if (matches.length !== 1) throw new Error('Workflow head must identify exactly one open PR');
+  if (allowListedWorkflowPR) return matches[0];
   const pr = await readPR(github, context, matches[0].number);
   return pr.head.sha === run.head_sha &&
     pr.head.repo?.full_name === run.head_repository.full_name ? pr : null;
@@ -296,19 +298,33 @@ async function freshAfter(github, context, pr) {
 }
 
 async function evidence(github, context, pr, root) {
-  const baseSha = await baseRevision(github, context, pr);
-  // Development branch tips advance behind the publisher's back; release
-  // branches keep their frozen base.sha behavior (see baseRevision). The
-  // freshness check is scoped to the live base so release branches are
-  // unchanged. An enforced queue validates the combined candidate instead;
-  // admission still checks current-head CI, trusted policy, and retarget history.
   const queuedAdmission = await queueEnabled({github, context, branch: pr.base.ref, root});
+  const baseSha = await baseRevision(github, context, pr, queuedAdmission);
+  // Unqueued release branches retain their existing freshness behavior.
+  // Enabled queues load live branch policy but validate base freshness on
+  // the combined candidate instead;
+  // admission still checks current-head CI, trusted policy, and retarget history.
   const liveBase = isDevelopmentBranch(pr.base.ref) && !queuedAdmission;
+  const result = await workflowEvidence(github, context, pr, root, {
+    baseSha, liveBase, bindAttempts: queuedAdmission,
+  });
+  return {...result, queueAdmission: queuedAdmission};
+}
+
+function mergedWorkflowEvidence(github, context, boundPR, root) {
+  // The landed parent is immutable. A subsequent queue rollout or branch
+  // advance has no bearing on the policy that applied to this merged change.
+  return workflowEvidence(github, context, boundPR, root, {
+    baseSha: boundPR.base.sha, liveBase: false, bindAttempts: true,
+  });
+}
+
+async function workflowEvidence(github, context, pr, root, {baseSha, liveBase, bindAttempts}) {
   const [inventory, cutoff] = await settleAll([
     loadBaseInventory({github, ...context.repo, pullRequest: pr, baseSha, root, cacheRunId: context.runId}),
     freshAfter(github, context, pr),
   ]);
-  const args = {github, ...context.repo, pullRequest: pr, baseSha, liveBase, ...inventory, freshAfter: cutoff, bindAttempts: queuedAdmission};
+  const args = {github, ...context.repo, pullRequest: pr, baseSha, liveBase, ...inventory, freshAfter: cutoff, bindAttempts};
   let result = await verifyExpectedWorkflows(args);
   if (result.missing.length) {
     // The earliest publication on this SHA starts the registration grace.
@@ -326,10 +342,10 @@ async function evidence(github, context, pr, root) {
       result = await verifyExpectedWorkflows({...args, registrationStartedAt: new Date(start).toISOString()});
     }
   }
-  return {...result, baseSha, queueAdmission: queuedAdmission};
+  return {...result, baseSha};
 }
 
-async function invalidateActiveWorkflow({github, context, pr}) {
+async function readStartingWorkflow({github, context}) {
   const eventRun = context.payload.workflow_run;
   if (!Number.isSafeInteger(eventRun.id) || eventRun.id <= 0 ||
       !Number.isSafeInteger(eventRun.run_attempt) || eventRun.run_attempt <= 0) {
@@ -338,6 +354,11 @@ async function invalidateActiveWorkflow({github, context, pr}) {
   const {data: run} = await github.rest.actions.getWorkflowRun({
     ...context.repo, run_id: eventRun.id,
   });
+  return run;
+}
+
+function validateStartingWorkflow(run, context, pr) {
+  const eventRun = context.payload.workflow_run;
   if (run.id !== eventRun.id || run.event !== 'pull_request' ||
       run.repository?.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
       run.head_sha !== pr.head.sha || run.head_branch !== pr.head.ref ||
@@ -352,7 +373,6 @@ async function invalidateActiveWorkflow({github, context, pr}) {
       run.conclusion != null) {
     throw new Error('Starting workflow has invalid state; inspect CI Check and retry.');
   }
-  await publish(github, context, pr, 'pending', 'CI workflow is running; awaiting completion.', {provisional: true});
   return true;
 }
 
@@ -368,9 +388,11 @@ function failedCompletion(context) {
 }
 
 async function prepare({github, context, core, recovery, root = process.env.GITHUB_WORKSPACE}) {
+  const starting = context.eventName === 'workflow_run' &&
+    ['requested', 'in_progress'].includes(context.payload.action);
   let pr;
   try {
-    pr = await resolve(github, context, recovery);
+    pr = await resolve(github, context, recovery, {allowListedWorkflowPR: starting});
   } catch (error) {
     const sha = context.payload.pull_request?.head.sha || context.payload.workflow_run?.head_sha || recovery?.head;
     if (sha && context.payload.pull_request?.merged !== true) await github.rest.repos.createCommitStatus({
@@ -385,14 +407,36 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   // is skipped (it bails when number/head are unset) and cannot republish a
   // failure over the merged head.
   if (pr.merged) return;
-  if (context.eventName === 'workflow_run' &&
-      ['requested', 'in_progress'].includes(context.payload.action)) {
+  if (starting) {
+    const matchesEventHead = candidate =>
+      candidate.head.sha === context.payload.workflow_run.head_sha &&
+      candidate.head.repo?.full_name === context.payload.workflow_run.head_repository.full_name;
     try {
-      if (await invalidateActiveWorkflow({github, context, pr})) return;
+      const run = await readStartingWorkflow({github, context});
+      const active = validateStartingWorkflow(run, context, pr);
+      if (active && pr.state === 'open' && Array.isArray(pr.labels) &&
+          !pr.labels.some(label => label.name === 'ci-passed')) {
+        // The list snapshot can authorize only this read-only no-op. Keep the
+        // live run lookup: a delayed start may displace its completion event.
+        try {
+          if ((await currentStatus(github, context, pr.head.sha))?.state === 'pending') return;
+        } catch (_) { /* An optional probe failure falls back to normal publication. */ }
+      }
+      const fresh = await readPR(github, context, pr.number);
+      if (fresh.merged || !matchesEventHead(fresh)) return;
+      pr = fresh;
+      // Never let the list snapshot authorize a write or full validation.
+      // Rebind the same live run response to the authoritative PR snapshot.
+      if (validateStartingWorkflow(run, context, pr)) {
+        await publish(github, context, pr, 'pending', 'CI workflow is running; awaiting completion.', {provisional: true});
+        return;
+      }
     } catch (error) {
-      // Preserve a merge that completed while the run lookup was failing.
+      // Preserve a merge/head change that completed while the lookup failed.
       try {
-        if ((await readPR(github, context, pr.number)).merged) return;
+        const fresh = await readPR(github, context, pr.number);
+        if (fresh.merged || !matchesEventHead(fresh)) return;
+        pr = fresh;
       } catch (_) {
         // Unreadable evidence must still revoke any earlier success.
       }
@@ -401,11 +445,33 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
       throw error;
     }
   }
-  // Set the identity before any further API operation so the always() step
+  let activeCompletion = false;
+  let statusProbeError;
+  if (successfulCompletion(context) && pr.state === 'open' && !blocked(pr)) {
+    try {
+      activeCompletion = await hasActiveWorkflowRuns({github, ...context.repo, sha: pr.head.sha});
+    } catch (error) {
+      // A failed probe must fall through to full validation, never another shortcut.
+      core.info(`Cannot coalesce CI completion: ${error.message}`);
+    }
+    if (activeCompletion && Array.isArray(pr.labels) &&
+        !pr.labels.some(label => label.name === 'ci-passed')) {
+      try {
+        // Read after the live run scan. This no-write path preserves concurrent
+        // failures and cannot publish green. Omit identity outputs so always()
+        // finalization also does nothing. A delayed final event still scans runs.
+        if ((await currentStatus(github, context, pr.head.sha))?.state === 'pending') return;
+      } catch (error) {
+        statusProbeError = error;
+      }
+    }
+  }
+  // Set the identity before publication or further evidence retrieval so the always() step
   // can fail closed if inventory loading or evidence retrieval fails.
   core.setOutput('pr_number', String(pr.number));
   core.setOutput('head_sha', pr.head.sha);
   core.setOutput('snapshot', snapshot(pr));
+  if (statusProbeError) throw statusProbeError;
   await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.',
     {provisional: true, requireStatus: successfulCompletion(context) || failedCompletion(context)});
   if (pr.state !== 'open' || blocked(pr)) return;
@@ -424,21 +490,11 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
       return;
     }
   }
-  if (successfulCompletion(context)) {
-    let active = false;
-    try {
-      active = await hasActiveWorkflowRuns({github, ...context.repo, sha: pr.head.sha});
-    } catch (error) {
-      // An optimization failure must not bypass the normal fail-closed checks.
-      active = false;
-      core.info(`Cannot coalesce CI completion: ${error.message}`);
-    }
-    if (active) {
-      core.setOutput('ready', 'false');
-      core.setOutput('prepared_result', JSON.stringify({state: 'pending', intermediate: true,
-        reasons: ['CI workflows are still running; awaiting final completion.']}));
-      return;
-    }
+  if (activeCompletion) {
+    core.setOutput('ready', 'false');
+    core.setOutput('prepared_result', JSON.stringify({state: 'pending', intermediate: true,
+      reasons: ['CI workflows are still running; awaiting final completion.']}));
+    return;
   }
   const result = await evidence(github, context, pr, root);
   core.info(JSON.stringify(result));
@@ -448,7 +504,7 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   }
 }
 
-async function finalize({github, context, core, number, head, before, pollPassed, pollSkipped = false,
+async function finalize({github, context, core, number, head, before, preparationSucceeded = false, validationReady = false,
   preparedResult = '',
   root = process.env.GITHUB_WORKSPACE}) {
   if (!number || !head) return;
@@ -459,11 +515,6 @@ async function finalize({github, context, core, number, head, before, pollPassed
     original = {...pr, head: {...pr.head, sha: head}};
     // Preserve the status on merge; closure without merge still invalidates below.
     if (pr.merged) return;
-    // The always-run finalizer must not turn an interrupted preparation or
-    // failed checker into pending and overwrite an already published failure.
-    if ((successfulCompletion(context) || failedCompletion(context)) && !pollPassed && !pollSkipped) {
-      throw new Error('Completion CI validation did not finish; inspect CI Check and retry.');
-    }
     let state = 'failure';
     let validatedBaseSha;
     let validatedQueueAdmission = false;
@@ -474,7 +525,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
       let prepared;
       if (preparedResult !== '') {
         prepared = JSON.parse(preparedResult);
-        if (!pollSkipped || pollPassed || !prepared ||
+        if (validationReady || !prepared ||
             !['pending', 'failure'].includes(prepared.state) ||
             !Array.isArray(prepared.reasons) || prepared.reasons.length === 0 ||
             prepared.reasons.some(reason => typeof reason !== 'string' || !reason)) {
@@ -509,17 +560,22 @@ async function finalize({github, context, core, number, head, before, pollPassed
         results.some(result => result.state === 'pending') ? 'pending' : 'success';
       reason = results.filter(result => result.state === state)
         .flatMap(result => result.reasons).join('; ');
-      // Retain the pinned checker's independent success requirement. If it
-      // was skipped before workflow evidence recovered, wait for the next
-      // reconciliation instead of authorizing an unchecked success.
-      if (state === 'success' && !pollPassed) {
-        state = pollSkipped ? 'pending' : 'failure';
-        reason = pollSkipped ? 'CI changed since initial assessment; awaiting check validation.' :
-          'Cannot verify all checks passed; inspect CI Check and retry.';
+      // Preserve fresh failure reasons, but never turn an interrupted
+      // prerequisite into pending or green if its evidence recovered meanwhile.
+      if (preparationSucceeded !== true && state !== 'failure') {
+        state = 'failure';
+        reason = 'CI preparation did not finish; inspect CI Check and retry.';
+      }
+      // Preparation may establish only a negative result. If evidence became
+      // green after preparation declined validation, wait for a fresh complete
+      // reconciliation instead of promoting that negative snapshot.
+      if (state === 'success' && validationReady !== true) {
+        state = 'pending';
+        reason = 'CI changed since initial assessment; awaiting check validation.';
       }
     }
     if (state === 'failure') errorReason = reason;
-    await publish(github, context, original, state,
+    const published = await publish(github, context, original, state,
       state === 'success' ? successDescription(pr, validatedBaseSha, validatedQueueAdmission) : reason,
       {attemptFingerprint: validatedQueueAdmission ? validatedAttempts : null});
     // Status/label writes are not atomic with PR or CI changes. Revalidate
@@ -544,6 +600,9 @@ async function finalize({github, context, core, number, head, before, pollPassed
         if (changed) {
           if (changed.state === 'failure') errorReason = changed.reasons.join('; ');
           await publish(github, context, original, changed.state, changed.reasons.join('; '));
+        }
+        if (!changed && published && validatedQueueAdmission && results[0].attempts === validatedAttempts) {
+          return after;
         }
       }
     }
@@ -574,7 +633,7 @@ async function mergedRecoveryBinding(github, context, number, head) {
   }
   const pr = await readPR(github, context, Number(number));
   if (pr.number !== Number(number) || pr.merged !== true || pr.state !== 'closed' ||
-      pr.head.sha !== head || pr.commits !== 1 || !pr.head.repo?.full_name ||
+      pr.head.sha !== head || ![1, 2].includes(pr.commits) || !pr.head.repo?.full_name ||
       pr.base.repo?.full_name !== repository || !/^release-\d+\.\d+$/.test(pr.base.ref) ||
       !/^[0-9a-f]{40}$/.test(pr.merge_commit_sha || '') || blocked(pr)) {
     throw new Error('Recovery identity is not an eligible merged release PR.');
@@ -585,17 +644,31 @@ async function mergedRecoveryBinding(github, context, number, head) {
   const {data: tested} = await github.rest.repos.getCommit({...context.repo, ref: head});
   if (commit.sha !== pr.merge_commit_sha || tested.sha !== head ||
       !Array.isArray(commit.parents) || commit.parents.length !== 1 ||
-      !Array.isArray(tested.parents) || tested.parents.length !== 1 ||
+      !Array.isArray(tested.parents) || tested.parents.length !== pr.commits ||
       !/^[0-9a-f]{40}$/.test(commit.parents[0].sha || '') ||
-      commit.parents[0].sha !== tested.parents[0].sha ||
       !/^[0-9a-f]{40}$/.test(commit.commit?.tree?.sha || '') ||
       commit.commit.tree.sha !== tested.commit?.tree?.sha) {
-    throw new Error('Recovery requires a single-commit PR with matching tested/merged parents and trees.');
+    throw new Error('Recovery requires matching tested and merged trees and a single landed parent.');
   }
-  // Multi-commit rebase merges make the last commit's parent part of the PR.
-  // Restrict recovery to one tested commit with an unchanged parent and tree;
-  // this proves the immutable base without trusting GitHub's mutable base.sha.
-  const bound = {...pr, base: {...pr.base, sha: commit.parents[0].sha}};
+  const base = commit.parents[0].sha;
+  if (tested.parents[pr.commits - 1].sha !== base) {
+    throw new Error('Tested head is not based on the exact landed parent.');
+  }
+  if (pr.commits === 2) {
+    // Only a single PR change followed by merging the landed base into the PR.
+    // Enumerate both commits so a rebase or an unrelated merge cannot supply the base.
+    const {data: commits} = await github.rest.pulls.listCommits({
+      ...context.repo, pull_number: pr.number, per_page: 3,
+    });
+    const change = commits[0];
+    if (commits.length !== 2 || commits[1].sha !== head ||
+        !/^[0-9a-f]{40}$/.test(change.sha || '') || change.sha === base ||
+        change.sha !== tested.parents[0].sha || change.parents?.length !== 1 ||
+        !/^[0-9a-f]{40}$/.test(change.parents[0].sha || '')) {
+      throw new Error('Recovery requires a single PR change followed by a merge of the landed base.');
+    }
+  }
+  const bound = {...pr, base: {...pr.base, sha: base}};
   const identity = JSON.stringify([bound.number, head, pr.head.repo.full_name,
     pr.base.repo.full_name, pr.base.ref, pr.merge_commit_sha, bound.base.sha, commit.commit.tree.sha]);
   return {pr: bound, identity};
@@ -645,31 +718,32 @@ async function prepareMergedRecovery({github, context, core, number, head,
     await repairInterruptedRecovery(github, context, pr, initial);
     if ((await currentStatus(github, context, head))?.state !== 'pending') return;
   }
-  const workflows = await evidence(github, context, pr, root);
+  const workflows = await mergedWorkflowEvidence(github, context, pr, root);
   core.info(JSON.stringify(workflows));
   if (!workflows.passed) throw new Error('Required merged-head workflows have not passed.');
   core.setOutput('pr_number', String(pr.number));
   core.setOutput('head_sha', head);
-  core.setOutput('snapshot', identity);
+  core.setOutput('snapshot', JSON.stringify({identity, attempts: workflows.attempts}));
   core.setOutput('ready', 'true');
 }
 
 async function finalizeMergedRecovery({github, context, core, number, head, before,
-  pollPassed, root = process.env.GITHUB_WORKSPACE}) {
-  if (!number || !head || !pollPassed) return;
+  preparationSucceeded = false, validationReady = false, root = process.env.GITHUB_WORKSPACE}) {
+  if (!number || !head || preparationSucceeded !== true || validationReady !== true) return;
   const {pr, identity} = await mergedRecoveryBinding(github, context, number, head);
-  if (identity !== before) throw new Error('Merged recovery identity changed.');
+  const prepared = JSON.parse(before);
+  if (identity !== prepared.identity) throw new Error('Merged recovery identity changed.');
   if ((await currentStatus(github, context, head))?.state !== 'pending') return;
   const [workflows, checks] = await settleAll([
-    evidence(github, context, pr, root),
+    mergedWorkflowEvidence(github, context, pr, root),
     verifyCheckRuns({github, ...context.repo, sha: head}),
   ]);
   core.info(JSON.stringify({workflows, checks}));
-  if (!workflows.passed || checks.state !== 'success') {
-    throw new Error('Required merged-head CI evidence is not green.');
+  if (!workflows.passed || checks.state !== 'success' || workflows.attempts !== prepared.attempts) {
+    throw new Error('Required merged-head CI evidence failed or changed since preparation.');
   }
   const after = await mergedRecoveryBinding(github, context, number, head);
-  if (after.identity !== before) throw new Error('Merged recovery identity changed before publication.');
+  if (after.identity !== prepared.identity) throw new Error('Merged recovery identity changed before publication.');
   if ((await currentStatus(github, context, head))?.state !== 'pending') return;
   const written = await publish(github, context, after.pr, 'success',
     successDescription(after.pr, workflows.baseSha), {expectedState: 'pending', updateLabels: false});
@@ -678,12 +752,12 @@ async function finalizeMergedRecovery({github, context, core, number, head, befo
   // the exact status this attempt wrote, preserving another writer's update.
   try {
     const final = await mergedRecoveryBinding(github, context, number, head);
-    if (final.identity !== before) throw new Error('Merged identity changed during publication.');
+    if (final.identity !== prepared.identity) throw new Error('Merged identity changed during publication.');
     const results = await settleAll([
-      evidence(github, context, final.pr, root),
+      mergedWorkflowEvidence(github, context, final.pr, root),
       verifyCheckRuns({github, ...context.repo, sha: head}),
     ]);
-    if (results.some(result => result.state !== 'success')) {
+    if (results.some(result => result.state !== 'success') || results[0].attempts !== prepared.attempts) {
       throw new Error('CI evidence changed during merged recovery publication.');
     }
   } catch (error) {

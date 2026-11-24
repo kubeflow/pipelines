@@ -625,6 +625,37 @@ class TestGenericEphemeralVolume:
             }
         }
 
+    @pytest.mark.parametrize('bad', ['ReadWriteOnce', ''])
+    def test_plain_string_access_modes_raises(self, bad):
+        with pytest.raises(TypeError, match='must be a list of strings'):
+
+            @dsl.pipeline
+            def my_pipeline():
+                kubernetes.add_ephemeral_volume(
+                    comp(),
+                    volume_name='v',
+                    mount_path='/m',
+                    access_modes=bad,
+                    size='5Gi',
+                )
+
+    def test_access_modes_list_still_works(self):
+        @dsl.pipeline
+        def my_pipeline():
+            kubernetes.add_ephemeral_volume(
+                comp(),
+                volume_name='v',
+                mount_path='/m',
+                access_modes=['ReadWriteOnce'],
+                size='5Gi',
+            )
+
+        executor = json_format.MessageToDict(my_pipeline.platform_spec)[
+            'platforms'
+        ]['kubernetes']['deploymentSpec']['executors']['exec-comp']
+        volume = executor['genericEphemeralVolume'][0]
+        assert volume['accessModes'] == ['ReadWriteOnce']
+
 
 @dsl.component
 def comp():

@@ -40,6 +40,7 @@ WORKFLOW_JOBS = {
     '.github/workflows/kfp-sdk-client-tests.yml': ('sdk-client-tests',),
     '.github/workflows/kfp-webhooks.yml': ('webhook-tests',),
     '.github/workflows/upgrade-test.yml': ('upgrade-test',),
+    '.github/workflows/tensorboard-acceptance.yml': ('deployed',),
 }
 
 
@@ -111,18 +112,21 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
             if step.get('uses') == './.github/actions/shared-ci-images'
         ]
         self.assertEqual(len(downloads), 2)
-        runtime_download, branch_download = downloads
-        self.assertEqual(runtime_download['with']['kind'], 'runtime')
-        self.assertEqual(runtime_download['with']['layout'], 'flat')
+        download, tensorboard_download = downloads
+        self.assertEqual(tensorboard_download['with']['kind'], 'tensorboard')
         self.assertEqual(
-            branch_download['with'].get('kind', 'images'), 'images'
+            tensorboard_download['if'],
+            "${{ inputs.load_tensorboard_image == 'true' }}",
         )
-        self.assertEqual(branch_download['with']['layout'], 'nested')
-        for download in downloads:
-            self.assertEqual(download['with']['architecture'], 'amd64')
-            self.assertNotIn('continue-on-error', download)
-            # Both invocations use the same producer-state default.
-            self.assertNotIn('state', download['with'])
+        self.assertEqual(tensorboard_download['with']['layout'], 'flat')
+        self.assertEqual(
+            download['with']['kind'],
+            "${{ steps.runtime-image-cache-files.outputs.ready == 'true' && 'images' || 'all' }}",
+        )
+        self.assertEqual(download['with']['layout'], 'nested')
+        self.assertEqual(download['with']['architecture'], 'amd64')
+        self.assertNotIn('continue-on-error', download)
+        self.assertNotIn('state', download['with'])
         cache_restore = next(
             step for step in steps if step.get('id') == 'runtime-image-cache'
         )
@@ -145,22 +149,12 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
         )
         self.assertEqual(
             cache_stage['env']['IMAGE_DIRECTORY'],
-            runtime_download['with']['path'],
-        )
-        self.assertLess(steps.index(cache_restore), steps.index(cache_stage))
-        self.assertLess(steps.index(cache_stage), steps.index(runtime_download))
-        self.assertEqual(
-            runtime_download['if'],
-            "steps.runtime-image-cache-files.outputs.ready != 'true'",
-        )
-        self.assertNotIn('if', branch_download)
-        self.assertEqual(
-            runtime_download['with']['path'],
             '${{ inputs.image_path }}/runtime-base-images',
         )
-        self.assertEqual(
-            branch_download['with']['path'], '${{ inputs.image_path }}'
-        )
+        self.assertLess(steps.index(cache_restore), steps.index(cache_stage))
+        self.assertLess(steps.index(cache_stage), steps.index(download))
+        self.assertNotIn('if', download)
+        self.assertEqual(download['with']['path'], '${{ inputs.image_path }}')
         runtime_load = next(
             step
             for step in steps
@@ -177,14 +171,13 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
             modelcar_load['if'], "${{ inputs.load_modelcar_fixture == 'true' }}"
         )
         for load in (runtime_load, modelcar_load):
-            self.assertLess(steps.index(runtime_download), steps.index(load))
-            self.assertLess(steps.index(load), steps.index(branch_download))
+            self.assertLess(steps.index(download), steps.index(load))
         for name in (
             'Load Control Plane Images Into Kind',
             'Load Driver and Launcher Images Into Kind',
         ):
             load = next(step for step in steps if step.get('name') == name)
-            self.assertLess(steps.index(branch_download), steps.index(load))
+            self.assertLess(steps.index(download), steps.index(load))
 
     def test_multi_user_artifact_proxy_lane_uses_critical_shards(self):
         workflow = (ROOT / '.github/workflows/e2e-test.yml').read_text(

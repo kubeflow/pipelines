@@ -156,6 +156,29 @@ jobs:
         id: get_commit
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
+      - name: Checkout publication tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .publication-tooling
+          persist-credentials: false
+
+      - name: Set up provenance reader
+        uses: ./.publication-tooling/.github/actions/setup-go
+
+      - name: Prepare image source context
+        id: source_context
+        env:
+          SOURCE_SHA: ${{ steps.get_commit.outputs.sha }}
+          DOCKERFILE: ${{ inputs.docker_file }}
+          IMAGE_CONTEXT: ${{ inputs.image_context }}
+        run: |
+          python3 "$GITHUB_WORKSPACE/.publication-tooling/.github/resources/scripts/image-build-provenance.py" prepare \
+            --source "$GITHUB_WORKSPACE" --sha "$SOURCE_SHA" --dockerfile "$DOCKERFILE" \
+            --context "$IMAGE_CONTEXT" --destination "$RUNNER_TEMP/publication-context" > "$RUNNER_TEMP/publication-context.json"
+          jq -r '"context=\(.context)\ndockerfile=\(.dockerfile)"' \
+            "$RUNNER_TEMP/publication-context.json" >> "$GITHUB_OUTPUT"
+
       - name: Read frontend Node version
         id: frontend_node
         run: echo "version=$(tr -d '\r\n' < frontend/.nvmrc | sed 's/^v//')" >> "$GITHUB_OUTPUT"
@@ -210,8 +233,8 @@ jobs:
         env:
           BUILD_LABELS: ${{ steps.meta.outputs.labels }}
           IMAGE_NAME: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }}
-          INPUT_DOCKER_FILE: ${{ inputs.docker_file }}
-          INPUT_IMAGE_CONTEXT: ${{ inputs.image_context }}
+          INPUT_DOCKER_FILE: ${{ steps.source_context.outputs.dockerfile }}
+          INPUT_IMAGE_CONTEXT: ${{ steps.source_context.outputs.context }}
           INPUT_PLATFORMS: ${{ inputs.platforms }}
           INPUT_PUSH: ${{ inputs.push }}
           INPUT_TARGET_TAG: ${{ inputs.target_tag }}
@@ -223,15 +246,21 @@ jobs:
           build_command=(
             bash ./.github/resources/scripts/docker-buildx-build-with-retry.sh
             --platform "${INPUT_PLATFORMS}"
-            --provenance=mode=min
             --file "${INPUT_DOCKER_FILE}"
-            --output "type=image,name=${IMAGE_NAME},push-by-digest=true,name-canonical=true,push=${INPUT_PUSH}"
             --metadata-file "${METADATA_FILE}"
             --build-arg "NODE_VERSION=${NODE_VERSION}"
             --build-arg "COMMIT_SHA=${COMMIT_SHA}"
             --build-arg "COMMIT_HASH=${COMMIT_SHA}"
             --build-arg "TAG_NAME=${INPUT_TARGET_TAG}"
           )
+
+          if [ "$INPUT_PUSH" = "true" ]; then
+            build_command+=(--provenance=mode=min --output "type=image,name=${IMAGE_NAME},push-by-digest=true,name-canonical=true,push=true")
+          else
+            # Docker archives cannot contain BuildKit attestation manifests.
+            # Binary provenance is verified and retained separately below.
+            build_command+=(--provenance=false --output "type=docker,dest=${RUNNER_TEMP}/publication-image.tar")
+          fi
 
           while IFS= read -r label; do
             if [ -n "$label" ]; then
@@ -251,6 +280,37 @@ jobs:
             echo "digest=$digest" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Verify built binary provenance
+        env:
+          INPUT_PUSH: ${{ inputs.push }}
+          IMAGE_NAME: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }}
+          DIGEST: ${{ steps.push.outputs.digest }}
+          SOURCE_SHA: ${{ steps.get_commit.outputs.sha }}
+          DOCKERFILE: ${{ inputs.docker_file }}
+          PLATFORM: ${{ inputs.platforms }}
+        run: |
+          if [ "$INPUT_PUSH" = "true" ]; then
+            image="$IMAGE_NAME@$DIGEST"
+            docker pull --platform "$PLATFORM" "$image"
+          else
+            docker load --input "$RUNNER_TEMP/publication-image.tar"
+            config=$(tar -xOf "$RUNNER_TEMP/publication-image.tar" manifest.json | jq -r '.[0].Config' | sed 's/\.json$//; s|.*/||')
+            image="sha256:$config"
+          fi
+          python3 "$GITHUB_WORKSPACE/.publication-tooling/.github/resources/scripts/image-build-provenance.py" verify \
+            --source "$GITHUB_WORKSPACE" --sha "$SOURCE_SHA" --dockerfile "$DOCKERFILE" \
+            --platform "$PLATFORM" --image "$image" \
+            --output "$RUNNER_TEMP/publication-provenance"
+
+      - name: Retain binary provenance
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: binary-provenance-${{ inputs.app_to_build }}-${{ inputs.arch_tag }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/publication-provenance/
+          if-no-files-found: error
+          retention-days: 14
+
+      # Only verified images are handed to the manifest/tag publisher.
       # Export the digest
       - name: Export digest
         if: steps.check_tag.outcome == 'success' && inputs.push

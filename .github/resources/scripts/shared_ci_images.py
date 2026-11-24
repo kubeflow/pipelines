@@ -25,6 +25,11 @@ IMAGES = (
     'driver',
     'launcher',
 )
+IMAGE_SETS = {
+    'images': IMAGES,
+    'runtime': ('runtime-base-images',),
+    'tensorboard': ('tensorboard',),
+}
 ARCHITECTURES = ('amd64', 'arm64')
 
 
@@ -212,13 +217,18 @@ def validate_identity(value):
             'Malformed merge group identity',
         )
         require(
-            group['base_ref'] in ('refs/heads/master', 'refs/heads/main'),
-            'Expected master or main queue',
+            group['base_ref']
+            in (
+                'refs/heads/master',
+                'refs/heads/main',
+                'refs/heads/release-2.18',
+            ),
+            'Expected master, main, or release-2.18 queue',
         )
         base_branch = group['base_ref'].removeprefix('refs/heads/')
         require(
             matches(
-                rf'refs/heads/gh-readonly-queue/{base_branch}/pr-[0-9]+-[^/]+',
+                rf'refs/heads/gh-readonly-queue/{re.escape(base_branch)}/pr-[0-9]+-[^/]+',
                 group['head_ref'],
             )
             and group['head_ref'] == value['ref'],
@@ -591,9 +601,45 @@ def artifact_name(image, architecture, attempt):
     return f'{image}{suffix}-attempt-{attempt}'
 
 
+def bundle_name(architecture, attempt):
+    return f'ci-images-{architecture}-attempt-{attempt}'
+
+
+def validate_record_ids(records, identity, architecture):
+    bundled = [
+        record
+        for record in records
+        if record['artifact_name']
+        == bundle_name(architecture, identity['run_attempt'])
+    ]
+    if bundled:
+        require(
+            len(bundled) == len(IMAGES)
+            and {record['image'] for record in bundled} == set(IMAGES)
+            and len({record['artifact_id'] for record in bundled}) == 1,
+            'Incomplete or mixed image bundle',
+        )
+    individual = [record for record in records if record not in bundled]
+    require(
+        len({record['artifact_id'] for record in individual})
+        == len(individual),
+        'Repeated artifact ID',
+    )
+    require(
+        not (
+            {record['artifact_id'] for record in individual}
+            & {record['artifact_id'] for record in bundled}
+        ),
+        'Repeated artifact ID',
+    )
+
+
 def filenames(image, architecture):
     require(architecture in ARCHITECTURES, 'Unsupported architecture')
-    require(image in IMAGES or image == 'runtime-base-images', 'Unknown image')
+    require(
+        image in (*IMAGES, 'tensorboard', 'runtime-base-images'),
+        'Unknown image',
+    )
     if image == 'runtime-base-images':
         require(architecture == 'amd64', 'Runtime artifact is AMD64 only')
         return ('runtime-base-images.tar', 'modelcar.tar')
@@ -715,6 +761,10 @@ def validate_record(record, identity, architecture, image, artifacts=None):
         'Image/architecture mismatch',
     )
     name = artifact_name(image, architecture, identity['run_attempt'])
+    if image in IMAGES and record['artifact_name'] == bundle_name(
+        architecture, identity['run_attempt']
+    ):
+        name = record['artifact_name']
     require(record['artifact_name'] == name, 'Record artifact name mismatch')
     require(
         record['provenance'] == provenance_name(image, architecture),
@@ -764,10 +814,7 @@ def make_manifest(identity, architecture, records, api, artifacts=None):
         )
         for image in IMAGES
     ]
-    require(
-        len({record['artifact_id'] for record in ordered}) == len(IMAGES),
-        'Repeated artifact ID',
-    )
+    validate_record_ids(ordered, identity, architecture)
     return {
         'version': 1,
         'identity': identity,
@@ -855,12 +902,13 @@ def import_ready_state(value, consumer, architecture, kind):
         and previous['run_attempt'] <= consumer['run_attempt'],
         'Readiness consumer run/source mismatch',
     )
-    require(kind in state['sets'], 'Readiness is missing the selected set')
     require(
-        set(state['sets']) <= {'runtime', 'images'}, 'Unknown readiness set'
+        all(selected in state['sets'] for selected in selected_kinds(kind)),
+        'Readiness is missing the selected set',
     )
+    require(set(state['sets']) <= set(IMAGE_SETS), 'Unknown readiness set')
     for selected, records in state['sets'].items():
-        images = IMAGES if selected == 'images' else ('runtime-base-images',)
+        images = IMAGE_SETS[selected]
         require(isinstance(records, list), 'Malformed readiness records')
         require(
             len(records) == len(images)
@@ -876,16 +924,23 @@ def import_ready_state(value, consumer, architecture, kind):
             validate_record(
                 record, state['identity'], architecture, record['image']
             )
-        require(
-            len({record['artifact_id'] for record in records}) == len(images),
-            'Repeated readiness artifact ID',
-        )
+        validate_record_ids(records, state['identity'], architecture)
     state['consumer'] = consumer
     state['last_kind'] = kind
     return state
 
 
-def resolve_once(api, consumer, architecture, kind, state, pin=None):
+def resolve_once(
+    api,
+    consumer,
+    architecture,
+    kind,
+    state,
+    pin=None,
+    require_bundle=False,
+    unrelated_attempts=None,
+    select_attempt=None,
+):
     run = None
     artifacts = None
     try:
@@ -900,12 +955,12 @@ def resolve_once(api, consumer, architecture, kind, state, pin=None):
                 else consumer['source_sha']
             )
             runs = candidate_runs(api.runs(sha), consumer)
-            if not runs:
-                raise NotReady(
-                    'No matching producer; run ci-images.yml for this revision'
-                )
-            mismatch = None
+            if unrelated_attempts is None:
+                unrelated_attempts = set()
             for run in runs:
+                attempt = (run['id'], run['run_attempt'])
+                if attempt in unrelated_attempts:
+                    continue
                 identity = dict(
                     consumer,
                     run_id=run['id'],
@@ -915,6 +970,8 @@ def resolve_once(api, consumer, architecture, kind, state, pin=None):
                 # A head SHA can belong to multiple PRs or merge revisions.
                 # Validate provenance before judging an unrelated run's result.
                 validate_run(run, identity, check_conclusion=False)
+                if select_attempt is not None:
+                    select_attempt(attempt)
                 artifacts = api.artifacts(run['id'])
                 source = named_artifact(
                     artifacts,
@@ -925,15 +982,21 @@ def resolve_once(api, consumer, architecture, kind, state, pin=None):
                 validate_run(run, identity, check_conclusion=False)
                 try:
                     same_source(identity, consumer)
-                except InvalidEvidence as error:
+                except InvalidEvidence:
                     # Only a valid, API-bound source proves this run unrelated.
                     # Missing or malformed provenance above must fail closed.
-                    mismatch = error
+                    unrelated_attempts.add(attempt)
                     continue
                 validate_run(run, identity)
                 break
             else:
-                raise mismatch
+                # A completed run for another merge revision cannot start
+                # the publication grace for the producer we are waiting for.
+                run = None
+                raise NotReady(
+                    f'No matching producer for checkout {consumer["source_sha"]}; '
+                    'run ci-images.yml for this revision'
+                )
             state = {
                 'consumer': consumer,
                 'identity': identity,
@@ -950,16 +1013,18 @@ def resolve_once(api, consumer, architecture, kind, state, pin=None):
         images = (
             (*IMAGES, 'runtime-base-images')
             if kind == 'all'
-            else IMAGES
-            if kind == 'images'
-            else ('runtime-base-images',)
+            else IMAGE_SETS[kind]
         )
         records = []
         for image in images:
             artifact = named_artifact(
                 artifacts,
                 identity,
-                artifact_name(image, architecture, identity['run_attempt']),
+                bundle_name(architecture, identity['run_attempt'])
+                if require_bundle and image in IMAGES
+                else artifact_name(
+                    image, architecture, identity['run_attempt']
+                ),
             )
             records.append(
                 {
@@ -981,10 +1046,9 @@ def resolve_once(api, consumer, architecture, kind, state, pin=None):
         if kind == 'all':
             state['sets']['images'] = records[:-1]
             state['sets']['runtime'] = records[-1:]
-            state['last_kind'] = 'images'
         else:
             state['sets'][kind] = records
-            state['last_kind'] = kind
+        state['last_kind'] = kind
         return state
     except NotReady as error:
         if run is not None and run.get('status') == 'completed':
@@ -1002,15 +1066,27 @@ def resolve(
     poll=10,
     clock=time.monotonic,
     sleep=time.sleep,
+    require_bundle=False,
 ):
     require(timeout > 0 and poll > 0, 'Wait bounds must be positive')
     state = load_state(path, consumer, architecture)
     deadline = clock() + timeout
+    unrelated_attempts = set()
     publication_deadline = None
     completed_producer = None
     previous_deadline = getattr(api, 'deadline', None)
     previous_polling = getattr(api, 'polling', False)
     api.polling = True
+
+    def select_attempt(attempt):
+        nonlocal completed_producer, publication_deadline
+        if completed_producer is not None and attempt != completed_producer:
+            # The old attempt's publication budget cannot bound API calls or
+            # retries for a newly discovered producer.
+            completed_producer = None
+            publication_deadline = None
+            api.deadline = deadline
+
     try:
         while True:
             api.deadline = min(deadline, publication_deadline or deadline)
@@ -1022,15 +1098,22 @@ def resolve(
                     kind,
                     state,
                     pin=lambda pinned: write_json(path, pinned),
+                    unrelated_attempts=unrelated_attempts,
+                    select_attempt=select_attempt,
+                    require_bundle=require_bundle,
                 )
                 write_json(path, state)
                 return state
             except (NotReady, APIError) as error:
                 state = load_state(path, consumer, architecture)
-                completed = getattr(error, 'completed_producer', None)
-                if completed is not None and completed != completed_producer:
-                    completed_producer = completed
-                    publication_deadline = clock() + 60
+                if (
+                    isinstance(error, NotReady)
+                    and error.completed_producer != completed_producer
+                ):
+                    completed_producer = error.completed_producer
+                    publication_deadline = (
+                        clock() + 60 if completed_producer is not None else None
+                    )
                 effective_deadline = min(
                     deadline, publication_deadline or deadline
                 )
@@ -1059,8 +1142,17 @@ def resolve(
             api.run_cache.clear()
 
 
+def selected_kinds(kind):
+    require(kind in (*IMAGE_SETS, 'all'), 'Unknown image selection')
+    return ('runtime', 'images') if kind == 'all' else (kind,)
+
+
 def emit_outputs(path, state, kind):
-    records = state['sets'][kind]
+    records = [
+        record
+        for selected in selected_kinds(kind)
+        for record in state['sets'][selected]
+    ]
     names = [
         name
         for record in records
@@ -1069,10 +1161,13 @@ def emit_outputs(path, state, kind):
     with path.open('a') as stream:
         stream.write(
             f'run-id={state["identity"]["run_id"]}\nrepository={state["identity"]["repository"]}\n'
+            f'run-attempt={state["identity"]["run_attempt"]}\n'
         )
         stream.write(
             'artifact-ids='
-            + ','.join(str(record['artifact_id']) for record in records)
+            + ','.join(
+                dict.fromkeys(str(record['artifact_id']) for record in records)
+            )
             + '\n'
         )
         stream.write(
@@ -1087,20 +1182,26 @@ def verify(api, state, consumer, directory, layout, kind=None):
     identity, architecture = state['identity'], state['architecture']
     require(state['consumer'] == consumer, 'State consumer changed')
     same_source(identity, consumer)
-    require(
-        kind in ('runtime', 'images') and kind in state['sets'],
-        'Missing selected set',
-    )
-    records = state['sets'][kind]
-    require(isinstance(records, list), 'Malformed selected records')
-    for record in records:
-        require(isinstance(record, dict), 'Malformed selected record')
-        image = record.get('image')
+    records = []
+    kinds = selected_kinds(kind)
+    for selected in kinds:
+        require(selected in state['sets'], 'Missing selected set')
+        selected_records = state['sets'][selected]
         require(
-            image in (IMAGES if kind == 'images' else ('runtime-base-images',)),
-            'Unexpected selected image',
+            isinstance(selected_records, list), 'Malformed selected records'
         )
-        validate_record(record, identity, architecture, image)
+        expected = IMAGE_SETS[selected]
+        require(
+            len(selected_records) == len(expected)
+            and all(isinstance(record, dict) for record in selected_records)
+            and {record.get('image') for record in selected_records}
+            == set(expected),
+            'Incomplete selected image set',
+        )
+        for record in selected_records:
+            validate_record(record, identity, architecture, record['image'])
+        records.extend(selected_records)
+    validate_record_ids(records, identity, architecture)
     require(
         directory.is_dir() and not directory.is_symlink(),
         'Unsafe download directory',
@@ -1139,15 +1240,30 @@ def verify(api, state, consumer, directory, layout, kind=None):
     # The resolver already bound immutable IDs. Check remote availability once,
     # after hashing, then recheck the attempt immediately before accepting files.
     indexed = artifact_index(api.artifacts(identity['run_id']))
-    if kind == 'images':
-        make_manifest(identity, architecture, records, api, artifacts=indexed)
-    else:
-        require(len(records) == 1, 'Invalid runtime set')
-        validate_record(
-            records[0], identity, architecture, 'runtime-base-images', indexed
+    if 'images' in kinds:
+        make_manifest(
+            identity,
+            architecture,
+            [record for record in records if record['image'] in IMAGES],
+            api,
+            artifacts=indexed,
         )
+    if 'runtime' in kinds:
+        runtime = next(
+            record
+            for record in records
+            if record['image'] == 'runtime-base-images'
+        )
+        validate_record(
+            runtime, identity, architecture, 'runtime-base-images', indexed
+        )
+    if 'tensorboard' in kinds:
+        viewer = next(
+            record for record in records if record['image'] == 'tensorboard'
+        )
+        validate_record(viewer, identity, architecture, 'tensorboard', indexed)
     validate_run(api.run(identity['run_id']), identity)
-    if layout == 'nested' and kind == 'images':
+    if layout == 'nested' and kind in ('images', 'all'):
         for record in records:
             require(
                 not (directory / record['image']).exists(),
@@ -1159,7 +1275,44 @@ def verify(api, state, consumer, directory, layout, kind=None):
             for name in record['files']:
                 (directory / name).replace(target / name)
 
-    state['sets'][kind] = records
+    for selected in kinds:
+        state['sets'][selected] = [
+            record
+            for record in records
+            if record['image'] in IMAGE_SETS[selected]
+        ]
+
+
+def validate_bundle(identity, architecture, directory):
+    require(
+        directory.is_dir() and not directory.is_symlink(),
+        'Unsafe bundle directory',
+    )
+    expected = {
+        name
+        for image in IMAGES
+        for name in (
+            *filenames(image, architecture),
+            provenance_name(image, architecture),
+        )
+    }
+    require(
+        {entry.name for entry in directory.iterdir()} == expected,
+        'Incomplete or unexpected bundle files',
+    )
+    for image in IMAGES:
+        path = directory / provenance_name(image, architecture)
+        require(
+            path.is_file()
+            and not path.is_symlink()
+            and path.stat().st_size <= 1024 * 1024,
+            'Unsafe bundled provenance',
+        )
+        document = json.loads(path.read_text())
+        require(
+            document == make_record(identity, architecture, image, directory),
+            'Bundle provenance or checksum mismatch',
+        )
 
 
 def main():
@@ -1170,17 +1323,20 @@ def main():
     record = commands.add_parser('record')
     record.add_argument('--architecture', required=True, choices=ARCHITECTURES)
     record.add_argument(
-        '--image', required=True, choices=(*IMAGES, 'runtime-base-images')
+        '--image',
+        required=True,
+        choices=(*IMAGES, 'tensorboard', 'runtime-base-images'),
     )
     record.add_argument('--directory', required=True, type=Path)
     record.add_argument('--output', required=True, type=Path)
+    bundle = commands.add_parser('bundle')
+    bundle.add_argument('--architecture', required=True, choices=ARCHITECTURES)
+    bundle.add_argument('--directory', required=True, type=Path)
     resolver = commands.add_parser('resolve')
     resolver.add_argument(
         '--architecture', required=True, choices=ARCHITECTURES
     )
-    resolver.add_argument(
-        '--kind', required=True, choices=('runtime', 'images')
-    )
+    resolver.add_argument('--kind', required=True, choices=(*IMAGE_SETS, 'all'))
     resolver.add_argument('--state', required=True, type=Path)
     resolver.add_argument('--output', required=True, type=Path)
     resolver.add_argument('--timeout-seconds', type=int, default=2400)
@@ -1189,22 +1345,21 @@ def main():
     readiness.add_argument(
         '--architecture', required=True, choices=ARCHITECTURES
     )
+    readiness.add_argument('--include-tensorboard', action='store_true')
     readiness.add_argument('--state', required=True, type=Path)
     readiness.add_argument('--output', required=True, type=Path)
     imported = commands.add_parser('import-ready')
     imported.add_argument(
         '--architecture', required=True, choices=ARCHITECTURES
     )
-    imported.add_argument(
-        '--kind', required=True, choices=('runtime', 'images')
-    )
+    imported.add_argument('--kind', required=True, choices=(*IMAGE_SETS, 'all'))
     imported.add_argument('--state', required=True, type=Path)
     imported.add_argument('--output', required=True, type=Path)
     verifier = commands.add_parser('verify')
     verifier.add_argument('--state', required=True, type=Path)
     verifier.add_argument('--directory', required=True, type=Path)
     verifier.add_argument('--layout', required=True, choices=('nested', 'flat'))
-    verifier.add_argument('--kind', choices=('runtime', 'images'))
+    verifier.add_argument('--kind', choices=(*IMAGE_SETS, 'all'))
     args = parser.parse_args()
     accounting = RequestAccounting()
     try:
@@ -1223,6 +1378,8 @@ def main():
                     args.directory,
                 ),
             )
+        elif args.command == 'bundle':
+            validate_bundle(identity, args.architecture, args.directory)
         elif args.command == 'prepare':
             state = resolve(
                 api,
@@ -1230,7 +1387,12 @@ def main():
                 args.architecture,
                 'all' if args.architecture == 'amd64' else 'images',
                 args.state,
+                require_bundle=True,
             )
+            if args.include_tensorboard:
+                state = resolve(
+                    api, identity, args.architecture, 'tensorboard', args.state
+                )
             with args.output.open('a') as output:
                 output.write(
                     'state=' + json.dumps(state, separators=(',', ':')) + '\n'
@@ -1253,6 +1415,7 @@ def main():
                 args.state,
                 args.timeout_seconds,
                 args.poll_seconds,
+                require_bundle=True,
             )
             emit_outputs(args.output, state, args.kind)
         else:

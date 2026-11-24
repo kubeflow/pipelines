@@ -25,7 +25,7 @@ exports[`ViewerContainer > renders a viewer of type CONFUSION_MATRIX 1`] = `
           </td>
           <td
             class="cell_fkzbx8g"
-            style="background-color: rgb(41, 121, 255); color: rgb(255, 255, 255); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
+            style="background-color: rgb(41, 121, 255); color: rgb(255, 255, 255); height: 79px; min-size: 79px; width: 79px;"
           >
             <div
               class="overlay_fecblze"
@@ -342,7 +342,7 @@ exports[`ViewerContainer > renders a viewer of type TENSORBOARD 1`] = `
               role="combobox"
               tabindex="0"
             >
-              TensorFlow 2.2.2
+              KFP TensorBoard (default)
             </div>
             <input
               aria-hidden="true"
@@ -350,7 +350,7 @@ exports[`ViewerContainer > renders a viewer of type TENSORBOARD 1`] = `
               class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               id="viewer-tb-image-select"
               tabindex="-1"
-              value="tensorflow/tensorflow:2.2.2"
+              value="ghcr.io/kubeflow/kfp-tensorboard:master"
             />
             <svg
               aria-hidden="true"

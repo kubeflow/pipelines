@@ -16,7 +16,7 @@ env:
 on:
   merge_group:
     types: [checks_requested]
-    branches: [master, main]
+    branches: [master, main, release-2.18]
   push:
     branches: [master, main]
 
@@ -66,7 +66,7 @@ on:
         type: string
         default: ''
       queue_base_ref:
-        description: Queue target branch, master or main (internal queue dispatch)
+        description: Queue target branch, master, main, or release-2.18 (internal queue dispatch)
         required: false
         type: string
         default: ''
@@ -553,7 +553,7 @@ jobs:
 
       - name: Deploy MLflow with Kubernetes auth
         id: deploy-mlflow
-        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@518de9f9c6caa1c54f7e32456377e70ece7166a2
+        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@a29d50819db0de097632829aa534427865c89e89
         if: ${{ steps.create-cluster.outcome == 'success' && matrix.mlflow_auth_type == 'kubernetes' }}
         with:
           namespace: 'opendatahub'

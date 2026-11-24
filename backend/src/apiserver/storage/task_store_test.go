@@ -17,6 +17,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 
@@ -1313,6 +1314,318 @@ func TestHydrateArtifactsForTasks_ClearsExistingSlicesAndOrdersByKey(t *testing.
 	}
 }
 
+func TestGetTasksByIDs_CaseSensitivityAndNOCASE(t *testing.T) {
+	// 1. Standard SQLite: case-sensitive matching by default
+	dbStandard, taskStoreStandard, _ := initializeTaskStore()
+	defer dbStandard.Close()
+
+	task, err := taskStoreStandard.CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   "run-1",
+		Name:      "test-task",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	// Exact match succeeds
+	exactBatch, err := taskStoreStandard.GetTasksByIDs([]string{task.UUID})
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(exactBatch))
+
+	// Mixed-case ID fails on exact-matching database
+	upperID := strings.ToUpper(task.UUID)
+	upperBatch, err := taskStoreStandard.GetTasksByIDs([]string{upperID})
+	require.NoError(t, err)
+	assert.Empty(t, upperBatch, "expected no match for mixed-case ID on case-sensitive database")
+
+	// Trailing whitespace fails on exact-matching database
+	spaceBatch, err := taskStoreStandard.GetTasksByIDs([]string{task.UUID + "   "})
+	require.NoError(t, err)
+	assert.Empty(t, spaceBatch, "expected no match for trailing-space ID on exact-matching database")
+
+	// 2. Case-insensitive database: SQLite table defined with COLLATE NOCASE
+	dbNocase, testDialect := NewFakeDBOrFatal()
+	defer dbNocase.Close()
+	var schema string
+	err = dbNocase.QueryRow("SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'").Scan(&schema)
+	require.NoError(t, err)
+	_, err = dbNocase.Exec("DROP TABLE tasks")
+	require.NoError(t, err)
+	schemaNocase := schema
+	for _, target := range []string{"`UUID` varchar(191)", "\"UUID\" varchar(191)", "UUID varchar(191)", "`UUID` text", "\"UUID\" text", "UUID text"} {
+		if strings.Contains(schemaNocase, target) {
+			schemaNocase = strings.Replace(schemaNocase, target, target+" COLLATE NOCASE", 1)
+			break
+		}
+	}
+	_, err = dbNocase.Exec(schemaNocase)
+	require.NoError(t, err)
+
+	runStoreNocase := NewRunStore(dbNocase, util.NewFakeTimeForEpoch(), testDialect)
+	_, err = runStoreNocase.CreateRun(&model.Run{
+		UUID:         "run-1",
+		K8SName:      "run1",
+		DisplayName:  "run1",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+	})
+	require.NoError(t, err)
+
+	taskStoreNocase := NewTaskStore(dbNocase, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil), testDialect)
+	taskNocase, err := taskStoreNocase.CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   "run-1",
+		Name:      "test-task-nocase",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	// On case-insensitive database, mixed-case ID matches
+	upperNocaseID := strings.ToUpper(taskNocase.UUID)
+	nocaseBatch, err := taskStoreNocase.GetTasksByIDs([]string{upperNocaseID})
+	require.NoError(t, err)
+	assert.NotEmpty(t, nocaseBatch, "expected mixed-case ID to match on case-insensitive database")
+	assert.NotNil(t, nocaseBatch[upperNocaseID])
+	assert.Equal(t, taskNocase.UUID, nocaseBatch[upperNocaseID].UUID)
+
+	// 3. Mixed-column table: UUID is case-sensitive (BINARY), but Name uses COLLATE NOCASE.
+	// UUID comparison is governed by UUID column collation, unaffected by NOCASE on Name.
+	dbMixed, testDialectMixed := NewFakeDBOrFatal()
+	defer dbMixed.Close()
+	var mixedSchema string
+	err = dbMixed.QueryRow("SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'").Scan(&mixedSchema)
+	require.NoError(t, err)
+	_, err = dbMixed.Exec("DROP TABLE tasks")
+	require.NoError(t, err)
+	for _, target := range []string{"`Name` varchar(128)", "\"Name\" varchar(128)", "Name varchar(128)"} {
+		if strings.Contains(mixedSchema, target) {
+			mixedSchema = strings.Replace(mixedSchema, target, target+" COLLATE NOCASE", 1)
+			break
+		}
+	}
+	_, err = dbMixed.Exec(mixedSchema)
+	require.NoError(t, err)
+
+	runStoreMixed := NewRunStore(dbMixed, util.NewFakeTimeForEpoch(), testDialectMixed)
+	_, err = runStoreMixed.CreateRun(&model.Run{
+		UUID:         "run-1",
+		K8SName:      "run1",
+		DisplayName:  "run1",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+	})
+	require.NoError(t, err)
+
+	taskStoreMixed := NewTaskStore(dbMixed, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil), testDialectMixed)
+	taskMixed, err := taskStoreMixed.CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   "run-1",
+		Name:      "test-task-mixed",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	upperMixedID := strings.ToUpper(taskMixed.UUID)
+	mixedBatch, err := taskStoreMixed.GetTasksByIDs([]string{taskMixed.UUID, upperMixedID})
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(mixedBatch))
+	assert.NotNil(t, mixedBatch[taskMixed.UUID])
+	assert.Nil(t, mixedBatch[upperMixedID], "expected nonexistent uppercase ID not to resolve when only Name has NOCASE")
+
+	// 4. Multiline SQLite column definition with COLLATE NOCASE.
+	dbMultiline, testDialectMultiline := NewFakeDBOrFatal()
+	defer dbMultiline.Close()
+	var multilineSchema string
+	err = dbMultiline.QueryRow("SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'").Scan(&multilineSchema)
+	require.NoError(t, err)
+	_, err = dbMultiline.Exec("DROP TABLE tasks")
+	require.NoError(t, err)
+	for _, target := range []string{"`UUID` varchar(191)", "\"UUID\" varchar(191)", "UUID varchar(191)", "`UUID` text", "\"UUID\" text", "UUID text"} {
+		if strings.Contains(multilineSchema, target) {
+			multilineSchema = strings.Replace(multilineSchema, target, target+"\n\t\tCOLLATE NOCASE", 1)
+			break
+		}
+	}
+	_, err = dbMultiline.Exec(multilineSchema)
+	require.NoError(t, err)
+
+	runStoreMultiline := NewRunStore(dbMultiline, util.NewFakeTimeForEpoch(), testDialectMultiline)
+	_, err = runStoreMultiline.CreateRun(&model.Run{
+		UUID:         "run-1",
+		K8SName:      "run1",
+		DisplayName:  "run1",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+	})
+	require.NoError(t, err)
+
+	taskStoreMultiline := NewTaskStore(dbMultiline, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil), testDialectMultiline)
+	taskMultiline, err := taskStoreMultiline.CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   "run-1",
+		Name:      "test-task-multiline",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	upperMultilineID := strings.ToUpper(taskMultiline.UUID)
+	multilineBatch, err := taskStoreMultiline.GetTasksByIDs([]string{upperMultilineID})
+	require.NoError(t, err)
+	assert.NotEmpty(t, multilineBatch, "expected mixed-case ID to match on multiline NOCASE column definition")
+	assert.NotNil(t, multilineBatch[upperMultilineID])
+	assert.Equal(t, taskMultiline.UUID, multilineBatch[upperMultilineID].UUID)
+
+	// 5. Quoted SQLite column definition with COLLATE "NOCASE".
+	dbQuoted, testDialectQuoted := NewFakeDBOrFatal()
+	defer dbQuoted.Close()
+	var quotedSchema string
+	err = dbQuoted.QueryRow("SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'").Scan(&quotedSchema)
+	require.NoError(t, err)
+	_, err = dbQuoted.Exec("DROP TABLE tasks")
+	require.NoError(t, err)
+	for _, target := range []string{"`UUID` varchar(191)", "\"UUID\" varchar(191)", "UUID varchar(191)", "`UUID` text", "\"UUID\" text", "UUID text"} {
+		if strings.Contains(quotedSchema, target) {
+			quotedSchema = strings.Replace(quotedSchema, target, target+" COLLATE \"NOCASE\"", 1)
+			break
+		}
+	}
+	_, err = dbQuoted.Exec(quotedSchema)
+	require.NoError(t, err)
+
+	runStoreQuoted := NewRunStore(dbQuoted, util.NewFakeTimeForEpoch(), testDialectQuoted)
+	_, err = runStoreQuoted.CreateRun(&model.Run{
+		UUID:         "run-1",
+		K8SName:      "run1",
+		DisplayName:  "run1",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+	})
+	require.NoError(t, err)
+
+	taskStoreQuoted := NewTaskStore(dbQuoted, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil), testDialectQuoted)
+	taskQuoted, err := taskStoreQuoted.CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   "run-1",
+		Name:      "test-task-quoted",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	upperQuotedID := strings.ToUpper(taskQuoted.UUID)
+	quotedBatch, err := taskStoreQuoted.GetTasksByIDs([]string{upperQuotedID})
+	require.NoError(t, err)
+	assert.NotEmpty(t, quotedBatch, "expected mixed-case ID to match on quoted NOCASE column definition")
+	assert.NotNil(t, quotedBatch[upperQuotedID])
+	assert.Equal(t, taskQuoted.UUID, quotedBatch[upperQuotedID].UUID)
+
+	// 6. Collation comparison semantics (e.g. SQLite COLLATE RTRIM):
+	// When table column has COLLATE RTRIM, trailing whitespace in request ID matches the stored UUID.
+	// Both single-row lookup and batch lookup must succeed and return the map keyed by the requested spelling.
+	dbRtrim, testDialectRtrim := NewFakeDBOrFatal()
+	defer dbRtrim.Close()
+	var rtrimSchema string
+	err = dbRtrim.QueryRow("SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'").Scan(&rtrimSchema)
+	require.NoError(t, err)
+	_, err = dbRtrim.Exec("DROP TABLE tasks")
+	require.NoError(t, err)
+	for _, target := range []string{"`UUID` varchar(191)", "\"UUID\" varchar(191)", "UUID varchar(191)", "`UUID` text", "\"UUID\" text", "UUID text"} {
+		if strings.Contains(rtrimSchema, target) {
+			rtrimSchema = strings.Replace(rtrimSchema, target, target+" COLLATE RTRIM", 1)
+			break
+		}
+	}
+	_, err = dbRtrim.Exec(rtrimSchema)
+	require.NoError(t, err)
+
+	runStoreRtrim := NewRunStore(dbRtrim, util.NewFakeTimeForEpoch(), testDialectRtrim)
+	_, err = runStoreRtrim.CreateRun(&model.Run{
+		UUID:         "run-1",
+		K8SName:      "run1",
+		DisplayName:  "run1",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+	})
+	require.NoError(t, err)
+
+	taskStoreRtrim := NewTaskStore(dbRtrim, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil), testDialectRtrim)
+	taskRtrim, err := taskStoreRtrim.CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   "run-1",
+		Name:      "test-task-rtrim",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	// Single lookup with trailing spaces matches under RTRIM
+	var singleUUID string
+	err = dbRtrim.QueryRow("SELECT UUID FROM tasks WHERE UUID = ?", taskRtrim.UUID+"   ").Scan(&singleUUID)
+	require.NoError(t, err)
+	assert.Equal(t, taskRtrim.UUID, singleUUID)
+
+	// Batch lookup with trailing spaces matches under RTRIM and keys result by requested spelling
+	rtrimReqID := taskRtrim.UUID + "   "
+	rtrimBatch, err := taskStoreRtrim.GetTasksByIDs([]string{rtrimReqID})
+	require.NoError(t, err)
+	assert.NotEmpty(t, rtrimBatch, "expected trailing-space ID to match under COLLATE RTRIM")
+	assert.NotNil(t, rtrimBatch[rtrimReqID])
+	assert.Equal(t, taskRtrim.UUID, rtrimBatch[rtrimReqID].UUID)
+}
+
+func TestGetTasksByIDs_MoreThan500IDs(t *testing.T) {
+	dbRtrim, testDialectRtrim := NewFakeDBOrFatal()
+	defer dbRtrim.Close()
+	var rtrimSchema string
+	err := dbRtrim.QueryRow("SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'").Scan(&rtrimSchema)
+	require.NoError(t, err)
+	_, err = dbRtrim.Exec("DROP TABLE tasks")
+	require.NoError(t, err)
+	for _, target := range []string{"`UUID` varchar(191)", "\"UUID\" varchar(191)", "UUID varchar(191)", "`UUID` text", "\"UUID\" text", "UUID text"} {
+		if strings.Contains(rtrimSchema, target) {
+			rtrimSchema = strings.Replace(rtrimSchema, target, target+" COLLATE RTRIM", 1)
+			break
+		}
+	}
+	_, err = dbRtrim.Exec(rtrimSchema)
+	require.NoError(t, err)
+
+	runStoreRtrim := NewRunStore(dbRtrim, util.NewFakeTimeForEpoch(), testDialectRtrim)
+	_, err = runStoreRtrim.CreateRun(&model.Run{
+		UUID:         "run-1",
+		K8SName:      "run1",
+		DisplayName:  "run1",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+	})
+	require.NoError(t, err)
+
+	taskStoreRtrim := NewTaskStore(dbRtrim, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil), testDialectRtrim)
+	taskRtrim, err := taskStoreRtrim.CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   "run-1",
+		Name:      "test-task-rtrim-501",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	// Construct at least 501 distinct IDs: 500 non-existent IDs, followed by the requested spelling past the 500th ID.
+	// On SQLite, compound SELECT without batching fails at 501 terms with "too many terms in compound SELECT".
+	requestedSpelling := taskRtrim.UUID + "   "
+	ids := make([]string, 505)
+	for i := 0; i < 500; i++ {
+		ids[i] = fmt.Sprintf("non-existent-task-%d", i)
+	}
+	ids[500] = requestedSpelling
+	for i := 501; i < 505; i++ {
+		ids[i] = fmt.Sprintf("non-existent-task-%d", i)
+	}
+
+	batch, err := taskStoreRtrim.GetTasksByIDs(ids)
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(batch))
+	assert.NotNil(t, batch[requestedSpelling])
+	assert.Equal(t, taskRtrim.UUID, batch[requestedSpelling].UUID)
+}
+
 func TestGetTaskCountsForRuns(t *testing.T) {
 	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()
@@ -1909,4 +2222,179 @@ func TestListTasks_SortByStartTimeAndRunIdPaginates(t *testing.T) {
 			assert.Equal(t, []string{"task-a", "task-b", "task-c"}, got)
 		})
 	}
+}
+
+var runningOnPod1 = TaskAttemptGuard{State: model.TaskStatus(apiv2.PipelineTask_RUNNING), ExecutorPod: "p1"}
+
+func createRunningTaskForStateTest(t *testing.T, taskStore *TaskStore) *model.Task {
+	t.Helper()
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
+	created, err := taskStore.CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          "run-1",
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
+		Fingerprint:      "fp-state",
+		State:            model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+		TypeAttrs:        map[string]interface{}{},
+	})
+	require.NoError(t, err)
+	return created
+}
+
+func TestUpdateTaskIfAttempt_AppliesWhenStateMatches(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+	created := createRunningTaskForStateTest(t, taskStore)
+
+	metadata, err := model.ProtoMessageToJSONData(&apiv2.PipelineTask_StatusMetadata{Message: "main: OOMKilled (exit code 137)"})
+	require.NoError(t, err)
+	updated, applied, err := taskStore.UpdateTaskIfAttempt(runningOnPod1, &model.Task{
+		UUID:           created.UUID,
+		State:          model.TaskStatus(apiv2.PipelineTask_FAILED),
+		FinishedInSec:  42,
+		StatusMetadata: metadata,
+	})
+	require.NoError(t, err)
+	assert.True(t, applied)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), updated.State)
+	assert.Equal(t, int64(42), updated.FinishedInSec)
+	assert.Equal(t, 2, len(updated.StateHistory), "RUNNING then FAILED")
+
+	statusMetadata, err := model.JSONDataToProtoMessage(updated.StatusMetadata, func() *apiv2.PipelineTask_StatusMetadata {
+		return &apiv2.PipelineTask_StatusMetadata{}
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "main: OOMKilled (exit code 137)", statusMetadata.GetMessage())
+}
+
+func TestUpdateTaskIfAttempt_DoesNotOverwriteALaterState(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+	created := createRunningTaskForStateTest(t, taskStore)
+
+	// The launcher reports success before the reconciler acts on older workflow evidence.
+	_, err := taskStore.UpdateTask(&model.Task{
+		UUID:          created.UUID,
+		State:         model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+		FinishedInSec: 10,
+	})
+	require.NoError(t, err)
+
+	updated, applied, err := taskStore.UpdateTaskIfAttempt(runningOnPod1, &model.Task{
+		UUID:          created.UUID,
+		State:         model.TaskStatus(apiv2.PipelineTask_FAILED),
+		FinishedInSec: 42,
+	})
+	require.NoError(t, err)
+	assert.False(t, applied)
+	assert.Nil(t, updated)
+
+	stored, err := taskStore.GetTask(created.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_SUCCEEDED), stored.State)
+	assert.Equal(t, int64(10), stored.FinishedInSec)
+	assert.Equal(t, 2, len(stored.StateHistory), "no FAILED entry was added")
+}
+
+func TestUpdateTaskIfAttempt_MissingTaskIsAnError(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	_, applied, err := taskStore.UpdateTaskIfAttempt(runningOnPod1, &model.Task{
+		UUID:  testUUID2,
+		State: model.TaskStatus(apiv2.PipelineTask_FAILED),
+	})
+	assert.Error(t, err)
+	assert.False(t, applied)
+}
+
+func TestUpdateTaskIfAttempt_SkipsWhenRetryResetClearedThePods(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+	created := createRunningTaskForStateTest(t, taskStore)
+
+	// A retry reset clears the pods of the failed attempt and puts the task back to RUNNING.
+	require.NoError(t, taskStore.ResetTasksForRetry([]string{created.UUID}))
+
+	updated, applied, err := taskStore.UpdateTaskIfAttempt(runningOnPod1, &model.Task{
+		UUID:          created.UUID,
+		State:         model.TaskStatus(apiv2.PipelineTask_FAILED),
+		FinishedInSec: 42,
+	})
+	require.NoError(t, err)
+	assert.False(t, applied)
+	assert.Nil(t, updated)
+
+	stored, err := taskStore.GetTask(created.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), stored.State)
+	assert.Zero(t, stored.FinishedInSec)
+}
+
+func TestUpdateTaskIfAttempt_SkipsWhenANewerExecutorPodIsRecorded(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+	created := createRunningTaskForStateTest(t, taskStore)
+
+	// The next attempt recorded its own executor pod after the evidence for p1 was read.
+	_, err := taskStore.UpdateTask(&model.Task{
+		UUID: created.UUID,
+		Pods: createTaskPodsAsJSONSlice(
+			createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR),
+			createTaskPod("p2", "uid2", apiv2.PipelineTask_EXECUTOR),
+		),
+	})
+	require.NoError(t, err)
+
+	_, applied, err := taskStore.UpdateTaskIfAttempt(runningOnPod1, &model.Task{
+		UUID:  created.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_FAILED),
+	})
+	require.NoError(t, err)
+	assert.False(t, applied)
+
+	_, applied, err = taskStore.UpdateTaskIfAttempt(
+		TaskAttemptGuard{State: model.TaskStatus(apiv2.PipelineTask_RUNNING), ExecutorPod: "p2"},
+		&model.Task{UUID: created.UUID, State: model.TaskStatus(apiv2.PipelineTask_FAILED)},
+	)
+	require.NoError(t, err)
+	assert.True(t, applied, "the latest executor pod is the one the guard may fail")
+}
+
+func TestUpdateTaskIfAttempt_IgnoresDriverPodsWhenMatchingTheExecutor(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+	created := createRunningTaskForStateTest(t, taskStore)
+
+	_, err := taskStore.UpdateTask(&model.Task{
+		UUID: created.UUID,
+		Pods: createTaskPodsAsJSONSlice(
+			createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR),
+			createTaskPod("d1", "uid-d", apiv2.PipelineTask_DRIVER),
+		),
+	})
+	require.NoError(t, err)
+
+	_, applied, err := taskStore.UpdateTaskIfAttempt(runningOnPod1, &model.Task{
+		UUID:  created.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_FAILED),
+	})
+	require.NoError(t, err)
+	assert.True(t, applied)
+}
+
+func TestUpdateTaskIfAttempt_RequiresAnExecutorPod(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+	created := createRunningTaskForStateTest(t, taskStore)
+
+	_, applied, err := taskStore.UpdateTaskIfAttempt(
+		TaskAttemptGuard{State: model.TaskStatus(apiv2.PipelineTask_RUNNING)},
+		&model.Task{UUID: created.UUID, State: model.TaskStatus(apiv2.PipelineTask_FAILED)},
+	)
+	assert.Error(t, err)
+	assert.False(t, applied)
 }

@@ -64,7 +64,7 @@ var (
 		Help: "The total number of UnarchiveExperiment requests",
 	})
 
-	// TODO(jingzhang36): error count and success count.
+	// Note: Request success and error counts per method are tracked via gRPC middleware metrics (grpc_server_handled_total). See api-server-metrics.md.
 
 	experimentCount = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "experiment_server_run_count",
@@ -130,9 +130,12 @@ func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *apiv2.
 }
 
 func (s *BaseExperimentServer) getExperiment(ctx context.Context, experimentId string) (*model.Experiment, error) {
-	err := s.canAccessExperiment(ctx, experimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	experiment, err := s.canAccessExperimentAndGet(ctx, experimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+	if experiment != nil {
+		return experiment, nil
 	}
 	return s.resourceManager.GetExperiment(experimentId)
 }
@@ -223,16 +226,25 @@ func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *apiv2.
 	return &emptypb.Empty{}, nil
 }
 
-// TODO(chensun): consider refactoring the code to get rid of double-query of experiment.
 func (s *BaseExperimentServer) canAccessExperiment(ctx context.Context, experimentID string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+	_, err := s.canAccessExperimentAndGet(ctx, experimentID, resourceAttributes)
+	return err
+}
+
+// canAccessExperimentAndGet applies experiment authorization and returns the
+// experiment loaded to derive its authorization attributes. Callers that also
+// need the experiment model can reuse the row instead of querying it twice.
+func (s *BaseExperimentServer) canAccessExperimentAndGet(ctx context.Context, experimentID string, resourceAttributes *authorizationv1.ResourceAttributes) (*model.Experiment, error) {
 	if !common.IsMultiUserMode() {
 		// Skip authorization if not multi-user mode.
-		return nil
+		return nil, nil
 	}
+	var experiment *model.Experiment
 	if experimentID != "" {
-		experiment, err := s.resourceManager.GetExperiment(experimentID)
+		var err error
+		experiment, err = s.resourceManager.GetExperiment(experimentID)
 		if err != nil {
-			return util.Wrap(err, "Failed to authorize with the experiment ID")
+			return nil, util.Wrap(err, "Failed to authorize with the experiment ID")
 		}
 		resourceAttributes.Namespace = experiment.Namespace
 		if resourceAttributes.Name == "" {
@@ -240,7 +252,7 @@ func (s *BaseExperimentServer) canAccessExperiment(ctx context.Context, experime
 		}
 	}
 	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
-		return util.NewInvalidInputError("An experiment cannot have an empty namespace in multi-user mode")
+		return nil, util.NewInvalidInputError("An experiment cannot have an empty namespace in multi-user mode")
 	}
 	resourceAttributes.Group = common.RbacPipelinesGroup
 	resourceAttributes.Version = common.RbacPipelinesVersion
@@ -248,9 +260,9 @@ func (s *BaseExperimentServer) canAccessExperiment(ctx context.Context, experime
 
 	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
 	if err != nil {
-		return util.Wrap(err, "Failed to authorize with API")
+		return nil, util.Wrap(err, "Failed to authorize with API")
 	}
-	return nil
+	return experiment, nil
 }
 
 func (s *BaseExperimentServer) archiveExperiment(ctx context.Context, experimentId string) error {

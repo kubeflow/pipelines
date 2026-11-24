@@ -5,7 +5,9 @@ description = "Kubeflow Pipelines release automation"
 requires-python = ">=3.11"
 dependencies = [
   "build>=1,<2",
+  "markdown-it-py>=3,<5",
   "PyYAML>=6,<7",
+  "rich>=13",
   "typer>=0.16,<1.0",
 ]
 
@@ -15,3 +17,6 @@ kfpr = "kfpr.cli:app"
 [build-system]
 requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-data]
+kfpr = ["read_go_buildinfo.go"]
