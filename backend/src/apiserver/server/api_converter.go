@@ -632,9 +632,11 @@ func toModelRun(apiRunV2 *apiv2.Run) (*model.Run, error) {
 	recRunId = apiRunV2.GetRecurringRunId()
 
 	specMap := apiRunV2.GetPipelineSpec().AsMap()
-	if pv, ok := specMap["PipelineInfo"]; ok {
-		if pName, ok := pv.(map[string]interface{})["Name"]; ok {
-			resources := common.ParseResourceIdsFromFullName(pName.(string))
+	// The pipeline spec is an arbitrary user-supplied struct, so PipelineInfo and
+	// Name can be of any JSON type. Only an object with a string name is used.
+	if pipelineInfo, ok := specMap["PipelineInfo"].(map[string]interface{}); ok {
+		if pName, ok := pipelineInfo["Name"].(string); ok {
+			resources := common.ParseResourceIdsFromFullName(pName)
 			if namespace == "" {
 				namespace = resources["Namespace"]
 			}

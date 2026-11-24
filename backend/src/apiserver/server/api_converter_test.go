@@ -1571,6 +1571,80 @@ func TestToModelRun(t *testing.T) {
 	}
 }
 
+func TestToModelRun_PipelineInfoName(t *testing.T) {
+	tests := []struct {
+		name         string
+		pipelineInfo *structpb.Value
+		wantExpId    string
+		wantRunId    string
+	}{
+		{
+			"resource name",
+			structpb.NewStructValue(&structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"Name": structpb.NewStringValue("experiments/exp1/runs/run1"),
+				},
+			}),
+			"exp1",
+			"run1",
+		},
+		{
+			"pipeline info is not an object",
+			structpb.NewStringValue("experiments/exp1/runs/run1"),
+			"",
+			"",
+		},
+		{
+			"pipeline info is null",
+			structpb.NewNullValue(),
+			"",
+			"",
+		},
+		{
+			"name is not a string",
+			structpb.NewStructValue(&structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"Name": structpb.NewNumberValue(7),
+				},
+			}),
+			"",
+			"",
+		},
+		{
+			"name is null",
+			structpb.NewStructValue(&structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"Name": structpb.NewNullValue(),
+				},
+			}),
+			"",
+			"",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			apiRun := &apiv2.Run{
+				DisplayName: "name1",
+				PipelineSource: &apiv2.Run_PipelineSpec{
+					PipelineSpec: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"PipelineInfo": tt.pipelineInfo,
+						},
+					},
+				},
+			}
+			var got *model.Run
+			var err error
+			require.NotPanics(t, func() {
+				got, err = toModelRun(apiRun)
+			})
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantExpId, got.ExperimentId)
+			assert.Equal(t, tt.wantRunId, got.UUID)
+		})
+	}
+}
+
 func Test_toAPIRun(t *testing.T) {
 	tests := []struct {
 		name    string
