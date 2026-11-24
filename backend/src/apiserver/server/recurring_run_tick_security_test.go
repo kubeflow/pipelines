@@ -289,6 +289,29 @@ func TestRecurringRunTickIDCannotBeTakenThroughCreateRun(t *testing.T) {
 	require.False(t, state.Pending)
 }
 
+// A client that sends run_id, as output-only fields echoed back from an earlier
+// response often are, still gets a run. The API server chooses its ID.
+func TestCreateRunIgnoresCallerRunID(t *testing.T) {
+	_, manager, job, _ := newAuthorizedSchedule(t)
+	server := createRunServer(manager)
+	spec, err := YamlStringToPipelineSpecStruct(v2SpecHelloWorld)
+	require.NoError(t, err)
+	const callerRunID = "123e4567-e89b-42d3-a456-426655440099" // random (version 4), not a tick ID
+	created, err := server.CreateRun(scheduleContext("user@google.com"), &api.CreateRunRequest{Run: &api.Run{
+		RunId: callerRunID, DisplayName: "one-off", ExperimentId: job.ExperimentId, ServiceAccount: "custom-sa",
+		PipelineSource: &api.Run_PipelineSpec{PipelineSpec: spec},
+		RuntimeConfig:  &api.RuntimeConfig{Parameters: map[string]*structpb.Value{"param1": structpb.NewStringValue("one-off")}},
+	}})
+	require.NoError(t, err)
+	require.NotEmpty(t, created.RunId)
+	require.NotEqual(t, callerRunID, created.RunId)
+	stored, err := manager.GetRun(created.RunId)
+	require.NoError(t, err)
+	require.Equal(t, "one-off", stored.DisplayName)
+	_, err = manager.GetRun(callerRunID)
+	require.Error(t, err, "no run is stored under the caller's ID")
+}
+
 func TestRecurringRunReplayStillChecksEnabledStateAndAuthorization(t *testing.T) {
 	for _, replaySource := range []string{"retained", "deleted", "reporter-recovered"} {
 		t.Run(replaySource, func(t *testing.T) {
