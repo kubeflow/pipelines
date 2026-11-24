@@ -4613,10 +4613,14 @@ func findScopedTaskNode(task *model.Task, nodes map[string]util.NodeStatus, task
 	// report can carry iteration 0's failed node while iteration 1 is already RUNNING with
 	// no pod of its own, and returning iteration 0's node for iteration 1's task would let
 	// the stale report fail the healthy retry.
-	if want, found := taskLoopIterationIndex(task); found {
+	//
+	// The whole enclosing iteration path is compared, not just the nearest index: in a nested
+	// ParallelFor, (outer 1, inner 0) and (outer 0, inner 0) share the nearest index, so a delayed
+	// report holding only the outer 0 node would otherwise be accepted for the outer 1 task.
+	if want := taskLoopIterationPath(task, tasksByUUID); len(want) > 0 {
 		var matched []string
 		for _, id := range candidates {
-			if got, ok := nodeLoopIterationIndex(id, nodes); ok && got == want {
+			if iterationPathMatches(want, nodeLoopIterationPath(id, nodes)) {
 				matched = append(matched, id)
 			}
 		}
@@ -4647,23 +4651,78 @@ func taskLoopIterationIndex(task *model.Task) (int64, bool) {
 // loopIterationIndexRE captures the index from "<body>-iterations(<index>:<item>)".
 var loopIterationIndexRE = regexp.MustCompile(`-iterations\((\d+):[^()]*\)$`)
 
-// nodeLoopIterationIndex returns the index of the nearest enclosing ParallelFor iteration node.
-func nodeLoopIterationIndex(id string, nodes map[string]util.NodeStatus) (int64, bool) {
+// taskLoopIterationPath returns the ParallelFor iteration indices that locate task, innermost
+// first. It is empty when the task itself carries no index, so a task outside any loop is never
+// filtered.
+//
+// The first entry is the task's own index. After that only loop coordinators contribute: the driver
+// stores an enclosing loop's index on a nested loop's own task, which also records an
+// iterationCount. Every other ancestor between the task and its loop (a condition branch, a
+// sub-DAG) sits in the same iteration body and carries a copy of the task's own index, so counting
+// those would repeat that iteration once per group and no workflow node path could ever equal it.
+// A parent missing from tasksByUUID ends the walk with what was collected, which is still a valid
+// innermost-first prefix.
+func taskLoopIterationPath(task *model.Task, tasksByUUID map[string]*model.Task) []int64 {
+	own, found := taskLoopIterationIndex(task)
+	if !found {
+		return nil
+	}
+	path := []int64{own}
+	seen := map[string]bool{task.UUID: true}
+	for current := task; current.ParentTaskUUID != nil && *current.ParentTaskUUID != ""; {
+		parent, ok := tasksByUUID[*current.ParentTaskUUID]
+		if !ok || seen[parent.UUID] {
+			break
+		}
+		seen[parent.UUID] = true
+		if _, isLoopCoordinator := parent.TypeAttrs["iterationCount"]; isLoopCoordinator {
+			if idx, ok := taskLoopIterationIndex(parent); ok {
+				path = append(path, idx)
+			}
+		}
+		current = parent
+	}
+	return path
+}
+
+// nodeLoopIterationPath returns the index of every ParallelFor iteration wrapper enclosing the
+// node, innermost first.
+func nodeLoopIterationPath(id string, nodes map[string]util.NodeStatus) []int64 {
+	var path []int64
 	seen := map[string]bool{id: true}
 	for current := id; ; {
 		parentID, ok := nodeParent(current, nodes)
 		if !ok || seen[parentID] {
-			return 0, false
+			return path
 		}
 		seen[parentID] = true
 		current = parentID
 		if node := nodes[parentID]; node.Type == "Retry" {
 			if m := loopIterationIndexRE.FindStringSubmatch(node.DisplayName); m != nil {
 				n, err := strconv.ParseInt(m[1], 10, 64)
-				return n, err == nil
+				if err != nil {
+					return nil
+				}
+				path = append(path, n)
 			}
 		}
 	}
+}
+
+// iterationPathMatches reports whether a node sits in the iteration the task records. Every index
+// the task records must equal the node's index at the same depth. A node with fewer enclosing
+// iterations than the task recorded cannot be the task's node. A node with extra outer iterations
+// the task did not record cannot be checked further, so it is not rejected for them.
+func iterationPathMatches(taskPath, nodePath []int64) bool {
+	if len(nodePath) < len(taskPath) {
+		return false
+	}
+	for i, idx := range taskPath {
+		if nodePath[i] != idx {
+			return false
+		}
+	}
+	return true
 }
 
 // persistTaskLifecycleMessages resolves pod lifecycle messages from the workflow and writes them
@@ -4734,7 +4793,12 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 			continue
 		}
 		lm := model.LargeText(msg)
-		if _, err := r.taskStore.UpdateTask(&model.Task{
+		// The skipFailureReconciliation check above only covers a report already known to be
+		// stale. A retry can still claim the run and reset this task after that check, so the
+		// write rechecks the run's live generation under the task row lock. When it no longer
+		// holds the report is the previous attempt's evidence, and dropping the write is correct:
+		// the retried workflow reports its own diagnostic.
+		if _, _, err := r.taskStore.UpdateTaskIfRetryGeneration(reportedGeneration, &model.Task{
 			UUID:              task.UUID,
 			LifecycleMessage:  &lm,
 			LifecycleCategory: &category,

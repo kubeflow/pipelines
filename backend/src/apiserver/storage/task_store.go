@@ -95,6 +95,14 @@ type TaskStoreInterface interface {
 	// applied is false, with no error, when the guard does not hold.
 	UpdateTaskIfAttempt(guard TaskAttemptGuard, new *model.Task) (updated *model.Task, applied bool, err error)
 
+	// UpdateTaskIfRetryGeneration behaves like UpdateTask but only applies the update while the
+	// run's live retry generation is not newer than generation, the generation of the evidence
+	// behind the write. The check shares one row lock with the write, so a retry that reset the
+	// task after the evidence was read is not overwritten by it. Unlike UpdateTaskIfAttempt it
+	// does not pin the task's state or pod, for diagnostics that are valid in any state.
+	// applied is false, with no error, when the run has moved to a newer generation.
+	UpdateTaskIfRetryGeneration(generation int64, new *model.Task) (updated *model.Task, applied bool, err error)
+
 	// ResetTasksForRetry clears attempt-local state so retried tasks can resume
 	// from a clean RUNNING attempt while preserving task history.
 	ResetTasksForRetry(taskIDs []string) error
@@ -1159,6 +1167,22 @@ type TaskAttemptGuard struct {
 	// rejected if the run's live generation is newer: a retry has since reset this task, and a
 	// reset task has no pod, so the pod checks alone cannot tell old evidence from the new attempt.
 	RetryGeneration int64
+	// generationOnly skips the state and pod checks so only RetryGeneration is enforced. It is set
+	// by UpdateTaskIfRetryGeneration, never by callers building a guard themselves.
+	generationOnly bool
+}
+
+// UpdateTaskIfRetryGeneration updates a task like UpdateTask, but only while the run's live retry
+// generation is not newer than generation. See TaskStoreInterface.UpdateTaskIfRetryGeneration.
+func (s *TaskStore) UpdateTaskIfRetryGeneration(generation int64, new *model.Task) (*model.Task, bool, error) {
+	updated, err := s.updateTask(new, &TaskAttemptGuard{RetryGeneration: generation, generationOnly: true})
+	if errors.Is(err, errTaskAttemptMismatch) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	return updated, true, nil
 }
 
 // UpdateTaskIfAttempt updates a task like UpdateTask, but only while the stored task is in the
@@ -1252,19 +1276,21 @@ func (s *TaskStore) updateTask(new *model.Task, guard *TaskAttemptGuard) (*model
 		return nil, err
 	}
 	if guard != nil {
-		if lockedOld.State != guard.State {
-			return nil, errTaskAttemptMismatch
-		}
-		latestPod, err := latestExecutorPodName(lockedOld.Pods)
-		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to read pods of task %s", new.UUID)
-		}
-		if guard.RequireNoExecutorPod {
-			if latestPod != "" {
+		if !guard.generationOnly {
+			if lockedOld.State != guard.State {
 				return nil, errTaskAttemptMismatch
 			}
-		} else if latestPod != guard.ExecutorPod {
-			return nil, errTaskAttemptMismatch
+			latestPod, err := latestExecutorPodName(lockedOld.Pods)
+			if err != nil {
+				return nil, util.NewInternalServerError(err, "Failed to read pods of task %s", new.UUID)
+			}
+			if guard.RequireNoExecutorPod {
+				if latestPod != "" {
+					return nil, errTaskAttemptMismatch
+				}
+			} else if latestPod != guard.ExecutorPod {
+				return nil, errTaskAttemptMismatch
+			}
 		}
 		// ClaimRunForRetry bumps the run's generation before ResetTasksForRetry runs, so once
 		// the reset is visible here, so is the newer generation.

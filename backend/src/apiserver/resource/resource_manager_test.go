@@ -4229,6 +4229,108 @@ func TestPersistTaskLifecycleMessages_StaleReportDoesNotOverwriteCurrentAttempt(
 	assert.Equal(t, string(util.FailureCategoryImagePull), *got.LifecycleCategory)
 }
 
+// retryDuringLifecycleWriteTaskStore claims the run for retry right before the guarded lifecycle
+// write, which is a retry landing between persistTaskLifecycleMessages reading the report's
+// generation and writing the diagnostic.
+type retryDuringLifecycleWriteTaskStore struct {
+	storage.TaskStoreInterface
+	beforeWrite func()
+}
+
+func (f *retryDuringLifecycleWriteTaskStore) UpdateTaskIfRetryGeneration(generation int64, task *model.Task) (*model.Task, bool, error) {
+	if f.beforeWrite != nil {
+		beforeWrite := f.beforeWrite
+		f.beforeWrite = nil
+		beforeWrite()
+	}
+	return f.TaskStoreInterface.UpdateTaskIfRetryGeneration(generation, task)
+}
+
+// The skipFailureReconciliation check only covers a report already known to be stale. A retry that
+// claims the run after that check but before the diagnostic write must still stop the write, or the
+// old attempt's message lands on the freshly reset task.
+func TestPersistTaskLifecycleMessages_RetryBetweenCheckAndWriteDoesNotOverwriteWarning(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "executor-pod", Uid: "uid-1", Type: apiv2.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          run.UUID,
+		Name:             "train",
+		DisplayName:      "train",
+		Type:             model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint:      "fp-train",
+		Pods:             pods,
+		TypeAttrs:        model.JSONData{},
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	// The retried attempt has already recorded its own warning.
+	currentMsg := model.LargeText("Insufficient cpu")
+	currentCategory := string(util.FailureCategoryScheduling)
+	_, err = store.TaskStore().UpdateTask(&model.Task{UUID: task.UUID, LifecycleMessage: &currentMsg, LifecycleCategory: &currentCategory})
+	require.NoError(t, err)
+
+	// Make the run terminal so it can be claimed for retry.
+	terminal := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name: run.K8SName, Namespace: "ns1", UID: types.UID(run.UUID),
+			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, terminal)
+	_, err = manager.ReportWorkflowResource(context.Background(), terminal)
+	require.NoError(t, err)
+
+	manager.taskStore = &retryDuringLifecycleWriteTaskStore{
+		TaskStoreInterface: manager.taskStore,
+		beforeWrite: func() {
+			_, _, _, gen, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
+			require.NoError(t, claimErr)
+			require.Equal(t, int64(1), gen)
+		},
+	}
+
+	// The report reads generation 0, which was still current when persist started.
+	report := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name: run.K8SName, UID: types.UID(run.UUID), Namespace: "ns1",
+			Labels:      map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{"workflows.argoproj.io/pod-name-format": "v1"},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowRunning,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"executor-pod": {
+					ID: "executor-pod", Name: "executor-pod", DisplayName: "train",
+					Phase:   v1alpha1.NodePending,
+					Message: `Back-off pulling image "ghcr.io/example/missing:v1"`,
+				},
+			},
+		},
+	})
+	seeded, err := store.TaskStore().GetTask(task.UUID)
+	require.NoError(t, err)
+	require.NoError(t, manager.persistTaskLifecycleMessages([]*model.Task{seeded}, report, false, 0))
+
+	got, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	require.NotNil(t, got.LifecycleMessage)
+	assert.Equal(t, currentMsg, *got.LifecycleMessage, "the old attempt's message must not overwrite the new attempt's warning")
+	require.NotNil(t, got.LifecycleCategory)
+	assert.Equal(t, currentCategory, *got.LifecycleCategory)
+}
+
 type runStoreWithBeforeWorkflowUpdateHook struct {
 	storage.RunStoreInterface
 	beforeUpdate func()
@@ -9511,6 +9613,134 @@ func TestFindScopedTaskNode_SingleCandidateWithMismatchedIterationIsRejected(t *
 	id, ok := findScopedTaskNode(tasks["train-0"], nodes, tasks)
 	require.True(t, ok)
 	assert.Equal(t, "train", id)
+}
+
+// nestedParallelForNodes is a ParallelFor inside a ParallelFor, reported for outer iteration 0 only:
+// for-loop-1 -> outer-iterations(0:0) -> for-loop-2 -> inner-iterations(0:0) -> train.
+func nestedParallelForNodes() map[string]util.NodeStatus {
+	return map[string]util.NodeStatus{
+		"workflow":  {ID: "workflow", DisplayName: "my-pipeline-run", Type: "Retry", State: "Running", Children: []string{"workflow0"}},
+		"workflow0": {ID: "workflow0", DisplayName: "my-pipeline-run(0)", Type: "DAG", State: "Running", Children: []string{"root"}},
+		"root":      {ID: "root", DisplayName: "root", Type: "Retry", State: "Running", Children: []string{"root0"}, BoundaryID: "workflow0"},
+		"root0":     {ID: "root0", DisplayName: "root(0)", Type: "DAG", State: "Running", Children: []string{"loop"}, BoundaryID: "workflow0"},
+		"loop":      {ID: "loop", DisplayName: "for-loop-1", Type: "Retry", State: "Running", Children: []string{"loop0"}, BoundaryID: "root0"},
+		"loop0":     {ID: "loop0", DisplayName: "for-loop-1(0)", Type: "DAG", State: "Running", Children: []string{"oiter"}, BoundaryID: "root0"},
+		"oiter":     {ID: "oiter", DisplayName: "outer-iterations(0:0)", Type: "Retry", State: "Running", Children: []string{"oiter0"}, BoundaryID: "loop0"},
+		"oiter0":    {ID: "oiter0", DisplayName: "outer-iterations(0:0)(0)", Type: "DAG", State: "Running", Children: []string{"inner"}, BoundaryID: "loop0"},
+		"inner":     {ID: "inner", DisplayName: "for-loop-2", Type: "Retry", State: "Running", Children: []string{"inner0"}, BoundaryID: "oiter0"},
+		"inner0":    {ID: "inner0", DisplayName: "for-loop-2(0)", Type: "DAG", State: "Running", Children: []string{"iiter"}, BoundaryID: "oiter0"},
+		"iiter":     {ID: "iiter", DisplayName: "inner-iterations(0:0)", Type: "Retry", State: "Running", Children: []string{"iiter0"}, BoundaryID: "inner0"},
+		"iiter0":    {ID: "iiter0", DisplayName: "inner-iterations(0:0)(0)", Type: "DAG", State: "Running", Children: []string{"train"}, BoundaryID: "inner0"},
+		"train":     {ID: "train", DisplayName: "train", Type: "Retry", State: "Failed", Children: []string{"train-pod"}, BoundaryID: "iiter0"},
+		"train-pod": {ID: "train-pod", DisplayName: "train(0)", Type: "Pod", State: "Failed", Message: "main: OOMKilled (exit code 137)", BoundaryID: "iiter0"},
+	}
+}
+
+// nestedLoopTasks builds the task chain the driver records for a nested ParallelFor: the inner loop's
+// own task carries the outer iteration index, and the body task carries the inner one.
+func nestedLoopTasks(t *testing.T, outer, inner string) map[string]*model.Task {
+	tasks := map[string]*model.Task{
+		"wf-root":    {UUID: "wf-root", Name: "wf-root"},
+		"loop-task":  scopedTask(t, "loop-task", "for-loop-1", "wf-root"),
+		"inner-task": scopedTask(t, "inner-task", "for-loop-2", "loop-task"),
+		"train-task": scopedTask(t, "train-task", "train", "inner-task"),
+	}
+	// The inner loop's own task carries the outer index and an iterationCount, like the driver records.
+	tasks["inner-task"].TypeAttrs = model.JSONData{"iterationIndex": outer, "iterationCount": "2"}
+	tasks["train-task"].TypeAttrs = model.JSONData{"iterationIndex": inner}
+	return tasks
+}
+
+// nestedConditionNodes puts a condition branch between the inner iteration and the body task, like
+// the Argo nodes of a ParallelFor inside a ParallelFor whose body is guarded by an If.
+func nestedConditionNodes() map[string]util.NodeStatus {
+	nodes := nestedParallelForNodes()
+	iiter0 := nodes["iiter0"]
+	iiter0.Children = []string{"cond"}
+	nodes["iiter0"] = iiter0
+	nodes["cond"] = util.NodeStatus{ID: "cond", DisplayName: "condition-1", Type: "Retry", State: "Running", Children: []string{"cond0"}, BoundaryID: "iiter0"}
+	nodes["cond0"] = util.NodeStatus{ID: "cond0", DisplayName: "condition-1(0)", Type: "DAG", State: "Running", Children: []string{"train"}, BoundaryID: "iiter0"}
+	train := nodes["train"]
+	train.BoundaryID = "cond0"
+	nodes["train"] = train
+	pod := nodes["train-pod"]
+	pod.BoundaryID = "cond0"
+	nodes["train-pod"] = pod
+	return nodes
+}
+
+// nestedConditionTasks is the task chain observed on a live run: every body group between the task
+// and its inner loop carries a copy of the inner iteration index, and only the inner loop's own task
+// carries the outer one.
+func nestedConditionTasks(t *testing.T, outer, inner string) map[string]*model.Task {
+	tasks := nestedLoopTasks(t, outer, inner)
+	tasks["cond-task"] = scopedTask(t, "cond-task", "condition-1", "inner-task")
+	tasks["cond-task"].TypeAttrs = model.JSONData{"iterationIndex": inner}
+	tasks["train-task"] = scopedTask(t, "train-task", "train", "cond-task")
+	tasks["train-task"].TypeAttrs = model.JSONData{"iterationIndex": inner}
+	return tasks
+}
+
+// Regression for the live nested-loop run: body groups between the task and its inner loop repeat the
+// inner index. They must not lengthen the task's path, or every task in a nested loop stops matching
+// its node and loses its lifecycle message.
+func TestFindScopedTaskNode_NestedLoopWithConditionBranchesStillMatches(t *testing.T) {
+	nodes := nestedConditionNodes()
+
+	tasks := nestedConditionTasks(t, "0", "0")
+	assert.Equal(t, []int64{0, 0}, taskLoopIterationPath(tasks["train-task"], tasks))
+	id, ok := findScopedTaskNode(tasks["train-task"], nodes, tasks)
+	require.True(t, ok, "a nested-loop task behind condition branches must still match its node")
+	assert.Equal(t, "train", id)
+
+	// The singleton-mismatch guard still holds with the branches in between.
+	tasks = nestedConditionTasks(t, "1", "0")
+	_, ok = findScopedTaskNode(tasks["train-task"], nodes, tasks)
+	assert.False(t, ok, "outer 1 must not take the outer 0 node")
+}
+
+// A delayed report can hold only outer iteration 0's node while the task store already has a podless
+// task at (outer 1, inner 0). Both share the nearest iteration index 0, so comparing only that index
+// accepted the wrong node and let the stale failure land on the healthy outer iteration 1.
+func TestFindScopedTaskNode_NestedLoopSingletonRejectsOtherOuterIteration(t *testing.T) {
+	nodes := nestedParallelForNodes()
+
+	// Control: the task at (outer 0, inner 0) matches. This proves the scope walk handles two
+	// levels of iteration wrappers, so the rejection below is the index comparison and not a
+	// scope miss.
+	id, ok := findScopedTaskNode(nestedLoopTasks(t, "0", "0")["train-task"], nodes, nestedLoopTasks(t, "0", "0"))
+	require.True(t, ok)
+	assert.Equal(t, "train", id)
+
+	tasks := nestedLoopTasks(t, "1", "0")
+	_, ok = findScopedTaskNode(tasks["train-task"], nodes, tasks)
+	assert.False(t, ok, "the task at (outer 1, inner 0) must not take the node at (outer 0, inner 0)")
+
+	// Same outer index, different inner index is rejected too.
+	tasks = nestedLoopTasks(t, "0", "1")
+	_, ok = findScopedTaskNode(tasks["train-task"], nodes, tasks)
+	assert.False(t, ok, "the task at (outer 0, inner 1) must not take the node at (outer 0, inner 0)")
+}
+
+func TestIterationPathMatches(t *testing.T) {
+	assert.True(t, iterationPathMatches([]int64{0}, []int64{0}))
+	assert.False(t, iterationPathMatches([]int64{1}, []int64{0}))
+	assert.True(t, iterationPathMatches([]int64{0, 1}, []int64{0, 1}))
+	assert.False(t, iterationPathMatches([]int64{0, 1}, []int64{0, 0}), "same nearest index, different outer iteration")
+	assert.False(t, iterationPathMatches([]int64{0, 1}, []int64{0}), "node in fewer iterations than the task recorded")
+	assert.False(t, iterationPathMatches([]int64{0}, nil))
+	assert.True(t, iterationPathMatches([]int64{0}, []int64{0, 5}), "outer iterations the task did not record cannot be checked")
+}
+
+func TestTaskLoopIterationPath(t *testing.T) {
+	tasks := nestedLoopTasks(t, "1", "0")
+	assert.Equal(t, []int64{0, 1}, taskLoopIterationPath(tasks["train-task"], tasks))
+	assert.Equal(t, []int64{1}, taskLoopIterationPath(tasks["inner-task"], tasks))
+
+	// An ancestor that is not a loop coordinator repeats the task's index and is not counted again.
+	tasks = nestedConditionTasks(t, "1", "0")
+	assert.Equal(t, []int64{0, 1}, taskLoopIterationPath(tasks["train-task"], tasks))
+	assert.Empty(t, taskLoopIterationPath(tasks["loop-task"], tasks), "a task with no index is not in a loop")
 }
 
 // isLoopIterationNode must detect ParallelFor iteration wrappers and reject non-iterations.

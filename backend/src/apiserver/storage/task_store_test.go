@@ -2425,6 +2425,39 @@ func TestUpdateTaskIfAttempt_SkipsWhenTheRunRetriedAfterTheEvidenceWasRead(t *te
 	assert.True(t, applied, "evidence from the current generation may")
 }
 
+func TestUpdateTaskIfRetryGeneration_SkipsWhenTheRunRetriedAfterTheReportWasRead(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+	created := createRunningTaskForStateTest(t, taskStore)
+
+	lm := model.LargeText("Insufficient cpu")
+	category := "scheduling"
+	diagnostic := &model.Task{UUID: created.UUID, LifecycleMessage: &lm, LifecycleCategory: &category}
+
+	// Generation 0 evidence on a run still at generation 0 applies, whatever the task's state or pods.
+	_, applied, err := taskStore.UpdateTaskIfRetryGeneration(0, diagnostic)
+	require.NoError(t, err)
+	assert.True(t, applied)
+
+	// A retry claims the run after the report was read.
+	_, err = db.Exec(`UPDATE run_details SET RetryGeneration = 1 WHERE UUID = ?`, created.RunUUID)
+	require.NoError(t, err)
+
+	stale := model.LargeText("Back-off pulling image")
+	staleCategory := "image-pull"
+	_, applied, err = taskStore.UpdateTaskIfRetryGeneration(0, &model.Task{UUID: created.UUID, LifecycleMessage: &stale, LifecycleCategory: &staleCategory})
+	require.NoError(t, err)
+	assert.False(t, applied, "a report from before the retry must not overwrite the diagnostic")
+	got, err := taskStore.GetTask(created.UUID)
+	require.NoError(t, err)
+	require.NotNil(t, got.LifecycleMessage)
+	assert.Equal(t, lm, *got.LifecycleMessage)
+
+	_, applied, err = taskStore.UpdateTaskIfRetryGeneration(1, &model.Task{UUID: created.UUID, LifecycleMessage: &stale, LifecycleCategory: &staleCategory})
+	require.NoError(t, err)
+	assert.True(t, applied, "a report from the current generation may")
+}
+
 func TestUpdateTaskIfAttempt_NoPodGuardSkipsWhenTheRunRetriedAfterTheEvidenceWasRead(t *testing.T) {
 	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()
