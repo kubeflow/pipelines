@@ -250,6 +250,21 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
             ),
         )
 
+    def test_with_packages_to_install_with_trusted_host_and_no_pip_index_url(
+        self,
+    ):
+        command = component_factory._get_packages_to_install_command(
+            packages_to_install=['package1'],
+            pip_trusted_hosts=['myurl.org'],
+        )
+
+        # Both the user-package and the KFP install commands get the flag.
+        self.assertIn(
+            "--no-warn-script-location --trusted-host myurl.org 'package1'",
+            command[2],
+        )
+        self.assertEqual(command[2].count('--trusted-host myurl.org '), 2)
+
     def test_with_packages_to_install_with_pip_index_url_and_empty_trusted_host(
         self,
     ):
@@ -282,6 +297,53 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
                 ]
             ),
         )
+
+
+class TestMakeIndexUrlOptions(unittest.TestCase):
+    def test_no_index_urls_or_trusted_hosts(self):
+        self.assertEqual(
+            component_factory.make_index_url_options(None, None), ''
+        )
+        self.assertEqual(component_factory.make_index_url_options([], []), '')
+
+    def test_trusted_hosts_without_index_urls(self):
+        self.assertEqual(
+            component_factory.make_index_url_options(
+                None, ['pypi.org', 'mirror.example.com:8080']
+            ),
+            '--trusted-host pypi.org --trusted-host mirror.example.com:8080 ',
+        )
+        self.assertEqual(
+            component_factory.make_index_url_options([], ['pypi.org']),
+            '--trusted-host pypi.org ',
+        )
+
+    def test_index_urls_and_trusted_hosts(self):
+        self.assertEqual(
+            component_factory.make_index_url_options(
+                [
+                    'https://a.example.com/simple',
+                    'https://b.example.com/simple',
+                ],
+                ['a.example.com'],
+            ),
+            '--index-url https://a.example.com/simple '
+            '--extra-index-url https://b.example.com/simple '
+            '--trusted-host a.example.com ',
+        )
+
+
+class TestTrustedHostsCompilation(unittest.TestCase):
+    def test_component_with_only_trusted_hosts(self):
+        @dsl.component(
+            packages_to_install=['package1'],
+            pip_trusted_hosts=['pypi.org'],
+        )
+        def comp():
+            pass
+
+        command = comp.component_spec.implementation.container.command
+        self.assertIn('--trusted-host pypi.org', command[2])
 
 
 class TestInvalidParameterName(unittest.TestCase):
