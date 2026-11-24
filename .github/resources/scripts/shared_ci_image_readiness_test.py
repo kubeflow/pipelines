@@ -440,7 +440,7 @@ class ReadinessWorkflowTest(unittest.TestCase):
                 events['pull_request']['paths'],
             )
         self.assertEqual(callers, 9)
-        self.assertEqual(consumers, 15)
+        self.assertEqual(consumers, 16)
 
     def test_readiness_propagates_failure_and_consumers_keep_safe_default(self):
         workflow = yaml.safe_load(
