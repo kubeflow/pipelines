@@ -85,6 +85,12 @@ func executorPodNamesFromTask(task *model.Task) []string {
 // When no executor pod is registered on the task at all, it falls back to
 // executorFailureForTaskViaNode instead of staying silent outright.
 func executorFailureForTask(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string, tasksByUUID map[string]*model.Task) (executorFailure, bool) {
+	return executorFailureForTaskIn(newNodeGraph(nodes), task, resolved, tasksByUUID)
+}
+
+// executorFailureForTaskIn is executorFailureForTask against a graph built once per report.
+func executorFailureForTaskIn(g *nodeGraph, task *model.Task, resolved map[string]string, tasksByUUID map[string]*model.Task) (executorFailure, bool) {
+	nodes := g.nodes
 	if task == nil || task.State != model.TaskStatus(apiv2.PipelineTask_RUNNING) ||
 		task.Type == model.TaskType(apiv2.PipelineTask_DAG) {
 		return executorFailure{}, false
@@ -95,7 +101,7 @@ func executorFailureForTask(task *model.Task, nodes map[string]util.NodeStatus, 
 		// outage covering registration can now cause (persistExecutorPod is required, not best
 		// effort). There is nothing in task.Pods to correlate with the workflow, so fall back to
 		// matching the task's own Argo node by name and scope instead.
-		return executorFailureForTaskViaNode(task, nodes, resolved, tasksByUUID)
+		return executorFailureForTaskViaNode(g, task, resolved, tasksByUUID)
 	}
 	// Index pods by their recorded attempt order so a CreateTime tie (same-second
 	// retries) is broken by that order rather than by the unrelated node map key.
@@ -175,8 +181,9 @@ func executorFailureForTask(task *model.Task, nodes map[string]util.NodeStatus, 
 // registered yet. The node's own State already reflects the aggregated outcome of every attempt
 // beneath it (Argo only settles a Retry node's state once its own retries are exhausted), so
 // unlike the pod-based path there is no separate "last attempt, group failed too" walk to do here.
-func executorFailureForTaskViaNode(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string, tasksByUUID map[string]*model.Task) (executorFailure, bool) {
-	nodeID, ok := findScopedTaskNode(task, nodes, tasksByUUID)
+func executorFailureForTaskViaNode(g *nodeGraph, task *model.Task, resolved map[string]string, tasksByUUID map[string]*model.Task) (executorFailure, bool) {
+	nodes := g.nodes
+	nodeID, ok := findScopedTaskNodeIn(g, task, tasksByUUID)
 	if !ok {
 		return executorFailure{}, false
 	}
@@ -261,7 +268,12 @@ func failureStatusMetadata(existing model.JSONData, message string) (model.JSOND
 // reported in the meantime, nor a registration that eventually landed, nor a retry that reset the
 // task after this report was read, is overwritten. It returns true when the task was updated.
 func (r *ResourceManager) reconcileTaskFailure(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string, tasksByUUID map[string]*model.Task, reportedRetryGeneration int64) (bool, error) {
-	failure, ok := executorFailureForTask(task, nodes, resolved, tasksByUUID)
+	return r.reconcileTaskFailureIn(newNodeGraph(nodes), task, resolved, tasksByUUID, reportedRetryGeneration)
+}
+
+// reconcileTaskFailureIn is reconcileTaskFailure against a graph built once per report.
+func (r *ResourceManager) reconcileTaskFailureIn(g *nodeGraph, task *model.Task, resolved map[string]string, tasksByUUID map[string]*model.Task, reportedRetryGeneration int64) (bool, error) {
+	failure, ok := executorFailureForTaskIn(g, task, resolved, tasksByUUID)
 	if !ok {
 		return false, nil
 	}

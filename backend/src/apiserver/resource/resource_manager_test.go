@@ -9647,6 +9647,7 @@ func nestedLoopTasks(t *testing.T, outer, inner string) map[string]*model.Task {
 	}
 	// The inner loop's own task carries the outer index and an iterationCount, like the driver records.
 	tasks["inner-task"].TypeAttrs = model.JSONData{"iterationIndex": outer, "iterationCount": "2"}
+	tasks["inner-task"].Type = model.TaskType(apiv2.PipelineTask_LOOP)
 	tasks["train-task"].TypeAttrs = model.JSONData{"iterationIndex": inner}
 	return tasks
 }
@@ -9720,6 +9721,59 @@ func TestFindScopedTaskNode_NestedLoopSingletonRejectsOtherOuterIteration(t *tes
 	tasks = nestedLoopTasks(t, "0", "1")
 	_, ok = findScopedTaskNode(tasks["train-task"], nodes, tasks)
 	assert.False(t, ok, "the task at (outer 0, inner 1) must not take the node at (outer 0, inner 0)")
+}
+
+// The driver can persist the inner loop's task as type LOOP before input resolution supplies
+// iterationCount, then reuse that row on retry. The coordinator is recognized by its type, so the
+// recorded outer index still counts and the outer 0 node is rejected for the outer 1 task.
+func TestFindScopedTaskNode_NestedLoopCoordinatorWithoutIterationCount(t *testing.T) {
+	nodes := nestedParallelForNodes()
+	withoutCount := func(outer, inner string) map[string]*model.Task {
+		tasks := nestedLoopTasks(t, outer, inner)
+		tasks["inner-task"].TypeAttrs = model.JSONData{"iterationIndex": outer}
+		return tasks
+	}
+
+	tasks := withoutCount("0", "0")
+	assert.Equal(t, []int64{0, 0}, taskLoopIterationPath(tasks["train-task"], tasks))
+	id, ok := findScopedTaskNode(tasks["train-task"], nodes, tasks)
+	require.True(t, ok, "control: (outer 0, inner 0) still matches")
+	assert.Equal(t, "train", id)
+
+	tasks = withoutCount("1", "0")
+	assert.Equal(t, []int64{0, 1}, taskLoopIterationPath(tasks["train-task"], tasks))
+	_, ok = findScopedTaskNode(tasks["train-task"], nodes, tasks)
+	assert.False(t, ok, "outer 1 must not take the outer 0 node when the loop row has no iterationCount")
+
+	// Only the persisted type makes a coordinator: a non-loop ancestor does not contribute an
+	// index even if it records one.
+	tasks = withoutCount("1", "0")
+	tasks["inner-task"].Type = model.TaskType(apiv2.PipelineTask_DAG)
+	assert.Equal(t, []int64{0}, taskLoopIterationPath(tasks["train-task"], tasks))
+}
+
+// The per-report index must answer exactly what the per-call functions do.
+func TestNodeGraph_MatchesNodeParentAndIterationPath(t *testing.T) {
+	for name, nodes := range map[string]map[string]util.NodeStatus{
+		"nested":    nestedParallelForNodes(),
+		"condition": nestedConditionNodes(),
+		"subdags":   twoSubDAGNodes(),
+	} {
+		g := newNodeGraph(nodes)
+		for id := range nodes {
+			wantParent, wantOK := nodeParent(id, nodes)
+			gotParent, gotOK := g.parent(id)
+			assert.Equal(t, wantOK, gotOK, "%s: parent of %s", name, id)
+			assert.Equal(t, wantParent, gotParent, "%s: parent of %s", name, id)
+		}
+	}
+	nodes := nestedConditionNodes()
+	g := newNodeGraph(nodes)
+	assert.Equal(t, []int64{0, 0}, g.iterationPath("train"))
+	assert.Equal(t, []int64{0, 0}, g.iterationPath("train"), "second lookup is served from the cache")
+	assert.Equal(t, []int64{0}, g.iterationPath("inner"), "the inner loop task sits only inside the outer iteration")
+	assert.Empty(t, g.iterationPath("loop"))
+	assert.Empty(t, g.iterationPath("missing"))
 }
 
 func TestIterationPathMatches(t *testing.T) {

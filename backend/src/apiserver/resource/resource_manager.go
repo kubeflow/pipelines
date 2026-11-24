@@ -4354,9 +4354,15 @@ func containsString(values []string, want string) bool {
 // matched through its Argo task node instead, see lifecycleMessageForTaskNode. tasksByUUID holds the
 // run's tasks and is used to check that node against the task's parent scope.
 func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string, tasksByUUID map[string]*model.Task) (msg, phase string, matched bool) {
+	return lifecycleMessageForTaskIn(newNodeGraph(nodes), task, resolved, tasksByUUID)
+}
+
+// lifecycleMessageForTaskIn is lifecycleMessageForTask against a graph built once per report.
+func lifecycleMessageForTaskIn(g *nodeGraph, task *model.Task, resolved map[string]string, tasksByUUID map[string]*model.Task) (msg, phase string, matched bool) {
 	if task == nil {
 		return "", "", false
 	}
+	nodes := g.nodes
 	podNames := podNamesFromTask(task)
 	type podMatch struct {
 		msg        string
@@ -4371,7 +4377,7 @@ func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus,
 		matches = append(matches, podMatch{msg: resolved[id], phase: node.State, createTime: node.CreateTime})
 	}
 	if len(matches) == 0 {
-		return lifecycleMessageForTaskNode(task, nodes, resolved, tasksByUUID)
+		return lifecycleMessageForTaskNode(g, task, resolved, tasksByUUID)
 	}
 	// Pick the message from the most recently created pod so that a recovered retry
 	// (no lifecycle event) overrides a stale failure from an earlier attempt.
@@ -4389,12 +4395,12 @@ func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus,
 // still ambiguous is left unmatched rather than guessed. Without that scope check, a skipped task
 // would pick up the failure of a same-named task that ran in another sub-DAG, since the skipped
 // one has no node of its own.
-func lifecycleMessageForTaskNode(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string, tasksByUUID map[string]*model.Task) (msg, phase string, matched bool) {
-	nodeID, ok := findScopedTaskNode(task, nodes, tasksByUUID)
+func lifecycleMessageForTaskNode(g *nodeGraph, task *model.Task, resolved map[string]string, tasksByUUID map[string]*model.Task) (msg, phase string, matched bool) {
+	nodeID, ok := findScopedTaskNodeIn(g, task, tasksByUUID)
 	if !ok {
 		return "", "", false
 	}
-	return resolved[nodeID], nodes[nodeID].State, true
+	return resolved[nodeID], g.nodes[nodeID].State, true
 }
 
 // parentTaskScope returns the names of the tasks enclosing task, nearest first, leaving out the
@@ -4453,6 +4459,108 @@ func nodeParent(id string, nodes map[string]util.NodeStatus) (string, bool) {
 	return node.BoundaryID, true
 }
 
+// nodeGraph indexes one workflow report's nodes so that matching many tasks against it does not
+// rescan the whole node map for every lookup. nodeParent has to search for an attempt's Retry node,
+// and a report with hundreds of loop tasks used to pay that scan once per ancestor hop per candidate.
+// The structural parents and the Retry nodes by name are computed once here, and the iteration
+// path of a node is memoized so sibling tasks under the same iteration reuse it. It is built per
+// report and never shared across reports or goroutines.
+type nodeGraph struct {
+	nodes         map[string]util.NodeStatus
+	parents       map[string]string
+	retriesByName map[string][]string
+	iterPaths     map[string][]int64
+}
+
+func newNodeGraph(nodes map[string]util.NodeStatus) *nodeGraph {
+	type retryKey struct{ boundary, name string }
+	g := &nodeGraph{
+		nodes:         nodes,
+		parents:       make(map[string]string, len(nodes)),
+		retriesByName: make(map[string][]string),
+		iterPaths:     make(map[string][]int64),
+	}
+	retryByKey := make(map[retryKey]string)
+	for id, node := range nodes {
+		if node.Type == "Retry" {
+			g.retriesByName[node.DisplayName] = append(g.retriesByName[node.DisplayName], id)
+			retryByKey[retryKey{node.BoundaryID, node.DisplayName}] = id
+		}
+	}
+	// Same rule as nodeParent, evaluated for every node once.
+	for id, node := range nodes {
+		if m := retryAttemptDisplayName.FindStringSubmatch(node.DisplayName); m != nil {
+			if retryID, ok := retryByKey[retryKey{node.BoundaryID, m[1]}]; ok {
+				g.parents[id] = retryID
+				continue
+			}
+		}
+		if node.BoundaryID != "" {
+			g.parents[id] = node.BoundaryID
+		}
+	}
+	return g
+}
+
+// parent is nodeParent answered from the index.
+func (g *nodeGraph) parent(id string) (string, bool) {
+	parentID, ok := g.parents[id]
+	return parentID, ok
+}
+
+// iterationPath returns the index of every ParallelFor iteration wrapper that encloses the node,
+// innermost first. The path of a node is its parent's path, preceded by the parent's own index when
+// the parent is an iteration wrapper, so the paths of siblings share their common ancestors' work.
+func (g *nodeGraph) iterationPath(id string) []int64 {
+	if path, ok := g.iterPaths[id]; ok {
+		return path
+	}
+	// Walk up to the nearest ancestor whose path is already known, or to the top, then fill the
+	// paths back down. seen keeps a malformed cycle from looping forever.
+	var chain []string
+	var base []int64
+	seen := map[string]bool{}
+	for current := id; ; {
+		if path, ok := g.iterPaths[current]; ok {
+			base = path
+			break
+		}
+		if seen[current] {
+			break
+		}
+		seen[current] = true
+		chain = append(chain, current)
+		parentID, ok := g.parent(current)
+		if !ok {
+			break
+		}
+		current = parentID
+	}
+	for i := len(chain) - 1; i >= 0; i-- {
+		node := chain[i]
+		parentID, ok := g.parent(node)
+		if !ok {
+			g.iterPaths[node] = nil
+			base = nil
+			continue
+		}
+		path := base
+		if parent := g.nodes[parentID]; parent.Type == "Retry" {
+			if m := loopIterationIndexRE.FindStringSubmatch(parent.DisplayName); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil {
+					path = nil
+				} else {
+					path = append([]int64{n}, base...)
+				}
+			}
+		}
+		g.iterPaths[node] = path
+		base = path
+	}
+	return g.iterPaths[id]
+}
+
 // loopIterationSuffix matches the "(index:item)" Argo adds to each expansion of a ParallelFor.
 var loopIterationSuffix = regexp.MustCompile(`-iterations\(\d+:[^()]*\)$`)
 
@@ -4473,26 +4581,26 @@ func matchesScopeName(displayName, scopeName string) bool {
 // isCompilerWrapperNode reports whether the Retry node is one of the compiler's two reserved
 // wrappers, by position as nodeInScope does: the outermost Retry with no parent, or the one exactly
 // two hops below it. Neither is ever a real task.
-func isCompilerWrapperNode(id string, nodes map[string]util.NodeStatus, tasksByUUID map[string]*model.Task) bool {
+func isCompilerWrapperNode(id string, g *nodeGraph, tasksByUUID map[string]*model.Task) bool {
 	// The inner compiler wrapper ("root") sits exactly two hops below the outermost
 	// parentless Retry. Structure alone is not enough: a real task nested one level
 	// inside a top-level task has the same hop count. The tiebreaker is the parentless
 	// ancestor's DisplayName: the compiler's outermost wrapper carries the run name,
 	// which never matches a task name, while a real top-level task does.
-	hop1, ok := nodeParent(id, nodes)
+	hop1, ok := g.parent(id)
 	if !ok {
 		return false
 	}
-	hop2, ok := nodeParent(hop1, nodes)
+	hop2, ok := g.parent(hop1)
 	if !ok {
 		return false
 	}
-	if _, hasHop3 := nodeParent(hop2, nodes); hasHop3 {
+	if _, hasHop3 := g.parent(hop2); hasHop3 {
 		return false
 	}
 	// hop2 is the parentless Retry at the absolute top. If its DisplayName matches
 	// any task in the run, it is a real task (not the compiler's wrapper).
-	topName := nodes[hop2].DisplayName
+	topName := g.nodes[hop2].DisplayName
 	for _, task := range tasksByUUID {
 		if task.Name == topName {
 			return false
@@ -4521,17 +4629,17 @@ func isCompilerWrapperNode(id string, nodes map[string]util.NodeStatus, tasksByU
 // exactly two hops below that outermost one (its own parent's parent has no parent). A real task
 // that merely happens to be named "root" sits somewhere else in the tree and fails that structural
 // test, so it is still rejected like any other extra nesting.
-func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bool {
+func nodeInScope(id string, scope []string, g *nodeGraph) bool {
 	seen := map[string]bool{id: true}
 	current := id
 	for next := 0; next < len(scope); {
-		parentID, ok := nodeParent(current, nodes)
+		parentID, ok := g.parent(current)
 		if !ok || seen[parentID] {
 			return false
 		}
 		seen[parentID] = true
 		current = parentID
-		if node := nodes[parentID]; node.Type == "Retry" {
+		if node := g.nodes[parentID]; node.Type == "Retry" {
 			// ParallelFor iteration wrappers have no corresponding task in the
 			// DB, so they are invisible to scope matching. Skip them.
 			if isLoopIterationNode(node.DisplayName) {
@@ -4544,7 +4652,7 @@ func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bo
 		}
 	}
 	for {
-		parentID, ok := nodeParent(current, nodes)
+		parentID, ok := g.parent(current)
 		if !ok {
 			return true
 		}
@@ -4553,19 +4661,19 @@ func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bo
 		}
 		seen[parentID] = true
 		current = parentID
-		if nodes[parentID].Type == "Retry" {
+		if g.nodes[parentID].Type == "Retry" {
 			// Loop iteration wrappers are invisible (no task in DB).
-			if isLoopIterationNode(nodes[parentID].DisplayName) {
+			if isLoopIterationNode(g.nodes[parentID].DisplayName) {
 				continue
 			}
-			hop1, hasHop1 := nodeParent(parentID, nodes)
+			hop1, hasHop1 := g.parent(parentID)
 			if !hasHop1 {
 				// No parent of its own: this is the outermost compiler wrapper, structurally
 				// equivalent to the true root.
 				return true
 			}
-			if hop2, hasHop2 := nodeParent(hop1, nodes); hasHop2 {
-				if _, hasHop3 := nodeParent(hop2, nodes); !hasHop3 {
+			if hop2, hasHop2 := g.parent(hop1); hasHop2 {
+				if _, hasHop3 := g.parent(hop2); !hasHop3 {
 					// Exactly two hops below a parentless Retry: this is the compiler's reserved
 					// "root" wrapper by structural position, not a real task boundary.
 					continue
@@ -4586,6 +4694,12 @@ func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bo
 // name a user's own task can have. More than one remaining match is a genuine ambiguity and stays
 // unmatched.
 func findScopedTaskNode(task *model.Task, nodes map[string]util.NodeStatus, tasksByUUID map[string]*model.Task) (nodeID string, ok bool) {
+	return findScopedTaskNodeIn(newNodeGraph(nodes), task, tasksByUUID)
+}
+
+// findScopedTaskNodeIn is findScopedTaskNode against a graph built once for the whole report, so
+// matching every task in a run shares the parent index and the cached iteration paths.
+func findScopedTaskNodeIn(g *nodeGraph, task *model.Task, tasksByUUID map[string]*model.Task) (nodeID string, ok bool) {
 	if task.Name == "" {
 		return "", false
 	}
@@ -4594,16 +4708,13 @@ func findScopedTaskNode(task *model.Task, nodes map[string]util.NodeStatus, task
 		return "", false
 	}
 	var candidates []string
-	for id, node := range nodes {
-		if node.Type != "Retry" || node.DisplayName != task.Name {
-			continue
-		}
+	for _, id := range g.retriesByName[task.Name] {
 		// A compiler wrapper is never a task. Counting it would match a task named "root" that
 		// has no node of its own (for example, one Argo omitted) to the wrapper's failure.
-		if isCompilerWrapperNode(id, nodes, tasksByUUID) {
+		if isCompilerWrapperNode(id, g, tasksByUUID) {
 			continue
 		}
-		if !nodeInScope(id, scope, nodes) {
+		if !nodeInScope(id, scope, g) {
 			continue
 		}
 		candidates = append(candidates, id)
@@ -4620,7 +4731,7 @@ func findScopedTaskNode(task *model.Task, nodes map[string]util.NodeStatus, task
 	if want := taskLoopIterationPath(task, tasksByUUID); len(want) > 0 {
 		var matched []string
 		for _, id := range candidates {
-			if iterationPathMatches(want, nodeLoopIterationPath(id, nodes)) {
+			if iterationPathMatches(want, g.iterationPath(id)) {
 				matched = append(matched, id)
 			}
 		}
@@ -4657,7 +4768,10 @@ var loopIterationIndexRE = regexp.MustCompile(`-iterations\((\d+):[^()]*\)$`)
 //
 // The first entry is the task's own index. After that only loop coordinators contribute: the driver
 // stores an enclosing loop's index on a nested loop's own task, which also records an
-// iterationCount. Every other ancestor between the task and its loop (a condition branch, a
+// iterationCount. A coordinator is recognized by its persisted task type, not by that count: the
+// driver can store the task as a loop before input resolution supplies the count, and a retry reuses
+// that row, so a count-based test would skip the outer index and accept another outer iteration's
+// node. Every other ancestor between the task and its loop (a condition branch, a
 // sub-DAG) sits in the same iteration body and carries a copy of the task's own index, so counting
 // those would repeat that iteration once per group and no workflow node path could ever equal it.
 // A parent missing from tasksByUUID ends the walk with what was collected, which is still a valid
@@ -4675,7 +4789,7 @@ func taskLoopIterationPath(task *model.Task, tasksByUUID map[string]*model.Task)
 			break
 		}
 		seen[parent.UUID] = true
-		if _, isLoopCoordinator := parent.TypeAttrs["iterationCount"]; isLoopCoordinator {
+		if parent.Type == model.TaskType(apiv2.PipelineTask_LOOP) {
 			if idx, ok := taskLoopIterationIndex(parent); ok {
 				path = append(path, idx)
 			}
@@ -4683,30 +4797,6 @@ func taskLoopIterationPath(task *model.Task, tasksByUUID map[string]*model.Task)
 		current = parent
 	}
 	return path
-}
-
-// nodeLoopIterationPath returns the index of every ParallelFor iteration wrapper enclosing the
-// node, innermost first.
-func nodeLoopIterationPath(id string, nodes map[string]util.NodeStatus) []int64 {
-	var path []int64
-	seen := map[string]bool{id: true}
-	for current := id; ; {
-		parentID, ok := nodeParent(current, nodes)
-		if !ok || seen[parentID] {
-			return path
-		}
-		seen[parentID] = true
-		current = parentID
-		if node := nodes[parentID]; node.Type == "Retry" {
-			if m := loopIterationIndexRE.FindStringSubmatch(node.DisplayName); m != nil {
-				n, err := strconv.ParseInt(m[1], 10, 64)
-				if err != nil {
-					return nil
-				}
-				path = append(path, n)
-			}
-		}
-	}
 }
 
 // iterationPathMatches reports whether a node sits in the iteration the task records. Every index
@@ -4743,6 +4833,8 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 			tasksByUUID[task.UUID] = task
 		}
 	}
+	// One index for the whole report: every task below is matched against it.
+	graph := newNodeGraph(nodes)
 	var reconcileErrs []error
 	for _, task := range tasks {
 		// A failure reconciling one task's state must not stop lifecycle messages from being
@@ -4769,10 +4861,10 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 			// skip the diagnostic write for the same reason reconcileTaskFailure is skipped.
 			continue
 		}
-		if _, err := r.reconcileTaskFailure(task, nodes, resolved, tasksByUUID, reportedGeneration); err != nil {
+		if _, err := r.reconcileTaskFailureIn(graph, task, resolved, tasksByUUID, reportedGeneration); err != nil {
 			reconcileErrs = append(reconcileErrs, fmt.Errorf("reconciling task %q: %w", task.UUID, err))
 		}
-		msg, phase, matched := lifecycleMessageForTask(task, nodes, resolved, tasksByUUID)
+		msg, phase, matched := lifecycleMessageForTaskIn(graph, task, resolved, tasksByUUID)
 		if !matched {
 			continue
 		}
