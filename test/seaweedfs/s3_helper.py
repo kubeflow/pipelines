@@ -12,8 +12,8 @@ is the desired outcome; this script never infers intent from the key/prefix.
 For 'list' the request shape is controlled explicitly, because tenant isolation
 depends on the s3:prefix and s3:delimiter policy conditions:
     --prefix "x/"           -> ListObjectsV2(Prefix="x/")   (s3:prefix present)
-    --prefix ""             -> ListObjectsV2(Prefix="")      (s3:prefix absent)
-    --no-prefix             -> ListObjectsV2()               (s3:prefix absent)
+    --prefix ""             -> ListObjectsV2(Prefix="")
+    --no-prefix             -> ListObjectsV2()
     --delimiter "/"         -> adds Delimiter="/"            (s3:delimiter present)
 """
 
@@ -118,10 +118,6 @@ def delete(client, bucket, key):
 
 
 def list_prefix(client, bucket, prefix, delimiter):
-    # prefix is None -> omit Prefix entirely (s3:prefix absent)
-    # prefix is ""   -> send Prefix="" (s3:prefix still absent at policy layer)
-    # prefix is "x/" -> send Prefix="x/"
-    # delimiter is None -> omit Delimiter; otherwise send Delimiter=<value>
     label = '<no prefix>' if prefix is None else f"'{prefix}'"
     if delimiter is not None:
         label += f" delimiter='{delimiter}'"

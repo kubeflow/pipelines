@@ -12,6 +12,7 @@ import pytest
 import requests
 import sync
 import yaml
+from botocore.exceptions import ClientError
 from sync import get_settings_from_env, server_factory
 
 KFP_VERSION = 'x.y.z'
@@ -121,7 +122,15 @@ def observed_attachments(proxy_enabled=False, ready=False, ca=False):
 
 
 @pytest.fixture
-def start_sync_server():
+def bucket_client(monkeypatch):
+    client = mock.Mock()
+    client.get_bucket_policy.return_value = {'Policy': '{"Statement": []}'}
+    monkeypatch.setattr(sync, 's3', client)
+    return client
+
+
+@pytest.fixture
+def start_sync_server(bucket_client):
     servers = []
 
     def start(**settings):
@@ -153,6 +162,155 @@ def post_sync(server, parent, attachments):
     )
     response.raise_for_status()
     return response.json()
+
+
+@pytest.fixture
+def legacy_bucket_policy():
+    # Captured from the controller shipped with SeaweedFS 4.54.
+    return json.loads(
+        (
+            Path(__file__).parent / 'testdata/legacy-bucket-policy.json'
+        ).read_text()
+    )
+
+
+def sync_profile_with_credentials(server, existing_secret):
+    attachments = observed_attachments()
+    if not existing_secret:
+        attachments['Secret.v1'].clear()
+    with mock.patch.object(sync, 'iam') as iam:
+        iam.create_access_key.return_value = {
+            'AccessKey': {'AccessKeyId': 'key', 'SecretAccessKey': 'secret'}
+        }
+        post_sync(server, PARENT, attachments)
+        if existing_secret:
+            iam.create_access_key.assert_not_called()
+        else:
+            iam.create_access_key.assert_called_once_with(UserName=NAMESPACE)
+
+
+def assert_root_browse_statement(statement):
+    assert statement == {
+        'Sid': 'AllowEmptyPrefixDelimitedBrowse',
+        'Effect': 'Allow',
+        'Principal': '*',
+        'Action': 's3:ListBucket',
+        'Resource': 'arn:aws:s3:::mlpipeline',
+        'Condition': {'StringEquals': {'s3:prefix': '', 's3:delimiter': '/'}},
+    }
+
+
+@pytest.mark.parametrize('sync_server', [ENV_BASE], indirect=True)
+@pytest.mark.parametrize('with_admin_policy', [False, True])
+def test_existing_profile_reconciles_bucket_policy(
+    sync_server, bucket_client, legacy_bucket_policy, with_admin_policy
+):
+    if with_admin_policy:
+        legacy_bucket_policy['Id'] = 'tenant-storage'
+        legacy_bucket_policy['Statement'].insert(
+            1,
+            {
+                'Sid': 'RequireTLS',
+                'Effect': 'Deny',
+                'Principal': '*',
+                'Action': 's3:*',
+                'Resource': 'arn:aws:s3:::mlpipeline/*',
+                'Condition': {'Bool': {'aws:SecureTransport': 'false'}},
+            },
+        )
+
+    bucket_client.get_bucket_policy.return_value = {
+        'Policy': json.dumps(legacy_bucket_policy)
+    }
+    sync_profile_with_credentials(sync_server, existing_secret=True)
+    bucket_client.put_bucket_policy.assert_called_once()
+    written = bucket_client.put_bucket_policy.call_args.kwargs
+    assert written['Bucket'] == sync.S3_BUCKET_NAME
+    migrated = json.loads(written['Policy'])
+    new_statement = next(
+        statement
+        for statement in migrated['Statement']
+        if statement.get('Sid') == 'AllowEmptyPrefixDelimitedBrowse'
+    )
+    assert_root_browse_statement(new_statement)
+    migrated['Statement'].remove(new_statement)
+    assert migrated == legacy_bucket_policy
+
+    bucket_client.get_bucket_policy.return_value = {'Policy': written['Policy']}
+    sync_profile_with_credentials(sync_server, existing_secret=True)
+    bucket_client.put_bucket_policy.assert_called_once()
+
+
+@pytest.mark.parametrize('sync_server', [ENV_BASE], indirect=True)
+@pytest.mark.parametrize('existing_secret', [False, True])
+@pytest.mark.parametrize('code', ['NoSuchBucketPolicy', 'AccessDenied'])
+def test_bucket_policy_read_error(
+    sync_server, bucket_client, existing_secret, code, legacy_bucket_policy
+):
+    bucket_client.get_bucket_policy.side_effect = ClientError(
+        {'Error': {'Code': code}}, 'GetBucketPolicy'
+    )
+    sync_profile_with_credentials(sync_server, existing_secret)
+    if existing_secret or code != 'NoSuchBucketPolicy':
+        bucket_client.put_bucket_policy.assert_not_called()
+        return
+
+    bucket_client.put_bucket_policy.assert_called_once()
+    installed = json.loads(
+        bucket_client.put_bucket_policy.call_args.kwargs['Policy']
+    )
+    statements = installed['Statement']
+    root_browse = next(
+        s for s in statements if s['Sid'] == 'AllowEmptyPrefixDelimitedBrowse'
+    )
+    assert_root_browse_statement(root_browse)
+    statements.remove(root_browse)
+    assert installed == legacy_bucket_policy
+
+
+@pytest.mark.parametrize('sync_server', [ENV_BASE], indirect=True)
+@pytest.mark.parametrize('existing_secret', [False, True])
+@pytest.mark.parametrize(
+    'case', ['unmanaged', 'modified', 'sid_collision', 'malformed']
+)
+def test_preserve_unrecognized_bucket_policy(
+    sync_server, bucket_client, legacy_bucket_policy, existing_secret, case
+):
+    if case == 'unmanaged':
+        policy = json.dumps(
+            {
+                'Version': '2012-10-17',
+                'Statement': [
+                    {
+                        'Effect': 'Deny',
+                        'Principal': '*',
+                        'Action': 's3:*',
+                        'Resource': 'arn:aws:s3:::mlpipeline/*',
+                    }
+                ],
+            }
+        )
+    elif case == 'modified':
+        legacy_bucket_policy['Statement'][0]['Principal'] = {
+            'AWS': 'arn:aws:iam::123456789012:root'
+        }
+        policy = json.dumps(legacy_bucket_policy)
+    elif case == 'sid_collision':
+        legacy_bucket_policy['Statement'].append(
+            {
+                'Sid': 'AllowEmptyPrefixDelimitedBrowse',
+                'Effect': 'Deny',
+                'Principal': '*',
+                'Action': 's3:ListBucket',
+                'Resource': 'arn:aws:s3:::mlpipeline',
+            }
+        )
+        policy = json.dumps(legacy_bucket_policy)
+    else:
+        policy = 'not a JSON policy'
+    bucket_client.get_bucket_policy.return_value = {'Policy': policy}
+    sync_profile_with_credentials(sync_server, existing_secret)
+    bucket_client.put_bucket_policy.assert_not_called()
 
 
 def assert_profile_resources(result, expected_image, ca_cert=None):

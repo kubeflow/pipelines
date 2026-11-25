@@ -1,0 +1,70 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowOwnDeepList",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::mlpipeline",
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": [
+            "private-artifacts/${aws:username}/*",
+            "private/${aws:username}/*",
+            "artifacts/*",
+            "shared/*"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "AllowHeadBucket",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::mlpipeline",
+      "Condition": {
+        "StringEquals": {
+          "s3:RequestMethod": "HEAD"
+        }
+      }
+    },
+    {
+      "Sid": "AllowTopLevelDelimitedBrowse",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::mlpipeline",
+      "Condition": {
+        "Null": {
+          "s3:prefix": "true"
+        },
+        "StringEquals": {
+          "s3:delimiter": "/"
+        }
+      }
+    },
+    {
+      "Sid": "DenyOtherDeepList",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::mlpipeline",
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": [
+            "private-artifacts/*",
+            "private/*"
+          ]
+        },
+        "StringNotLike": {
+          "s3:prefix": [
+            "private-artifacts/${aws:username}/*",
+            "private/${aws:username}/*"
+          ]
+        }
+      }
+    }
+  ]
+}
