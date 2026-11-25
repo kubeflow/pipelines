@@ -117,7 +117,7 @@ class V2PipelineVersionReference(object):
     def pipeline_name(self):
         """Gets the pipeline_name of this V2PipelineVersionReference.  # noqa: E501
 
-        Input. Optional. Name of the parent pipeline in the run's namespace, used instead of pipeline_id. Not returned in responses.  # noqa: E501
+        Input. Optional. Name of the parent pipeline in the run's namespace, used instead of pipeline_id. Returned in responses, empty if the pipeline was deleted.  # noqa: E501
 
         :return: The pipeline_name of this V2PipelineVersionReference.  # noqa: E501
         :rtype: str
@@ -128,7 +128,7 @@ class V2PipelineVersionReference(object):
     def pipeline_name(self, pipeline_name):
         """Sets the pipeline_name of this V2PipelineVersionReference.
 
-        Input. Optional. Name of the parent pipeline in the run's namespace, used instead of pipeline_id. Not returned in responses.  # noqa: E501
+        Input. Optional. Name of the parent pipeline in the run's namespace, used instead of pipeline_id. Returned in responses, empty if the pipeline was deleted.  # noqa: E501
 
         :param pipeline_name: The pipeline_name of this V2PipelineVersionReference.  # noqa: E501
         :type pipeline_name: str
@@ -140,7 +140,7 @@ class V2PipelineVersionReference(object):
     def pipeline_version_name(self):
         """Gets the pipeline_version_name of this V2PipelineVersionReference.  # noqa: E501
 
-        Input. Optional. Name of a version of the pipeline named by pipeline_name, used instead of pipeline_version_id. Not returned in responses.  # noqa: E501
+        Input. Optional. Name of a version of the pipeline named by pipeline_name, used instead of pipeline_version_id. Returned in responses, empty if the version was deleted.  # noqa: E501
 
         :return: The pipeline_version_name of this V2PipelineVersionReference.  # noqa: E501
         :rtype: str
@@ -151,7 +151,7 @@ class V2PipelineVersionReference(object):
     def pipeline_version_name(self, pipeline_version_name):
         """Sets the pipeline_version_name of this V2PipelineVersionReference.
 
-        Input. Optional. Name of a version of the pipeline named by pipeline_name, used instead of pipeline_version_id. Not returned in responses.  # noqa: E501
+        Input. Optional. Name of a version of the pipeline named by pipeline_name, used instead of pipeline_version_id. Returned in responses, empty if the version was deleted.  # noqa: E501
 
         :param pipeline_version_name: The pipeline_version_name of this V2PipelineVersionReference.  # noqa: E501
         :type pipeline_version_name: str

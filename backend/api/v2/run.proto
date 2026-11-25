@@ -312,11 +312,12 @@ message PipelineVersionReference {
   string pipeline_version_id = 2;
 
   // Input. Optional. Name of the parent pipeline in the run's namespace, used
-  // instead of pipeline_id. Not returned in responses.
+  // instead of pipeline_id. Returned in responses, empty if the pipeline was deleted.
   string pipeline_name = 3;
 
   // Input. Optional. Name of a version of the pipeline named by pipeline_name,
-  // used instead of pipeline_version_id. Not returned in responses.
+  // used instead of pipeline_version_id. Returned in responses, empty if the
+  // version was deleted.
   string pipeline_version_name = 4;
 }
 

@@ -89,8 +89,11 @@ var _ = Describe("Legacy API coverage migration", Label(constants.APIServerTests
 			ServiceAccount: testutil.GetDefaultPipelineRunnerServiceAccount(),
 			PipelineSpec:   terminated.PipelineSpec, PluginsInput: terminated.PluginsInput,
 			PluginsOutput: terminated.PluginsOutput, ExperimentID: experiment.ExperimentID,
-			PipelineVersionReference: payload.PipelineVersionReference,
-			CreatedAt:                terminated.CreatedAt, ScheduledAt: terminated.ScheduledAt, FinishedAt: terminated.FinishedAt,
+			PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
+				PipelineID: pipeline.PipelineID, PipelineVersionID: version.PipelineVersionID,
+				PipelineName: pipeline.Name, PipelineVersionName: version.Name,
+			},
+			CreatedAt: terminated.CreatedAt, ScheduledAt: terminated.ScheduledAt, FinishedAt: terminated.FinishedAt,
 		}
 		Expect(terminated).To(Equal(expected))
 	})

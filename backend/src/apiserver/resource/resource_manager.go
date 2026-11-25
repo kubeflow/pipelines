@@ -457,6 +457,17 @@ func (r *ResourceManager) GetPipeline(pipelineId string) (*model.Pipeline, error
 	}
 }
 
+// GetPipelineNamesForIds resolves pipeline IDs to their names in one query, for
+// read paths that report the names behind a stored reference.
+func (r *ResourceManager) GetPipelineNamesForIds(pipelineIds []string) (map[string]string, error) {
+	return r.pipelineStore.GetPipelineNamesForIds(pipelineIds)
+}
+
+// GetPipelineVersionNamesForIds is GetPipelineNamesForIds for pipeline versions.
+func (r *ResourceManager) GetPipelineVersionNamesForIds(pipelineVersionIds []string) (map[string]string, error) {
+	return r.pipelineStore.GetPipelineVersionNamesForIds(pipelineVersionIds)
+}
+
 // Returns a pipeline specified by name and namespace.
 func (r *ResourceManager) GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error) {
 	if pipeline, err := r.pipelineStore.GetPipelineByNameAndNamespace(name, namespace); err != nil {

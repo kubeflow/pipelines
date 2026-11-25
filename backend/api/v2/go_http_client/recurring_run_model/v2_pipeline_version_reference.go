@@ -18,14 +18,15 @@ type V2PipelineVersionReference struct {
 	PipelineID string `json:"pipeline_id,omitempty"`
 
 	// Input. Optional. Name of the parent pipeline in the run's namespace, used
-	// instead of pipeline_id. Not returned in responses.
+	// instead of pipeline_id. Returned in responses, empty if the pipeline was deleted.
 	PipelineName string `json:"pipeline_name,omitempty"`
 
 	// Input. Optional. Unique ID of an existing pipeline version. If unset, the latest pipeline version is used.
 	PipelineVersionID string `json:"pipeline_version_id,omitempty"`
 
 	// Input. Optional. Name of a version of the pipeline named by pipeline_name,
-	// used instead of pipeline_version_id. Not returned in responses.
+	// used instead of pipeline_version_id. Returned in responses, empty if the
+	// version was deleted.
 	PipelineVersionName string `json:"pipeline_version_name,omitempty"`
 }
 

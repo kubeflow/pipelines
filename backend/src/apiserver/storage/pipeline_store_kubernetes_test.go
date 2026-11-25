@@ -1589,3 +1589,37 @@ func TestDeleteK8sPipelineAndVersions_RetriesAfterVersionDeleteFailure(t *testin
 	require.Error(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
+
+// The name lookups read one cached List per kind. A missing ID is left out of
+// the result without falling back to an uncached List against the API server,
+// which getK8sPipeline and getK8sPipelineVersions do for every ID they miss.
+func TestK8sNamesForIds_OneCachedListAndNoUncachedFallback(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	cached, pipelineID := newDefaultVersionFixture(t, "pinned")
+	cachedLists := 0
+	countingClient := interceptor.NewClient(cached.(client.WithWatch), interceptor.Funcs{
+		List: func(ctx context.Context, c client.WithWatch, l client.ObjectList, opts ...client.ListOption) error {
+			cachedLists++
+			return c.List(ctx, l, opts...)
+		},
+	})
+	uncached := interceptor.NewClient(cached.(client.WithWatch), interceptor.Funcs{
+		List: func(context.Context, client.WithWatch, client.ObjectList, ...client.ListOption) error {
+			return errors.New("the name lookups must not list without the cache")
+		},
+	})
+	store := NewPipelineStoreKubernetes(countingClient, uncached)
+
+	pipelineNames, err := store.GetPipelineNamesForIds([]string{pipelineID, pipelineID, "deleted-pipeline"})
+	require.NoError(t, err)
+	assert.Equal(t, map[string]string{pipelineID: "pinned-pipeline"}, pipelineNames)
+
+	versionNames, err := store.GetPipelineVersionNamesForIds([]string{"uid-gitops-authored-a", "uid-gitops-authored-b", "deleted-version"})
+	require.NoError(t, err)
+	// The version name comes from spec.versionName, not the object name.
+	assert.Equal(t, map[string]string{"uid-gitops-authored-a": "pinned", "uid-gitops-authored-b": "rolling"}, versionNames)
+	assert.Equal(t, 2, cachedLists, "expected one List per kind")
+}

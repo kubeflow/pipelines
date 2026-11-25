@@ -284,6 +284,26 @@ func TestStoragePropagatesRowsErr(t *testing.T) {
 		require.Empty(t, tagsMap)
 	})
 
+	t.Run("PipelineStore.GetPipelineNamesForIds", func(t *testing.T) {
+		cols := []string{"UUID", "Name"}
+		db := newErrStreamDB(t, cols, nil, streamErr)
+		store := NewPipelineStore(db, fakeTime, fakeUUID, sqliteDialect)
+		_, err := store.GetPipelineNamesForIds([]string{"pipe-1"})
+		require.ErrorContains(t, err, "Failed to iterate name rows")
+		require.ErrorContains(t, err, streamErr.Error())
+
+		midDB := newErrStreamDB(t, cols, []driver.Value{"pipe-1", "training"}, streamErr)
+		midStore := NewPipelineStore(midDB, fakeTime, fakeUUID, sqliteDialect)
+		_, err = midStore.GetPipelineVersionNamesForIds([]string{"pipe-1"})
+		require.ErrorContains(t, err, streamErr.Error())
+
+		emptyDB := newErrStreamDB(t, cols, nil, nil)
+		emptyStore := NewPipelineStore(emptyDB, fakeTime, fakeUUID, sqliteDialect)
+		names, err := emptyStore.GetPipelineNamesForIds([]string{"pipe-1"})
+		require.NoError(t, err)
+		require.Empty(t, names)
+	})
+
 	runScanRowsModes := func(t *testing.T, name string, cols []string, firstRow []driver.Value, call func(*sql.Rows) (int, error)) {
 		t.Helper()
 		t.Run(name+"/immediate", func(t *testing.T) {

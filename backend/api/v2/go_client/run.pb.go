@@ -894,10 +894,11 @@ type PipelineVersionReference struct {
 	// Input. Optional. Unique ID of an existing pipeline version. If unset, the latest pipeline version is used.
 	PipelineVersionId string `protobuf:"bytes,2,opt,name=pipeline_version_id,json=pipelineVersionId,proto3" json:"pipeline_version_id,omitempty"`
 	// Input. Optional. Name of the parent pipeline in the run's namespace, used
-	// instead of pipeline_id. Not returned in responses.
+	// instead of pipeline_id. Returned in responses, empty if the pipeline was deleted.
 	PipelineName string `protobuf:"bytes,3,opt,name=pipeline_name,json=pipelineName,proto3" json:"pipeline_name,omitempty"`
 	// Input. Optional. Name of a version of the pipeline named by pipeline_name,
-	// used instead of pipeline_version_id. Not returned in responses.
+	// used instead of pipeline_version_id. Returned in responses, empty if the
+	// version was deleted.
 	PipelineVersionName string `protobuf:"bytes,4,opt,name=pipeline_version_name,json=pipelineVersionName,proto3" json:"pipeline_version_name,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
