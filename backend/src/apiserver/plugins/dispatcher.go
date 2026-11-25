@@ -204,17 +204,17 @@ func (d *RunPluginDispatcherImpl) OnRunEnd(ctx context.Context, run *PersistedRu
 				return true
 			}
 
+			hasParentRun := GetParentRunID(pluginOutput) != ""
 			launcherNamespacePluginCfgStr := launcherNamespacePluginCfgs[handler.Name()]
 			runPluginCfg, err := handler.ResolveRunPluginConfig(ctx, d.kubeClients.GetClientSet(), launcherNamespacePluginCfgStr, run.Namespace)
 			if err != nil {
-				if isTransientConfigError(err) {
+				if hasParentRun && isTransientConfigError(err) {
 					glog.Warningf("transient error resolving %s config for run %q; requesting retry: %v", handler.Name(), run.RunID, err)
 					return false
 				}
 				glog.Warningf("failed to resolve plugin config for %s on run %q (run creation will continue): %v", handler.Name(), run.RunID, err)
 			}
 
-			hasParentRun := GetParentRunID(pluginOutput) != ""
 			pluginOperationBudget := handler.GetPluginOperationTimeout(runPluginCfg)
 			pluginCtx, cancel := context.WithTimeout(ctx, pluginOperationBudget)
 			defer cancel()

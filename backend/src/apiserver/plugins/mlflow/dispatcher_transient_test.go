@@ -29,6 +29,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -104,6 +105,7 @@ func TestDispatcherOnRunEnd_TransientSecretReadFailureRequestsRetry(t *testing.T
 
 	run := testPersistedRunWithPluginOutput("r-transient-secret", SuccessfulPluginOutput("exp-1", "Default", "parent-1", ""))
 	run.State = "SUCCEEDED"
+	outputBefore := proto.Clone(run.PluginsOutput[PluginName])
 
 	nothingToRetry := dispatcher.OnRunEnd(context.Background(), run)
 
@@ -115,6 +117,48 @@ func TestDispatcherOnRunEnd_TransientSecretReadFailureRequestsRetry(t *testing.T
 	}
 	assert.False(t, nothingToRetry,
 		"a transient Secret read failure (503) should request a retry, not be treated as permanently unavailable config")
+	assert.Empty(t, store.writes, "a deferred sync must not persist plugin output")
+	assert.True(t, proto.Equal(outputBefore, run.PluginsOutput[PluginName]), "a deferred sync must leave the plugin output unchanged")
+}
+
+// A run whose MLflow parent was never created (creation-time failure) has
+// nothing to close, so a transient Secret read failure must not keep its
+// terminal report in retry.
+func TestDispatcherOnRunEnd_TransientSecretReadFailureWithoutParentDoesNotRequestRetry(t *testing.T) {
+	originalPlugins := viper.Get("plugins")
+	viper.Set("plugins", map[string]interface{}{
+		"mlflow": map[string]interface{}{
+			"endpoint": "http://127.0.0.1:1",
+			"timeout":  "1s",
+			"settings": map[string]interface{}{
+				"authType":            "bearer",
+				"credentialSecretRef": map[string]interface{}{"tokenKey": "token"},
+			},
+		},
+	})
+	viper.Set(common.MultiUserMode, false)
+	t.Cleanup(func() {
+		viper.Set("plugins", originalPlugins)
+		viper.Set(common.MultiUserMode, nil)
+	})
+
+	clientSet := k8sfake.NewClientset()
+	clientSet.PrependReactor("get", "secrets", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, apierrors.NewServiceUnavailable("etcdserver: leader changed")
+	})
+
+	store := &recordingPluginsOutputStore{}
+	dispatcher, err := apiserverPlugins.NewRunPluginDispatcherImpl(
+		[]apiserverPlugins.RunPluginHandler{NewMLflowRunHandler()},
+		&fakeKubeClientProvider{clientSet: clientSet},
+		store,
+	)
+	require.NoError(t, err)
+
+	run := testPersistedRunWithPluginOutput("r-transient-no-parent", FailedPluginOutput("exp-1", "Default", "", "", "config resolution failed"))
+	run.State = "FAILED"
+
+	assert.True(t, dispatcher.OnRunEnd(context.Background(), run), "with no parent run there is nothing to retry")
 }
 
 // A Secret that does not exist is a configuration problem an operator has to
