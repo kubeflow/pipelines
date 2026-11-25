@@ -2571,6 +2571,66 @@ func Test_toAPIRun_PreservesTopLevelStateOnTaskConversionError(t *testing.T) {
 	}
 }
 
+// A stored manifest that cannot be parsed is reported in the run's error field.
+func Test_toAPIRun_UnparsablePipelineSpecManifest(t *testing.T) {
+	tests := []struct {
+		name                       string
+		run                        *model.Run
+		preferEmbeddedPipelineSpec bool
+	}{
+		{
+			name: "pipeline spec manifest",
+			run: &model.Run{
+				UUID:         "run-bad-manifest",
+				ExperimentId: "exp-bad-manifest",
+				PipelineSpec: model.PipelineSpec{
+					PipelineSpecManifest: "- not\n- a\n- pipeline\n",
+				},
+			},
+		},
+		{
+			name: "pipeline spec manifest preferred over pipeline version",
+			run: &model.Run{
+				UUID:         "run-bad-manifest",
+				ExperimentId: "exp-bad-manifest",
+				PipelineSpec: model.PipelineSpec{
+					PipelineId:           "pipeline-1",
+					PipelineVersionId:    "pipeline-version-1",
+					PipelineSpecManifest: "- not\n- a\n- pipeline\n",
+				},
+			},
+			preferEmbeddedPipelineSpec: true,
+		},
+		{
+			name: "workflow spec manifest",
+			run: &model.Run{
+				UUID:         "run-bad-manifest",
+				ExperimentId: "exp-bad-manifest",
+				PipelineSpec: model.PipelineSpec{
+					WorkflowSpecManifest: "- not\n- a\n- pipeline\n",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got *apiv2.Run
+			require.NotPanics(t, func() {
+				got = toAPIRunWithPipelineSourcePreference(tt.run, tt.preferEmbeddedPipelineSpec)
+			})
+			assert.Equal(t, tt.run.UUID, got.GetRunId())
+			assert.Nil(t, got.GetPipelineSpec())
+			if tt.preferEmbeddedPipelineSpec {
+				assert.NotNil(t, got.GetPipelineVersionReference())
+				assert.Nil(t, got.GetError())
+			} else if assert.NotNil(t, got.GetError()) {
+				assert.Contains(t, got.GetError().GetMessage(), "Failed to convert internal run representation to its API counterpart due to missing pipeline source")
+				assert.Contains(t, got.GetError().GetMessage(), "Failed to parse the pipeline source")
+			}
+		})
+	}
+}
+
 func TestToApiPipelineVersion_OnlyPipelineSpecURI(t *testing.T) {
 	pv := &model.PipelineVersion{
 		UUID:            "version-1",
