@@ -2581,7 +2581,8 @@ func (r *ResourceManager) reportWorkflowResource(
 		run.FinishedAtInSec = execStatus.FinishedAt()
 		run.WorkflowRuntimeManifest = model.LargeText(execSpec.ToStringForStore())
 		var updated bool
-		if execStatus.IsInFinalState() && acceptedAbandonedClaim {
+		switch {
+		case execStatus.IsInFinalState() && acceptedAbandonedClaim:
 			// Compare-and-set on the claim lease: a retry worker that renewed it after the age
 			// check above still holds the claim, and this report must not take it over.
 			updated, updateError = r.runStore.UpdateRunIfAbandonedClaimUnchanged(
@@ -2590,13 +2591,13 @@ func (r *ResourceManager) reportWorkflowResource(
 				expectedPipelineRuntimeManifest,
 				run.RetryClaimedAtInSec,
 			)
-		} else if execStatus.IsInFinalState() {
+		case execStatus.IsInFinalState():
 			updated, updateError = r.runStore.UpdateRunIfRuntimeManifestsUnchanged(
 				run,
 				expectedWorkflowRuntimeManifest,
 				expectedPipelineRuntimeManifest,
 			)
-		} else {
+		default:
 			updated, updateError = r.runStore.UpdateRunFromWorkflow(
 				run,
 				expectedState,
