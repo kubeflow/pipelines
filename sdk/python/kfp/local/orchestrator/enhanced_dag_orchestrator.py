@@ -17,8 +17,10 @@ dsl.ParallelFor."""
 
 import ast
 import concurrent.futures
+import decimal
 import enum
 import logging
+import math
 import operator
 import re
 from typing import Any, Dict, List, Set, Tuple
@@ -39,6 +41,36 @@ _CEL_NOT = re.compile(r'!\s*\(')
 # Escapes the compiler emits in CEL string literals. Other backslashes are kept
 # as written so conditions compiled before literals were escaped still match.
 _CEL_STRING_ESCAPES = {'\\': '\\', "'": "'", '"': '"', 'n': '\n', 'r': '\r'}
+
+
+def _cel_string(value: Any) -> str:
+    """Convert a value to text the way CEL's string() does on the backend."""
+    if isinstance(value, bool):
+        return 'true' if value else 'false'
+    if not isinstance(value, float):
+        return str(value)
+    if math.isnan(value):
+        return 'NaN'
+    if math.isinf(value):
+        return '+Inf' if value > 0 else '-Inf'
+    if value == 0:
+        return '-0' if math.copysign(1.0, value) < 0 else '0'
+    # CEL uses Go's strconv.FormatFloat(value, 'g', -1, 64): the shortest
+    # digits that round-trip, in exponent form below 1e-4 or from 1e6 up.
+    sign, digit_tuple, exponent = (
+        decimal.Decimal(repr(value)).normalize().as_tuple()
+    )
+    digits = ''.join(map(str, digit_tuple))
+    exp = len(digits) - 1 + exponent
+    prefix = '-' if sign else ''
+    if exp < -4 or exp >= 6:
+        mantissa = digits[0] + ('.' + digits[1:] if len(digits) > 1 else '')
+        return f'{prefix}{mantissa}e{"-" if exp < 0 else "+"}{abs(exp):02d}'
+    if exp < 0:
+        return f'{prefix}0.{"0" * (-exp - 1)}{digits}'
+    if len(digits) <= exp + 1:
+        return prefix + digits + '0' * (exp + 1 - len(digits))
+    return f'{prefix}{digits[: exp + 1]}.{digits[exp + 1 :]}'
 
 
 @enum.unique
@@ -259,6 +291,7 @@ class ConditionEvaluator:
                 'float': float,
                 'double': float,
                 'str': str,
+                'string': _cel_string,
                 'bool': bool,
                 'len': len,
                 'min': min,
