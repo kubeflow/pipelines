@@ -581,7 +581,26 @@ def _annotation_to_type_struct(annotation):
     if not annotation or annotation == inspect.Parameter.empty:
         return None
 
-    # Optional[BaseModel] (e.g. Optional[Person]) is a typing.Union, not a
+    # Handle Python 3.10+ PEP 604 union syntax (int | str, int | None).
+    try:
+        from types import UnionType as _UnionType
+    except ImportError:
+        _UnionType = None
+
+    _annotation_origin = get_origin(annotation)
+    _is_union = _annotation_origin is Union or (
+        _UnionType is not None and isinstance(annotation, _UnionType)
+    )
+    if _is_union:
+        _union_args = get_args(annotation)
+        _non_none = [a for a in _union_args if a is not type(None)]
+        if len(_non_none) == 1:
+            return _annotation_to_type_struct(_non_none[0])
+        raise TypeError(
+            f"KFP DSL does not support PEP-604 union types such as "
+            f"'{annotation}'. Use a single concrete type or "
+            f"Optional[T] / T | None instead."
+        )
     # `type` instance, so it would otherwise fall through to the generic
     # str(annotation) branch below instead of being recognized as a STRUCT.
     stripped_annotation = type_annotations.maybe_strip_optional_from_annotation(
