@@ -72,7 +72,7 @@ function validateConfiguredEndpointPort(
   }
 }
 
-function parseAllowedArtifactEndpoints(value: string): string[] {
+function parseAllowedHttpOrigins(value: string, settingName: string): string[] {
   if (!value.trim()) {
     return [];
   }
@@ -96,7 +96,7 @@ function parseAllowedArtifactEndpoints(value: string): string[] {
         return endpoint.origin;
       } catch {
         throw new Error(
-          `ALLOWED_ARTIFACT_ENDPOINTS entry must be an absolute HTTP(S) origin: ${configured}`,
+          `${settingName} entry must be an absolute HTTP(S) origin: ${configured}`,
         );
       }
     });
@@ -197,6 +197,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     ALLOWED_ARTIFACT_DOMAIN_REGEX = '^.*$',
     /** Additional object-store origins allowed for artifact provider configs. */
     ALLOWED_ARTIFACT_ENDPOINTS = '',
+    /** Exact cross-origin HTTP artifact redirect destinations; domain regex still applies. */
+    ALLOWED_ARTIFACT_REDIRECT_ORIGINS = '',
     /** Exact GCS universe domains the shared UI server may contact. */
     ALLOWED_GCS_UNIVERSE_DOMAINS = 'googleapis.com',
     /**
@@ -333,7 +335,14 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       allowOfficialAwsEndpoints: Boolean(configuredAwsEndpoint),
       streamLogsFromServerApi: asBool(STREAM_LOGS_FROM_SERVER_API),
       allowedDomain: ALLOWED_ARTIFACT_DOMAIN_REGEX,
-      allowedEndpoints: parseAllowedArtifactEndpoints(ALLOWED_ARTIFACT_ENDPOINTS),
+      allowedEndpoints: parseAllowedHttpOrigins(
+        ALLOWED_ARTIFACT_ENDPOINTS,
+        'ALLOWED_ARTIFACT_ENDPOINTS',
+      ),
+      allowedRedirectOrigins: parseAllowedHttpOrigins(
+        ALLOWED_ARTIFACT_REDIRECT_ORIGINS,
+        'ALLOWED_ARTIFACT_REDIRECT_ORIGINS',
+      ),
       allowedGcsUniverseDomains: ALLOWED_GCS_UNIVERSE_DOMAINS.split(',')
         .map((domain) => domain.trim().toLowerCase())
         .filter(Boolean),
@@ -471,6 +480,7 @@ export interface UIConfigs {
     streamLogsFromServerApi: boolean;
     allowedDomain: string;
     allowedEndpoints: string[];
+    allowedRedirectOrigins: string[];
     allowedGcsUniverseDomains: string[];
     rateLimitDisabled: boolean;
   };
