@@ -2982,3 +2982,95 @@ func TestScanRowsToRuns_IterationError(t *testing.T) {
 		require.Empty(t, runs)
 	})
 }
+
+func createClaimedRetryRunForTest(t *testing.T, runID string) (*sql.DB, *RunStore, int64) {
+	t.Helper()
+	db, testDialect := NewFakeDBOrFatal()
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
+	_, err = runStore.CreateRun(&model.Run{
+		UUID:         runID,
+		ExperimentId: defaultFakeExpId,
+		K8SName:      runID,
+		DisplayName:  runID,
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			FinishedAtInSec:         100,
+			State:                   model.RuntimeStateFailed,
+			Conditions:              "Failed",
+			WorkflowRuntimeManifest: "wf1",
+		},
+	})
+	require.NoError(t, err)
+	_, _, _, claimGeneration, claimErr := runStore.ClaimRunForRetry(runID, false)
+	require.NoError(t, claimErr)
+	require.Equal(t, int64(1), claimGeneration)
+	return db, runStore, claimGeneration
+}
+
+// The retry worker renews its lease right before it touches the workflow. Renewal only succeeds
+// while the claim is still held: same generation, still PENDING.
+func TestRenewRetryClaim_OnlyWhileTheClaimIsHeld(t *testing.T) {
+	db, runStore, generation := createClaimedRetryRunForTest(t, "run-renew-claim")
+	defer db.Close()
+	_, err := db.Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, "run-renew-claim")
+	require.NoError(t, err)
+
+	renewed, err := runStore.RenewRetryClaim("run-renew-claim", generation)
+	require.NoError(t, err)
+	assert.True(t, renewed)
+	run, err := runStore.GetRun("run-renew-claim", false)
+	require.NoError(t, err)
+	assert.Greater(t, run.RetryClaimedAtInSec, int64(0), "renewal must move the lease forward")
+
+	renewed, err = runStore.RenewRetryClaim("run-renew-claim", generation+1)
+	require.NoError(t, err)
+	assert.False(t, renewed, "a worker holding another generation does not hold this claim")
+}
+
+// Accepting the report of an abandoned claim and renewing the claim are compare-and-sets on the same
+// row. Whichever commits first wins: a report decided on a lease the worker has since renewed is
+// not applied, and once a report is applied the worker's renewal fails.
+func TestAbandonedClaimReportAndRenewalAreMutuallyExclusive(t *testing.T) {
+	db, runStore, generation := createClaimedRetryRunForTest(t, "run-claim-race")
+	defer db.Close()
+	_, err := db.Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, "run-claim-race")
+	require.NoError(t, err)
+
+	reportFor := func() *model.Run {
+		run, getErr := runStore.GetRun("run-claim-race", false)
+		require.NoError(t, getErr)
+		run.State = model.RuntimeStateFailed
+		run.Conditions = "Failed"
+		run.FinishedAtInSec = 200
+		return run
+	}
+
+	// The report reads the aged lease (0), then the worker renews before the report writes.
+	staleReport := reportFor()
+	renewed, err := runStore.RenewRetryClaim("run-claim-race", generation)
+	require.NoError(t, err)
+	require.True(t, renewed)
+	applied, err := runStore.UpdateRunIfAbandonedClaimUnchanged(staleReport, "wf1", "", 0)
+	require.NoError(t, err)
+	assert.False(t, applied, "a worker that renewed its lease keeps the claim")
+	run, err := runStore.GetRun("run-claim-race", false)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStatePending, run.State)
+
+	// The report decides on the current lease and writes first: the worker's renewal then fails.
+	report := reportFor()
+	applied, err = runStore.UpdateRunIfAbandonedClaimUnchanged(report, "wf1", "", run.RetryClaimedAtInSec)
+	require.NoError(t, err)
+	require.True(t, applied)
+	renewed, err = runStore.RenewRetryClaim("run-claim-race", generation)
+	require.NoError(t, err)
+	assert.False(t, renewed, "once the claim was accepted as abandoned the worker must not resubmit")
+	run, err = runStore.GetRun("run-claim-race", false)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, run.State)
+}

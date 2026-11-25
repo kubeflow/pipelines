@@ -1493,6 +1493,22 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	if err := r.resetRetriedTaskState(run); err != nil {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error resetting task attempt state", runId)
 	}
+	// Renew the claim lease right before touching the workflow. A report that sees the claim age
+	// out accepts it as abandoned and records the old attempt's failure on the tasks the reset above
+	// touched; that is only correct if this worker never goes on to resubmit the workflow. The
+	// renewal and that acceptance are compare-and-sets on the same row, so exactly one of them
+	// commits: if the claim was already accepted, stop here and leave the workflow alone. A worker
+	// that stalls again for longer than the grace period after this point can still lose the claim,
+	// which is why the renewal sits as close to the workflow write as it can.
+	renewed, renewError := r.runStore.RenewRetryClaim(runId, claimGeneration)
+	if renewError != nil {
+		return util.NewInternalServerError(renewError, "Failed to retry run %s due to error renewing its retry claim", runId)
+	}
+	if !renewed {
+		return util.NewUnavailableServerError(
+			fmt.Errorf("retry claim generation %d of run %s is no longer held", claimGeneration, runId),
+			"Failed to retry run %s because its retry claim expired and was resolved by a workflow report - try again later", runId)
+	}
 	newExecSpec, err = r.updateOrCreateRetryWorkflow(ctx, namespace, runId, newExecSpec)
 	if err != nil {
 		// Workflow reconciliation failed. Kubernetes timeouts and 5xx responses
@@ -2495,6 +2511,7 @@ func (r *ResourceManager) reportWorkflowResource(
 	// This fence runs before the persisted-final-state deletion below so a
 	// stale snapshot can neither overwrite the row nor delete the live
 	// workflow that a retry has since resubmitted under the same name.
+	acceptedAbandonedClaim := false
 	if updateError == nil && run.RetryGeneration > 0 && execStatus.IsInFinalState() {
 		if reportedGeneration := reportedRetryGeneration(objMeta); reportedGeneration < run.RetryGeneration {
 			claimAge := r.time.Now().Unix() - run.RetryClaimedAtInSec
@@ -2529,6 +2546,7 @@ func (r *ResourceManager) reportWorkflowResource(
 			// last real state instead of staying PENDING forever.
 			glog.Warningf("Accepting terminal report with stale retry generation %d for run %s: claim (generation %d) is older than %v and provably not applied",
 				reportedGeneration, runId, run.RetryGeneration, retryClaimGracePeriod())
+			acceptedAbandonedClaim = true
 		}
 	}
 
@@ -2574,13 +2592,23 @@ func (r *ResourceManager) reportWorkflowResource(
 		run.FinishedAtInSec = execStatus.FinishedAt()
 		run.WorkflowRuntimeManifest = model.LargeText(execSpec.ToStringForStore())
 		var updated bool
-		if execStatus.IsInFinalState() {
+		switch {
+		case execStatus.IsInFinalState() && acceptedAbandonedClaim:
+			// Compare-and-set on the claim lease: a retry worker that renewed it after the age
+			// check above still holds the claim, and this report must not take it over.
+			updated, updateError = r.runStore.UpdateRunIfAbandonedClaimUnchanged(
+				run,
+				expectedWorkflowRuntimeManifest,
+				expectedPipelineRuntimeManifest,
+				run.RetryClaimedAtInSec,
+			)
+		case execStatus.IsInFinalState():
 			updated, updateError = r.runStore.UpdateRunIfRuntimeManifestsUnchanged(
 				run,
 				expectedWorkflowRuntimeManifest,
 				expectedPipelineRuntimeManifest,
 			)
-		} else {
+		default:
 			updated, updateError = r.runStore.UpdateRunFromWorkflow(
 				run,
 				expectedState,
@@ -2626,7 +2654,19 @@ func (r *ResourceManager) reportWorkflowResource(
 			})
 	}
 	if len(run.Tasks) > 0 {
-		if err := r.persistTaskLifecycleMessages(run.Tasks, execSpec); err != nil {
+		// A report carrying an older retry generation than the run's live one can be a stale
+		// pre-retry snapshot read before ResetTasksForRetry ran, not proof of a new failure: the
+		// terminal-report fence above only covers a terminal report, but a non-final report can
+		// reach task failure reconciliation just the same, so this check is not limited to that
+		// case.
+		reportedGeneration := reportedRetryGeneration(objMeta)
+		// An abandoned claim never applied its retry, so this report is current evidence for the
+		// tasks the retry reset. Use the live generation so they are not skipped or fenced out.
+		if acceptedAbandonedClaim {
+			reportedGeneration = run.RetryGeneration
+		}
+		staleRetryGenerationReport := run.RetryGeneration > 0 && reportedGeneration < run.RetryGeneration
+		if err := r.persistTaskLifecycleMessages(run.Tasks, execSpec, staleRetryGenerationReport, reportedGeneration); err != nil {
 			return nil, util.Wrapf(err, "Failed to persist pod lifecycle messages for run %s", run.UUID)
 		}
 	}
@@ -4351,9 +4391,15 @@ func containsString(values []string, want string) bool {
 // matched through its Argo task node instead, see lifecycleMessageForTaskNode. tasksByUUID holds the
 // run's tasks and is used to check that node against the task's parent scope.
 func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string, tasksByUUID map[string]*model.Task) (msg, phase string, matched bool) {
+	return lifecycleMessageForTaskIn(newNodeGraph(nodes), task, resolved, tasksByUUID)
+}
+
+// lifecycleMessageForTaskIn is lifecycleMessageForTask against a graph built once per report.
+func lifecycleMessageForTaskIn(g *nodeGraph, task *model.Task, resolved map[string]string, tasksByUUID map[string]*model.Task) (msg, phase string, matched bool) {
 	if task == nil {
 		return "", "", false
 	}
+	nodes := g.nodes
 	podNames := podNamesFromTask(task)
 	type podMatch struct {
 		msg        string
@@ -4368,7 +4414,7 @@ func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus,
 		matches = append(matches, podMatch{msg: resolved[id], phase: node.State, createTime: node.CreateTime})
 	}
 	if len(matches) == 0 {
-		return lifecycleMessageForTaskNode(task, nodes, resolved, tasksByUUID)
+		return lifecycleMessageForTaskNode(g, task, resolved, tasksByUUID)
 	}
 	// Pick the message from the most recently created pod so that a recovered retry
 	// (no lifecycle event) overrides a stale failure from an earlier attempt.
@@ -4386,30 +4432,12 @@ func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus,
 // still ambiguous is left unmatched rather than guessed. Without that scope check, a skipped task
 // would pick up the failure of a same-named task that ran in another sub-DAG, since the skipped
 // one has no node of its own.
-func lifecycleMessageForTaskNode(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string, tasksByUUID map[string]*model.Task) (msg, phase string, matched bool) {
-	if task.Name == "" {
-		return "", "", false
-	}
-	scope, ok := parentTaskScope(task, tasksByUUID)
+func lifecycleMessageForTaskNode(g *nodeGraph, task *model.Task, resolved map[string]string, tasksByUUID map[string]*model.Task) (msg, phase string, matched bool) {
+	nodeID, ok := findScopedTaskNodeIn(g, task, tasksByUUID)
 	if !ok {
 		return "", "", false
 	}
-	var nodeID string
-	count := 0
-	for id, node := range nodes {
-		if node.Type != "Retry" || node.DisplayName != task.Name {
-			continue
-		}
-		if !nodeInScope(id, scope, nodes) {
-			continue
-		}
-		nodeID = id
-		count++
-	}
-	if count != 1 {
-		return "", "", false
-	}
-	return resolved[nodeID], nodes[nodeID].State, true
+	return resolved[nodeID], g.nodes[nodeID].State, true
 }
 
 // parentTaskScope returns the names of the tasks enclosing task, nearest first, leaving out the
@@ -4468,10 +4496,189 @@ func nodeParent(id string, nodes map[string]util.NodeStatus) (string, bool) {
 	return node.BoundaryID, true
 }
 
+// nodeGraph indexes one workflow report's nodes so that matching many tasks against it does not
+// rescan the whole node map for every lookup. nodeParent has to search for an attempt's Retry node,
+// and a report with hundreds of loop tasks used to pay that scan once per ancestor hop per candidate.
+// The structural parents and the Retry nodes by name are computed once here, and the iteration
+// path of a node is memoized so sibling tasks under the same iteration reuse it. It is built per
+// report and never shared across reports or goroutines.
+type nodeGraph struct {
+	nodes         map[string]util.NodeStatus
+	parents       map[string]string
+	retriesByName map[string][]string
+	iterPaths     map[string][]int64
+}
+
+func newNodeGraph(nodes map[string]util.NodeStatus) *nodeGraph {
+	type retryKey struct{ boundary, name string }
+	g := &nodeGraph{
+		nodes:         nodes,
+		parents:       make(map[string]string, len(nodes)),
+		retriesByName: make(map[string][]string),
+		iterPaths:     make(map[string][]int64),
+	}
+	retryByKey := make(map[retryKey]string)
+	for id, node := range nodes {
+		if node.Type == "Retry" {
+			g.retriesByName[node.DisplayName] = append(g.retriesByName[node.DisplayName], id)
+			retryByKey[retryKey{node.BoundaryID, node.DisplayName}] = id
+		}
+	}
+	// Same rule as nodeParent, evaluated for every node once.
+	for id, node := range nodes {
+		if m := retryAttemptDisplayName.FindStringSubmatch(node.DisplayName); m != nil {
+			if retryID, ok := retryByKey[retryKey{node.BoundaryID, m[1]}]; ok {
+				g.parents[id] = retryID
+				continue
+			}
+		}
+		if node.BoundaryID != "" {
+			g.parents[id] = node.BoundaryID
+		}
+	}
+	return g
+}
+
+// parent is nodeParent answered from the index.
+func (g *nodeGraph) parent(id string) (string, bool) {
+	parentID, ok := g.parents[id]
+	return parentID, ok
+}
+
+// iterationPath returns the index of every ParallelFor iteration wrapper that encloses the node,
+// innermost first. The path of a node is its parent's path, preceded by the parent's own index when
+// the parent is an iteration wrapper, so the paths of siblings share their common ancestors' work.
+func (g *nodeGraph) iterationPath(id string) []int64 {
+	if path, ok := g.iterPaths[id]; ok {
+		return path
+	}
+	// Walk up to the nearest ancestor whose path is already known, or to the top, then fill the
+	// paths back down. seen keeps a malformed cycle from looping forever.
+	var chain []string
+	var base []int64
+	seen := map[string]bool{}
+	for current := id; ; {
+		if path, ok := g.iterPaths[current]; ok {
+			base = path
+			break
+		}
+		if seen[current] {
+			break
+		}
+		seen[current] = true
+		chain = append(chain, current)
+		parentID, ok := g.parent(current)
+		if !ok {
+			break
+		}
+		current = parentID
+	}
+	for i := len(chain) - 1; i >= 0; i-- {
+		node := chain[i]
+		parentID, ok := g.parent(node)
+		if !ok {
+			g.iterPaths[node] = nil
+			base = nil
+			continue
+		}
+		path := base
+		if parent := g.nodes[parentID]; parent.Type == "Retry" {
+			if m := loopIterationIndexRE.FindStringSubmatch(parent.DisplayName); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil {
+					path = nil
+				} else {
+					path = append([]int64{n}, base...)
+				}
+			}
+		}
+		g.iterPaths[node] = path
+		base = path
+	}
+	return g.iterPaths[id]
+}
+
+// loopIterationSuffix matches the "(index:item)" Argo adds to each expansion of a ParallelFor.
+var loopIterationSuffix = regexp.MustCompile(`-iterations\(\d+:[^()]*\)$`)
+
+// isLoopIterationNode reports whether a Retry node is a ParallelFor iteration wrapper. Argo names
+// these "<body-component>-iterations(<index>:<item>)". They sit between the loop Retry and the
+// body task Retry in the Argo node tree, but KFP's task DB has no corresponding task record
+// (the body tasks are direct children of the loop task). The scope walk must skip them.
+func isLoopIterationNode(displayName string) bool {
+	return loopIterationSuffix.MatchString(displayName)
+}
+
+// matchesScopeName reports whether an Argo Retry node's display name matches the enclosing task
+// scopeName by exact string equality.
+func matchesScopeName(displayName, scopeName string) bool {
+	return displayName == scopeName
+}
+
+// The compiler's generated boundaries are named by argocompiler: the entrypoint DAG is "entrypoint"
+// and each exit handler is run as a lifecycle hook whose DAG template is "exit-hook-<dag>-<task>".
+const (
+	compilerEntrypointTemplate = "entrypoint"
+	compilerExitHookPrefix     = "exit-hook-"
+)
+
+// isExitHookBoundaryNode reports whether the node is the Retry wrapper of an exit handler's hook
+// DAG. The driver records the exit task's parent as the KFP task around the hook, but in the
+// workflow the exit task sits one Retry deeper, inside this wrapper, which has no task of its own.
+func isExitHookBoundaryNode(node util.NodeStatus) bool {
+	return node.Type == "Retry" && strings.HasPrefix(node.TemplateName, compilerExitHookPrefix)
+}
+
+// isWorkflowEntrypointNode reports whether the node is the Retry wrapper the workflow's own root
+// runs through, the one invoking the compiler's entrypoint DAG. It is not a task, even when its
+// display name (the run name) happens to equal a task's name.
+func isWorkflowEntrypointNode(node util.NodeStatus) bool {
+	return node.Type == "Retry" && node.TemplateName == compilerEntrypointTemplate
+}
+
+// isCompilerWrapperNode reports whether the Retry node is one of the compiler's two reserved
+// wrappers, by position as nodeInScope does: the outermost Retry with no parent, or the one exactly
+// two hops below it. Neither is ever a real task.
+func isCompilerWrapperNode(id string, g *nodeGraph, tasksByUUID map[string]*model.Task) bool {
+	if isWorkflowEntrypointNode(g.nodes[id]) {
+		return true
+	}
+	// The inner compiler wrapper ("root") sits exactly two hops below the outermost
+	// parentless Retry. Structure alone is not enough: a real task nested one level
+	// inside a top-level task has the same hop count. The tiebreaker is the parentless
+	// ancestor's DisplayName: the compiler's outermost wrapper carries the run name,
+	// which never matches a task name, while a real top-level task does.
+	hop1, ok := g.parent(id)
+	if !ok {
+		return false
+	}
+	hop2, ok := g.parent(hop1)
+	if !ok {
+		return false
+	}
+	if _, hasHop3 := g.parent(hop2); hasHop3 {
+		return false
+	}
+	// hop2 is the parentless Retry at the absolute top. If its DisplayName matches
+	// any task in the run, it is a real task (not the compiler's wrapper).
+	topName := g.nodes[hop2].DisplayName
+	for _, task := range tasksByUUID {
+		if task.Name == topName {
+			return false
+		}
+	}
+	return true
+}
+
 // nodeInScope reports whether the nearest Retry ancestors of the node are the enclosing tasks in
 // scope, nearest first, and nothing more. Once scope is exhausted (including the empty, top-level
 // case), any further Retry ancestor before the root means the node is nested deeper than the task
 // actually is, so it is rejected rather than treated as a match.
+//
+// ParallelFor iteration wrappers are skipped entirely. Argo expands each loop iteration as a Retry
+// node named "<body-component>-iterations(<index>:<item>)", but KFP's task DB records the body
+// tasks as direct children of the loop task with no intermediate iteration task. These wrappers
+// are detected by isLoopIterationNode and treated as transparent to scope matching.
 //
 // Two compiler-inserted wrappers are the exception. KFP's neutralizeDAGRetries gives every DAG
 // template a zero-limit retry strategy, and the compiler always wraps the entrypoint DAG in its
@@ -4483,25 +4690,34 @@ func nodeParent(id string, nodes map[string]util.NodeStatus) (string, bool) {
 // exactly two hops below that outermost one (its own parent's parent has no parent). A real task
 // that merely happens to be named "root" sits somewhere else in the tree and fails that structural
 // test, so it is still rejected like any other extra nesting.
-func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bool {
+func nodeInScope(id string, scope []string, g *nodeGraph) bool {
 	seen := map[string]bool{id: true}
 	current := id
 	for next := 0; next < len(scope); {
-		parentID, ok := nodeParent(current, nodes)
+		parentID, ok := g.parent(current)
 		if !ok || seen[parentID] {
 			return false
 		}
 		seen[parentID] = true
 		current = parentID
-		if node := nodes[parentID]; node.Type == "Retry" {
-			if node.DisplayName != scope[next] {
+		if node := g.nodes[parentID]; node.Type == "Retry" {
+			// ParallelFor iteration wrappers have no corresponding task in the
+			// DB, so they are invisible to scope matching. Skip them.
+			if isLoopIterationNode(node.DisplayName) {
+				continue
+			}
+			// An exit handler's hook wrapper has no task of its own either.
+			if isExitHookBoundaryNode(node) {
+				continue
+			}
+			if !matchesScopeName(node.DisplayName, scope[next]) {
 				return false
 			}
 			next++
 		}
 	}
 	for {
-		parentID, ok := nodeParent(current, nodes)
+		parentID, ok := g.parent(current)
 		if !ok {
 			return true
 		}
@@ -4510,15 +4726,19 @@ func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bo
 		}
 		seen[parentID] = true
 		current = parentID
-		if nodes[parentID].Type == "Retry" {
-			hop1, hasHop1 := nodeParent(parentID, nodes)
+		if g.nodes[parentID].Type == "Retry" {
+			// Loop iteration wrappers are invisible (no task in DB).
+			if isLoopIterationNode(g.nodes[parentID].DisplayName) || isExitHookBoundaryNode(g.nodes[parentID]) {
+				continue
+			}
+			hop1, hasHop1 := g.parent(parentID)
 			if !hasHop1 {
 				// No parent of its own: this is the outermost compiler wrapper, structurally
 				// equivalent to the true root.
 				return true
 			}
-			if hop2, hasHop2 := nodeParent(hop1, nodes); hasHop2 {
-				if _, hasHop3 := nodeParent(hop2, nodes); !hasHop3 {
+			if hop2, hasHop2 := g.parent(hop1); hasHop2 {
+				if _, hasHop3 := g.parent(hop2); !hasHop3 {
 					// Exactly two hops below a parentless Retry: this is the compiler's reserved
 					// "root" wrapper by structural position, not a real task boundary.
 					continue
@@ -4529,10 +4749,141 @@ func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bo
 	}
 }
 
+// findScopedTaskNode finds the Retry node that represents task by name and enclosing scope.
+// lifecycleMessageForTaskNode and executorFailureForTaskViaNode both need this same match, just
+// different evidence off the node once it's found, so they share it instead of each re-walking
+// nodes with their own copy of the loop. It reports false when the task's own name or parent chain
+// can't be resolved, or when the match is not unique, rather than guessing.
+//
+// The compiler's reserved wrapper Retry nodes are left out before counting, since "root" is also a
+// name a user's own task can have. More than one remaining match is a genuine ambiguity and stays
+// unmatched.
+func findScopedTaskNode(task *model.Task, nodes map[string]util.NodeStatus, tasksByUUID map[string]*model.Task) (nodeID string, ok bool) {
+	return findScopedTaskNodeIn(newNodeGraph(nodes), task, tasksByUUID)
+}
+
+// findScopedTaskNodeIn is findScopedTaskNode against a graph built once for the whole report, so
+// matching every task in a run shares the parent index and the cached iteration paths.
+func findScopedTaskNodeIn(g *nodeGraph, task *model.Task, tasksByUUID map[string]*model.Task) (nodeID string, ok bool) {
+	if task.Name == "" {
+		return "", false
+	}
+	scope, ok := parentTaskScope(task, tasksByUUID)
+	if !ok {
+		return "", false
+	}
+	var candidates []string
+	for _, id := range g.retriesByName[task.Name] {
+		// A compiler wrapper is never a task. Counting it would match a task named "root" that
+		// has no node of its own (for example, one Argo omitted) to the wrapper's failure.
+		if isCompilerWrapperNode(id, g, tasksByUUID) {
+			continue
+		}
+		if !nodeInScope(id, scope, g) {
+			continue
+		}
+		candidates = append(candidates, id)
+	}
+	// Each loop iteration has its own same-named node and task; the iteration index tells
+	// them apart. Apply the filter even when only one candidate remains: a delayed workflow
+	// report can carry iteration 0's failed node while iteration 1 is already RUNNING with
+	// no pod of its own, and returning iteration 0's node for iteration 1's task would let
+	// the stale report fail the healthy retry.
+	//
+	// The whole enclosing iteration path is compared, not just the nearest index: in a nested
+	// ParallelFor, (outer 1, inner 0) and (outer 0, inner 0) share the nearest index, so a delayed
+	// report holding only the outer 0 node would otherwise be accepted for the outer 1 task.
+	if want := taskLoopIterationPath(task, tasksByUUID); len(want) > 0 {
+		var matched []string
+		for _, id := range candidates {
+			if iterationPathMatches(want, g.iterationPath(id)) {
+				matched = append(matched, id)
+			}
+		}
+		candidates = matched
+	}
+	if len(candidates) != 1 {
+		return "", false
+	}
+	return candidates[0], true
+}
+
+// taskLoopIterationIndex reads the ParallelFor iteration index stored in the task's TypeAttrs.
+func taskLoopIterationIndex(task *model.Task) (int64, bool) {
+	switch v := task.TypeAttrs["iterationIndex"].(type) {
+	case string:
+		n, err := strconv.ParseInt(v, 10, 64)
+		return n, err == nil
+	case float64:
+		return int64(v), true
+	case int64:
+		return v, true
+	case int:
+		return int64(v), true
+	}
+	return 0, false
+}
+
+// loopIterationIndexRE captures the index from "<body>-iterations(<index>:<item>)".
+var loopIterationIndexRE = regexp.MustCompile(`-iterations\((\d+):[^()]*\)$`)
+
+// taskLoopIterationPath returns the ParallelFor iteration indices that locate task, innermost
+// first. It is empty when the task itself carries no index, so a task outside any loop is never
+// filtered.
+//
+// The first entry is the task's own index. After that only loop coordinators contribute: the driver
+// stores an enclosing loop's index on a nested loop's own task, which also records an
+// iterationCount. A coordinator is recognized by its persisted task type, not by that count: the
+// driver can store the task as a loop before input resolution supplies the count, and a retry reuses
+// that row, so a count-based test would skip the outer index and accept another outer iteration's
+// node. Every other ancestor between the task and its loop (a condition branch, a
+// sub-DAG) sits in the same iteration body and carries a copy of the task's own index, so counting
+// those would repeat that iteration once per group and no workflow node path could ever equal it.
+// A parent missing from tasksByUUID ends the walk with what was collected, which is still a valid
+// innermost-first prefix.
+func taskLoopIterationPath(task *model.Task, tasksByUUID map[string]*model.Task) []int64 {
+	own, found := taskLoopIterationIndex(task)
+	if !found {
+		return nil
+	}
+	path := []int64{own}
+	seen := map[string]bool{task.UUID: true}
+	for current := task; current.ParentTaskUUID != nil && *current.ParentTaskUUID != ""; {
+		parent, ok := tasksByUUID[*current.ParentTaskUUID]
+		if !ok || seen[parent.UUID] {
+			break
+		}
+		seen[parent.UUID] = true
+		if parent.Type == model.TaskType(apiv2.PipelineTask_LOOP) {
+			if idx, ok := taskLoopIterationIndex(parent); ok {
+				path = append(path, idx)
+			}
+		}
+		current = parent
+	}
+	return path
+}
+
+// iterationPathMatches reports whether a node sits in the iteration the task records. Every index
+// the task records must equal the node's index at the same depth. A node with fewer enclosing
+// iterations than the task recorded cannot be the task's node. A node with extra outer iterations
+// the task did not record cannot be checked further, so it is not rejected for them.
+func iterationPathMatches(taskPath, nodePath []int64) bool {
+	if len(nodePath) < len(taskPath) {
+		return false
+	}
+	for i, idx := range taskPath {
+		if nodePath[i] != idx {
+			return false
+		}
+	}
+	return true
+}
+
 // persistTaskLifecycleMessages resolves pod lifecycle messages from the workflow and writes them
 // to the provided tasks. tasks should be the hydrated tasks already loaded for the run
 // (e.g. from run.Tasks) to avoid an additional database query.
-func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, execSpec util.ExecutionSpec) error {
+func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, execSpec util.ExecutionSpec, skipFailureReconciliation bool, reportedGeneration int64) error {
 	if execSpec == nil || execSpec.ExecutionStatus() == nil || len(tasks) == 0 {
 		return nil
 	}
@@ -4547,6 +4898,8 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 			tasksByUUID[task.UUID] = task
 		}
 	}
+	// One index for the whole report: every task below is matched against it.
+	graph := newNodeGraph(nodes)
 	var reconcileErrs []error
 	for _, task := range tasks {
 		// A failure reconciling one task's state must not stop lifecycle messages from being
@@ -4555,10 +4908,28 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 		// before marking the workflow persisted or deleting it, and once the workflow is gone
 		// the persistence agent stops retrying, so a caller that saw success here would have no
 		// other chance to reconcile this task. Returning the error keeps that from happening.
-		if _, err := r.reconcileTaskFailure(task, nodes, resolved); err != nil {
+		//
+		// skipFailureReconciliation is set by the caller when this report's retry generation is
+		// behind the run's live one. After ResetTasksForRetry the new attempt is RUNNING with no
+		// pod, which is exactly what reconcileTaskFailure's no-pod guard requires, so a report
+		// read before the retry (still carrying the old attempt's now-stale node evidence) would
+		// otherwise pass that guard and fail the new attempt using the old one's message and
+		// finish time. The reset clears the pods, so no pod registration ever closes this window;
+		// only comparing retry generations does. This is an early-out on a snapshot; the guarded
+		// write rechecks the generation under the task row lock, which is what closes the race.
+		if skipFailureReconciliation {
+			// The same stale-report reasoning applies to the lifecycle message and category:
+			// a report read before the retry carries the previous attempt's warning (or its
+			// absence), and writing it back here would either restore the old attempt's error
+			// on a healthy retry or clear a warning the new attempt has already recorded.
+			// The retry-generation comparison is the only signal that closes that window, so
+			// skip the diagnostic write for the same reason reconcileTaskFailure is skipped.
+			continue
+		}
+		if _, err := r.reconcileTaskFailureIn(graph, task, resolved, tasksByUUID, reportedGeneration); err != nil {
 			reconcileErrs = append(reconcileErrs, fmt.Errorf("reconciling task %q: %w", task.UUID, err))
 		}
-		msg, phase, matched := lifecycleMessageForTask(task, nodes, resolved, tasksByUUID)
+		msg, phase, matched := lifecycleMessageForTaskIn(graph, task, resolved, tasksByUUID)
 		if !matched {
 			continue
 		}
@@ -4579,7 +4950,12 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 			continue
 		}
 		lm := model.LargeText(msg)
-		if _, err := r.taskStore.UpdateTask(&model.Task{
+		// The skipFailureReconciliation check above only covers a report already known to be
+		// stale. A retry can still claim the run and reset this task after that check, so the
+		// write rechecks the run's live generation under the task row lock. When it no longer
+		// holds the report is the previous attempt's evidence, and dropping the write is correct:
+		// the retried workflow reports its own diagnostic.
+		if _, _, err := r.taskStore.UpdateTaskIfRetryGeneration(reportedGeneration, &model.Task{
 			UUID:              task.UUID,
 			LifecycleMessage:  &lm,
 			LifecycleCategory: &category,

@@ -4135,6 +4135,202 @@ func TestReportWorkflowResource_PersistsLifecycleMessage(t *testing.T) {
 	assert.Nil(t, got.LifecycleCategory, "lifecycle category should be cleared with the message")
 }
 
+// A stale report arriving after a retry has already recorded a new warning must not
+// overwrite the current attempt's lifecycle diagnostic. The retry-generation comparison
+// is the only signal that closes this window, and persistTaskLifecycleMessages receives
+// it via skipFailureReconciliation. Before the fix the diagnostic write fell through the
+// guard and the stale message clobbered the current one.
+func TestPersistTaskLifecycleMessages_StaleReportDoesNotOverwriteCurrentAttempt(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "executor-pod",
+		Uid:  "uid-1",
+		Type: apiv2.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          run.UUID,
+		Name:             "train",
+		DisplayName:      "train",
+		Type:             model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint:      "fp-train",
+		Pods:             pods,
+		TypeAttrs:        model.JSONData{},
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	// Seed the task with the current retry's recorded warning.
+	currentMsg := model.LargeText("Insufficient cpu")
+	currentCategory := string(util.FailureCategoryScheduling)
+	_, err = store.TaskStore().UpdateTask(&model.Task{
+		UUID:              task.UUID,
+		LifecycleMessage:  &currentMsg,
+		LifecycleCategory: &currentCategory,
+	})
+	require.NoError(t, err)
+
+	// A stale report would carry the previous attempt's message for the same pod.
+	staleWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			UID:       types.UID(run.UUID),
+			Namespace: "ns1",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{
+				"workflows.argoproj.io/pod-name-format": "v1",
+			},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowRunning,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"executor-pod": {
+					ID:          "executor-pod",
+					Name:        "executor-pod",
+					DisplayName: "train",
+					Phase:       v1alpha1.NodePending,
+					Message:     `Back-off pulling image "ghcr.io/example/missing:v1"`,
+				},
+			},
+		},
+	})
+
+	// Load the seeded task back so persistTaskLifecycleMessages sees the current
+	// LifecycleMessage when it compares.
+	seeded, err := store.TaskStore().GetTask(task.UUID)
+	require.NoError(t, err)
+
+	err = manager.persistTaskLifecycleMessages([]*model.Task{seeded}, staleWorkflow, true, 0)
+	require.NoError(t, err)
+
+	got, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	require.NotNil(t, got.LifecycleMessage)
+	assert.Equal(t, currentMsg, *got.LifecycleMessage, "stale report must not overwrite the current attempt's lifecycle message")
+	require.NotNil(t, got.LifecycleCategory)
+	assert.Equal(t, currentCategory, *got.LifecycleCategory, "stale report must not overwrite the current attempt's lifecycle category")
+
+	// Sanity: with the stale flag cleared, the same workflow would have overwritten
+	// the diagnostic. This pins the guard, not an unrelated reason the write never ran.
+	err = manager.persistTaskLifecycleMessages([]*model.Task{seeded}, staleWorkflow, false, 0)
+	require.NoError(t, err)
+	got, err = manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	require.NotNil(t, got.LifecycleMessage)
+	assert.Equal(t, model.LargeText(`Back-off pulling image "ghcr.io/example/missing:v1"`), *got.LifecycleMessage)
+	require.NotNil(t, got.LifecycleCategory)
+	assert.Equal(t, string(util.FailureCategoryImagePull), *got.LifecycleCategory)
+}
+
+// retryDuringLifecycleWriteTaskStore claims the run for retry right before the guarded lifecycle
+// write, which is a retry landing between persistTaskLifecycleMessages reading the report's
+// generation and writing the diagnostic.
+type retryDuringLifecycleWriteTaskStore struct {
+	storage.TaskStoreInterface
+	beforeWrite func()
+}
+
+func (f *retryDuringLifecycleWriteTaskStore) UpdateTaskIfRetryGeneration(generation int64, task *model.Task) (*model.Task, bool, error) {
+	if f.beforeWrite != nil {
+		beforeWrite := f.beforeWrite
+		f.beforeWrite = nil
+		beforeWrite()
+	}
+	return f.TaskStoreInterface.UpdateTaskIfRetryGeneration(generation, task)
+}
+
+// The skipFailureReconciliation check only covers a report already known to be stale. A retry that
+// claims the run after that check but before the diagnostic write must still stop the write, or the
+// old attempt's message lands on the freshly reset task.
+func TestPersistTaskLifecycleMessages_RetryBetweenCheckAndWriteDoesNotOverwriteWarning(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "executor-pod", Uid: "uid-1", Type: apiv2.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          run.UUID,
+		Name:             "train",
+		DisplayName:      "train",
+		Type:             model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint:      "fp-train",
+		Pods:             pods,
+		TypeAttrs:        model.JSONData{},
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	// The retried attempt has already recorded its own warning.
+	currentMsg := model.LargeText("Insufficient cpu")
+	currentCategory := string(util.FailureCategoryScheduling)
+	_, err = store.TaskStore().UpdateTask(&model.Task{UUID: task.UUID, LifecycleMessage: &currentMsg, LifecycleCategory: &currentCategory})
+	require.NoError(t, err)
+
+	// Make the run terminal so it can be claimed for retry.
+	terminal := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name: run.K8SName, Namespace: "ns1", UID: types.UID(run.UUID),
+			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, terminal)
+	_, err = manager.ReportWorkflowResource(context.Background(), terminal)
+	require.NoError(t, err)
+
+	manager.taskStore = &retryDuringLifecycleWriteTaskStore{
+		TaskStoreInterface: manager.taskStore,
+		beforeWrite: func() {
+			_, _, _, gen, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
+			require.NoError(t, claimErr)
+			require.Equal(t, int64(1), gen)
+		},
+	}
+
+	// The report reads generation 0, which was still current when persist started.
+	report := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name: run.K8SName, UID: types.UID(run.UUID), Namespace: "ns1",
+			Labels:      map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{"workflows.argoproj.io/pod-name-format": "v1"},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowRunning,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"executor-pod": {
+					ID: "executor-pod", Name: "executor-pod", DisplayName: "train",
+					Phase:   v1alpha1.NodePending,
+					Message: `Back-off pulling image "ghcr.io/example/missing:v1"`,
+				},
+			},
+		},
+	})
+	seeded, err := store.TaskStore().GetTask(task.UUID)
+	require.NoError(t, err)
+	require.NoError(t, manager.persistTaskLifecycleMessages([]*model.Task{seeded}, report, false, 0))
+
+	got, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	require.NotNil(t, got.LifecycleMessage)
+	assert.Equal(t, currentMsg, *got.LifecycleMessage, "the old attempt's message must not overwrite the new attempt's warning")
+	require.NotNil(t, got.LifecycleCategory)
+	assert.Equal(t, currentCategory, *got.LifecycleCategory)
+}
+
 type runStoreWithBeforeWorkflowUpdateHook struct {
 	storage.RunStoreInterface
 	beforeUpdate func()
@@ -9277,6 +9473,349 @@ func TestLifecycleMessageForTask_ChildOfUserDefinedRootPipelineMatchesItsRealSco
 	assert.Equal(t, imagePullMsg, msg)
 }
 
+// TestFindScopedTaskNode_UserTaskNamedRootIsNotMistakenForTheCompilerWrapper is CodeRabbit's
+// regression: "root" is both the compiler's own reserved wrapper name and a name a user's task can
+// legitimately have. userDefinedRootPipelineNodes has a top-level task literally named "root" (the
+// model.Task "user-root"), so its own Retry node and the compiler's wrapper Retry node both pass
+// the scope check for an empty, top-level scope. Without excluding the wrapper structurally, that
+// is two matches, which findScopedTaskNode reports as ambiguous, leaving the real task unmatched.
+func TestFindScopedTaskNode_UserTaskNamedRootIsNotMistakenForTheCompilerWrapper(t *testing.T) {
+	nodes := userDefinedRootPipelineNodes()
+	tasks := map[string]*model.Task{
+		"wf-root":   {UUID: "wf-root", Name: "wf-root"},
+		"user-root": scopedTask(t, "user-root", "root", "wf-root"),
+	}
+	nodeID, ok := findScopedTaskNode(tasks["user-root"], nodes, tasks)
+	require.True(t, ok, "the user's own top-level task named root must match its own node, not be left ambiguous against the compiler's wrapper")
+	assert.Equal(t, "user-root", nodeID)
+}
+
+// A user task named "root" that Argo omitted has no Retry node of its own. The compiler's reserved
+// "root" wrapper has that name too, and it fails when a sibling fails, so it must not be matched
+// as the omitted task's node.
+func TestFindScopedTaskNode_OmittedUserTaskNamedRootIsNotMatchedToTheCompilerWrapper(t *testing.T) {
+	nodes := map[string]util.NodeStatus{
+		"workflow":     {ID: "workflow", DisplayName: "my-pipeline-run", Type: "Retry", State: "Failed", Children: []string{"workflow0"}},
+		"workflow0":    {ID: "workflow0", DisplayName: "my-pipeline-run(0)", Type: "DAG", State: "Failed", Children: []string{"root"}},
+		"root":         {ID: "root", DisplayName: "root", Type: "Retry", State: "Failed", Children: []string{"root0"}, BoundaryID: "workflow0"},
+		"root0":        {ID: "root0", DisplayName: "root(0)", Type: "DAG", State: "Failed", Children: []string{"sibling", "omitted-root"}, BoundaryID: "workflow0"},
+		"sibling":      {ID: "sibling", DisplayName: "sibling", Type: "Retry", State: "Failed", Children: []string{"sibling-pod"}, BoundaryID: "root0", Message: "main: OOMKilled (exit code 137)"},
+		"sibling-pod":  {ID: "sibling-pod", DisplayName: "sibling(0)", Type: "Pod", State: "Failed", Message: "main: OOMKilled (exit code 137)", BoundaryID: "root0"},
+		"omitted-root": {ID: "omitted-root", DisplayName: "root", Type: "Skipped", State: "Omitted", BoundaryID: "root0"},
+	}
+	tasks := map[string]*model.Task{
+		"wf-root":   {UUID: "wf-root", Name: "wf-root"},
+		"user-root": scopedTask(t, "user-root", "root", "wf-root"),
+	}
+	tasks["user-root"].State = model.TaskStatus(apiv2.PipelineTask_RUNNING)
+	tasks["user-root"].Type = model.TaskType(apiv2.PipelineTask_RUNTIME)
+	_, ok := findScopedTaskNode(tasks["user-root"], nodes, tasks)
+	assert.False(t, ok, "a task with no node of its own must not take the compiler wrapper's failure")
+
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	_, failed := executorFailureForTask(tasks["user-root"], nodes, resolved, tasks)
+	assert.False(t, failed)
+}
+
+// parallelForBodyNodes models a ParallelFor whose body is a sub-DAG with one task. The compiler
+// names the iteration body component independently of the loop task (e.g. "iteration"), so Argo
+// expands each iteration as "<body>-iterations(<index>:<item>)" -- not "<loop>-iterations(...)".
+// KFP's task DB records no intermediate iteration task: body tasks are direct children of the loop.
+func parallelForBodyNodes() map[string]util.NodeStatus {
+	return map[string]util.NodeStatus{
+		"workflow":  {ID: "workflow", DisplayName: "my-pipeline-run", Type: "Retry", State: "Running", Children: []string{"workflow0"}},
+		"workflow0": {ID: "workflow0", DisplayName: "my-pipeline-run(0)", Type: "DAG", State: "Running", Children: []string{"root"}},
+		"root":      {ID: "root", DisplayName: "root", Type: "Retry", State: "Running", Children: []string{"root0"}, BoundaryID: "workflow0"},
+		"root0":     {ID: "root0", DisplayName: "root(0)", Type: "DAG", State: "Running", Children: []string{"loop"}, BoundaryID: "workflow0"},
+		"loop":      {ID: "loop", DisplayName: "for-loop-1", Type: "Retry", State: "Running", Children: []string{"loop0"}, BoundaryID: "root0"},
+		"loop0":     {ID: "loop0", DisplayName: "for-loop-1(0)", Type: "DAG", State: "Running", Children: []string{"iter"}, BoundaryID: "root0"},
+		"iter":      {ID: "iter", DisplayName: "iteration-iterations(0:0)", Type: "Retry", State: "Running", Children: []string{"iter0"}, BoundaryID: "loop0"},
+		"iter0":     {ID: "iter0", DisplayName: "iteration-iterations(0:0)(0)", Type: "DAG", State: "Running", Children: []string{"train"}, BoundaryID: "loop0"},
+		"train":     {ID: "train", DisplayName: "train", Type: "Retry", State: "Failed", Children: []string{"train-pod"}, BoundaryID: "iter0"},
+		"train-pod": {ID: "train-pod", DisplayName: "train(0)", Type: "Pod", State: "Failed", Message: "main: OOMKilled (exit code 137)", BoundaryID: "iter0"},
+	}
+}
+
+func TestFindScopedTaskNode_TaskInsideParallelForBodyMatchesItsNode(t *testing.T) {
+	nodes := parallelForBodyNodes()
+	// KFP records no intermediate iteration task: body tasks are direct children of the loop.
+	tasks := map[string]*model.Task{
+		"wf-root":   {UUID: "wf-root", Name: "wf-root"},
+		"loop-task": scopedTask(t, "loop-task", "for-loop-1", "wf-root"),
+		"train":     scopedTask(t, "train", "train", "loop-task"),
+	}
+	tasks["train"].State = model.TaskStatus(apiv2.PipelineTask_RUNNING)
+	tasks["train"].Type = model.TaskType(apiv2.PipelineTask_RUNTIME)
+	nodeID, ok := findScopedTaskNode(tasks["train"], nodes, tasks)
+	require.True(t, ok, "the iteration wrapper must be skipped so the body task matches through the loop scope")
+	assert.Equal(t, "train", nodeID)
+
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	failure, failed := executorFailureForTask(tasks["train"], nodes, resolved, tasks)
+	require.True(t, failed, "a failed task inside a loop body must be reconcilable from its node")
+	assert.Equal(t, "main: OOMKilled (exit code 137)", failure.message)
+}
+
+// Two iterations run the same-named task under the same loop task; each must match only its own node.
+func TestFindScopedTaskNode_ParallelForIterationsDisambiguatedByIndex(t *testing.T) {
+	nodes := parallelForBodyNodes()
+	nodes["loop0"] = util.NodeStatus{ID: "loop0", DisplayName: "for-loop-1(0)", Type: "DAG", State: "Running", Children: []string{"iter", "iter1"}, BoundaryID: "root0"}
+	nodes["iter1"] = util.NodeStatus{ID: "iter1", DisplayName: "iteration-iterations(1:1)", Type: "Retry", State: "Running", Children: []string{"iter1-0"}, BoundaryID: "loop0"}
+	nodes["iter1-0"] = util.NodeStatus{ID: "iter1-0", DisplayName: "iteration-iterations(1:1)(0)", Type: "DAG", State: "Running", Children: []string{"train1"}, BoundaryID: "loop0"}
+	nodes["train1"] = util.NodeStatus{ID: "train1", DisplayName: "train", Type: "Retry", State: "Running", Children: []string{"train1-pod"}, BoundaryID: "iter1-0"}
+	nodes["train1-pod"] = util.NodeStatus{ID: "train1-pod", DisplayName: "train(0)", Type: "Pod", State: "Running", BoundaryID: "iter1-0"}
+	tasks := map[string]*model.Task{
+		"wf-root":   {UUID: "wf-root", Name: "wf-root"},
+		"loop-task": scopedTask(t, "loop-task", "for-loop-1", "wf-root"),
+		"train-0":   scopedTask(t, "train-0", "train", "loop-task"),
+		"train-1":   scopedTask(t, "train-1", "train", "loop-task"),
+	}
+	// The task store persists iterationIndex as a string, e.g. {"iterationIndex": "0"}.
+	tasks["train-0"].TypeAttrs = model.JSONData{"iterationIndex": "0"}
+	tasks["train-1"].TypeAttrs = model.JSONData{"iterationIndex": "1"}
+
+	id0, ok := findScopedTaskNode(tasks["train-0"], nodes, tasks)
+	require.True(t, ok)
+	assert.Equal(t, "train", id0)
+	id1, ok := findScopedTaskNode(tasks["train-1"], nodes, tasks)
+	require.True(t, ok)
+	assert.Equal(t, "train1", id1)
+
+	// Without an index the two nodes stay ambiguous.
+	tasks["train-0"].TypeAttrs = nil
+	_, ok = findScopedTaskNode(tasks["train-0"], nodes, tasks)
+	assert.False(t, ok)
+}
+
+// A delayed workflow report can carry only iteration 0's train node while the task store
+// already has a RUNNING, podless train for iteration 1. Returning iteration 0's node for
+// iteration 1's task would let the stale report fail the healthy retry through the same
+// retry generation. The iteration-index filter must therefore run even when a single
+// candidate remains.
+func TestFindScopedTaskNode_SingleCandidateWithMismatchedIterationIsRejected(t *testing.T) {
+	nodes := parallelForBodyNodes() // only iteration 0's train node is present
+	tasks := map[string]*model.Task{
+		"wf-root":   {UUID: "wf-root", Name: "wf-root"},
+		"loop-task": scopedTask(t, "loop-task", "for-loop-1", "wf-root"),
+		"train-1":   scopedTask(t, "train-1", "train", "loop-task"),
+	}
+	tasks["train-1"].TypeAttrs = model.JSONData{"iterationIndex": "1"}
+	tasks["train-1"].State = model.TaskStatus(apiv2.PipelineTask_RUNNING)
+	tasks["train-1"].Type = model.TaskType(apiv2.PipelineTask_RUNTIME)
+
+	_, ok := findScopedTaskNode(tasks["train-1"], nodes, tasks)
+	assert.False(t, ok, "iteration 1's task must not be matched to iteration 0's node even when it is the only candidate")
+
+	// The matched iteration 0 task still resolves as before: regression guard that the
+	// stricter filter did not break the common one-candidate-one-iteration case.
+	tasks["train-0"] = scopedTask(t, "train-0", "train", "loop-task")
+	tasks["train-0"].TypeAttrs = model.JSONData{"iterationIndex": "0"}
+	id, ok := findScopedTaskNode(tasks["train-0"], nodes, tasks)
+	require.True(t, ok)
+	assert.Equal(t, "train", id)
+}
+
+// nestedParallelForNodes is a ParallelFor inside a ParallelFor, reported for outer iteration 0 only:
+// for-loop-1 -> outer-iterations(0:0) -> for-loop-2 -> inner-iterations(0:0) -> train.
+func nestedParallelForNodes() map[string]util.NodeStatus {
+	return map[string]util.NodeStatus{
+		"workflow":  {ID: "workflow", DisplayName: "my-pipeline-run", Type: "Retry", State: "Running", Children: []string{"workflow0"}},
+		"workflow0": {ID: "workflow0", DisplayName: "my-pipeline-run(0)", Type: "DAG", State: "Running", Children: []string{"root"}},
+		"root":      {ID: "root", DisplayName: "root", Type: "Retry", State: "Running", Children: []string{"root0"}, BoundaryID: "workflow0"},
+		"root0":     {ID: "root0", DisplayName: "root(0)", Type: "DAG", State: "Running", Children: []string{"loop"}, BoundaryID: "workflow0"},
+		"loop":      {ID: "loop", DisplayName: "for-loop-1", Type: "Retry", State: "Running", Children: []string{"loop0"}, BoundaryID: "root0"},
+		"loop0":     {ID: "loop0", DisplayName: "for-loop-1(0)", Type: "DAG", State: "Running", Children: []string{"oiter"}, BoundaryID: "root0"},
+		"oiter":     {ID: "oiter", DisplayName: "outer-iterations(0:0)", Type: "Retry", State: "Running", Children: []string{"oiter0"}, BoundaryID: "loop0"},
+		"oiter0":    {ID: "oiter0", DisplayName: "outer-iterations(0:0)(0)", Type: "DAG", State: "Running", Children: []string{"inner"}, BoundaryID: "loop0"},
+		"inner":     {ID: "inner", DisplayName: "for-loop-2", Type: "Retry", State: "Running", Children: []string{"inner0"}, BoundaryID: "oiter0"},
+		"inner0":    {ID: "inner0", DisplayName: "for-loop-2(0)", Type: "DAG", State: "Running", Children: []string{"iiter"}, BoundaryID: "oiter0"},
+		"iiter":     {ID: "iiter", DisplayName: "inner-iterations(0:0)", Type: "Retry", State: "Running", Children: []string{"iiter0"}, BoundaryID: "inner0"},
+		"iiter0":    {ID: "iiter0", DisplayName: "inner-iterations(0:0)(0)", Type: "DAG", State: "Running", Children: []string{"train"}, BoundaryID: "inner0"},
+		"train":     {ID: "train", DisplayName: "train", Type: "Retry", State: "Failed", Children: []string{"train-pod"}, BoundaryID: "iiter0"},
+		"train-pod": {ID: "train-pod", DisplayName: "train(0)", Type: "Pod", State: "Failed", Message: "main: OOMKilled (exit code 137)", BoundaryID: "iiter0"},
+	}
+}
+
+// nestedLoopTasks builds the task chain the driver records for a nested ParallelFor: the inner loop's
+// own task carries the outer iteration index, and the body task carries the inner one.
+func nestedLoopTasks(t *testing.T, outer, inner string) map[string]*model.Task {
+	tasks := map[string]*model.Task{
+		"wf-root":    {UUID: "wf-root", Name: "wf-root"},
+		"loop-task":  scopedTask(t, "loop-task", "for-loop-1", "wf-root"),
+		"inner-task": scopedTask(t, "inner-task", "for-loop-2", "loop-task"),
+		"train-task": scopedTask(t, "train-task", "train", "inner-task"),
+	}
+	// The inner loop's own task carries the outer index and an iterationCount, like the driver records.
+	tasks["inner-task"].TypeAttrs = model.JSONData{"iterationIndex": outer, "iterationCount": "2"}
+	tasks["inner-task"].Type = model.TaskType(apiv2.PipelineTask_LOOP)
+	tasks["train-task"].TypeAttrs = model.JSONData{"iterationIndex": inner}
+	return tasks
+}
+
+// nestedConditionNodes puts a condition branch between the inner iteration and the body task, like
+// the Argo nodes of a ParallelFor inside a ParallelFor whose body is guarded by an If.
+func nestedConditionNodes() map[string]util.NodeStatus {
+	nodes := nestedParallelForNodes()
+	iiter0 := nodes["iiter0"]
+	iiter0.Children = []string{"cond"}
+	nodes["iiter0"] = iiter0
+	nodes["cond"] = util.NodeStatus{ID: "cond", DisplayName: "condition-1", Type: "Retry", State: "Running", Children: []string{"cond0"}, BoundaryID: "iiter0"}
+	nodes["cond0"] = util.NodeStatus{ID: "cond0", DisplayName: "condition-1(0)", Type: "DAG", State: "Running", Children: []string{"train"}, BoundaryID: "iiter0"}
+	train := nodes["train"]
+	train.BoundaryID = "cond0"
+	nodes["train"] = train
+	pod := nodes["train-pod"]
+	pod.BoundaryID = "cond0"
+	nodes["train-pod"] = pod
+	return nodes
+}
+
+// nestedConditionTasks is the task chain observed on a live run: every body group between the task
+// and its inner loop carries a copy of the inner iteration index, and only the inner loop's own task
+// carries the outer one.
+func nestedConditionTasks(t *testing.T, outer, inner string) map[string]*model.Task {
+	tasks := nestedLoopTasks(t, outer, inner)
+	tasks["cond-task"] = scopedTask(t, "cond-task", "condition-1", "inner-task")
+	tasks["cond-task"].TypeAttrs = model.JSONData{"iterationIndex": inner}
+	tasks["train-task"] = scopedTask(t, "train-task", "train", "cond-task")
+	tasks["train-task"].TypeAttrs = model.JSONData{"iterationIndex": inner}
+	return tasks
+}
+
+// Regression for the live nested-loop run: body groups between the task and its inner loop repeat the
+// inner index. They must not lengthen the task's path, or every task in a nested loop stops matching
+// its node and loses its lifecycle message.
+func TestFindScopedTaskNode_NestedLoopWithConditionBranchesStillMatches(t *testing.T) {
+	nodes := nestedConditionNodes()
+
+	tasks := nestedConditionTasks(t, "0", "0")
+	assert.Equal(t, []int64{0, 0}, taskLoopIterationPath(tasks["train-task"], tasks))
+	id, ok := findScopedTaskNode(tasks["train-task"], nodes, tasks)
+	require.True(t, ok, "a nested-loop task behind condition branches must still match its node")
+	assert.Equal(t, "train", id)
+
+	// The singleton-mismatch guard still holds with the branches in between.
+	tasks = nestedConditionTasks(t, "1", "0")
+	_, ok = findScopedTaskNode(tasks["train-task"], nodes, tasks)
+	assert.False(t, ok, "outer 1 must not take the outer 0 node")
+}
+
+// A delayed report can hold only outer iteration 0's node while the task store already has a podless
+// task at (outer 1, inner 0). Both share the nearest iteration index 0, so comparing only that index
+// accepted the wrong node and let the stale failure land on the healthy outer iteration 1.
+func TestFindScopedTaskNode_NestedLoopSingletonRejectsOtherOuterIteration(t *testing.T) {
+	nodes := nestedParallelForNodes()
+
+	// Control: the task at (outer 0, inner 0) matches. This proves the scope walk handles two
+	// levels of iteration wrappers, so the rejection below is the index comparison and not a
+	// scope miss.
+	id, ok := findScopedTaskNode(nestedLoopTasks(t, "0", "0")["train-task"], nodes, nestedLoopTasks(t, "0", "0"))
+	require.True(t, ok)
+	assert.Equal(t, "train", id)
+
+	tasks := nestedLoopTasks(t, "1", "0")
+	_, ok = findScopedTaskNode(tasks["train-task"], nodes, tasks)
+	assert.False(t, ok, "the task at (outer 1, inner 0) must not take the node at (outer 0, inner 0)")
+
+	// Same outer index, different inner index is rejected too.
+	tasks = nestedLoopTasks(t, "0", "1")
+	_, ok = findScopedTaskNode(tasks["train-task"], nodes, tasks)
+	assert.False(t, ok, "the task at (outer 0, inner 1) must not take the node at (outer 0, inner 0)")
+}
+
+// The driver can persist the inner loop's task as type LOOP before input resolution supplies
+// iterationCount, then reuse that row on retry. The coordinator is recognized by its type, so the
+// recorded outer index still counts and the outer 0 node is rejected for the outer 1 task.
+func TestFindScopedTaskNode_NestedLoopCoordinatorWithoutIterationCount(t *testing.T) {
+	nodes := nestedParallelForNodes()
+	withoutCount := func(outer, inner string) map[string]*model.Task {
+		tasks := nestedLoopTasks(t, outer, inner)
+		tasks["inner-task"].TypeAttrs = model.JSONData{"iterationIndex": outer}
+		return tasks
+	}
+
+	tasks := withoutCount("0", "0")
+	assert.Equal(t, []int64{0, 0}, taskLoopIterationPath(tasks["train-task"], tasks))
+	id, ok := findScopedTaskNode(tasks["train-task"], nodes, tasks)
+	require.True(t, ok, "control: (outer 0, inner 0) still matches")
+	assert.Equal(t, "train", id)
+
+	tasks = withoutCount("1", "0")
+	assert.Equal(t, []int64{0, 1}, taskLoopIterationPath(tasks["train-task"], tasks))
+	_, ok = findScopedTaskNode(tasks["train-task"], nodes, tasks)
+	assert.False(t, ok, "outer 1 must not take the outer 0 node when the loop row has no iterationCount")
+
+	// Only the persisted type makes a coordinator: a non-loop ancestor does not contribute an
+	// index even if it records one.
+	tasks = withoutCount("1", "0")
+	tasks["inner-task"].Type = model.TaskType(apiv2.PipelineTask_DAG)
+	assert.Equal(t, []int64{0}, taskLoopIterationPath(tasks["train-task"], tasks))
+}
+
+// The per-report index must answer exactly what the per-call functions do.
+func TestNodeGraph_MatchesNodeParentAndIterationPath(t *testing.T) {
+	for name, nodes := range map[string]map[string]util.NodeStatus{
+		"nested":    nestedParallelForNodes(),
+		"condition": nestedConditionNodes(),
+		"subdags":   twoSubDAGNodes(),
+	} {
+		g := newNodeGraph(nodes)
+		for id := range nodes {
+			wantParent, wantOK := nodeParent(id, nodes)
+			gotParent, gotOK := g.parent(id)
+			assert.Equal(t, wantOK, gotOK, "%s: parent of %s", name, id)
+			assert.Equal(t, wantParent, gotParent, "%s: parent of %s", name, id)
+		}
+	}
+	nodes := nestedConditionNodes()
+	g := newNodeGraph(nodes)
+	assert.Equal(t, []int64{0, 0}, g.iterationPath("train"))
+	assert.Equal(t, []int64{0, 0}, g.iterationPath("train"), "second lookup is served from the cache")
+	assert.Equal(t, []int64{0}, g.iterationPath("inner"), "the inner loop task sits only inside the outer iteration")
+	assert.Empty(t, g.iterationPath("loop"))
+	assert.Empty(t, g.iterationPath("missing"))
+}
+
+func TestIterationPathMatches(t *testing.T) {
+	assert.True(t, iterationPathMatches([]int64{0}, []int64{0}))
+	assert.False(t, iterationPathMatches([]int64{1}, []int64{0}))
+	assert.True(t, iterationPathMatches([]int64{0, 1}, []int64{0, 1}))
+	assert.False(t, iterationPathMatches([]int64{0, 1}, []int64{0, 0}), "same nearest index, different outer iteration")
+	assert.False(t, iterationPathMatches([]int64{0, 1}, []int64{0}), "node in fewer iterations than the task recorded")
+	assert.False(t, iterationPathMatches([]int64{0}, nil))
+	assert.True(t, iterationPathMatches([]int64{0}, []int64{0, 5}), "outer iterations the task did not record cannot be checked")
+}
+
+func TestTaskLoopIterationPath(t *testing.T) {
+	tasks := nestedLoopTasks(t, "1", "0")
+	assert.Equal(t, []int64{0, 1}, taskLoopIterationPath(tasks["train-task"], tasks))
+	assert.Equal(t, []int64{1}, taskLoopIterationPath(tasks["inner-task"], tasks))
+
+	// An ancestor that is not a loop coordinator repeats the task's index and is not counted again.
+	tasks = nestedConditionTasks(t, "1", "0")
+	assert.Equal(t, []int64{0, 1}, taskLoopIterationPath(tasks["train-task"], tasks))
+	assert.Empty(t, taskLoopIterationPath(tasks["loop-task"], tasks), "a task with no index is not in a loop")
+}
+
+// isLoopIterationNode must detect ParallelFor iteration wrappers and reject non-iterations.
+func TestIsLoopIterationNode(t *testing.T) {
+	assert.True(t, isLoopIterationNode("iteration-iterations(0:0)"))
+	assert.True(t, isLoopIterationNode("for-loop-1-iterations(2:2)"))
+	assert.True(t, isLoopIterationNode("body-iterations(0:abc)"))
+	assert.False(t, isLoopIterationNode("for-loop-1"))
+	assert.False(t, isLoopIterationNode("train"))
+	assert.False(t, isLoopIterationNode("root"))
+	// withSequence iterations use "(index)" not "(index:item)", so they are not skipped.
+	assert.False(t, isLoopIterationNode("loop-iterations(0)"))
+}
+
+// matchesScopeName is now exact equality.
+func TestMatchesScopeName(t *testing.T) {
+	assert.True(t, matchesScopeName("for-loop-1", "for-loop-1"))
+	assert.False(t, matchesScopeName("for-loop-1-iterations(0:0)", "for-loop-1"))
+	assert.False(t, matchesScopeName("for-loop-10", "for-loop-1"))
+}
+
 // loopIterationNodes models a top-level loop task compiled via Argo's withSequence (see
 // argocompiler/dag.go's iterationItemTask): each iteration is its own sibling Retry node directly
 // under root0, Display-named "<loop-task>-iterations(<index>)". That shape syntactically matches
@@ -9599,4 +10138,129 @@ func TestCreateDefaultExperiment_AdoptsExperimentCreatedConcurrently(t *testing.
 	got, err := manager.CreateDefaultExperiment(multiUserContext(), "ns1")
 	require.NoError(t, err, "a concurrent create must not fail an otherwise valid request")
 	assert.Equal(t, winner.UUID, got, "the loser must adopt the winner's experiment")
+}
+
+// realParallelForNodes mirrors the Argo shape dumped from a live ParallelFor run with a stuck pod.
+func realParallelForNodes() map[string]util.NodeStatus {
+	nodes := map[string]util.NodeStatus{
+		"top":   {ID: "top", DisplayName: "loop-run", Type: "Retry", State: "Running", Children: []string{"top0"}},
+		"top0":  {ID: "top0", DisplayName: "loop-run(0)", Type: "DAG", State: "Running", Children: []string{"root"}},
+		"root":  {ID: "root", DisplayName: "root", Type: "Retry", State: "Running", Children: []string{"root0"}, BoundaryID: "top0"},
+		"root0": {ID: "root0", DisplayName: "root(0)", Type: "DAG", State: "Running", Children: []string{"loop"}, BoundaryID: "top0"},
+		"loop":  {ID: "loop", DisplayName: "for-loop-2", Type: "Retry", State: "Running", Children: []string{"loop0"}, BoundaryID: "root0"},
+		"loop0": {ID: "loop0", DisplayName: "for-loop-2(0)", Type: "DAG", State: "Running", Children: []string{"tg", "iter-0", "iter-1"}, BoundaryID: "root0"},
+		"tg":    {ID: "tg", DisplayName: "iteration-iterations", Type: "TaskGroup", State: "Running", Children: []string{"iter-0", "iter-1"}, BoundaryID: "loop0"},
+	}
+	for i, name := range []string{"0:1", "1:2"} {
+		idx := string(rune('0' + i))
+		iter := "iter-" + idx
+		bad := "bad-" + idx
+		exec := "exec-" + idx
+		nodes[iter] = util.NodeStatus{ID: iter, DisplayName: "iteration-iterations(" + name + ")", Type: "Retry", State: "Running", Children: []string{iter + "-0"}, BoundaryID: "loop0"}
+		nodes[iter+"-0"] = util.NodeStatus{ID: iter + "-0", DisplayName: "iteration-iterations(" + name + ")(0)", Type: "DAG", State: "Running", Children: []string{bad}, BoundaryID: "loop0"}
+		nodes[bad] = util.NodeStatus{ID: bad, DisplayName: "bad-in-loop", Type: "Retry", State: "Running", Children: []string{bad + "-0"}, BoundaryID: iter + "-0"}
+		nodes[bad+"-0"] = util.NodeStatus{ID: bad + "-0", DisplayName: "bad-in-loop(0)", Type: "DAG", State: "Running", Children: []string{exec}, BoundaryID: iter + "-0"}
+		nodes[exec] = util.NodeStatus{ID: exec, DisplayName: "executor", Type: "Retry", State: "Running", Children: []string{"pod-" + idx}, BoundaryID: bad + "-0"}
+		nodes["pod-"+idx] = util.NodeStatus{ID: "pod-" + idx, DisplayName: "executor(0)", Type: "Pod", State: "Pending", Message: imagePullMsg, BoundaryID: bad + "-0"}
+	}
+	return nodes
+}
+
+func TestLifecycleMessageForTask_RealParallelForTopology(t *testing.T) {
+	nodes := realParallelForNodes()
+	tasks := map[string]*model.Task{
+		"run-root":  {UUID: "run-root", Name: "ROOT"},
+		"loop-task": scopedTask(t, "loop-task", "for-loop-2", "run-root"),
+		"task-0":    scopedTask(t, "task-0", "bad-in-loop", "loop-task"),
+		"task-1":    scopedTask(t, "task-1", "bad-in-loop", "loop-task"),
+	}
+	tasks["task-0"].TypeAttrs = model.JSONData{"iterationIndex": "0"}
+	tasks["task-1"].TypeAttrs = model.JSONData{"iterationIndex": "1"}
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	for id, want := range map[string]string{"task-0": "bad-0", "task-1": "bad-1"} {
+		got, ok := findScopedTaskNode(tasks[id], nodes, tasks)
+		require.True(t, ok, "task %s must match a node", id)
+		assert.Equal(t, want, got)
+		msg, _, matched := lifecycleMessageForTask(tasks[id], nodes, resolved, tasks)
+		require.True(t, matched, "task %s must get a lifecycle match", id)
+		assert.Equal(t, imagePullMsg, msg)
+	}
+}
+
+// exitHookNodes models an exit handler compiled as a lifecycle hook, like the compiled
+// exit-handler fixture: the exit task print-op does not sit directly in the pipeline's DAG but in
+// the hook's DAG template (exit-hook-root-print-op), whose Retry wrapper has no task of its own.
+// The driver records print-op's parent as the surrounding pipeline task, so the extra Retry is
+// invisible to the task tree and must not be read as extra nesting.
+func exitHookNodes() map[string]util.NodeStatus {
+	const hookTemplate = "exit-hook-root-print-op"
+	return map[string]util.NodeStatus{
+		"workflow":  {ID: "workflow", DisplayName: "my-pipeline-run", Type: "Retry", TemplateName: "entrypoint", State: "Running", Children: []string{"workflow0"}},
+		"workflow0": {ID: "workflow0", DisplayName: "my-pipeline-run(0)", Type: "DAG", TemplateName: "entrypoint", State: "Running", Children: []string{"root"}},
+		"root":      {ID: "root", DisplayName: "root", Type: "Retry", TemplateName: "root", State: "Running", Children: []string{"root0"}, BoundaryID: "workflow0"},
+		"root0":     {ID: "root0", DisplayName: "root(0)", Type: "DAG", TemplateName: "root", State: "Running", Children: []string{"work", "hook"}, BoundaryID: "workflow0"},
+		"work":      {ID: "work", DisplayName: "work", Type: "Retry", State: "Succeeded", Children: []string{"work0"}, BoundaryID: "root0"},
+		"work0":     {ID: "work0", DisplayName: "work(0)", Type: "DAG", State: "Succeeded", BoundaryID: "root0"},
+		"hook":      {ID: "hook", DisplayName: "work.hooks.exit", Type: "Retry", TemplateName: hookTemplate, State: "Failed", Children: []string{"hook0"}, BoundaryID: "root0"},
+		"hook0":     {ID: "hook0", DisplayName: "work.hooks.exit(0)", Type: "DAG", TemplateName: hookTemplate, State: "Failed", Children: []string{"print-op"}, BoundaryID: "root0"},
+		"print-op":  {ID: "print-op", DisplayName: "print-op", Type: "Retry", State: "Failed", Children: []string{"print-pod"}, BoundaryID: "hook0"},
+		"print-pod": {ID: "print-pod", DisplayName: "print-op(0)", Type: "Pod", State: "Failed", Message: "main: OOMKilled (exit code 137)", BoundaryID: "hook0"},
+	}
+}
+
+func exitHookTasks(t *testing.T) map[string]*model.Task {
+	return map[string]*model.Task{
+		"wf-root":  {UUID: "wf-root", Name: "wf-root"},
+		"work":     scopedTask(t, "work", "work", "wf-root"),
+		"print-op": scopedTask(t, "print-op", "print-op", "wf-root"),
+	}
+}
+
+// Regression for the compiler's exit-hook DAG: the cleanup task's own node must still be found, or
+// a failed podless cleanup stays RUNNING.
+func TestFindScopedTaskNode_ExitHookDAGDoesNotCountAsNesting(t *testing.T) {
+	nodes := exitHookNodes()
+	tasks := exitHookTasks(t)
+
+	id, ok := findScopedTaskNode(tasks["print-op"], nodes, tasks)
+	require.True(t, ok, "the cleanup task behind the exit-hook DAG must match its own node")
+	assert.Equal(t, "print-op", id)
+
+	// The ordinary sibling still matches.
+	id, ok = findScopedTaskNode(tasks["work"], nodes, tasks)
+	require.True(t, ok)
+	assert.Equal(t, "work", id)
+
+	// Only the compiler's hook boundary is transparent: the same extra Retry without the hook
+	// template name is real nesting and still rejects the node.
+	for _, key := range []string{"hook", "hook0"} {
+		node := nodes[key]
+		node.TemplateName = "some-other-template"
+		nodes[key] = node
+	}
+	_, ok = findScopedTaskNode(tasks["print-op"], nodes, tasks)
+	assert.False(t, ok, "an unrecognized extra Retry ancestor is still extra nesting")
+}
+
+// The parentless workflow Retry is the outer wrapper the run name labels, not a task. A task that
+// happens to share the run's name and has no node of its own must not be attributed the workflow
+// node, or a sibling's failure would land on it.
+func TestFindScopedTaskNode_OuterWorkflowWrapperIsNotATaskCandidate(t *testing.T) {
+	nodes := rootWrapperNodes()
+	workflow := nodes["workflow"]
+	workflow.TemplateName = "entrypoint"
+	nodes["workflow"] = workflow
+
+	tasks := map[string]*model.Task{
+		"wf-root":   {UUID: "wf-root", Name: "wf-root"},
+		"same-name": scopedTask(t, "same-name", "my-pipeline-run", "wf-root"),
+		"top":       scopedTask(t, "top", "top", "wf-root"),
+	}
+
+	_, ok := findScopedTaskNode(tasks["same-name"], nodes, tasks)
+	assert.False(t, ok, "a task sharing the run's display name must not match the workflow's own node")
+
+	id, ok := findScopedTaskNode(tasks["top"], nodes, tasks)
+	require.True(t, ok, "control: a real top-level task still matches")
+	assert.Equal(t, "top", id)
 }
