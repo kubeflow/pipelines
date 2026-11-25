@@ -362,7 +362,8 @@ class CompatibilityTest(unittest.TestCase):
                 compatibility.urllib.request, 'urlopen',
                 return_value=response) as request:
             self.assertEqual(
-                compatibility.sync_profile('http://localhost', 'user', secret),
+                compatibility.sync_profile('http://localhost', 'user',
+                                           'test-webhook-token', secret),
                 secret,
             )
         observed = json.loads(request.call_args.args[0].data)
@@ -370,6 +371,8 @@ class CompatibilityTest(unittest.TestCase):
             observed['attachments']['Secret.v1'],
             {'user/mlpipeline-minio-artifact': secret},
         )
+        self.assertEqual(request.call_args.args[0].get_header('Authorization'),
+                         'Bearer test-webhook-token')
 
     def test_reconciliation_rejects_missing_or_ambiguous_artifact_secret(self):
         secret = {
@@ -400,7 +403,8 @@ class CompatibilityTest(unittest.TestCase):
                 ):
                     with self.assertRaisesRegex(ValueError,
                                                 'Expected one artifact'):
-                        compatibility.sync_profile('http://localhost', 'user')
+                        compatibility.sync_profile('http://localhost', 'user',
+                                                   'test-webhook-token')
 
     def test_profile_uses_candidate_build_and_preserves_credentials_after_restart(
         self,):
@@ -439,7 +443,14 @@ class CompatibilityTest(unittest.TestCase):
                 ) as run,
                 patch.object(compatibility, 'apply'),
                 patch.object(compatibility, 'wait_ready'),
-                patch.object(compatibility, 'kubectl') as kubectl,
+                patch.object(
+                    compatibility,
+                    'kubectl',
+                    side_effect=lambda *args: json.dumps(
+                        {'data': {
+                            'token': 'dGVzdC13ZWJob29rLXRva2Vu'
+                        }}) if args[:2] == ('get', 'secret') else None,
+                ) as kubectl,
                 patch.object(
                     compatibility,
                     'forward',
@@ -471,7 +482,10 @@ class CompatibilityTest(unittest.TestCase):
             ),
             [call.args for call in run.call_args_list],
         )
-        kubectl.assert_called_once_with(
+        kubectl.assert_any_call('get', 'secret',
+                                'kubeflow-pipelines-profile-webhook-auth', '-o',
+                                'json')
+        kubectl.assert_any_call(
             'rollout',
             'restart',
             'deployment/kubeflow-pipelines-profile-controller',
