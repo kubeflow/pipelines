@@ -97,14 +97,17 @@ func (pgxDialect) IsDuplicateKeyError(err error) bool {
 func (d pgxDialect) Upsert(table string, keyCols []string, overwrite bool, updateCols []string) sq.InsertBuilder {
 	q := d.QuoteIdentifier
 	ib := d.QueryBuilder().Insert(q(table))
+
+	if !overwrite {
+		suffix := "ON CONFLICT (" + joinQuoted(q, keyCols) + ") DO NOTHING"
+		return ib.Suffix(suffix)
+	}
+
 	sets := make([]string, 0, len(updateCols))
 	for _, c := range updateCols {
-		if overwrite {
-			sets = append(sets, q(c)+"=excluded."+q(c))
-		} else {
-			sets = append(sets, q(c)+"="+q(c))
-		}
+		sets = append(sets, q(c)+"=excluded."+q(c))
 	}
+
 	suffix := "ON CONFLICT (" + joinQuoted(q, keyCols) + ") DO UPDATE SET " + strings.Join(sets, ", ")
 	return ib.Suffix(suffix)
 }

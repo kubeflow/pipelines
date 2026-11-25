@@ -172,6 +172,11 @@ message CreateArtifactRequest {
   // new artifact row so reimport=true and ordinary outputs may intentionally
   // create duplicates.
   bool reuse_if_exists = 7;
+
+  // Optional. A caller-generated operation ID used to make artifact creation
+  // idempotent across RPC retries. The same operation ID is scoped to the
+  // namespace, run, and task.
+  string operation_id = 4;
 }
 
 message CreateArtifactsBulkRequest {

@@ -74,6 +74,14 @@ export interface V2CreateArtifactRequest {
    * @memberof V2CreateArtifactRequest
    */
   reuse_if_exists?: boolean;
+  /**
+   * Optional. A caller-generated operation ID used to make artifact creation
+   * idempotent across RPC retries. The same operation ID is scoped to the
+   * namespace, run, and task.
+   * @type {string}
+   * @memberof V2CreateArtifactRequest
+   */
+  operation_id?: string;
 }
 
 /**
@@ -101,6 +109,7 @@ export function V2CreateArtifactRequestFromJSONTyped(
     producer_key: json['producer_key'] == null ? undefined : json['producer_key'],
     iteration_index: json['iteration_index'] == null ? undefined : json['iteration_index'],
     reuse_if_exists: json['reuse_if_exists'] == null ? undefined : json['reuse_if_exists'],
+    operation_id: json['operation_id'] == null ? undefined : json['operation_id'],
   };
 }
 
@@ -123,5 +132,6 @@ export function V2CreateArtifactRequestToJSONTyped(
     producer_key: value['producer_key'],
     iteration_index: value['iteration_index'],
     reuse_if_exists: value['reuse_if_exists'],
+    operation_id: value['operation_id'],
   };
 }

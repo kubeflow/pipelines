@@ -38,7 +38,8 @@ class V2CreateArtifactRequest(object):
         'task_id': 'str',
         'producer_key': 'str',
         'iteration_index': 'str',
-        'reuse_if_exists': 'bool'
+        'reuse_if_exists': 'bool',
+        'operation_id': 'str'
     }
 
     attribute_map = {
@@ -47,10 +48,11 @@ class V2CreateArtifactRequest(object):
         'task_id': 'task_id',
         'producer_key': 'producer_key',
         'iteration_index': 'iteration_index',
-        'reuse_if_exists': 'reuse_if_exists'
+        'reuse_if_exists': 'reuse_if_exists',
+        'operation_id': 'operation_id'
     }
 
-    def __init__(self, artifact=None, run_id=None, task_id=None, producer_key=None, iteration_index=None, reuse_if_exists=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, artifact=None, run_id=None, task_id=None, producer_key=None, iteration_index=None, reuse_if_exists=None, operation_id=None, local_vars_configuration=None):  # noqa: E501
         """V2CreateArtifactRequest - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -62,6 +64,7 @@ class V2CreateArtifactRequest(object):
         self._producer_key = None
         self._iteration_index = None
         self._reuse_if_exists = None
+        self._operation_id = None
         self.discriminator = None
 
         if artifact is not None:
@@ -76,6 +79,8 @@ class V2CreateArtifactRequest(object):
             self.iteration_index = iteration_index
         if reuse_if_exists is not None:
             self.reuse_if_exists = reuse_if_exists
+        if operation_id is not None:
+            self.operation_id = operation_id
 
     @property
     def artifact(self):
@@ -210,6 +215,29 @@ class V2CreateArtifactRequest(object):
         """
 
         self._reuse_if_exists = reuse_if_exists
+
+    @property
+    def operation_id(self):
+        """Gets the operation_id of this V2CreateArtifactRequest.  # noqa: E501
+
+        Optional. A caller-generated operation ID used to make artifact creation idempotent across RPC retries. The same operation ID is scoped to the namespace, run, and task.  # noqa: E501
+
+        :return: The operation_id of this V2CreateArtifactRequest.  # noqa: E501
+        :rtype: str
+        """
+        return self._operation_id
+
+    @operation_id.setter
+    def operation_id(self, operation_id):
+        """Sets the operation_id of this V2CreateArtifactRequest.
+
+        Optional. A caller-generated operation ID used to make artifact creation idempotent across RPC retries. The same operation ID is scoped to the namespace, run, and task.  # noqa: E501
+
+        :param operation_id: The operation_id of this V2CreateArtifactRequest.  # noqa: E501
+        :type operation_id: str
+        """
+
+        self._operation_id = operation_id
 
     def to_dict(self):
         """Returns the model properties as a dict"""
