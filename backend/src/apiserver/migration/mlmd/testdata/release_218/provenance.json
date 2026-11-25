@@ -1,0 +1,43 @@
+{
+  "capture_commands": [
+    "capture_api.py",
+    "capture_fixture.sh"
+  ],
+  "checksums_sha256": {
+    "api_runs.json": "984c6c91df76696e49da36d14af35aace11a20af189ae9e3c9d006ebaf788870",
+    "deployment-images.json": "5ec9c9eec9a00832bcc24960b57f79bb0d444c12f106ab126d0205df8d2f21a9",
+    "install-config.json": "79933575192b2bf891047ea9032aca55a967834f103e78386afe957b1718c8fe",
+    "source.sql": "b710953da7c6418210bca01ec53e760b05472253508d5b1e3bf9626c9df2b3b6",
+    "workflows.json": "d3a9b07fb7ccaecdf60701bc323aa77d73b1745414c7fbf5fe564094d3608c7a"
+  },
+  "counts": {
+    "source": {
+      "kfp.run_details": 7,
+      "kfp.tasks": 191,
+      "mlmd.artifact_properties": 51,
+      "mlmd.artifacts": 22,
+      "mlmd.associations": 68,
+      "mlmd.attributions": 48,
+      "mlmd.context_properties": 28,
+      "mlmd.contexts": 10,
+      "mlmd.event_paths": 26,
+      "mlmd.events": 26,
+      "mlmd.execution_properties": 231,
+      "mlmd.executions": 34,
+      "mlmd.parent_contexts": 7,
+      "mlmd.types": 17
+    },
+    "target": {
+      "artifact_tasks": 26,
+      "artifacts": 26,
+      "tasks": 34
+    }
+  },
+  "kfp_commit": "555bfa60a70da88c594960bdacfd78fa7c061043",
+  "kfp_release": "2.18.0",
+  "source_databases": [
+    "mlpipeline",
+    "metadb"
+  ],
+  "source_schema_sha256": "5cebf184a4d06e5b0c88655bc492ecae6d896be1a442134e5f5048152d9230a3"
+}
