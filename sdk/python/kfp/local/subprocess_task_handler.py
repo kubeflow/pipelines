@@ -179,10 +179,6 @@ def replace_python_executable(
             '-c',
             '-ec',
         )
-        is_executable_command = i == 0 or full_command[i - 1] not in (
-            '-c',
-            '-ec',
-        )
         is_command_string = (
             (
                 is_executable_command
