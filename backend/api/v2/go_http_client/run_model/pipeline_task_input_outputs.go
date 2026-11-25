@@ -11,6 +11,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag/jsonutils"
 	"github.com/go-openapi/swag/typeutils"
+	"github.com/go-openapi/validate"
 )
 
 // PipelineTaskInputOutputs pipeline task input outputs
@@ -51,8 +52,8 @@ func (m *PipelineTaskInputOutputs) validateArtifacts(formats strfmt.Registry) er
 	}
 
 	for i := 0; i < len(m.Artifacts); i++ {
-		if typeutils.IsZero(m.Artifacts[i]) { // not required
-			continue
+		if m.Artifacts[i] == nil {
+			return validate.Required("artifacts"+"."+strconv.Itoa(i), "body", m.Artifacts[i])
 		}
 
 		if m.Artifacts[i] != nil {
@@ -81,8 +82,8 @@ func (m *PipelineTaskInputOutputs) validateParameters(formats strfmt.Registry) e
 	}
 
 	for i := 0; i < len(m.Parameters); i++ {
-		if typeutils.IsZero(m.Parameters[i]) { // not required
-			continue
+		if m.Parameters[i] == nil {
+			return validate.Required("parameters"+"."+strconv.Itoa(i), "body", m.Parameters[i])
 		}
 
 		if m.Parameters[i] != nil {
@@ -130,7 +131,7 @@ func (m *PipelineTaskInputOutputs) contextValidateArtifacts(ctx context.Context,
 		if m.Artifacts[i] != nil {
 
 			if typeutils.IsZero(m.Artifacts[i]) { // not required
-				return nil
+				continue
 			}
 
 			if err := m.Artifacts[i].ContextValidate(ctx, formats); err != nil {
@@ -159,7 +160,7 @@ func (m *PipelineTaskInputOutputs) contextValidateParameters(ctx context.Context
 		if m.Parameters[i] != nil {
 
 			if typeutils.IsZero(m.Parameters[i]) { // not required
-				return nil
+				continue
 			}
 
 			if err := m.Parameters[i].ContextValidate(ctx, formats); err != nil {
