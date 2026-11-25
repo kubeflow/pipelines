@@ -285,11 +285,13 @@ func TestWorkflowServiceAccountAuditPluginMutation(t *testing.T) {
 				if mainAccount {
 					require.Error(t, err)
 					assert.Zero(t, store.ExecClientFake.GetWorkflowCount())
-					require.Len(t, dispatcher.endedRuns, 1)
+					assert.Empty(t, dispatcher.endedRuns)
+					require.Len(t, dispatcher.rejectedRuns, 1)
 				} else {
 					require.NoError(t, err)
 					assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount())
 					assert.Empty(t, dispatcher.endedRuns)
+					assert.Empty(t, dispatcher.rejectedRuns)
 				}
 			})
 			if !mainAccount {

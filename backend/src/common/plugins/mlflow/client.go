@@ -32,6 +32,7 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
+	"github.com/google/uuid"
 )
 
 // Auth type constants.
@@ -40,6 +41,12 @@ const (
 	// idempotent create-with-retry: on a transient failure the client searches
 	// the experiment for a run already carrying this tag before recreating.
 	IdempotencyTagKey = "mlflow.kfp.idempotencyKey"
+
+	// CreateRequestTagKey is added by CreateRun next to IdempotencyTagKey with a
+	// value unique to the call. Recovery matches both tags, so a retry reuses
+	// only a run created by the same call, never one created by a concurrent
+	// request for the same KFP run ID.
+	CreateRequestTagKey = "mlflow.kfp.createRequestId"
 
 	// MaxIdempotentAttempts bounds the retries for any idempotent MLflow call
 	// (reads, set/last-write-wins writes, and the dedup-protected creates). The
@@ -313,15 +320,17 @@ func (c *Client) createExperimentOnce(ctx context.Context, name string, descript
 
 // CreateRun creates a new MLflow run under the given experiment. When the tags
 // include IdempotencyTagKey, a transient create failure is retried safely: the
-// client first searches the experiment for a run already carrying that tag
-// (created by a previous attempt whose response was lost) and reuses it instead
-// of creating a duplicate. Without the tag, the run is created exactly once,
-// preserving prior behavior.
+// client first searches the experiment for a run created by an earlier attempt
+// of this call whose response was lost, and reuses it instead of creating a
+// duplicate. Without the tag, the run is created exactly once, preserving prior
+// behavior.
 func (c *Client) CreateRun(ctx context.Context, experimentID, runName string, tags []Tag) (string, error) {
 	idempotencyKey := tagValue(tags, IdempotencyTagKey)
 	if idempotencyKey == "" {
 		return c.createRunOnce(ctx, experimentID, runName, tags)
 	}
+	requestID := uuid.NewString()
+	tags = append(append([]Tag(nil), tags...), Tag{Key: CreateRequestTagKey, Value: requestID})
 
 	var lastErr error
 	for attempt := 0; attempt < MaxIdempotentAttempts; attempt++ {
@@ -339,7 +348,7 @@ func (c *Client) CreateRun(ctx context.Context, experimentID, runName string, ta
 		// The failed attempt may have committed the run server-side before its
 		// response was lost. Confirm via search before recreating; recreating
 		// without a definitive answer risks a duplicate run.
-		existing, confirmed, searchErr := c.findRunByIdempotencyTag(ctx, experimentID, idempotencyKey)
+		existing, confirmed, searchErr := c.findRunByIdempotencyTag(ctx, experimentID, idempotencyKey, requestID)
 		if existing != "" {
 			return existing, nil
 		}
@@ -389,14 +398,17 @@ func (c *Client) createRunOnce(ctx context.Context, experimentID, runName string
 }
 
 // findRunByIdempotencyTag searches for a run in the experiment carrying the
-// given IdempotencyTagKey value, retrying the (read-only, safe) search on
-// transient failures. It returns (runID, confirmed, err): confirmed is true
-// only when the search completed and definitively answered whether the run
-// exists (runID is set when found, "" when absent). When confirmed is false the
-// caller must not recreate the run, since a duplicate cannot be ruled out.
-func (c *Client) findRunByIdempotencyTag(ctx context.Context, experimentID, idempotencyKey string) (runID string, confirmed bool, err error) {
+// given IdempotencyTagKey and CreateRequestTagKey values, retrying the
+// (read-only, safe) search on transient failures. It returns (runID, confirmed,
+// err): confirmed is true only when the search completed and definitively
+// answered whether the run exists (runID is set when found, "" when absent).
+// When confirmed is false the caller must not recreate the run, since a
+// duplicate cannot be ruled out.
+func (c *Client) findRunByIdempotencyTag(ctx context.Context, experimentID, idempotencyKey, requestID string) (runID string, confirmed bool, err error) {
 	// Escape single quotes so a tag value can never alter the filter grammar.
-	filter := fmt.Sprintf("tags.`%s` = '%s'", IdempotencyTagKey, strings.ReplaceAll(idempotencyKey, "'", "''"))
+	filter := fmt.Sprintf("tags.`%s` = '%s' AND tags.`%s` = '%s'",
+		IdempotencyTagKey, strings.ReplaceAll(idempotencyKey, "'", "''"),
+		CreateRequestTagKey, strings.ReplaceAll(requestID, "'", "''"))
 	// SearchRuns retries transient failures itself, so a returned error here is
 	// definitive: the search could not confirm the run's state.
 	resp, searchErr := c.SearchRuns(ctx, []string{experimentID}, filter, 1, "")

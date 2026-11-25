@@ -295,6 +295,65 @@ func TestOnBeforeRunCreation_WithValidConfig_SuccessfullyCallsHandler(t *testing
 	assert.Contains(t, *run.PluginsOutput, "FakePlugin")
 }
 
+// newExecutionSpecWithInvalidRuntimeArgs returns a workflow whose driver plugin
+// template has runtime_args that are not a JSON object, so runtime env
+// injection fails.
+func newExecutionSpecWithInvalidRuntimeArgs() util.ExecutionSpec {
+	return util.NewWorkflow(&workflowapi.Workflow{
+		TypeMeta:   metav1.TypeMeta{Kind: "Workflow", APIVersion: "argoproj.io/v1alpha1"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test-wf", Namespace: "test-ns"},
+		Spec: workflowapi.WorkflowSpec{Templates: []workflowapi.Template{{
+			Name:   "driver-plugin",
+			Plugin: &workflowapi.Plugin{Object: workflowapi.Object{Value: []byte(`{"driver-plugin":{"args":{"runtime_args":"{not-json"}}}`)}},
+		}}},
+	})
+}
+
+func newInjectingHandler(name string, envVars []corev1.EnvVar) *fakeHandler {
+	return &fakeHandler{
+		name:                name,
+		pluginConfig:        &PluginConfig{Endpoint: "http://test-endpoint"},
+		resolveInputEnabled: true,
+		pluginOutput:        &apiv2.PluginOutput{State: apiv2.PluginState_PLUGIN_SUCCEEDED},
+		envVars:             envVars,
+	}
+}
+
+func TestOnBeforeRunCreation_RuntimeEnvInjectionFailure_ReturnsError(t *testing.T) {
+	handler := newInjectingHandler("FakePlugin", []corev1.EnvVar{{Name: "PLUGIN_RUN_ID", Value: "parent-run"}})
+	dispatcher, err := newFakeDispatcher([]RunPluginHandler{handler})
+	require.NoError(t, err)
+	run := &PendingRun{RunID: "run-789", Namespace: "test-ns"}
+
+	err = dispatcher.OnBeforeRunCreation(context.Background(), run, newExecutionSpecWithInvalidRuntimeArgs())
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `failed to inject FakePlugin runtime env for run "run-789"`)
+	assert.Contains(t, err.Error(), "invalid runtime_args")
+	outputs, err := DeserializePluginsOutput((*model.LargeText)(run.PluginsOutput))
+	require.NoError(t, err)
+	assert.Contains(t, outputs, "FakePlugin", "cleanup needs the output of the handler whose injection failed")
+}
+
+func TestOnBeforeRunCreation_LaterHandlerInjectionFailure_KeepsEarlierOutputAndStops(t *testing.T) {
+	first := newInjectingHandler("FakePluginA", nil)
+	failing := newInjectingHandler("FakePluginB", []corev1.EnvVar{{Name: "PLUGIN_RUN_ID", Value: "parent-run"}})
+	notReached := newInjectingHandler("FakePluginC", nil)
+	dispatcher, err := newFakeDispatcher([]RunPluginHandler{first, failing, notReached})
+	require.NoError(t, err)
+	run := &PendingRun{RunID: "run-790", Namespace: "test-ns"}
+
+	err = dispatcher.OnBeforeRunCreation(context.Background(), run, newExecutionSpecWithInvalidRuntimeArgs())
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to inject FakePluginB runtime env")
+	outputs, err := DeserializePluginsOutput((*model.LargeText)(run.PluginsOutput))
+	require.NoError(t, err)
+	assert.Contains(t, outputs, "FakePluginA", "cleanup must also see parents created by earlier handlers")
+	assert.Contains(t, outputs, "FakePluginB")
+	assert.False(t, notReached.onBeforeRunCreationCalled, "no plugin resources are created after injection fails")
+}
+
 func TestOnRunEnd_SingleHandler_Success(t *testing.T) {
 	handler := &fakeHandler{name: "FakePlugin"}
 	dispatcher, _ := newFakeDispatcher([]RunPluginHandler{handler})

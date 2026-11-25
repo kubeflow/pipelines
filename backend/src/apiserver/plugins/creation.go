@@ -75,7 +75,37 @@ func (d *RunPluginDispatcherImpl) OnRunCreationDiscarded(ctx context.Context, ru
 			discarded.PluginsOutput[name] = output
 		}
 	}
-	if len(discarded.PluginsOutput) == 0 {
+	return d.finalizeUnpersistedParents(ctx, discarded, "discarded creation")
+}
+
+// OnRunCreationRejected finalizes, as failed, the parents created by a request
+// whose run creation failed before a Workflow existed. Cleanup is best effort
+// and never persists plugin output: a concurrent request with the same run ID
+// may own the run row.
+func (d *RunPluginDispatcherImpl) OnRunCreationRejected(ctx context.Context, run *PendingRun) error {
+	if d == nil || run == nil {
+		return fmt.Errorf("dispatcher and run must be non-nil")
+	}
+	outputs, err := DeserializePluginsOutput((*model.LargeText)(run.PluginsOutput))
+	if err != nil || len(outputs) == 0 {
+		return err
+	}
+	rejected := &PersistedRun{
+		RunID: run.RunID, Namespace: run.Namespace, State: string(model.RuntimeStateFailed),
+		PluginsOutput: map[string]*apiv2.PluginOutput{},
+	}
+	for name, output := range outputs {
+		if GetParentRunID(output) != "" {
+			rejected.PluginsOutput[name] = output
+		}
+	}
+	return d.finalizeUnpersistedParents(ctx, rejected, "rejected creation")
+}
+
+// finalizeUnpersistedParents runs each handler's OnRunEnd for the parents in run
+// without persisting the resulting plugin output.
+func (d *RunPluginDispatcherImpl) finalizeUnpersistedParents(ctx context.Context, run *PersistedRun, label string) error {
+	if len(run.PluginsOutput) == 0 {
 		return nil
 	}
 	configs, err := d.RetrieveMultiUserModeConfigOverrides(ctx, run.RunID, run.Namespace)
@@ -84,19 +114,19 @@ func (d *RunPluginDispatcherImpl) OnRunCreationDiscarded(ctx context.Context, ru
 	}
 	var cleanupErrors []error
 	for _, handler := range d.handlers {
-		if discarded.PluginsOutput[handler.Name()] == nil {
+		if run.PluginsOutput[handler.Name()] == nil {
 			continue
 		}
 		cfg, err := handler.ResolveRunPluginConfig(ctx, d.kubeClients.GetClientSet(), configs[handler.Name()], run.Namespace)
 		if err != nil || cfg == nil {
-			cleanupErrors = append(cleanupErrors, fmt.Errorf("cannot resolve %s config for discarded creation: %v", handler.Name(), err))
+			cleanupErrors = append(cleanupErrors, fmt.Errorf("cannot resolve %s config for %s: %v", handler.Name(), label, err))
 			continue
 		}
 		pluginCtx, cancel := context.WithTimeout(ctx, handler.GetPluginOperationTimeout(cfg))
-		retryable, err := handler.OnRunEnd(pluginCtx, discarded, cfg)
+		retryable, err := handler.OnRunEnd(pluginCtx, run, cfg)
 		cancel()
-		if err != nil || retryable || discarded.PluginsOutput[handler.Name()].GetState() == apiv2.PluginState_PLUGIN_FAILED {
-			cleanupErrors = append(cleanupErrors, fmt.Errorf("failed to finalize %s parent for discarded creation: %v", handler.Name(), err))
+		if err != nil || retryable || run.PluginsOutput[handler.Name()].GetState() == apiv2.PluginState_PLUGIN_FAILED {
+			cleanupErrors = append(cleanupErrors, fmt.Errorf("failed to finalize %s parent for %s: %v", handler.Name(), label, err))
 		}
 	}
 	return errors.Join(cleanupErrors...)

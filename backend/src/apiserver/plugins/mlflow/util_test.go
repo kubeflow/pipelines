@@ -613,11 +613,13 @@ func TestCreateRunWithKFPTags(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "mlflow-parent-run-1", mlflowRunID)
 
-	// Verify tags were included in the CreateRun request body. The four KFP
-	// tags plus the idempotency-key tag used for CreateRun retries.
+	// Verify tags were included in the CreateRun request body: the four KFP
+	// tags, the idempotency-key tag, and the per-call request tag that the
+	// client adds for CreateRun retries.
 	rawTags, ok := receivedBody["tags"].([]interface{})
 	require.True(t, ok, "tags should be present in CreateRun body")
-	assert.Len(t, rawTags, 5)
+	assert.Len(t, rawTags, 6)
+	assert.Equal(t, commonmlflow.CreateRequestTagKey, rawTags[5].(map[string]interface{})["key"])
 }
 
 func TestBuildKFPTags(t *testing.T) {

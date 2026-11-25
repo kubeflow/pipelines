@@ -29,7 +29,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/proto"
 	authzv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -257,9 +256,9 @@ func TestCreateRun_PluginCachedTemplateUnauthorizedCleansUp(t *testing.T) {
 			assert.Zero(t, store.ExecClientFake.GetWorkflowCount())
 			_, err = manager.GetRun(run.UUID)
 			assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
-			require.Len(t, dispatcher.endedRuns, 1)
-			assert.Equal(t, run.UUID, dispatcher.endedRuns[0].RunID)
-			assert.True(t, proto.Equal(dispatcher.output, dispatcher.endedRuns[0].PluginsOutput[apiservermlflow.PluginName]))
+			assert.Empty(t, dispatcher.endedRuns)
+			require.Len(t, dispatcher.rejectedRuns, 1)
+			assertRejectedRunOutput(t, run.UUID, dispatcher.output, dispatcher.rejectedRuns[0])
 		})
 	}
 }

@@ -16,6 +16,7 @@ package plugins
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
@@ -103,4 +104,72 @@ func TestOnRunCreationDiscardedPreservesWinningParentsAndOutput(t *testing.T) {
 			require.Zero(t, store.callCount, "cleanup must never persist the discarded request's output")
 		})
 	}
+}
+
+func TestOnRunCreationRejectedFinalizesParentsWithoutPersisting(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		output     *apiv2.PluginOutput
+		wantCalls  int
+		wantError  bool
+		cleanupErr bool
+	}{
+		{name: "created parent", output: creationPluginOutput("parent-1"), wantCalls: 1},
+		{name: "no parent", output: &apiv2.PluginOutput{StateMessage: "config resolution failed"}},
+		{name: "cleanup failure", output: creationPluginOutput("parent-1"), wantCalls: 1, wantError: true, cleanupErr: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			handler := &discardedCreationHandler{fakeHandler: fakeHandler{
+				name: "test", pluginConfig: &PluginConfig{}, endBool: test.cleanupErr,
+			}}
+			store := &fakeRunPluginOutputStoreWithError{}
+			dispatcher, err := NewRunPluginDispatcherImpl([]RunPluginHandler{handler}, &fakeKubeClientProvider{}, store)
+			require.NoError(t, err)
+			run := &PendingRun{RunID: "run-1", Namespace: "ns1"}
+			require.NoError(t, SetPendingRunPluginOutput(run, "test", test.output))
+			err = dispatcher.OnRunCreationRejected(context.Background(), run)
+			if test.wantError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			require.Len(t, handler.ended, test.wantCalls)
+			if test.wantCalls > 0 {
+				require.Equal(t, string(model.RuntimeStateFailed), handler.ended[0].State)
+				require.Equal(t, "parent-1", GetParentRunID(handler.ended[0].PluginsOutput["test"]))
+			}
+			require.Zero(t, store.callCount, "cleanup must never persist the rejected request's output")
+		})
+	}
+}
+
+// CreateRun uses OnRunCreationRejected for every failure before a Workflow
+// exists, so it must finalize each created parent even when an earlier
+// handler's cleanup fails.
+func TestOnRunCreationRejectedFinalizesEveryCreatedParent(t *testing.T) {
+	newHandler := func(name string, endErr error) *discardedCreationHandler {
+		return &discardedCreationHandler{fakeHandler: fakeHandler{name: name, pluginConfig: &PluginConfig{}, endErr: endErr}}
+	}
+	first := newHandler("first", errors.New("mlflow unavailable"))
+	second := newHandler("second", nil)
+	noParent := newHandler("no-parent", nil)
+	notReached := newHandler("not-reached", nil)
+	store := &fakeRunPluginOutputStoreWithError{}
+	dispatcher, err := NewRunPluginDispatcherImpl([]RunPluginHandler{first, second, noParent, notReached}, &fakeKubeClientProvider{}, store)
+	require.NoError(t, err)
+	run := &PendingRun{RunID: "run-1", Namespace: "ns1"}
+	require.NoError(t, SetPendingRunPluginOutput(run, "first", creationPluginOutput("parent-1")))
+	require.NoError(t, SetPendingRunPluginOutput(run, "second", creationPluginOutput("parent-2")))
+	require.NoError(t, SetPendingRunPluginOutput(run, "no-parent", &apiv2.PluginOutput{StateMessage: "config resolution failed"}))
+
+	err = dispatcher.OnRunCreationRejected(context.Background(), run)
+
+	require.ErrorContains(t, err, "mlflow unavailable")
+	require.Len(t, first.ended, 1)
+	require.Len(t, second.ended, 1, "a failed cleanup must not skip the next handler's parent")
+	require.Equal(t, string(model.RuntimeStateFailed), second.ended[0].State)
+	require.Equal(t, "parent-2", GetParentRunID(second.ended[0].PluginsOutput["second"]))
+	require.Empty(t, noParent.ended, "a handler that created no parent has nothing to finalize")
+	require.Empty(t, notReached.ended, "a handler without plugin output has nothing to finalize")
+	require.Zero(t, store.callCount, "cleanup must never persist the rejected request's output")
 }
