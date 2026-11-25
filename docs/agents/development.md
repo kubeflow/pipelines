@@ -162,12 +162,11 @@ separately (see `ARTIFACT_RETENTION_DAYS` for object-store artifacts).
 `TENSORBOARD_PROXY_SIGNING_SECRET` controls the HMAC key for scoped TensorBoard
 proxy paths. The default Kustomize installation uses an initialization Job to
 populate the persistent `ml-pipeline-ui-tensorboard-proxy` Secret only when its
-key is absent, then injects the shared key into every UI replica. The UI uses
-`Recreate` by default to prevent old and shared-key UI pods from overlapping
-during the first migration. Preserve the Secret across upgrades so proxy URLs
-remain valid. After the initial rollout completes, operators can
-[enable rolling UI updates](../operator-guides/server-config.md#enabling-rolling-ui-updates)
-in a separate apply or GitOps sync. See the
+key is absent, then injects the shared key into every UI replica. Existing installations must first
+complete the [2.18 upgrade](../operator-guides/installation.md), which uses
+`Recreate` to adopt the shared key. Preserve that Secret when applying main.
+The default `RollingUpdate` strategy then lets old and new UI pods serve proxy
+URLs with the same key. See the
 [operator guide](../operator-guides/server-config.md#tensorboard-proxy-signing-secret)
 for initialization, recovery, GitOps, and rotation guidance.
 
