@@ -39,3 +39,9 @@ spec:
     sync:
       webhook:
         url: http://kubeflow-pipelines-profile-controller/sync
+        authorization:
+          type: Bearer
+          secretRef:
+            name: kubeflow-pipelines-profile-webhook-auth
+            namespace: kubeflow
+            key: token

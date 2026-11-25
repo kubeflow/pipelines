@@ -20,8 +20,19 @@ by another policy. Full Kubeflow Community Distribution already supplies a
 default same-namespace allowance; the 2.18 dev-kind overlays additionally allow
 TCP port 8080 from `0.0.0.0/0`.
 Account for the complete policy set before relying on this component-local rule.
-It restricts network callers, does not add webhook authentication, and does not
-provide every security control of the full distribution.
+The profile-controller webhook also requires a bearer token. The initializer
+generates it in the `kubeflow-pipelines-profile-webhook-auth` Secret on first
+startup and preserves it on upgrades. Metacontroller sends the token on `/sync`;
+`/healthz` remains unauthenticated. Stock installations need no manual token
+setup. Custom overlays must retain the Secret, initializer, ServiceAccount and
+scoped RBAC, and Metacontroller's `authorization.secretRef`. Deleting the Secret
+causes a new token to be generated; restart the profile controller and reapply
+the DecoratorController so both sides reload it.
+
+The token blocks unauthorized profile reconciliation and the demonstrated
+credential-minting chain. It does not constrain every network destination the
+UI TensorBoard proxy can reach; assess that proxy separately when customizing
+tenant-controlled Viewer Services.
 
 The manifest test suite checks the rendered selectors, namespace placement and
 port across the four multi-user entrypoints. Rendering is not enforcement
