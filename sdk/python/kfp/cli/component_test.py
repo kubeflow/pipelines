@@ -714,6 +714,7 @@ class Test(unittest.TestCase):
         component_source = _make_component(
             func_name='train',
             target_image='custom-image',
+            pip_index_urls=['https://pypi.org/simple'],
             pip_trusted_hosts=['mirror.example.', 'mirror.example.:443'],
         )
         _write_components('components.py', component_source)
