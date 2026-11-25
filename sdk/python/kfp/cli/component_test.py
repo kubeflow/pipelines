@@ -667,6 +667,48 @@ class Test(unittest.TestCase):
         )
         self._docker_client.api.build.assert_not_called()
 
+    def test_rejects_unsafe_trusted_hosts_before_generating_files(self):
+        invalid_hosts = [
+            'https://user:dummy-password@example.invalid',
+            'user:dummy-password@example.invalid',
+            'example.invalid/path',
+            'example.invalid?token=dummy-password',
+            'example.invalid:0',
+            'example.invalid:65536',
+            'example.invalid:invalid',
+            'example.invalid; echo dummy-password',
+            'example.invalid\\\nRUN echo dummy-password',
+        ]
+        for index, host in enumerate(invalid_hosts):
+            with self.subTest(host=host):
+                context_dir = self._working_dir / f'invalid-host-{index}'
+                context_dir.mkdir()
+                (context_dir / 'components.py').write_text(
+                    _make_component(
+                        func_name='train',
+                        target_image='custom-image',
+                        pip_trusted_hosts=[host],
+                        output_component_file='train.yaml',
+                    )
+                )
+
+                result = self.runner.invoke(
+                    self.cli, ['build', str(context_dir), '--no-build-image']
+                )
+
+                self.assertNotEqual(result.exit_code, 0)
+                self.assertIn('trusted hosts', result.output)
+                self.assertNotIn('dummy-password', result.output)
+                self.assertFalse((context_dir / 'Dockerfile').exists())
+                self.assertFalse(
+                    (context_dir / 'runtime-requirements.txt').exists()
+                )
+                self.assertFalse(
+                    (context_dir / 'component_metadata' / 'train.yaml').exists()
+                )
+                self.assertFalse((self._working_dir / 'train.yaml').exists())
+                self._docker_client.api.build.assert_not_called()
+
     def test_rejects_kfp_package_url_before_path_conversion(self):
         # Call the callback directly because Click currently requires this
         # option to be an existing local path.

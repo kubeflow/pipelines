@@ -77,6 +77,21 @@ def _has_unsafe_dependency_url(value: str) -> bool:
     return False
 
 
+def _is_valid_trusted_host(value: str) -> bool:
+    # A trusted host is a hostname with an optional port, not a URL or a
+    # shell fragment. It is written directly into a Dockerfile RUN command.
+    match = re.fullmatch(r'([A-Za-z0-9.-]+)(?::([0-9]{1,5}))?', value)
+    if not match:
+        return False
+    hostname, port = match.groups()
+    if any(
+        not label or len(label) > 63 or label[0] == '-' or label[-1] == '-'
+        for label in hostname.split('.')
+    ):
+        return False
+    return port is None or 1 <= int(port) <= 65535
+
+
 # Location at which v2 Python function-based components will stored
 # in containerized components.
 _COMPONENT_ROOT_DIR = pathlib.Path('/usr/local/src/kfp/components')
@@ -328,6 +343,15 @@ class ComponentBuilder:
                 'parameters, or invalid syntax cannot be written to generated '
                 'build files. Use credential-free URLs or a separately managed '
                 'Docker build with secrets.'
+            )
+        if any(
+            not _is_valid_trusted_host(host)
+            for host in self._pip_trusted_hosts or []
+        ):
+            raise click.ClickException(
+                'Pip trusted hosts must be hostnames with an optional valid '
+                'port. Remove URLs, credentials, and shell syntax before '
+                'building the component.'
             )
 
     def maybe_generate_dockerignore(self):
