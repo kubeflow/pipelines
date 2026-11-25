@@ -857,3 +857,58 @@ func dagTemplate(t *testing.T, wf *wfapi.Workflow, name string) wfapi.Template {
 	t.Fatalf("template %q not found", name)
 	return wfapi.Template{}
 }
+
+// assertNoDuplicateTaskNames checks that every DAG template names each of its
+// tasks once. Argo validation rejects a workflow that repeats a task name.
+func assertNoDuplicateTaskNames(t *testing.T, wf *wfapi.Workflow) {
+	t.Helper()
+	for _, tmpl := range wf.Spec.Templates {
+		if tmpl.DAG == nil {
+			continue
+		}
+		seen := map[string]bool{}
+		for _, task := range tmpl.DAG.Tasks {
+			assert.False(t, seen[task.Name],
+				"template %q names task %q more than once", tmpl.Name, task.Name)
+			seen[task.Name] = true
+		}
+	}
+}
+
+// An exit task may legitimately be named "<upstream>-group", which collides
+// with the name of the wrapper that aggregates several exit tasks sharing that
+// upstream. The wrapper must pick another name rather than fail compilation.
+func TestSharedUpstreamWrapperAvoidsExitTemplateName(t *testing.T) {
+	wf := compileExitHookPipeline(t,
+		[]string{"produce"},
+		[]exitTask{
+			{name: "cleanup", deps: []string{"produce"}},
+			{name: "produce-group", deps: []string{"produce"}},
+		},
+		true,
+	)
+
+	assert.Empty(t, unreachableTemplates(wf),
+		"both exit hooks must stay reachable through the aggregating wrapper")
+	assertNoDuplicateTaskNames(t, wf)
+	for _, name := range []string{"exit-hook-root-cleanup", "exit-hook-root-produce-group"} {
+		invocations := exitHookInvocations(wf)[name]
+		assert.Len(t, invocations, 1, "%q must run exactly once, invoked from %v", name, invocations)
+	}
+}
+
+// A pipeline may already contain tasks named "<exit task>-upstream-gate" or
+// "-upstream-status", which are the names used for the synthetic tasks that
+// gate a multi-upstream exit task. The synthetic tasks must not collide.
+func TestMultiUpstreamGateAvoidsExistingTaskNames(t *testing.T) {
+	wf := compileExitHookPipeline(t,
+		[]string{"produce", "produce-2", "cleanup-upstream-gate", "cleanup-upstream-status"},
+		[]exitTask{{name: "cleanup", deps: []string{"produce", "produce-2"}}},
+		true,
+	)
+
+	assertNoDuplicateTaskNames(t, wf)
+	assert.Empty(t, unreachableTemplates(wf))
+	invocations := exitHookInvocations(wf)["exit-hook-root-cleanup"]
+	assert.Len(t, invocations, 1, "the exit task must run exactly once, invoked from %v", invocations)
+}

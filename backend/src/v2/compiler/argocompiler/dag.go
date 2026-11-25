@@ -151,12 +151,20 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 		return fmt.Errorf("DAG %s must contain one or more non-exit tasks", name)
 	}
 
-	for _, gated := range gatedExitTasks {
-		gateTasks, err := c.upstreamGateTasks(gated)
-		if err != nil {
-			return err
+	if len(gatedExitTasks) > 0 {
+		// The gate task names derive from a user-chosen task name, so the DAG may
+		// already contain a task holding the name a gate would take.
+		usedTaskNames := make(map[string]bool, len(dag.DAG.Tasks))
+		for _, task := range dag.DAG.Tasks {
+			usedTaskNames[task.Name] = true
 		}
-		dag.DAG.Tasks = append(dag.DAG.Tasks, gateTasks...)
+		for _, gated := range gatedExitTasks {
+			gateTasks, err := c.upstreamGateTasks(gated, usedTaskNames)
+			if err != nil {
+				return err
+			}
+			dag.DAG.Tasks = append(dag.DAG.Tasks, gateTasks...)
+		}
 	}
 
 	_, err = c.addTemplate(dag, name)
@@ -726,7 +734,9 @@ func (c *workflowCompiler) exitHookTemplate(dagName string, upstreamTask string,
 		return templates[0], nil
 	}
 
-	wrapperName := fmt.Sprintf("exit-hook-%s-%s-group", dagName, upstreamTask)
+	// An exit task may itself be named "<upstreamTask>-group", in which case the
+	// first pass already registered a template under this name.
+	wrapperName := c.uniqueTemplateName(fmt.Sprintf("exit-hook-%s-%s-group", dagName, upstreamTask))
 	wrapper := &wfapi.Template{
 		Name: wrapperName,
 		Inputs: wfapi.Inputs{
@@ -765,23 +775,47 @@ func (c *workflowCompiler) exitHookTemplate(dagName string, upstreamTask string,
 //     does not succeed, which keeps that failure visible in the DAG phase.
 //
 // Both use a zero-duration suspend template, so neither creates a pod.
-func (c *workflowCompiler) upstreamGateTasks(gated gatedExitTask) ([]wfapi.DAGTask, error) {
+func (c *workflowCompiler) upstreamGateTasks(gated gatedExitTask, usedTaskNames map[string]bool) ([]wfapi.DAGTask, error) {
 	noop, err := c.exitHookNoOpTemplate()
 	if err != nil {
 		return nil, err
 	}
 	gate := wfapi.DAGTask{
-		Name:     gated.taskName + "-upstream-gate",
+		Name:     uniqueSuffixedName(gated.taskName+"-upstream-gate", usedTaskNames),
 		Template: noop,
 		Depends:  dependsAnyFinalState(gated.deps),
 	}
 	addExitTask(&gate, gated.template, inputParameter(paramParentDagTaskID))
 	status := wfapi.DAGTask{
-		Name:     gated.taskName + "-upstream-status",
+		Name:     uniqueSuffixedName(gated.taskName+"-upstream-status", usedTaskNames),
 		Template: noop,
 		Depends:  depends(gated.deps),
 	}
 	return []wfapi.DAGTask{gate, status}, nil
+}
+
+// uniqueSuffixedName returns base, or base with the smallest numeric suffix
+// that used does not already hold, and records the result in used.
+func uniqueSuffixedName(base string, used map[string]bool) string {
+	name := base
+	for i := 2; used[name]; i++ {
+		name = fmt.Sprintf("%s-%d", base, i)
+	}
+	used[name] = true
+	return name
+}
+
+// uniqueTemplateName returns base, or base with the smallest numeric suffix
+// that no template has registered yet. Generated template names derive from
+// user-chosen task names, which can collide.
+func (c *workflowCompiler) uniqueTemplateName(base string) string {
+	name := base
+	for i := 2; ; i++ {
+		if _, taken := c.templates[c.templateName(name)]; !taken {
+			return name
+		}
+		name = fmt.Sprintf("%s-%d", base, i)
+	}
 }
 
 // exitHookNoOpTemplate adds, once per workflow, a template that completes
