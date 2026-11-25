@@ -1,0 +1,62 @@
+# Deletes the branch of a Dependabot or Copybara pull request that closes
+# without merging. Repository auto-delete covers merged pull requests only, so
+# these bot branches otherwise stay behind. The branch is kept if it moved
+# after the pull request closed or an open pull request still uses it.
+#
+# Security: pull_request_target runs with a write token, so this workflow never
+# checks out or executes pull request code, never interpolates event data into
+# scripts, and passes the token only to the step that calls the API.
+name: Bot Branch Cleanup
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions: {}
+
+jobs:
+  delete-branch:
+    name: Delete closed bot branch
+    # Use the PR author, not the event actor, who may be a maintainer.
+    if: >-
+      github.repository == 'kubeflow/pipelines' &&
+      !github.event.pull_request.merged &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      ((github.event.pull_request.user.login == 'dependabot[bot]' &&
+        startsWith(github.event.pull_request.head.ref, 'dependabot/')) ||
+       (github.event.pull_request.user.login == 'copybara-service[bot]' &&
+        startsWith(github.event.pull_request.head.ref, 'test_')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # Delete the branch.
+      pull-requests: read # Confirm no open pull request uses the branch.
+
+    steps:
+      - name: Checkout trusted cleanup script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          # pull_request_target runs from the base branch, so this is trusted.
+          ref: ${{ github.workflow_sha }}
+          sparse-checkout: |
+            .github/scripts/bot_branch_cleanup.py
+          sparse-checkout-cone-mode: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.13'
+
+      - name: Delete branch if still unused
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          # Event data is passed only through the environment.
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_MERGED: ${{ github.event.pull_request.merged }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        run: python3 .github/scripts/bot_branch_cleanup.py
