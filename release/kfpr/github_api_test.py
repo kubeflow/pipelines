@@ -77,6 +77,58 @@ class GithubPollingTest(unittest.TestCase):
             DuplicateCiRunner(), 'https://github.com/kubeflow/pipelines/pull/1'
         )
 
+    def test_watch_pr_ci_recognizes_trusted_job_renames(self):
+        head = 'a' * 40
+        url = 'https://github.com/kubeflow/pipelines'
+        run = {
+            'event': 'pull_request_target',
+            'repository': {'full_name': 'kubeflow/pipelines'},
+            'path': '.github/workflows/ci-checks.yml',
+            'head_sha': head,
+        }
+        for old, new in (
+            ('check_ci_status (0)', 'check_ci_status (0) / publish'),
+            ('queue_admission', 'queue_admission / reconcile'),
+        ):
+            cancelled = {
+                '__typename': 'CheckRun',
+                'workflowName': 'CI Check',
+                'name': old,
+                'detailsUrl': f'{url}/actions/runs/1/job/2',
+                'startedAt': '2026-11-23T04:07:54Z',
+                'status': 'COMPLETED',
+                'conclusion': 'CANCELLED',
+            }
+            success = {
+                **cancelled,
+                'name': new,
+                'detailsUrl': f'{url}/actions/runs/3/job/4',
+                'startedAt': '2026-11-23T04:14:31Z',
+                'conclusion': 'SUCCESS',
+            }
+            pr = json.dumps(
+                dict(
+                    state='OPEN',
+                    headRefOid=head,
+                    statusCheckRollup=[cancelled, success],
+                )
+            )
+            runner = mock.Mock(dry_run=False)
+            with self.subTest(old=old):
+                runner.capture.side_effect = [
+                    pr,
+                    json.dumps(run),
+                    json.dumps(run),
+                ]
+                core.watch_pr_ci(runner, f'{url}/pull/1')
+                runner.capture.side_effect = [
+                    pr,
+                    json.dumps(run),
+                    json.dumps({**run, 'path': 'other.yml'}),
+                ]
+                with self.assertRaisesRegex(RuntimeError, 'failed'):
+                    core.watch_pr_ci(runner, f'{url}/pull/1')
+
     def test_watch_pr_ci_returns_when_all_gates_succeed(self):
 
         class PassingCiRunner:
@@ -104,7 +156,7 @@ class GithubPollingTest(unittest.TestCase):
                 'view',
                 'https://github.com/kubeflow/pipelines/pull/1',
                 '--json',
-                'state,url,statusCheckRollup',
+                'state,url,headRefOid,statusCheckRollup',
             ],
         )
 

@@ -98,6 +98,70 @@ def has_successful_ci_passed(checks: list[dict]) -> bool:
     )
 
 
+def superseded_ci_bookkeeping(api, check, checks, head):
+    """Recognize cancelled aggregate/admission jobs followed by actual
+    success."""
+    # The reusable jobs keep the same duties as their original inline jobs.
+    job_names = {
+        'queue_admission': 'queue_admission / reconcile',
+        'check_ci_status (0)': 'check_ci_status (0) / publish',
+    }
+    name = job_names.get(check.get('name'), check.get('name'))
+    if not (
+        re.fullmatch('[0-9a-f]{40}', head or '')
+        and check.get('__typename') == 'CheckRun'
+        and check.get('workflowName') == 'CI Check'
+        and name
+        in (*job_names.values(), 'check_ci_status (0) / wake_admission')
+        and check.get('status') == 'COMPLETED'
+        and check.get('conclusion') == 'CANCELLED'
+        and check.get('startedAt')
+    ):
+        return False
+    successors = [
+        other
+        for other in checks
+        if all(
+            other.get(key) == check[key]
+            for key in ('__typename', 'workflowName', 'status')
+        )
+        and job_names.get(other.get('name'), other.get('name')) == name
+        and other.get('conclusion') == 'SUCCESS'
+        and (other.get('startedAt') or '') > check['startedAt']
+    ]
+    if not successors:
+        return False
+    newest = max(successors, key=lambda other: other['startedAt'])
+    return all(trusted_ci_check(api, job, head) for job in (check, newest))
+
+
+def trusted_ci_check(api, job, head):
+    match = re.fullmatch(
+        rf'https://github[.]com/{REPO}/actions/runs/([1-9][0-9]*)/job/[1-9][0-9]*',
+        job.get('detailsUrl') or '',
+    )
+    if not match or not re.fullmatch('[0-9a-f]{40}', head or ''):
+        return False
+    run = api(f'actions/runs/{match[1]}')
+    return (
+        run.get('path') == '.github/workflows/ci-checks.yml'
+        and run.get('event') == 'pull_request_target'
+        and run.get('head_sha') == head
+        and (run.get('repository') or {}).get('full_name') == REPO
+    )
+
+
+def cancelled_queue_notification(api, check, head):
+    return (
+        check.get('__typename') == 'CheckRun'
+        and check.get('workflowName') == 'CI Check'
+        and check.get('name') == 'check_ci_status (0) / wake_admission'
+        and check.get('status') == 'COMPLETED'
+        and check.get('conclusion') == 'CANCELLED'
+        and trusted_ci_check(api, check, head)
+    )
+
+
 def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
     """Poll PR checks until one fails or all reported checks complete.
 
@@ -109,6 +173,12 @@ def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
     if runner.dry_run:
         print('[dry-run] PR CI watch skipped')
         return
+
+    def read_run(endpoint):
+        return json.loads(
+            runner.capture(['gh', 'api', f'repos/{REPO}/{endpoint}'])
+        )
+
     reported_check_urls = set()
     while True:
         pr = json.loads(
@@ -119,7 +189,7 @@ def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
                     'view',
                     pr_url,
                     '--json',
-                    'state,url,statusCheckRollup',
+                    'state,url,headRefOid,statusCheckRollup',
                 ]
             )
         )
@@ -139,6 +209,13 @@ def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
             continue
         latest_checks = {}
         for check in checks:
+            head = pr.get('headRefOid')
+            if (
+                pr['state'] == 'MERGED'
+                and cancelled_queue_notification(read_run, check, head)
+                or superseded_ci_bookkeeping(read_run, check, checks, head)
+            ):
+                continue
             name = (
                 check.get('name')
                 or check.get('workflowName')
@@ -147,7 +224,7 @@ def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
             )
             timestamp = check.get('startedAt') or check.get('completedAt') or ''
             # A CheckRun and StatusContext can share a display name.
-            key = (check.get('__typename'), name)
+            key = (check.get('__typename'), check.get('workflowName'), name)
             previous = latest_checks.get(key)
             if previous is None or timestamp >= previous[0]:
                 latest_checks[key] = (timestamp, check)

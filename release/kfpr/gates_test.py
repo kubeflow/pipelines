@@ -93,6 +93,31 @@ class ReleaseGatesTest(unittest.TestCase):
             verify.assert_called_once_with(
                 self.context, 123, 1, 'release-2.17', SHA
             )
+            for old, new in (
+                ('check_ci_status (0)', 'check_ci_status (0) / publish'),
+                ('queue_admission', 'queue_admission / reconcile'),
+            ):
+                with self.subTest(old=old, new=new):
+                    self.pr(
+                        statusCheckRollup=[
+                            pending,
+                            {**cancelled, 'name': old},
+                            {**replacement, 'name': new},
+                        ]
+                    )
+                    self.assertEqual(
+                        steps.validate_release_pr(self.context), SHA
+                    )
+            self.pr(
+                statusCheckRollup=[
+                    pending,
+                    {
+                        **cancelled,
+                        'name': 'check_ci_status (0) / wake_admission',
+                    },
+                ]
+            )
+            self.assertEqual(steps.validate_release_pr(self.context), SHA)
             for problem in (
                 [pending, cancelled],
                 [pending, {**cancelled, 'name': 'API tests'}, replacement],

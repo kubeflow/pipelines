@@ -11,19 +11,16 @@
 
 'use strict';
 
-const {policyReason} = require('./merge_queue_admission');
-
 // Called only with finalize's post-publication verified success. GITHUB_TOKEN
 // status writes do not trigger workflows; workflow_dispatch explicitly wakes the
 // serialized queue writer without waiting for unrelated recovery matrix jobs.
-async function wakeAdmission({github, context, core, pr}) {
-  if (!pr || policyReason(pr, `${context.repo.owner}/${context.repo.repo}`, pr.base?.ref)) return;
+async function wakeAdmission({github, context, core, number, head}) {
   try {
     const {data} = await github.rest.repos.get(context.repo);
     if (!['main', 'master'].includes(data.default_branch)) throw new Error('Invalid default branch');
     await github.rest.actions.createWorkflowDispatch({...context.repo,
       workflow_id: 'merge-queue-recovery.yml', ref: data.default_branch,
-      inputs: {pr_number: String(pr.number), head_sha: pr.head.sha}});
+      inputs: {pr_number: number, head_sha: head}});
   } catch (error) {
     // Notification failure is not failed CI. Scheduled recovery discovers ready
     // PRs even when the immediate notification is lost.

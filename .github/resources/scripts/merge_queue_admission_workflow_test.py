@@ -29,7 +29,22 @@ class AdmissionWorkflowTest(unittest.TestCase):
             (ROOT / '.github/workflows/ci-checks.yml').read_text(),
             Loader=yaml.BaseLoader,
         )
-        cls.job = cls.workflow['jobs']['queue_admission']
+        cls.caller = cls.workflow['jobs']['queue_admission']
+        cls.writer = yaml.load(
+            (ROOT / '.github/workflows/merge-queue-admission.yml').read_text(),
+            Loader=yaml.BaseLoader,
+        )
+        cls.job = cls.writer['jobs']['reconcile']
+
+    def test_queue_writer_only_runs_through_trusted_local_workflow_call(self):
+        self.assertEqual(
+            self.caller['uses'], './.github/workflows/merge-queue-admission.yml'
+        )
+        self.assertEqual(set(self.writer['on']), {'workflow_call'})
+        self.assertEqual(self.writer['permissions'], {})
+        self.assertEqual(self.caller['permissions'], self.job['permissions'])
+        self.assertNotIn('secrets', self.caller)
+        self.assertNotIn('concurrency', self.caller)
 
     def test_default_branch_activation_retains_trusted_policy_guard(self):
         policy = json.loads(
@@ -98,17 +113,39 @@ class AdmissionWorkflowTest(unittest.TestCase):
         )
 
     def test_verified_publisher_wakes_admission_with_accounting(self) -> None:
-        publisher = self.workflow['jobs']['check_ci_status']
-        self.assertEqual(publisher['permissions']['actions'], 'write')
-        script = publisher['steps'][-1]['with']['script']
-        self.assertIn('const pr = await finalize(', script)
-        self.assertIn(
-            'await wakeAdmission({github, context, core, pr})', script
+        jobs = yaml.load(
+            (ROOT / '.github/workflows/ci-publish-status.yml').read_text(),
+            Loader=yaml.BaseLoader,
+        )['jobs']
+        publisher = jobs['publish']
+        wake = jobs['wake_admission']
+        self.assertEqual(publisher['permissions']['actions'], 'read')
+        self.assertEqual(wake['needs'], 'publish')
+        for step in wake['steps']:
+            self.assertEqual(step['continue-on-error'], 'true')
+        self.assertEqual(wake['steps'][0]['id'], 'checkout')
+        self.assertEqual(
+            wake['steps'][1]['if'], "steps.checkout.outcome == 'success'"
         )
-        self.assertLess(
-            script.index('withRequestAccounting({'),
-            script.index('await wakeAdmission('),
+        for name in ('pr_number', 'head_sha'):
+            self.assertEqual(
+                publisher['outputs'][name],
+                '${{ steps.finalize.outputs.' + name + ' }}',
+            )
+            self.assertIn('needs.publish.outputs.' + name, wake['if'])
+            self.assertEqual(
+                wake['steps'][-1]['env']['CI_' + name.upper()],
+                '${{ needs.publish.outputs.' + name + ' }}',
+            )
+        self.assertEqual(
+            wake['permissions'], {'actions': 'write', 'contents': 'read'}
         )
+        self.assertNotIn(
+            'wakeAdmission(', publisher['steps'][-1]['with']['script']
+        )
+        checkout = wake['steps'][0]['with']
+        self.assertEqual(checkout['ref'], '${{ github.workflow_sha }}')
+        self.assertEqual(checkout['persist-credentials'], 'false')
 
     def test_queue_writer_filters_completion_events_before_runner_start(self):
         upstream = 'kubeflow/pipelines'
@@ -146,7 +183,7 @@ class AdmissionWorkflowTest(unittest.TestCase):
                 }
                 self.assertEqual(
                     evaluate(
-                        self.job['if'],
+                        self.caller['if'],
                         {'github': github},
                         {'always': lambda: True, 'cancelled': lambda: False},
                     ),
@@ -166,27 +203,31 @@ class AdmissionWorkflowTest(unittest.TestCase):
         ]:
             self.assertIn(event, events)
         self.assertIn('schedule', self.workflow['on'])
-        self.assertNotIn('needs', self.job)
+        self.assertNotIn('needs', self.caller)
         self.assertEqual(self.job['concurrency']['cancel-in-progress'], 'false')
-        self.assertIn('always()', self.job['if'])
-        self.assertIn("github.event.action == 'completed'", self.job['if'])
+        self.assertIn('always()', self.caller['if'])
+        self.assertIn("github.event.action == 'completed'", self.caller['if'])
         checker = (
             ROOT / '.github/resources/scripts/ci_check_runs.js'
         ).read_text()
         pattern = re.search(r'const EXCLUDED = /(.+)/;', checker).group(1)
         self.assertIsNotNone(re.fullmatch(pattern, 'queue_admission'))
         self.assertIsNone(re.fullmatch(pattern, 'queue_admission_unrelated'))
+        publisher = yaml.load(
+            (ROOT / '.github/workflows/ci-publish-status.yml').read_text(),
+            Loader=yaml.BaseLoader,
+        )['jobs']['publish']
         for job, function in [
-            ('check_ci_status', 'finalize'),
-            ('recover_merged_release', 'finalizeMergedRecovery'),
+            (publisher, 'finalize'),
+            (
+                self.workflow['jobs']['recover_merged_release'],
+                'finalizeMergedRecovery',
+            ),
         ]:
-            finalizer = self.workflow['jobs'][job]['steps'][-1]
+            finalizer = job['steps'][-1]
             self.assertIn(function + '({github', finalizer['with']['script'])
             self.assertFalse(
-                any(
-                    step.get('id') == 'poll'
-                    for step in self.workflow['jobs'][job]['steps']
-                )
+                any(step.get('id') == 'poll' for step in job['steps'])
             )
 
 
