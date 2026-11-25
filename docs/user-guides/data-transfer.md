@@ -77,8 +77,34 @@ The destination must have permission and configuration to read the original URIs
 Import does not verify every external object or grant bucket access. Keep the
 bucket and required credentials after deleting the source cluster.
 
-Archived logs may remain readable if the destination's archive configuration
-matches their original locations. Live source pod logs are not transferred.
+### Historical logs on shared storage
+
+Imported completed runs can read their original `main` log archives when the
+destination uses the same configured store/bucket and a matching namespace/workflow
+archive layout. The importer preserves the original workflow name and runtime
+manifest even when it assigns a new run ID. No log copying, re-import, or per-run
+approval is needed for records retaining that scope. Legacy standalone records
+with an empty logical namespace use the operator-configured runtime namespace,
+which standalone transfer requires to match between installations.
+
+For multi-user deployments, current destination `readLog` authorization must cover
+that original workflow name in the same namespace. Namespace permissions must
+represent the same tenant/data authority in both installations. Sharing a bucket,
+an archive digest, or a submitted source identifier does not grant access. Keys
+outside the authorized namespace/workflow path, alternate buckets/endpoints, and
+records missing required scope are rejected. Custom layouts must match the
+operator-controlled `KFP_LOG_ARCHIVE_KEY_FORMAT` on both the API and UI.
+
+Imported histories are archive-only in both multi-user and standalone mode: a
+matching Pod or Workflow in the destination is never consulted. Live source Pod
+logs are not transferred. Keep the original archive objects and configured
+credentials available after retiring the source cluster. Roll out the API server
+before the UI and verify an imported archived log after both are updated.
+
+The 2.18-to-3.0 format conversion is separate work tracked in
+[PR #14729](https://github.com/kubeflow/pipelines/pull/14729). Use a destination build
+containing that converter for cross-generation imports; the log-access fix does
+not itself add archive-format conversion.
 
 ## Permissions, limits and recovery
 
