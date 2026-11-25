@@ -155,8 +155,8 @@ func (m *V2PipelineTask) validateChildTasks(formats strfmt.Registry) error {
 	}
 
 	for i := 0; i < len(m.ChildTasks); i++ {
-		if typeutils.IsZero(m.ChildTasks[i]) { // not required
-			continue
+		if m.ChildTasks[i] == nil {
+			return validate.Required("child_tasks"+"."+strconv.Itoa(i), "body", m.ChildTasks[i])
 		}
 
 		if m.ChildTasks[i] != nil {
@@ -255,8 +255,8 @@ func (m *V2PipelineTask) validatePods(formats strfmt.Registry) error {
 	}
 
 	for i := 0; i < len(m.Pods); i++ {
-		if typeutils.IsZero(m.Pods[i]) { // not required
-			continue
+		if m.Pods[i] == nil {
+			return validate.Required("pods"+"."+strconv.Itoa(i), "body", m.Pods[i])
 		}
 
 		if m.Pods[i] != nil {
@@ -308,8 +308,8 @@ func (m *V2PipelineTask) validateStateHistory(formats strfmt.Registry) error {
 	}
 
 	for i := 0; i < len(m.StateHistory); i++ {
-		if typeutils.IsZero(m.StateHistory[i]) { // not required
-			continue
+		if m.StateHistory[i] == nil {
+			return validate.Required("state_history"+"."+strconv.Itoa(i), "body", m.StateHistory[i])
 		}
 
 		if m.StateHistory[i] != nil {
@@ -454,7 +454,7 @@ func (m *V2PipelineTask) contextValidateChildTasks(ctx context.Context, formats 
 		if m.ChildTasks[i] != nil {
 
 			if typeutils.IsZero(m.ChildTasks[i]) { // not required
-				return nil
+				continue
 			}
 
 			if err := m.ChildTasks[i].ContextValidate(ctx, formats); err != nil {
@@ -533,7 +533,7 @@ func (m *V2PipelineTask) contextValidatePods(ctx context.Context, formats strfmt
 		if m.Pods[i] != nil {
 
 			if typeutils.IsZero(m.Pods[i]) { // not required
-				return nil
+				continue
 			}
 
 			if err := m.Pods[i].ContextValidate(ctx, formats); err != nil {
@@ -587,7 +587,7 @@ func (m *V2PipelineTask) contextValidateStateHistory(ctx context.Context, format
 		if m.StateHistory[i] != nil {
 
 			if typeutils.IsZero(m.StateHistory[i]) { // not required
-				return nil
+				continue
 			}
 
 			if err := m.StateHistory[i].ContextValidate(ctx, formats); err != nil {
