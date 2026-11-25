@@ -16,7 +16,9 @@ package plugins
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"sort"
 
 	"github.com/golang/glog"
@@ -24,6 +26,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // RunPluginOutputStore abstracts the DB write needed to persist plugin output.
@@ -201,13 +204,17 @@ func (d *RunPluginDispatcherImpl) OnRunEnd(ctx context.Context, run *PersistedRu
 				return true
 			}
 
+			hasParentRun := GetParentRunID(pluginOutput) != ""
 			launcherNamespacePluginCfgStr := launcherNamespacePluginCfgs[handler.Name()]
 			runPluginCfg, err := handler.ResolveRunPluginConfig(ctx, d.kubeClients.GetClientSet(), launcherNamespacePluginCfgStr, run.Namespace)
 			if err != nil {
+				if hasParentRun && isTransientConfigError(err) {
+					glog.Warningf("transient error resolving %s config for run %q; requesting retry: %v", handler.Name(), run.RunID, err)
+					return false
+				}
 				glog.Warningf("failed to resolve plugin config for %s on run %q (run creation will continue): %v", handler.Name(), run.RunID, err)
 			}
 
-			hasParentRun := GetParentRunID(pluginOutput) != ""
 			pluginOperationBudget := handler.GetPluginOperationTimeout(runPluginCfg)
 			pluginCtx, cancel := context.WithTimeout(ctx, pluginOperationBudget)
 			defer cancel()
@@ -306,6 +313,22 @@ func (d *RunPluginDispatcherImpl) executePostAction(
 		return syncOK, retryRequested, false
 	}
 	return syncOK, retryRequested, true
+}
+
+// isTransientConfigError reports whether a config resolution error came from a
+// temporary Kubernetes API or network condition, as opposed to config that is
+// missing or invalid. A 500 counts as permanent: a deferred terminal report is
+// requeued without limit, so a persistent 500 would retry forever.
+func isTransientConfigError(err error) bool {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	return apierrors.IsServiceUnavailable(err) || apierrors.IsServerTimeout(err) ||
+		apierrors.IsTimeout(err) || apierrors.IsTooManyRequests(err)
 }
 
 func (d *RunPluginDispatcherImpl) RetrieveMultiUserModeConfigOverrides(ctx context.Context, runID string, namespace string) (map[string]string, error) {
