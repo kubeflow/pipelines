@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
+import time
 from typing import Any, Dict, List, Optional
 
 import click
@@ -19,6 +21,7 @@ import click
 from kfp import client
 from kfp.cli import output
 from kfp.cli.utils import parsing
+from kfp.server_api import V2RecurringRunStatus
 
 
 @click.group()
@@ -283,19 +286,97 @@ def delete(ctx: click.Context, recurring_run_id: str):
     output.print_deleted_text('recurring_run', recurring_run_id, output_format)
 
 
+def _wait_for_recurring_run_status(
+    client_obj: client.Client,
+    recurring_run_id: str,
+    target_status: str,
+    timeout: int = 60,
+    sleep_interval: float = 1.0,
+) -> Any:
+    """Waits for recurring run status to transition to target_status."""
+    deadline = time.monotonic() + timeout
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError(
+                f"Timed out after {timeout} seconds waiting for recurring run {recurring_run_id} to reach status '{target_status}'."
+            )
+
+        request_timeout = max(1, math.ceil(remaining))
+        try:
+            recurring_run = client_obj.get_recurring_run(
+                recurring_run_id=recurring_run_id,
+                _request_timeout=request_timeout,
+            )
+        except Exception as e:
+            if time.monotonic() > deadline:
+                raise TimeoutError(
+                    f"Timed out after {timeout} seconds waiting for recurring run {recurring_run_id} to reach status '{target_status}'."
+                ) from e
+            raise
+
+        # Check deadline before accepting response: a late response arriving after
+        # the deadline must not be accepted as successful.
+        if time.monotonic() > deadline:
+            raise TimeoutError(
+                f"Timed out after {timeout} seconds waiting for recurring run {recurring_run_id} to reach status '{target_status}'. Current status: '{recurring_run.status}'."
+            )
+
+        if (
+            recurring_run.status
+            and str(recurring_run.status).upper() == target_status.upper()
+        ):
+            return recurring_run
+
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError(
+                f"Timed out after {timeout} seconds waiting for recurring run {recurring_run_id} to reach status '{target_status}'. Current status: '{recurring_run.status}'."
+            )
+
+        time.sleep(min(sleep_interval, remaining))
+
+
 @recurring_run.command()
 @click.argument('recurring-run-id')
+@click.option(
+    '-w',
+    '--wait',
+    is_flag=True,
+    default=False,
+    help='Wait for recurring run to be enabled.',
+)
+@click.option(
+    '-t',
+    '--timeout',
+    type=int,
+    default=60,
+    show_default=True,
+    help='Time in seconds to wait for status transition when --wait is specified.',
+)
 @click.pass_context
-def enable(ctx: click.Context, recurring_run_id: str):
+def enable(
+    ctx: click.Context,
+    recurring_run_id: str,
+    wait: bool = False,
+    timeout: int = 60,
+):
     """Enable a recurring run."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
     client_obj.enable_recurring_run(recurring_run_id=recurring_run_id)
-    # TODO: add wait option, since enable takes time to complete
-    recurring_run = client_obj.get_recurring_run(
-        recurring_run_id=recurring_run_id
-    )
+    if wait:
+        recurring_run = _wait_for_recurring_run_status(
+            client_obj=client_obj,
+            recurring_run_id=recurring_run_id,
+            target_status=V2RecurringRunStatus.ENABLED,
+            timeout=timeout,
+        )
+    else:
+        recurring_run = client_obj.get_recurring_run(
+            recurring_run_id=recurring_run_id
+        )
     output.print_output(
         recurring_run,
         output.ModelType.RECURRING_RUN,
@@ -305,17 +386,44 @@ def enable(ctx: click.Context, recurring_run_id: str):
 
 @recurring_run.command()
 @click.argument('recurring-run-id')
+@click.option(
+    '-w',
+    '--wait',
+    is_flag=True,
+    default=False,
+    help='Wait for recurring run to be disabled.',
+)
+@click.option(
+    '-t',
+    '--timeout',
+    type=int,
+    default=60,
+    show_default=True,
+    help='Time in seconds to wait for status transition when --wait is specified.',
+)
 @click.pass_context
-def disable(ctx: click.Context, recurring_run_id: str):
+def disable(
+    ctx: click.Context,
+    recurring_run_id: str,
+    wait: bool = False,
+    timeout: int = 60,
+):
     """Disable a recurring run."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
     client_obj.disable_recurring_run(recurring_run_id=recurring_run_id)
-    # TODO: add wait option, since disable takes time to complete
-    recurring_run = client_obj.get_recurring_run(
-        recurring_run_id=recurring_run_id
-    )
+    if wait:
+        recurring_run = _wait_for_recurring_run_status(
+            client_obj=client_obj,
+            recurring_run_id=recurring_run_id,
+            target_status=V2RecurringRunStatus.DISABLED,
+            timeout=timeout,
+        )
+    else:
+        recurring_run = client_obj.get_recurring_run(
+            recurring_run_id=recurring_run_id
+        )
     output.print_output(
         recurring_run,
         output.ModelType.RECURRING_RUN,

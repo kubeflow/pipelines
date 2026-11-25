@@ -60,6 +60,40 @@ class TestRecurringRunAliases(parameterized.TestCase):
             recurring_run_id='run-id'
         )
 
+    def test_get_recurring_run_with_request_timeout(self):
+        sdk_client = client.Client.__new__(client.Client)
+        sdk_client._recurring_run_api = Mock(
+            spec=kfp.server_api.RecurringRunServiceApi
+        )
+        sdk_client.get_recurring_run(
+            recurring_run_id='run-id',
+            _request_timeout=5,
+        )
+        sdk_client._recurring_run_api.recurring_run_service_get_recurring_run.assert_called_once_with(
+            recurring_run_id='run-id',
+            _request_timeout=5,
+        )
+
+        sdk_client._recurring_run_api.reset_mock()
+        sdk_client.get_recurring_run(
+            recurring_run_id='run-id',
+            _request_timeout=5.0,
+        )
+        sdk_client._recurring_run_api.recurring_run_service_get_recurring_run.assert_called_once_with(
+            recurring_run_id='run-id',
+            _request_timeout=(5.0, 5.0),
+        )
+
+        sdk_client._recurring_run_api.reset_mock()
+        sdk_client.get_recurring_run(
+            recurring_run_id='run-id',
+            _request_timeout=(2.0, 8.0),
+        )
+        sdk_client._recurring_run_api.recurring_run_service_get_recurring_run.assert_called_once_with(
+            recurring_run_id='run-id',
+            _request_timeout=(2.0, 8.0),
+        )
+
 
 class TestValidatePipelineName(parameterized.TestCase):
     @parameterized.parameters(
