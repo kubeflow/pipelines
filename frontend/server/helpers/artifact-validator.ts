@@ -215,7 +215,8 @@ export async function validateArtifactNamespace(
     return validateArtifactNotFound(artifactUri, claimedNamespace);
   } catch (error) {
     console.error(
-      `[SECURITY] Artifact ownership lookup failed for URI "${artifactUri}"; denying access.`,
+      '[SECURITY] Artifact ownership lookup failed for URI "%s"; denying access.',
+      artifactUri,
       error,
     );
     return { valid: false, reason: 'artifact-api-unavailable' };

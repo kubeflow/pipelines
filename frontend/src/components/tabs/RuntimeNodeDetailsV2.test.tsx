@@ -32,6 +32,8 @@ import {
   LOGS_BANNER_MESSAGE,
   LIFECYCLE_ENDED_MESSAGE,
   LIFECYCLE_FAILURE_MESSAGE,
+  LIFECYCLE_STATUS_ENDED_MESSAGE,
+  LIFECYCLE_STATUS_MESSAGE,
   LIFECYCLE_WARNING_MESSAGE,
   LOGS_DETAILS,
   RuntimeNodeDetailsV2,
@@ -714,6 +716,59 @@ describe('RuntimeNodeDetailsV2', () => {
 
     expect(screen.getByText(LIFECYCLE_ENDED_MESSAGE)).toBeInTheDocument();
     expect(screen.queryByText(LIFECYCLE_WARNING_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it('shows an unclassified lifecycle message as information, not a problem', () => {
+    renderTask(
+      createTask({
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'ContainerCreating-ish',
+        lifecycle_category: 'unknown',
+      }),
+    );
+
+    expect(screen.getByText(LIFECYCLE_STATUS_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(LIFECYCLE_WARNING_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it('does not say an unclassified status may recover once the run has finished', () => {
+    renderTask(
+      createTask({
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'ContainerCreating-ish',
+        lifecycle_category: 'unknown',
+      }),
+      { sourceFinished: true },
+    );
+
+    expect(screen.getByText(LIFECYCLE_STATUS_ENDED_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(LIFECYCLE_STATUS_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it('keeps the warning wording for a classified lifecycle message', () => {
+    renderTask(
+      createTask({
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'Insufficient cpu',
+        lifecycle_category: 'scheduling',
+      }),
+    );
+
+    expect(screen.getByText(LIFECYCLE_WARNING_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(LIFECYCLE_STATUS_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it('shows the failure wording, not the information wording, once an unclassified task fails', () => {
+    renderTask(
+      createTask({
+        state: PipelineTaskTaskState.FAILED,
+        lifecycle_message: 'ContainerCreating-ish',
+        lifecycle_category: 'unknown',
+      }),
+    );
+
+    expect(screen.getByText(LIFECYCLE_FAILURE_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(LIFECYCLE_STATUS_MESSAGE)).not.toBeInTheDocument();
   });
 
   it('says the task failed, not that it has not failed yet, once a task with a lifecycle message fails', () => {

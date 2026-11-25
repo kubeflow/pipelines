@@ -68,7 +68,11 @@ func (p *WorkflowClient) Get(namespace string, name string) (
 func (p *WorkflowClient) List(namespace string, swfName string, completed bool, minIndex int64) (
 	status []swfapi.WorkflowStatus, err error) {
 
-	labelSelector := getLabelSelectorToGetWorkflows(swfName, completed, minIndex)
+	labelSelector, err := getLabelSelectorToGetWorkflows(swfName, completed, minIndex)
+	if err != nil {
+		return nil, wraperror.Wrapf(err,
+			"Could not build the label selector for scheduled workflow (%v)", swfName)
+	}
 
 	workflows, err := p.informer.List(namespace, labelSelector)
 	if err != nil {
@@ -144,13 +148,17 @@ func (p *WorkflowClient) Create(ctx context.Context, namespace string, workflow 
 	return result, nil
 }
 
-func getLabelSelectorToGetWorkflows(swfName string, completed bool, minIndex int64) *labels.Selector {
+func getLabelSelectorToGetWorkflows(swfName string, completed bool, minIndex int64) (*labels.Selector, error) {
 	labelSelector := labels.NewSelector()
 	// The Argo workflow should be active or completed
 	labelSelector = labelSelector.Add(*util.GetRequirementForCompletedWorkflowOrFatal(completed))
 	// The Argo workflow should be labeled with this scheduled workflow name.
-	labelSelector = labelSelector.Add(*util.GetRequirementForScheduleNameOrFatal(swfName))
+	scheduleNameRequirement, err := util.GetRequirementForScheduleName(swfName)
+	if err != nil {
+		return nil, err
+	}
+	labelSelector = labelSelector.Add(*scheduleNameRequirement)
 	// The Argo workflow should have an index greater than...
 	labelSelector = labelSelector.Add(*util.GetRequirementForMinIndexOrFatal(minIndex))
-	return &labelSelector
+	return &labelSelector, nil
 }

@@ -123,7 +123,7 @@ html_theme_options = {
     'navigation_with_keys': True,
     'top_of_page_buttons': ['view', 'edit'],
     'source_repository': 'https://github.com/kubeflow/pipelines',
-    'source_branch': 'master',
+    'source_branch': 'main',
     'source_directory': 'docs/',
 }
 
@@ -131,7 +131,7 @@ html_context = {
     'display_github': True,
     'github_user': 'kubeflow',
     'github_repo': 'pipelines',
-    'github_version': 'master',
+    'github_version': 'main',
     'conf_py_path': '/docs/',
 }
 

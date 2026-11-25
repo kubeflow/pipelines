@@ -71,9 +71,15 @@ func YamlStringToPipelineSpecStruct(s string) (*structpb.Struct, error) {
 
 	yamlStrings := strings.Split(s, "\n---\n")
 	for _, yamlString := range yamlStrings {
+		jsonBytes, err := yaml.YAMLToJSON([]byte(yamlString))
+		// Skip empty and null documents, as template.NewV2SpecTemplate does when it
+		// validates the manifest. Otherwise a manifest that passed validation, such
+		// as one built from a null platform_spec, cannot be read back.
+		if err == nil && string(jsonBytes) == "null" {
+			continue
+		}
 		if template.IsPlatformSpecWithKubernetesConfig([]byte(yamlString)) {
 			hasPlatformSpec = true
-			jsonBytes, err := yaml.YAMLToJSON([]byte(yamlString))
 			if err != nil {
 				return nil, util.Wrap(err, "Failed to convert platformSpec yaml string into a protobuf struct")
 			}
@@ -83,7 +89,6 @@ func YamlStringToPipelineSpecStruct(s string) (*structpb.Struct, error) {
 			}
 		} else {
 			hasPipelineSpec = true
-			jsonBytes, err := yaml.YAMLToJSON([]byte(yamlString))
 			if err != nil {
 				return nil, util.Wrap(err, "Failed to convert pipelineSpec yaml string into a protobuf struct")
 			}

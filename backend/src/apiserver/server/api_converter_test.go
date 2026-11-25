@@ -1571,6 +1571,80 @@ func TestToModelRun(t *testing.T) {
 	}
 }
 
+func TestToModelRun_PipelineInfoName(t *testing.T) {
+	tests := []struct {
+		name         string
+		pipelineInfo *structpb.Value
+		wantExpID    string
+		wantRunID    string
+	}{
+		{
+			"resource name",
+			structpb.NewStructValue(&structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"Name": structpb.NewStringValue("experiments/exp1/runs/run1"),
+				},
+			}),
+			"exp1",
+			"run1",
+		},
+		{
+			"pipeline info is not an object",
+			structpb.NewStringValue("experiments/exp1/runs/run1"),
+			"",
+			"",
+		},
+		{
+			"pipeline info is null",
+			structpb.NewNullValue(),
+			"",
+			"",
+		},
+		{
+			"name is not a string",
+			structpb.NewStructValue(&structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"Name": structpb.NewNumberValue(7),
+				},
+			}),
+			"",
+			"",
+		},
+		{
+			"name is null",
+			structpb.NewStructValue(&structpb.Struct{
+				Fields: map[string]*structpb.Value{
+					"Name": structpb.NewNullValue(),
+				},
+			}),
+			"",
+			"",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			apiRun := &apiv2.Run{
+				DisplayName: "name1",
+				PipelineSource: &apiv2.Run_PipelineSpec{
+					PipelineSpec: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"PipelineInfo": tt.pipelineInfo,
+						},
+					},
+				},
+			}
+			var got *model.Run
+			var err error
+			require.NotPanics(t, func() {
+				got, err = toModelRun(apiRun)
+			})
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantExpID, got.ExperimentId)
+			assert.Equal(t, tt.wantRunID, got.UUID)
+		})
+	}
+}
+
 func Test_toAPIRun(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -2494,6 +2568,66 @@ func Test_toAPIRun_PreservesTopLevelStateOnTaskConversionError(t *testing.T) {
 		if assert.NotNil(t, got.GetError()) {
 			assert.Contains(t, got.GetError().GetMessage(), "Failed to convert task to API format")
 		}
+	}
+}
+
+// A stored manifest that cannot be parsed is reported in the run's error field.
+func Test_toAPIRun_UnparsablePipelineSpecManifest(t *testing.T) {
+	tests := []struct {
+		name                       string
+		run                        *model.Run
+		preferEmbeddedPipelineSpec bool
+	}{
+		{
+			name: "pipeline spec manifest",
+			run: &model.Run{
+				UUID:         "run-bad-manifest",
+				ExperimentId: "exp-bad-manifest",
+				PipelineSpec: model.PipelineSpec{
+					PipelineSpecManifest: "- not\n- a\n- pipeline\n",
+				},
+			},
+		},
+		{
+			name: "pipeline spec manifest preferred over pipeline version",
+			run: &model.Run{
+				UUID:         "run-bad-manifest",
+				ExperimentId: "exp-bad-manifest",
+				PipelineSpec: model.PipelineSpec{
+					PipelineId:           "pipeline-1",
+					PipelineVersionId:    "pipeline-version-1",
+					PipelineSpecManifest: "- not\n- a\n- pipeline\n",
+				},
+			},
+			preferEmbeddedPipelineSpec: true,
+		},
+		{
+			name: "workflow spec manifest",
+			run: &model.Run{
+				UUID:         "run-bad-manifest",
+				ExperimentId: "exp-bad-manifest",
+				PipelineSpec: model.PipelineSpec{
+					WorkflowSpecManifest: "- not\n- a\n- pipeline\n",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got *apiv2.Run
+			require.NotPanics(t, func() {
+				got = toAPIRunWithPipelineSourcePreference(tt.run, tt.preferEmbeddedPipelineSpec)
+			})
+			assert.Equal(t, tt.run.UUID, got.GetRunId())
+			assert.Nil(t, got.GetPipelineSpec())
+			if tt.preferEmbeddedPipelineSpec {
+				assert.NotNil(t, got.GetPipelineVersionReference())
+				assert.Nil(t, got.GetError())
+			} else if assert.NotNil(t, got.GetError()) {
+				assert.Contains(t, got.GetError().GetMessage(), "Failed to convert internal run representation to its API counterpart due to missing pipeline source")
+				assert.Contains(t, got.GetError().GetMessage(), "Failed to parse the pipeline source")
+			}
+		})
 	}
 }
 
