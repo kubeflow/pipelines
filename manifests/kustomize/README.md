@@ -29,6 +29,10 @@ scoped RBAC, and Metacontroller's `authorization.secretRef`. Deleting the Secret
 causes a new token to be generated; restart the profile controller and reapply
 the DecoratorController so both sides reload it.
 
+Custom direct callers of `/sync` must obtain the Secret through
+operator-controlled access and send `Authorization: Bearer <token>` after this
+upgrade. Do not grant tenants access to the Secret.
+
 The token blocks unauthorized profile reconciliation and the demonstrated
 credential-minting chain. It does not constrain every network destination the
 UI TensorBoard proxy can reach; assess that proxy separately when customizing
