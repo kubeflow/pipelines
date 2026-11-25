@@ -2493,6 +2493,19 @@ s3:
     });
 
     it.each([
+      ['files.example/reports//', 'https://files.example/reports//dataset/file'],
+      ['files.example//', 'https://files.example//dataset/file'],
+    ])('preserves a scheme-less base with repeated trailing slashes: %s', async (base, uri) => {
+      mockedFetch.mockResolvedValueOnce({ body: toWebStream('gateway artifact') });
+      app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: base }));
+      await requests(app.app)
+        .get('/artifacts/get')
+        .query({ source: 'https', bucket: 'dataset', key: 'file' })
+        .expect(200, 'gateway artifact');
+      expect(mockedFetch).toHaveBeenCalledWith(uri, { headers: {}, redirect: 'manual' });
+    });
+
+    it.each([
       ['https://files.example/reports//', 'reports//report.txt', '/reports/redirected.txt'],
       ['https://files.example/reports///', 'reports///report.txt', '/reports//redirected.txt'],
       ['https://files.example//', '/report.txt', '/redirected.txt'],

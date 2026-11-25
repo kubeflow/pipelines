@@ -1252,7 +1252,7 @@ function getHttpUrl(
       }
     } else {
       artifactUrl = base;
-      artifactUrl.pathname = [artifactUrl.pathname.replace(/\/+$/, ''), bucket, escapedKey]
+      artifactUrl.pathname = [artifactUrl.pathname.replace(/\/$/, ''), bucket, escapedKey]
         .filter(Boolean)
         .join('/');
     }
