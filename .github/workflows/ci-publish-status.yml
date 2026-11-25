@@ -107,7 +107,6 @@ jobs:
   wake_admission:
     needs: publish
     # A missed notification is retried by scheduled queue recovery.
-    continue-on-error: true
     if: needs.publish.outputs.pr_number != '' && needs.publish.outputs.head_sha != ''
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -115,11 +114,15 @@ jobs:
       actions: write
       contents: read
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - id: checkout
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.workflow_sha }}
           persist-credentials: false
       - name: Wake queue admission for the verified head
+        if: steps.checkout.outcome == 'success'
+        continue-on-error: true
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         env:
           NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"

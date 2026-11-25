@@ -5,6 +5,7 @@ import re
 import tempfile
 from pathlib import Path
 
+from . import github_api
 from .ci_images_client import _api
 from .github_api import REPO, default_branch
 from .workflow_runs import validate_run
@@ -112,51 +113,9 @@ def verify_landed_attestation(context, run_id, pr, branch, sha):
 
 
 def superseded_ci_bookkeeping(context, check, checks, head):
-    """Recognize cancelled aggregate/admission jobs followed by actual
-    success."""
-    # The reusable jobs keep the same duties as their original inline jobs.
-    job_names = {
-        'queue_admission': 'queue_admission / reconcile',
-        'check_ci_status (0)': 'check_ci_status (0) / publish',
-    }
-    name = job_names.get(check.get('name'), check.get('name'))
-    if not (
-        check.get('__typename') == 'CheckRun'
-        and check.get('workflowName') == 'CI Check'
-        and name
-        in (*job_names.values(), 'check_ci_status (0) / wake_admission')
-        and check.get('status') == 'COMPLETED'
-        and check.get('conclusion') == 'CANCELLED'
-        and check.get('startedAt')
-    ):
-        return False
-    successors = [
-        other
-        for other in checks
-        if all(
-            other.get(key) == check[key]
-            for key in ('__typename', 'workflowName', 'status')
-        )
-        and job_names.get(other.get('name'), other.get('name')) == name
-        and other.get('conclusion') == 'SUCCESS'
-        and (other.get('startedAt') or '') > check['startedAt']
-    ]
-    if not successors:
-        return False
-    newest = max(successors, key=lambda other: other['startedAt'])
-    for job in (check, newest):
-        match = re.fullmatch(
-            rf'https://github[.]com/{REPO}/actions/runs/([1-9][0-9]*)/job/[1-9][0-9]*',
-            job.get('detailsUrl') or '',
-        )
-        if not match:
-            return False
-        run = _api(context, f'actions/runs/{match[1]}')
-        if (
-            run.get('path') != '.github/workflows/ci-checks.yml'
-            or run.get('event') != 'pull_request_target'
-            or run.get('head_sha') != head
-            or (run.get('repository') or {}).get('full_name') != REPO
-        ):
-            return False
-    return True
+    def api(endpoint):
+        return _api(context, endpoint)
+
+    return github_api.cancelled_queue_notification(
+        api, check, head
+    ) or github_api.superseded_ci_bookkeeping(api, check, checks, head)

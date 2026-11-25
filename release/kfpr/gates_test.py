@@ -108,6 +108,16 @@ class ReleaseGatesTest(unittest.TestCase):
                     self.assertEqual(
                         steps.validate_release_pr(self.context), SHA
                     )
+            self.pr(
+                statusCheckRollup=[
+                    pending,
+                    {
+                        **cancelled,
+                        'name': 'check_ci_status (0) / wake_admission',
+                    },
+                ]
+            )
+            self.assertEqual(steps.validate_release_pr(self.context), SHA)
             for problem in (
                 [pending, cancelled],
                 [pending, {**cancelled, 'name': 'API tests'}, replacement],

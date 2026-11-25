@@ -121,7 +121,12 @@ class AdmissionWorkflowTest(unittest.TestCase):
         wake = jobs['wake_admission']
         self.assertEqual(publisher['permissions']['actions'], 'read')
         self.assertEqual(wake['needs'], 'publish')
-        self.assertEqual(wake['continue-on-error'], 'true')
+        for step in wake['steps']:
+            self.assertEqual(step['continue-on-error'], 'true')
+        self.assertEqual(wake['steps'][0]['id'], 'checkout')
+        self.assertEqual(
+            wake['steps'][1]['if'], "steps.checkout.outcome == 'success'"
+        )
         for name in ('pr_number', 'head_sha'):
             self.assertEqual(
                 publisher['outputs'][name],
