@@ -607,6 +607,7 @@ export function getArtifactsHandler({
     minio: MinioConfigs;
     allowedDomain: string;
     allowedEndpoints?: string[];
+    allowedRedirectOrigins?: string[];
     allowOfficialAwsEndpoints?: boolean;
     allowedGcsUniverseDomains?: string[];
   };
@@ -621,6 +622,7 @@ export function getArtifactsHandler({
     minio,
     allowedDomain,
     allowedEndpoints = [],
+    allowedRedirectOrigins = [],
     allowOfficialAwsEndpoints,
     allowedGcsUniverseDomains,
   } = artifactsConfigs;
@@ -636,6 +638,7 @@ export function getArtifactsHandler({
     s3: getArtifactStoreOriginAfterRewrite({ ...aws, useSSL: true }),
   };
   const configuredAdditionalEndpoints = [...allowedEndpoints];
+  const configuredRedirectOrigins = [...allowedRedirectOrigins];
   const authorizeEndpoint: ArtifactStoreEndpointPolicy = (endpoint) => {
     if (endpoint.providerType !== 's3' && endpoint.providerType !== 'minio') {
       throw new ArtifactStoreConfigurationError('Invalid artifact store provider type');
@@ -982,9 +985,12 @@ export function getArtifactsHandler({
         await getHttpArtifactsHandler(
           allowedDomain,
           httpUrl,
+          absoluteHttpBase
+            ? new URL(httpBaseUrl.trim())
+            : new URL(`${source}://${httpBaseUrl.trim().replace(/^\/+/, '')}`),
           http.auth,
           peek,
-          absoluteHttpBase ? new URL(http.baseUrl.trim()) : undefined,
+          absoluteHttpBase ? [] : configuredRedirectOrigins,
         )(req, res);
         break;
       }
@@ -1246,7 +1252,7 @@ function getHttpUrl(
       }
     } else {
       artifactUrl = base;
-      artifactUrl.pathname = [artifactUrl.pathname.replace(/\/+$/, ''), bucket, escapedKey]
+      artifactUrl.pathname = [artifactUrl.pathname.replace(/\/$/, ''), bucket, escapedKey]
         .filter(Boolean)
         .join('/');
     }
@@ -1280,12 +1286,13 @@ function isWithinHttpArtifactBase(url: URL, base: URL): boolean {
 function getHttpArtifactsHandler(
   allowedDomain: string,
   url: string,
+  approvedBase: URL,
   auth: {
     key: string;
     defaultValue: string;
   } = { key: '', defaultValue: '' },
   peek: number = 0,
-  approvedBase?: URL,
+  allowedRedirectOrigins: string[] = [],
 ) {
   return async (req: Request, res: Response) => {
     const headers: Record<string, string> = {};
@@ -1313,7 +1320,12 @@ function getHttpArtifactsHandler(
         sendArtifactError(res, 500, 'Domain not allowed.');
         return;
       }
-      if (approvedBase && !isWithinHttpArtifactBase(new URL(allowedUrl), approvedBase)) {
+      const targetUrl = new URL(allowedUrl);
+      const allowedRedirect =
+        targetUrl.origin !== approvedBase.origin &&
+        allowedRedirectOrigins.includes(targetUrl.origin) &&
+        isWithinHttpArtifactBase(targetUrl, new URL(targetUrl.origin));
+      if (!isWithinHttpArtifactBase(targetUrl, approvedBase) && !allowedRedirect) {
         sendArtifactError(
           res,
           400,
@@ -1321,7 +1333,6 @@ function getHttpArtifactsHandler(
         );
         return;
       }
-      const targetUrl = new URL(allowedUrl);
       if (targetUrl.origin !== credentialOrigin) {
         requestHeaders = {};
       }

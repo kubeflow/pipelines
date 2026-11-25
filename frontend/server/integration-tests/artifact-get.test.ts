@@ -2438,6 +2438,74 @@ s3:
     });
 
     it.each([
+      'https://other.example/reports/file',
+      'https://files.example/private/file',
+      'https://files.example/reports/%2e%2e%2fprivate/file',
+    ])('rejects scheme-less gateway redirects outside the base: %s', async (destination) => {
+      mockedFetch.mockResolvedValueOnce({
+        status: 302,
+        headers: new Map([['location', destination]]),
+        body: toWebStream(''),
+      });
+      app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: 'files.example/reports/' }));
+      await requests(app.app)
+        .get('/artifacts/get')
+        .query({ source: 'https', bucket: 'dataset', key: 'report.txt' })
+        .expect(400, 'HTTP artifact URL or redirect is outside the HTTP_BASE_URL origin/path.');
+      expect(mockedFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not treat a domain regex as permission for cross-origin redirects', async () => {
+      mockedFetch.mockResolvedValueOnce({
+        status: 302,
+        headers: new Map([['location', 'https://cdn.host/signed/file']]),
+        body: toWebStream(''),
+      });
+      app = new UIServer(
+        loadConfigs(argv, {
+          HTTP_BASE_URL: 'allowed.host/',
+          ALLOWED_ARTIFACT_DOMAIN_REGEX: '^(allowed|cdn)\\.host$',
+        }),
+      );
+      await requests(app.app)
+        .get('/artifacts/get')
+        .query({ source: 'https', bucket: 'dataset', key: 'file' })
+        .expect(400, 'HTTP artifact URL or redirect is outside the HTTP_BASE_URL origin/path.');
+      expect(mockedFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('follows a redirect inside a scheme-less gateway base path', async () => {
+      mockedFetch.mockResolvedValueOnce({
+        status: 302,
+        headers: new Map([['location', '/reports/signed/file']]),
+        body: toWebStream(''),
+      });
+      mockedFetch.mockResolvedValueOnce({ body: toWebStream('signed artifact') });
+      app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: 'files.example/reports/' }));
+      await requests(app.app)
+        .get('/artifacts/get')
+        .query({ source: 'https', bucket: 'dataset', key: 'file' })
+        .expect(200, 'signed artifact');
+      expect(mockedFetch).toHaveBeenLastCalledWith('https://files.example/reports/signed/file', {
+        headers: {},
+        redirect: 'manual',
+      });
+    });
+
+    it.each([
+      ['files.example/reports//', 'https://files.example/reports//dataset/file'],
+      ['files.example//', 'https://files.example//dataset/file'],
+    ])('preserves a scheme-less base with repeated trailing slashes: %s', async (base, uri) => {
+      mockedFetch.mockResolvedValueOnce({ body: toWebStream('gateway artifact') });
+      app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: base }));
+      await requests(app.app)
+        .get('/artifacts/get')
+        .query({ source: 'https', bucket: 'dataset', key: 'file' })
+        .expect(200, 'gateway artifact');
+      expect(mockedFetch).toHaveBeenCalledWith(uri, { headers: {}, redirect: 'manual' });
+    });
+
+    it.each([
       ['https://files.example/reports//', 'reports//report.txt', '/reports/redirected.txt'],
       ['https://files.example/reports///', 'reports///report.txt', '/reports//redirected.txt'],
       ['https://files.example//', '/report.txt', '/redirected.txt'],
@@ -2839,6 +2907,7 @@ s3:
       });
       const configs = loadConfigs(argv, {
         ALLOWED_ARTIFACT_DOMAIN_REGEX: '^(allowed|cdn)\\.host$',
+        ALLOWED_ARTIFACT_REDIRECT_ORIGINS: 'https://cdn.host',
         HTTP_AUTHORIZATION_DEFAULT_VALUE: 'cross-origin-secret',
         HTTP_AUTHORIZATION_KEY: 'Authorization',
         HTTP_BASE_URL: 'allowed.host/',

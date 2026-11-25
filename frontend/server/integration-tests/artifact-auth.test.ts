@@ -917,7 +917,9 @@ describe('/artifacts authorization', () => {
       const signedUrl = 'https://cdn.host/signed/opaque-object?signature=abc';
       mockHttpRedirect(firstHttpArtifactUrl, signedUrl);
       mockedFetch.mockResolvedValueOnce({ status: 200, body: toWebStream('signed artifact') });
-      app = new UIServer(authEnabledHttpConfigs());
+      const configurations = authEnabledHttpConfigs();
+      configurations.artifacts.allowedRedirectOrigins = ['https://cdn.host'];
+      app = new UIServer(configurations);
       await requests(app.app)
         .get(httpArtifactRequest)
         .set('kubeflow-userid', 'user@example.com')
