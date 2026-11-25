@@ -42,14 +42,15 @@ type PersistenceAgent struct {
 }
 
 // NewPersistenceAgent returns a new persistence agent.
-// imagePullFailureChecker is optional (may be nil) and enables detection and
-// termination of workflows with pods stuck in ImagePullBackOff/ErrImagePull.
+// stuckPodChecker is optional (may be nil) and enables detection and
+// termination of workflows with pods stuck in ImagePullBackOff/ErrImagePull or
+// unschedulable for longer than their grace period.
 func NewPersistenceAgent(
 	swfInformerFactory swfinformers.SharedInformerFactory,
 	execInformer util.ExecutionInformer,
 	pipelineClient *client.PipelineClient,
 	time util.TimeInterface,
-	imagePullFailureChecker worker.ImagePullFailureChecker,
+	stuckPodChecker worker.StuckPodChecker,
 ) (*PersistenceAgent, error) {
 	// obtain references to shared informers
 	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
@@ -68,8 +69,8 @@ func NewPersistenceAgent(
 	}
 
 	workflowSaver := worker.NewWorkflowSaver(workflowClient, pipelineClient, ttlSecondsAfterWorkflowFinish)
-	if imagePullFailureChecker != nil {
-		workflowSaver.SetImagePullFailureChecker(imagePullFailureChecker)
+	if stuckPodChecker != nil {
+		workflowSaver.SetStuckPodChecker(stuckPodChecker)
 	}
 
 	workflowWorker, err := worker.NewPersistenceWorker(time, workflowregister.WorkflowKind,

@@ -141,9 +141,9 @@ func indexerPodGetter(indexer cache.Indexer) PodGetter {
 // newTestChecker builds a checker on top of the given indexer with a fake
 // clock. Live pod reads are served from the same indexer unless a test
 // overrides checker.getPod.
-func newTestChecker(podIndexer cache.Indexer, executionClient util.ExecutionClient, gracePeriod time.Duration) (*imagePullFailureChecker, *fakeClock) {
+func newTestChecker(podIndexer cache.Indexer, executionClient util.ExecutionClient, gracePeriod time.Duration) (*stuckPodChecker, *fakeClock) {
 	clock := &fakeClock{current: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)}
-	checker := NewImagePullFailureChecker(podIndexer, indexerPodGetter(podIndexer), executionClient, gracePeriod).(*imagePullFailureChecker)
+	checker := NewStuckPodChecker(podIndexer, indexerPodGetter(podIndexer), executionClient, ImagePullCondition(gracePeriod)).(*stuckPodChecker)
 	checker.now = clock.now
 	return checker, clock
 }
@@ -809,7 +809,7 @@ func TestCheckAndTerminate_RecreatedWorkflowResetsTracking(t *testing.T) {
 	tracked := checker.failureStart["default/my-workflow"]
 	assert.Equal(t, recreated.UID, tracked.uid)
 	assert.Len(t, tracked.failures, 1, "only the new attempt's pod is tracked")
-	_, trackedNew := tracked.failures[imagePullFailureKey{podUID: newPod.UID, container: "main", image: "bad-image:latest"}]
+	_, trackedNew := tracked.failures[stuckPodKey{condition: "image pull failure", podUID: newPod.UID, container: "main", subject: "bad-image:latest"}]
 	assert.True(t, trackedNew)
 }
 
@@ -876,9 +876,9 @@ func TestCheckAndTerminate_RecoveredInitContainerDoesNotStartMainContainerClock(
 	tracked := checker.failureStart["default/my-workflow"]
 	require.NotNil(t, tracked)
 	assert.Len(t, tracked.failures, 1)
-	_, initTracked := tracked.failures[imagePullFailureKey{podUID: pod.UID, container: "init", image: "init-image:v1"}]
+	_, initTracked := tracked.failures[stuckPodKey{condition: "image pull failure", podUID: pod.UID, container: "init", subject: "init-image:v1"}]
 	assert.False(t, initTracked, "the recovered init container's entry is dropped")
-	start, mainTracked := tracked.failures[imagePullFailureKey{podUID: pod.UID, container: "main", image: "main-image:v1"}]
+	start, mainTracked := tracked.failures[stuckPodKey{condition: "image pull failure", podUID: pod.UID, container: "main", subject: "main-image:v1"}]
 	assert.True(t, mainTracked)
 	assert.Equal(t, clock.current, start)
 

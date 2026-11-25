@@ -24,18 +24,18 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
-// defaultImagePullFailureCheckTimeout bounds a single image pull failure check,
+// defaultStuckPodCheckTimeout bounds a single stuck pod check,
 // including its termination request, so a stalled API server connection cannot
 // hold a persistence worker indefinitely.
-const defaultImagePullFailureCheckTimeout = 30 * time.Second
+const defaultStuckPodCheckTimeout = 30 * time.Second
 
 // WorkflowSaver provides a function to persist a workflow to a database.
 type WorkflowSaver struct {
 	client                        client.WorkflowClientInterface
 	pipelineClient                client.PipelineClientInterface
 	ttlSecondsAfterWorkflowFinish int64
-	imagePullFailureChecker       ImagePullFailureChecker
-	imagePullFailureCheckTimeout  time.Duration
+	stuckPodChecker               StuckPodChecker
+	stuckPodCheckTimeout          time.Duration
 }
 
 func NewWorkflowSaver(client client.WorkflowClientInterface,
@@ -44,15 +44,16 @@ func NewWorkflowSaver(client client.WorkflowClientInterface,
 		client:                        client,
 		pipelineClient:                pipelineClient,
 		ttlSecondsAfterWorkflowFinish: ttlSecondsAfterWorkflowFinish,
-		imagePullFailureCheckTimeout:  defaultImagePullFailureCheckTimeout,
+		stuckPodCheckTimeout:          defaultStuckPodCheckTimeout,
 	}
 }
 
-// SetImagePullFailureChecker sets the optional image pull failure checker.
-// When set, running workflows will be checked for pods stuck in
-// ImagePullBackOff/ErrImagePull and terminated after the grace period.
-func (s *WorkflowSaver) SetImagePullFailureChecker(checker ImagePullFailureChecker) {
-	s.imagePullFailureChecker = checker
+// SetStuckPodChecker sets the optional stuck pod checker. When set, running
+// workflows are checked for pods that are stuck for good (for example in
+// ImagePullBackOff or unschedulable) and terminated once the failure has
+// outlasted its grace period.
+func (s *WorkflowSaver) SetStuckPodChecker(checker StuckPodChecker) {
+	s.stuckPodChecker = checker
 }
 
 func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch int64) error {
@@ -62,8 +63,8 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 	if err != nil && isNotFound {
 		// Permanent failure.
 		// The Workflow may no longer exist, we stop processing and do not retry.
-		if s.imagePullFailureChecker != nil {
-			s.imagePullFailureChecker.Forget(namespace, name)
+		if s.stuckPodChecker != nil {
+			s.stuckPodChecker.Forget(namespace, name)
 		}
 		return util.NewCustomError(err, util.CUSTOM_CODE_PERMANENT,
 			"Workflow (%s) in work queue no longer exists: %v", key, err)
@@ -78,14 +79,14 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 		log.Infof("Skip syncing Workflow (%v): workflow does not have a Run ID label.", name)
 		return nil
 	}
-	// Drop any image pull failure tracking state as soon as the workflow is
+	// Drop any stuck pod tracking state as soon as the workflow is
 	// seen in a final state. This must happen before the persisted-final
 	// shortcut below: the API server may have adopted and persisted the
 	// terminal workflow while this agent still saw it running, in which case
 	// every later sync takes the shortcut and the state would otherwise
 	// survive until a retry of the run inherits the consumed grace period.
-	if s.imagePullFailureChecker != nil && wf.ExecutionStatus().IsInFinalState() {
-		s.imagePullFailureChecker.Forget(namespace, name)
+	if s.stuckPodChecker != nil && wf.ExecutionStatus().IsInFinalState() {
+		s.stuckPodChecker.Forget(namespace, name)
 	}
 	if wf.PersistedFinalState() && time.Now().Unix()-wf.ExecutionStatus().FinishedAt() < s.ttlSecondsAfterWorkflowFinish {
 		// Skip persisting the workflow if the workflow is finished
@@ -94,11 +95,11 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 		return nil
 	}
 
-	// Check for image pull failures on workflows that are still running. The
+	// Check for stuck pods on workflows that are still running. The
 	// check is bounded by a timeout so a stalled termination request cannot
 	// block reporting; errors are logged and reporting proceeds regardless.
-	if s.imagePullFailureChecker != nil && !wf.ExecutionStatus().IsInFinalState() {
-		s.checkImagePullFailures(wf)
+	if s.stuckPodChecker != nil && !wf.ExecutionStatus().IsInFinalState() {
+		s.checkStuckPods(wf)
 	}
 
 	// Save this Workflow to the database.
@@ -123,10 +124,10 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 	return nil
 }
 
-func (s *WorkflowSaver) checkImagePullFailures(wf util.ExecutionSpec) {
-	ctx, cancel := context.WithTimeout(context.Background(), s.imagePullFailureCheckTimeout)
+func (s *WorkflowSaver) checkStuckPods(wf util.ExecutionSpec) {
+	ctx, cancel := context.WithTimeout(context.Background(), s.stuckPodCheckTimeout)
 	defer cancel()
-	if err := s.imagePullFailureChecker.CheckAndTerminate(ctx, wf.ExecutionObjectMeta()); err != nil {
-		log.Warnf("Workflow (%v): error checking image pull failures: %v", wf.ExecutionName(), err)
+	if err := s.stuckPodChecker.CheckAndTerminate(ctx, wf.ExecutionObjectMeta()); err != nil {
+		log.Warnf("Workflow (%v): error checking for stuck pods: %v", wf.ExecutionName(), err)
 	}
 }
