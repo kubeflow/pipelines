@@ -15,7 +15,9 @@
 package storage
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
@@ -54,6 +56,7 @@ var jobColumns = []string{
 	"Conditions",
 	"RuntimeParameters",
 	"PipelineRoot",
+	"EnableCaching",
 	"ExperimentUUID",
 	"PipelineVersionId",
 	"PluginsInput",
@@ -74,6 +77,9 @@ type JobStoreInterface interface {
 
 	// Update a recurring run entry in the database.
 	UpdateJob(swf *util.ScheduledWorkflow) error
+
+	// Validate a report while holding its job row lock, then update it atomically.
+	UpdateJobWithGuard(ctx context.Context, swf *util.ScheduledWorkflow, guard func(context.Context) (bool, error)) error
 
 	// Update observed status without accepting changes to the authorized recurring run specification.
 	UpdateJobStatus(swf *util.ScheduledWorkflow) error
@@ -260,6 +266,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			periodicScheduleStartTimeInSec, periodicScheduleEndTimeInSec, intervalSecond, updatedAtInSec sql.NullInt64
 		var cron, resourceReferencesInString, runtimeParameters, pipelineRoot sql.NullString
 		var experimentID, pipelineVersionID, pluginsInput sql.NullString
+		var enableCaching sql.NullBool
 		var enabled, noCatchup bool
 		var maxConcurrency int64
 		err := r.Scan(
@@ -268,7 +275,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			&cronScheduleStartTimeInSec, &cronScheduleEndTimeInSec, &cron,
 			&periodicScheduleStartTimeInSec, &periodicScheduleEndTimeInSec, &intervalSecond,
 			&pipelineId, &pipelineName, &pipelineSpecManifest, &workflowSpecManifest, &parameters,
-			&conditions, &runtimeParameters, &pipelineRoot, &experimentID,
+			&conditions, &runtimeParameters, &pipelineRoot, &enableCaching, &experimentID,
 			&pipelineVersionID, &pluginsInput, &resourceReferencesInString)
 		if err != nil {
 			return nil, err
@@ -290,7 +297,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 				pvID = model.GetRefIdFromResourceReferences(resourceReferences, model.PipelineVersionResourceType)
 			}
 		}
-		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
+		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot, enableCaching)
 		job := &model.Job{
 			UUID:           uuid,
 			DisplayName:    displayName,
@@ -334,6 +341,9 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 		}
 		job = job.ToV2()
 		jobs = append(jobs, job)
+	}
+	if err := r.Err(); err != nil {
+		return nil, err
 	}
 	return jobs, nil
 }
@@ -414,6 +424,7 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 			q("Parameters"):                     j.PipelineSpec.Parameters,
 			q("RuntimeParameters"):              j.PipelineSpec.RuntimeConfig.Parameters,
 			q("PipelineRoot"):                   j.PipelineSpec.RuntimeConfig.PipelineRoot,
+			q("EnableCaching"):                  j.PipelineSpec.RuntimeConfig.EnableCaching,
 			q("ExperimentUUID"):                 j.ExperimentId,
 			q("PipelineVersionId"):              j.PipelineSpec.PipelineVersionId,
 			q("PluginsInput"):                   largeTextToNullableSQL(j.PluginsInputString),
@@ -452,6 +463,8 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 }
 
 func (s *JobStore) ChangeJobMode(id string, enabled bool) error {
+	// Match by identity even for no-op requests so PostgreSQL waits for an
+	// in-flight report's row lock before applying the requested mode.
 	now := s.time.Now().Unix()
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
@@ -462,7 +475,6 @@ func (s *JobStore) ChangeJobMode(id string, enabled bool) error {
 			q("UpdatedAtInSec"): now,
 		}).
 		Where(sq.Eq{q("UUID"): id}).
-		Where(sq.Eq{q("Enabled"): !enabled}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Error when creating query to enable job %v to %v", id, enabled)
@@ -475,10 +487,64 @@ func (s *JobStore) ChangeJobMode(id string, enabled bool) error {
 }
 
 func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
+	updateSQL, err := s.jobUpdateQuery(swf)
+	if err != nil {
+		return err
+	}
+	return s.updateJob(swf, updateSQL)
+}
+
+// UpdateJobWithGuard serializes a report with API mode changes. The guard must
+// read current source evidence only after the job row is locked; it must not
+// call back into the store or acquire another database connection.
+func (s *JobStore) UpdateJobWithGuard(ctx context.Context, swf *util.ScheduledWorkflow, guard func(context.Context) (bool, error)) error {
+	if guard == nil {
+		return util.NewInvalidInputError("A scheduled workflow report requires a freshness guard")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to start scheduled workflow report transaction")
+	}
+	defer tx.Rollback()
+	q := s.dbDialect.QuoteIdentifier
+	query, args, err := s.dbDialect.QueryBuilder().Select(q("UUID")).From(q("jobs")).Where(sq.Eq{q("UUID"): string(swf.UID)}).ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to build scheduled workflow report lock")
+	}
+	var id string
+	if err := tx.QueryRowContext(ctx, s.dbDialect.SelectForUpdate(query), args...).Scan(&id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return util.NewResourceNotFoundError("Recurring run", string(swf.UID))
+		}
+		return util.NewInternalServerError(err, "Failed to lock recurring run %s for reporting", swf.UID)
+	}
+	current, err := guard(ctx)
+	if err != nil {
+		return err
+	}
+	if !current {
+		return nil
+	}
+	updateSQL, err := s.jobUpdateQuery(swf)
+	if err != nil {
+		return err
+	}
+	if err := s.updateJobWithExecutor(swf, updateSQL, func(query string, args ...any) (sql.Result, error) {
+		return tx.ExecContext(ctx, query, args...)
+	}); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return util.NewInternalServerError(err, "Failed to commit scheduled workflow report")
+	}
+	return nil
+}
+
+func (s *JobStore) jobUpdateQuery(swf *util.ScheduledWorkflow) (sq.UpdateBuilder, error) {
 	now := s.time.Now().Unix()
 	parameters, err := swf.ParametersAsString()
 	if err != nil {
-		return err
+		return sq.UpdateBuilder{}, err
 	}
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
@@ -506,10 +572,10 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 		} else if swf.GetVersion() == util.SWFv2 {
 			updateSQL = updateSQL.SetMap(sq.Eq{q("RuntimeParameters"): parameters})
 		} else {
-			return util.NewInternalServerError(util.NewInvalidInputError("ScheduledWorkflow has an invalid version: %v", swf.GetVersion()), "Failed to update job %v", swf.UID)
+			return sq.UpdateBuilder{}, util.NewInternalServerError(util.NewInvalidInputError("ScheduledWorkflow has an invalid version: %v", swf.GetVersion()), "Failed to update job %v", swf.UID)
 		}
 	}
-	return s.updateJob(swf, updateSQL)
+	return updateSQL, nil
 }
 
 // UpdateJobStatus keeps the API-created job specification authoritative when
@@ -524,6 +590,10 @@ func (s *JobStore) UpdateJobStatus(swf *util.ScheduledWorkflow) error {
 }
 
 func (s *JobStore) updateJob(swf *util.ScheduledWorkflow, updateSQL sq.UpdateBuilder) error {
+	return s.updateJobWithExecutor(swf, updateSQL, s.db.Exec)
+}
+
+func (s *JobStore) updateJobWithExecutor(swf *util.ScheduledWorkflow, updateSQL sq.UpdateBuilder, exec func(string, ...any) (sql.Result, error)) error {
 	q := s.dbDialect.QuoteIdentifier
 	sql, args, err := updateSQL.Where(sq.Eq{q("UUID"): string(swf.UID)}).ToSql()
 	if err != nil {
@@ -531,7 +601,7 @@ func (s *JobStore) updateJob(swf *util.ScheduledWorkflow, updateSQL sq.UpdateBui
 			"Error while creating query to update job with scheduled workflow: %v: %+v",
 			err, swf.ScheduledWorkflow)
 	}
-	r, err := s.db.Exec(sql, args...)
+	r, err := exec(sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Error while updating job with scheduled workflow: %v: %+v",

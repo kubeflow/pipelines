@@ -21,6 +21,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -31,6 +32,9 @@ func TestContainer_CreatePVCStorageClassSemantics(t *testing.T) {
 		// storageClassInput, when non-nil, is injected into the task spec as
 		// the storage_class_name input constant.
 		storageClassInput *string
+		// serverDefault, when non-nil, is configured on the driver as the
+		// server-level default StorageClass (DEFAULT_PVC_STORAGE_CLASS).
+		serverDefault     *string
 		expectedClassName *string
 	}{
 		{
@@ -47,6 +51,32 @@ func TestContainer_CreatePVCStorageClassSemantics(t *testing.T) {
 			name:              "Explicit empty string is preserved as an opt-out of default selection",
 			storageClassInput: new(""),
 			expectedClassName: new(""),
+		},
+		{
+			name:              "Omitted input uses the configured server default",
+			storageClassInput: nil,
+			serverDefault:     new("server-default"),
+			expectedClassName: new("server-default"),
+		},
+		{
+			name:              "Explicit class name overrides the configured server default",
+			storageClassInput: new("fast-ssd"),
+			serverDefault:     new("server-default"),
+			expectedClassName: new("fast-ssd"),
+		},
+		{
+			name:              "Explicit empty string opts out of the configured server default",
+			storageClassInput: new(""),
+			serverDefault:     new("server-default"),
+			expectedClassName: new(""),
+		},
+		{
+			// Defensive: parseOptionalString never produces a pointer to an
+			// empty string, but the guard must treat it as unconfigured.
+			name:              "Pointer to empty server default is treated as unconfigured",
+			storageClassInput: nil,
+			serverDefault:     new(""),
+			expectedClassName: nil,
 		},
 	}
 	for _, tt := range tests {
@@ -83,6 +113,7 @@ func TestContainer_CreatePVCStorageClassSemantics(t *testing.T) {
 				t.Fatalf("failed to load kubernetes executor config: %v", err)
 			}
 			opts := tc.setupContainerOptions(nestedTask, taskSpec, kubernetesExecutorConfig)
+			opts.DefaultPVCStorageClass = tt.serverDefault
 
 			execution, err := Container(context.Background(), opts, tc.ClientManager)
 			if err != nil {
@@ -182,6 +213,7 @@ func TestContainer_CreatePVCLegacyDefaultExplicitEmptyStorageClass(t *testing.T)
 		t.Fatalf("failed to load kubernetes executor config: %v", err)
 	}
 	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	opts.DefaultPVCStorageClass = new("server-default")
 
 	execution, err := Container(context.Background(), opts, tc.ClientManager)
 	if err != nil {
@@ -246,4 +278,136 @@ func TestContainer_CreatePVCLegacyDefaultStorageClass(t *testing.T) {
 		t.Fatalf("failed to get created PVC: %v", err)
 	}
 	assert.Nil(t, pvc.Spec.StorageClassName)
+}
+
+// TestContainer_CreatePVCSdkCompiledOmittedStorageClassWithServerDefault
+// verifies that a current-SDK compiled pipeline, where storage_class_name is
+// optional with no default value, uses the server-configured default
+// StorageClass when the task omits the argument.
+func TestContainer_CreatePVCSdkCompiledOmittedStorageClassWithServerDefault(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/sdk_create_pvc_default_storage_class.yaml")
+
+	err := tc.Push("createpvc")
+	if err != nil {
+		t.Fatalf("failed to push scope path: %v", err)
+	}
+	defer func() {
+		_, ok := tc.Pop()
+		if !ok {
+			t.Fatal("failed to pop scope path")
+		}
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	if err != nil {
+		t.Fatalf("failed to load kubernetes executor config: %v", err)
+	}
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	opts.DefaultPVCStorageClass = new("server-default")
+
+	execution, err := Container(context.Background(), opts, tc.ClientManager)
+	if err != nil {
+		t.Fatalf("expected createpvc execution to succeed, got error: %v", err)
+	}
+	if execution == nil || execution.TaskID == "" {
+		t.Fatal("expected successful createpvc execution to return a task id")
+	}
+
+	pvc, err := tc.ClientManager.K8sClient().CoreV1().PersistentVolumeClaims(opts.Namespace).Get(
+		context.Background(), "sdk-pvc", metav1.GetOptions{},
+	)
+	if err != nil {
+		t.Fatalf("failed to get created PVC: %v", err)
+	}
+	require.NotNil(t, pvc.Spec.StorageClassName)
+	assert.Equal(t, "server-default", *pvc.Spec.StorageClassName)
+}
+
+// TestContainer_CreatePVCLegacyDefaultStorageClassWithServerDefault verifies
+// that a resolver-injected empty-string component default from a legacy-SDK
+// compiled pipeline counts as omission, so the server-configured default
+// StorageClass applies.
+func TestContainer_CreatePVCLegacyDefaultStorageClassWithServerDefault(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/sdk_create_pvc_legacy_default_storage_class.yaml")
+
+	err := tc.Push("createpvc")
+	if err != nil {
+		t.Fatalf("failed to push scope path: %v", err)
+	}
+	defer func() {
+		_, ok := tc.Pop()
+		if !ok {
+			t.Fatal("failed to pop scope path")
+		}
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	if err != nil {
+		t.Fatalf("failed to load kubernetes executor config: %v", err)
+	}
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	opts.DefaultPVCStorageClass = new("server-default")
+
+	execution, err := Container(context.Background(), opts, tc.ClientManager)
+	if err != nil {
+		t.Fatalf("expected createpvc execution to succeed, got error: %v", err)
+	}
+	if execution == nil || execution.TaskID == "" {
+		t.Fatal("expected successful createpvc execution to return a task id")
+	}
+
+	pvc, err := tc.ClientManager.K8sClient().CoreV1().PersistentVolumeClaims(opts.Namespace).Get(
+		context.Background(), "sdk-pvc", metav1.GetOptions{},
+	)
+	if err != nil {
+		t.Fatalf("failed to get created PVC: %v", err)
+	}
+	require.NotNil(t, pvc.Spec.StorageClassName)
+	assert.Equal(t, "server-default", *pvc.Spec.StorageClassName)
+}
+
+// TestContainer_CreatePVCNonemptyComponentDefaultStorageClass verifies that a
+// nonempty component-default storage_class_name, injected by the parameter
+// resolver when the task omits the argument, is honored and not overridden by
+// the server-configured default.
+func TestContainer_CreatePVCNonemptyComponentDefaultStorageClass(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/sdk_create_pvc_nonempty_default_storage_class.yaml")
+
+	err := tc.Push("createpvc")
+	if err != nil {
+		t.Fatalf("failed to push scope path: %v", err)
+	}
+	defer func() {
+		_, ok := tc.Pop()
+		if !ok {
+			t.Fatal("failed to pop scope path")
+		}
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	if err != nil {
+		t.Fatalf("failed to load kubernetes executor config: %v", err)
+	}
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	opts.DefaultPVCStorageClass = new("server-default")
+
+	execution, err := Container(context.Background(), opts, tc.ClientManager)
+	if err != nil {
+		t.Fatalf("expected createpvc execution to succeed, got error: %v", err)
+	}
+	if execution == nil || execution.TaskID == "" {
+		t.Fatal("expected successful createpvc execution to return a task id")
+	}
+
+	pvc, err := tc.ClientManager.K8sClient().CoreV1().PersistentVolumeClaims(opts.Namespace).Get(
+		context.Background(), "sdk-pvc", metav1.GetOptions{},
+	)
+	if err != nil {
+		t.Fatalf("failed to get created PVC: %v", err)
+	}
+	require.NotNil(t, pvc.Spec.StorageClassName)
+	assert.Equal(t, "standard-sc", *pvc.Spec.StorageClassName)
 }

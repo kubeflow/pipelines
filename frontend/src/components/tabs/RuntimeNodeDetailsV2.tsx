@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { Button } from '@mui/material';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import {
   InputOutputsIOArtifact,
@@ -42,6 +43,7 @@ import { KeyValue } from 'src/lib/DetailsTableTypes';
 import { errorToMessage, formatDateString } from 'src/lib/Utils';
 import { readArtifactFile } from 'src/lib/v2/ArtifactFileUtils';
 import { getComponentSpec } from 'src/lib/v2/NodeUtils';
+import { getDebugPauseBarrier, requestDebugPauseResume } from 'src/lib/v2/DebugPauseUtils';
 import {
   EXECUTOR_LOGS_ARTIFACT_KEY,
   flattenArtifactGroups,
@@ -51,7 +53,11 @@ import {
   isTaskFinished,
 } from 'src/lib/v2/RuntimeArtifactUtils';
 import { NodeRuntimeInfo } from 'src/lib/v2/DynamicFlow';
-import { getTaskDisplayName, getTaskLifecycleMessage } from 'src/lib/v2/RunTaskUtils';
+import {
+  getTaskDisplayName,
+  getTaskLifecycleCategory,
+  getTaskLifecycleMessage,
+} from 'src/lib/v2/RunTaskUtils';
 import { getTaskKeyFromNodeKey, NodeTypeNames } from 'src/lib/v2/StaticFlow';
 import type { PipelineFlowElement } from 'src/lib/v2/FlowTypes';
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
@@ -66,6 +72,12 @@ export const LIFECYCLE_ENDED_MESSAGE =
   "Kubernetes reported a problem with this task's pod before the run ended. Select Details to see the raw message.";
 export const LIFECYCLE_FAILURE_MESSAGE =
   'The task failed after Kubernetes reported a problem with its pod. Select Details to see the raw message.';
+// An unclassified message is a raw pod status, not a known problem, so it is worded as
+// information and shown in blue, the same as on the graph node.
+export const LIFECYCLE_STATUS_MESSAGE =
+  'Kubernetes reported a pod status for this task that could not be classified. This is not necessarily a problem. Select Details to see the raw message.';
+export const LIFECYCLE_STATUS_ENDED_MESSAGE =
+  'Kubernetes reported a pod status for this task that could not be classified before the run ended. Select Details to see the raw message.';
 
 function LifecycleBanner({
   task,
@@ -79,16 +91,20 @@ function LifecycleBanner({
     return null;
   }
   const failed = task?.state === PipelineTaskTaskState.FAILED;
+  const unclassified = !failed && getTaskLifecycleCategory(task) === 'unknown';
+  const message = failed
+    ? LIFECYCLE_FAILURE_MESSAGE
+    : unclassified
+      ? sourceFinished
+        ? LIFECYCLE_STATUS_ENDED_MESSAGE
+        : LIFECYCLE_STATUS_MESSAGE
+      : sourceFinished
+        ? LIFECYCLE_ENDED_MESSAGE
+        : LIFECYCLE_WARNING_MESSAGE;
   return (
     <Banner
-      mode={failed ? 'error' : 'warning'}
-      message={
-        failed
-          ? LIFECYCLE_FAILURE_MESSAGE
-          : sourceFinished
-            ? LIFECYCLE_ENDED_MESSAGE
-            : LIFECYCLE_WARNING_MESSAGE
-      }
+      mode={failed ? 'error' : unclassified ? 'info' : 'warning'}
+      message={message}
       additionalInfo={lifecycleMessage}
     />
   );
@@ -276,6 +292,15 @@ function TaskNodeDetail({
   return (
     <div className={commonCss.page}>
       <LifecycleBanner task={task} sourceFinished={sourceFinished} />
+      {runId && !sourceFinished && (
+        <DebugPauseResumeBanner
+          // Remount on run/task/barrier identity so a previous task's
+          // successful Resume doesn't leave this button disabled.
+          key={`${runId}:${task?.task_id ?? 'none'}:${getDebugPauseBarrier(task) ?? 'none'}`}
+          runId={runId}
+          task={task}
+        />
+      )}
       <MD2Tabs
         tabs={['Input/Output', 'Task Details', 'Logs', 'System Logs']}
         selectedTab={selectedTab}
@@ -368,6 +393,65 @@ export function getTaskDetailsFields(
     details.push(['State history', stateHistory]);
   }
   return details;
+}
+
+interface DebugPauseResumeBannerProps {
+  runId: string;
+  task?: V2PipelineTask;
+}
+
+// Banner shown while a task is parked at a debug-pause barrier. Resume
+// writes the flag via UpdateTask (see DebugPauseUtils.ts); the launcher
+// observes it on its next poll.
+function DebugPauseResumeBanner({ runId, task }: DebugPauseResumeBannerProps) {
+  const barrier = getDebugPauseBarrier(task);
+  const resumeMutation = useMutation({
+    mutationFn: () => {
+      if (!task) {
+        throw new Error('No task is available to resume.');
+      }
+      return requestDebugPauseResume(runId, task);
+    },
+  });
+
+  if (!barrier) {
+    return null;
+  }
+
+  const barrierDescription =
+    barrier === 'before'
+      ? 'before running'
+      : barrier === 'on_error'
+        ? 'after failing'
+        : 'after running';
+
+  return (
+    <div className={padding(20, 'lrt')}>
+      <Banner
+        mode='warning'
+        message={`This task is paused ${barrierDescription} for debugging.`}
+        additionalInfo={
+          resumeMutation.isError
+            ? `Failed to request resume: ${
+                resumeMutation.error instanceof Error
+                  ? resumeMutation.error.message
+                  : String(resumeMutation.error)
+              }`
+            : resumeMutation.isSuccess
+              ? 'Resume requested. The task will continue shortly.'
+              : undefined
+        }
+      />
+      <Button
+        variant='contained'
+        color='primary'
+        disabled={resumeMutation.isPending || resumeMutation.isSuccess}
+        onClick={() => resumeMutation.mutate()}
+      >
+        {resumeMutation.isPending ? 'Resuming...' : 'Resume'}
+      </Button>
+    </div>
+  );
 }
 
 function TaskPodsDetails({ pods = [] }: { pods?: PipelineTaskTaskPod[] }) {

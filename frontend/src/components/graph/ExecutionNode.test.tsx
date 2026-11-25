@@ -15,8 +15,14 @@
  */
 
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
-import ExecutionNode, { getIcon, getExecutionIcon } from './ExecutionNode';
+import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import ExecutionNode, {
+  getIcon,
+  getExecutionIcon,
+  getDebugPauseIcon,
+  useLifecycleTooltip,
+} from './ExecutionNode';
 import { PipelineTaskTaskState } from 'src/apisv2/run';
 import { ReactFlowProvider } from '@xyflow/react';
 
@@ -97,7 +103,7 @@ describe('ExecutionNode', () => {
     expect(screen.queryByTestId('ErrorIcon')).not.toBeInTheDocument();
   });
 
-  it('announces the warning in the node name', () => {
+  it('announces the lifecycle status in the node name', () => {
     renderWithProvider(
       <ExecutionNode
         id='exec-1'
@@ -128,6 +134,226 @@ describe('ExecutionNode', () => {
     expect(screen.queryByTestId('WarningAmberIcon')).not.toBeInTheDocument();
   });
 
+  it('shows an unclassified lifecycle message as a blue info status', () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'odd-step',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'ContainerCreating',
+          lifecycleCategory: 'unknown',
+        }}
+      />,
+    );
+    expect(screen.getByTestId('InfoOutlinedIcon')).toBeInTheDocument();
+    expect(screen.queryByTestId('WarningAmberIcon')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'odd-step, pod lifecycle status' }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the amber warning for every classified category', () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'sched-step',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'Insufficient cpu',
+          lifecycleCategory: 'scheduling',
+        }}
+      />,
+    );
+    expect(screen.getByTestId('WarningAmberIcon')).toBeInTheDocument();
+    expect(screen.queryByTestId('InfoOutlinedIcon')).not.toBeInTheDocument();
+  });
+
+  it('shows the category and message in a tooltip on hover', async () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'stuck-step',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'Back-off pulling image "nope:latest"',
+          lifecycleCategory: 'image-pull',
+        }}
+      />,
+    );
+    await userEvent.hover(screen.getByTestId('WarningAmberIcon'));
+    const tooltip = await screen.findByTestId('lifecycle-tooltip');
+    expect(tooltip).toHaveTextContent('Image pull problem');
+    expect(tooltip).toHaveTextContent('Back-off pulling image "nope:latest"');
+  });
+
+  it('shows the reason in a tooltip on a failed node too', async () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'oom-step',
+          state: PipelineTaskTaskState.FAILED,
+          lifecycleMessage: 'main: OOMKilled (exit code 137)',
+          lifecycleCategory: 'runtime',
+        }}
+      />,
+    );
+    await userEvent.hover(screen.getByTestId('ErrorIcon'));
+    expect(await screen.findByTestId('lifecycle-tooltip')).toHaveTextContent('OOMKilled');
+  });
+
+  it('opens the tooltip when the node receives keyboard focus', async () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'stuck-step',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'Back-off pulling image "nope:latest"',
+          lifecycleCategory: 'image-pull',
+        }}
+      />,
+    );
+    expect(screen.queryByTestId('lifecycle-tooltip')).not.toBeInTheDocument();
+    await userEvent.tab();
+    expect(screen.getByRole('button', { name: /stuck-step/ })).toHaveFocus();
+    const tooltip = await screen.findByTestId('lifecycle-tooltip');
+    expect(tooltip).toHaveTextContent('Image pull problem');
+    expect(tooltip).toHaveTextContent('Back-off pulling image "nope:latest"');
+
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('lifecycle-tooltip')).not.toBeInTheDocument());
+  });
+
+  it('opens the tooltip on keyboard focus of a failed node too', async () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'oom-step',
+          state: PipelineTaskTaskState.FAILED,
+          lifecycleMessage: 'main: OOMKilled (exit code 137)',
+          lifecycleCategory: 'runtime',
+        }}
+      />,
+    );
+    await userEvent.tab();
+    expect(await screen.findByTestId('lifecycle-tooltip')).toHaveTextContent('OOMKilled');
+  });
+
+  it('closes the keyboard tooltip when focus leaves the node', async () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'stuck-step',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'Insufficient cpu',
+          lifecycleCategory: 'scheduling',
+        }}
+      />,
+    );
+    await userEvent.tab();
+    await screen.findByTestId('lifecycle-tooltip');
+    await userEvent.tab();
+    await waitFor(() => expect(screen.queryByTestId('lifecycle-tooltip')).not.toBeInTheDocument());
+  });
+
+  it('associates the focused button with the tooltip content via aria-describedby', async () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'stuck-step',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'Back-off pulling image "nope:latest"',
+          lifecycleCategory: 'image-pull',
+        }}
+      />,
+    );
+    const button = screen.getByRole('button', { name: /stuck-step/ });
+    expect(button).not.toHaveAttribute('aria-describedby');
+    await userEvent.tab();
+    expect(button).toHaveFocus();
+    const tooltip = await screen.findByTestId('lifecycle-tooltip');
+    const describedBy = button.getAttribute('aria-describedby');
+    expect(describedBy).toBeTruthy();
+    expect(tooltip.id).toBe(describedBy);
+    expect(tooltip).toHaveTextContent('Image pull problem');
+    expect(tooltip).toHaveTextContent('Back-off pulling image "nope:latest"');
+  });
+
+  it('does not describe a focused node that has no lifecycle diagnostic', async () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{ label: 'healthy-step', state: PipelineTaskTaskState.RUNNING }}
+      />,
+    );
+    await userEvent.tab();
+    const button = screen.getByRole('button', { name: /healthy-step/ });
+    expect(button).toHaveFocus();
+    // There is no tooltip element for an id to point at, so the button must not claim one.
+    expect(button).not.toHaveAttribute('aria-describedby');
+    expect(screen.queryByTestId('lifecycle-tooltip')).not.toBeInTheDocument();
+  });
+
+  it('does not describe a debug-paused node whose pause icon replaces the lifecycle icon', async () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'paused-step',
+          state: PipelineTaskTaskState.RUNNING,
+          debugPauseBarrier: 'before',
+          lifecycleMessage: 'Insufficient cpu',
+          lifecycleCategory: 'scheduling',
+        }}
+      />,
+    );
+    await userEvent.tab();
+    // The node is not announced as having a lifecycle warning either: that icon is not rendered.
+    const button = screen.getByRole('button', { name: /paused-step/ });
+    expect(button).toHaveFocus();
+    expect(button).not.toHaveAccessibleName(/lifecycle warning/);
+    expect(button).not.toHaveAttribute('aria-describedby');
+    expect(screen.queryByTestId('lifecycle-tooltip')).not.toBeInTheDocument();
+  });
+
+  it('keeps a disabled tooltip closed and undescribed when focused', () => {
+    const { result } = renderHook(() => useLifecycleTooltip(false));
+    act(() => result.current.focusProps.onFocus());
+    act(() => result.current.onOpen());
+    expect(result.current.open).toBe(false);
+    expect(result.current.focusProps['aria-describedby']).toBeUndefined();
+  });
+
+  it('keeps the tooltip open after a mouse leave while focus remains', () => {
+    // onClose is MUI's mouse-leave callback; when the control is still focused the
+    // tooltip must stay open. The hook owns that decision, so test it directly.
+    const { result } = renderHook(() => useLifecycleTooltip());
+    act(() => result.current.focusProps.onFocus());
+    act(() => result.current.onOpen());
+    expect(result.current.open).toBe(true);
+    act(() => result.current.onClose());
+    expect(result.current.open).toBe(true);
+    act(() => result.current.focusProps.onBlur());
+    expect(result.current.open).toBe(false);
+  });
+
+  it('dismisses the tooltip on Escape without waiting for blur', () => {
+    const { result } = renderHook(() => useLifecycleTooltip());
+    act(() => result.current.focusProps.onFocus());
+    expect(result.current.open).toBe(true);
+    act(() =>
+      result.current.focusProps.onKeyDown({
+        key: 'Escape',
+      } as React.KeyboardEvent),
+    );
+    expect(result.current.open).toBe(false);
+  });
+
   it('shows no warning when the lifecycle message is empty', () => {
     renderWithProvider(
       <ExecutionNode
@@ -144,6 +370,21 @@ describe('ExecutionNode', () => {
       <ExecutionNode id='exec-1' data={{ label: 'titled-step', state: undefined }} />,
     );
     expect(screen.getByTitle('titled-step')).toBeInTheDocument();
+  });
+
+  it('keeps the task name as a title on the label when there is a lifecycle message', () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'long-named-step',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'Unschedulable: 0/1 nodes are available',
+          lifecycleCategory: 'scheduling',
+        }}
+      />,
+    );
+    expect(screen.getByTitle('long-named-step')).toHaveTextContent('long-named-step');
   });
 
   it('renders hidden, non-connectable edge anchors', () => {
@@ -167,6 +408,32 @@ describe('ExecutionNode', () => {
       expect(handle).not.toHaveClass('connectableend');
       expect(handle).not.toHaveClass('connectionindicator');
     });
+  });
+
+  it('renders the debug-pause icon instead of the normal state icon when debugPauseBarrier is set', () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'paused-step',
+          state: PipelineTaskTaskState.RUNNING,
+          debugPauseBarrier: 'before',
+        }}
+      />,
+    );
+    expect(screen.getByTestId('execution-icon-debug-paused')).toBeInTheDocument();
+    // The normal RUNNING icon must not also render - the badge takes precedence.
+    expect(screen.queryByTestId('RefreshIcon')).not.toBeInTheDocument();
+  });
+
+  it('renders the normal state icon when debugPauseBarrier is absent', () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{ label: 'running-step', state: PipelineTaskTaskState.RUNNING }}
+      />,
+    );
+    expect(screen.queryByTestId('execution-icon-debug-paused')).not.toBeInTheDocument();
   });
 });
 
@@ -207,5 +474,14 @@ describe('getExecutionIcon', () => {
   it('returns an active ListAlt icon for defined state', () => {
     render(getExecutionIcon(PipelineTaskTaskState.RUNNING));
     expect(screen.getByTestId('execution-icon-active')).toBeInTheDocument();
+  });
+});
+
+describe('getDebugPauseIcon', () => {
+  it('renders a pause icon with the grey badge background', () => {
+    render(getDebugPauseIcon());
+    const pauseIcon = screen.getByTestId('execution-icon-debug-paused');
+    expect(pauseIcon).toBeInTheDocument();
+    expect(pauseIcon.parentElement).toHaveClass('bg-mui-grey-200');
   });
 });

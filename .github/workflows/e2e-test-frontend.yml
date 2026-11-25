@@ -1,8 +1,28 @@
 name: KFP e2e frontend tests
 
 on:
+  workflow_dispatch:
+    inputs:
+      queue_head_sha:
+        description: Exact queue candidate SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_ref:
+        description: Queue target branch, master, main, or release-2.18 (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_sha:
+        description: Current target branch SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+  merge_group:
+    types: [checks_requested]
+    branches: [master, main, release-2.18]
   push:
-    branches: [master]
+    branches: [master, main]
 
   pull_request:
     paths:
@@ -10,6 +30,9 @@ on:
       - 'uv.lock'
       - '.github/workflows/e2e-test-frontend.yml'
       - '.github/workflows/image-builds.yml'
+      - '.github/workflows/ci-images.yml'
+      - '.github/workflows/shared-ci-images-ready.yml'
+      - '.github/actions/shared-ci-images/**'
       - '.github/actions/deploy/**'
       - '.github/actions/download-artifact-with-retry/**'
       - '.github/resources/**'
@@ -29,11 +52,23 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  queue-dispatch-guard:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/queue-dispatch-guard.yml
+    with:
+      queue_head_sha: ${{ inputs.queue_head_sha }}
+      queue_base_ref: ${{ inputs.queue_base_ref }}
+      queue_base_sha: ${{ inputs.queue_base_sha }}
+
+  image-artifacts-ready:
     permissions:
       actions: read
       contents: read
-    uses: ./.github/workflows/image-builds.yml
+    uses: ./.github/workflows/shared-ci-images-ready.yml
+    with:
+      include_tensorboard: true
 
   frontend-integration-dependency-checks:
     runs-on: ubuntu-latest
@@ -61,6 +96,7 @@ jobs:
         run: npm run test:dependencies
 
   frontend-integration-test:
+    needs: image-artifacts-ready
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -95,6 +131,8 @@ jobs:
         uses: ./.github/actions/deploy
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         with:
+          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
+          load_tensorboard_image: 'true'
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000

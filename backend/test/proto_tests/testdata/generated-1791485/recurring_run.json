@@ -4,7 +4,9 @@
   "description": "Scheduled pipeline for daily data processing tasks",
   "pipeline_version_reference": {
     "pipeline_id": "9b187b86-7c0a-42ae-a0bc-2a746b6eb7a3",
-    "pipeline_version_id": "e15dc3ec-b45e-4cc7-bb07-e76b5dbce99a"
+    "pipeline_version_id": "e15dc3ec-b45e-4cc7-bb07-e76b5dbce99a",
+    "pipeline_name": "",
+    "pipeline_version_name": ""
   },
   "runtime_config": {
     "parameters": {

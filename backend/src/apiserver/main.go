@@ -296,14 +296,15 @@ func main() {
 	resourceManager := resource.NewResourceManager(
 		clientManager,
 		&resource.ResourceManagerOptions{
-			CollectMetrics:       *collectMetricsFlag,
-			CacheDisabled:        !common.GetBoolConfigWithDefault("CacheEnabled", true),
-			DefaultWorkspace:     pvcSpec,
-			MLPipelineTLSEnabled: tlsCfg != nil,
-			DefaultRunAsUser:     parseOptionalInt64(common.GetDefaultSecurityContextRunAsUser()),
-			DefaultRunAsGroup:    parseOptionalInt64(common.GetDefaultSecurityContextRunAsGroup()),
-			DefaultRunAsNonRoot:  parseOptionalBool(common.GetDefaultSecurityContextRunAsNonRoot()),
-			DefaultHostUsers:     parseOptionalBool(common.GetDefaultSecurityContextHostUsers()),
+			CollectMetrics:         *collectMetricsFlag,
+			CacheDisabled:          !common.GetBoolConfigWithDefault("CacheEnabled", true),
+			DefaultWorkspace:       pvcSpec,
+			MLPipelineTLSEnabled:   tlsCfg != nil,
+			DefaultRunAsUser:       parseOptionalInt64(common.GetDefaultSecurityContextRunAsUser()),
+			DefaultRunAsGroup:      parseOptionalInt64(common.GetDefaultSecurityContextRunAsGroup()),
+			DefaultRunAsNonRoot:    parseOptionalBool(common.GetDefaultSecurityContextRunAsNonRoot()),
+			DefaultHostUsers:       parseOptionalBool(common.GetDefaultSecurityContextHostUsers()),
+			DefaultPVCStorageClass: parseOptionalString(common.GetDefaultPVCStorageClass()),
 		},
 	)
 	err = config.LoadSamples(resourceManager, *sampleConfigPath)
@@ -340,7 +341,9 @@ func main() {
 
 	go startRPCServer(resourceManager, tlsCfg)
 	// This is blocking
-	startHTTPProxy(resourceManager, *usePipelinesKubernetesStorage, tlsCfg)
+	startHTTPProxy(resourceManager, *usePipelinesKubernetesStorage, tlsCfg, func(net.Listener) {
+		clientManager.RunPipelineRefBackfill(backgroundCtx)
+	}, &wg)
 	backgroundCancel()
 	wg.Wait()
 }
@@ -479,7 +482,7 @@ func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Confi
 	glog.Info("RPC server started")
 }
 
-func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKubernetesStorage bool, tlsCfg *tls.Config) {
+func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKubernetesStorage bool, tlsCfg *tls.Config, runBackfill func(net.Listener), wg *sync.WaitGroup) {
 	glog.Info("Starting Http Proxy")
 
 	ctx := context.Background()
@@ -520,24 +523,46 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 
 	topMux := buildHTTPRouter(handlerDeps, runtimeMux, pipelineStore)
 
+	httpServer := &http.Server{
+		Addr:    *httpPortFlag,
+		Handler: topMux,
+	}
 	if tlsCfg != nil {
 		glog.Info("Starting Https Proxy")
-		https := http.Server{
-			TLSConfig: tlsCfg,
-			Addr:      *httpPortFlag,
-			Handler:   topMux,
-		}
-		err := https.ListenAndServeTLS(*tlsCertPath, *tlsCertKeyPath)
-		if err != nil {
-			glog.Errorf("Error starting https server: %v", err)
-			return
-		}
 	} else {
 		glog.Info("Starting Http Proxy")
-		http.ListenAndServe(*httpPortFlag, topMux)
 	}
+	// A listener that fails to start must take the process down with a
+	// non-zero status, like startRPCServer does. Returning here instead would
+	// let main finish its normal shutdown and exit 0, hiding the failure from
+	// pod status and restart-based alerting.
+	if err := serveHTTPProxy(httpServer, tlsCfg, *tlsCertPath, *tlsCertKeyPath, runBackfill, wg); err != nil {
+		glog.Fatalf("Failed to serve HTTP proxy on %s: %v", *httpPortFlag, err)
+	}
+	glog.Info("Http Proxy stopped")
+}
 
-	glog.Info("Http Proxy started")
+// serveHTTPProxy serves httpServer, over TLS when tlsCfg is set, until it
+// stops. A deliberate shutdown is reported as nil; any other reason the
+// server stopped, including a listener that never started, is returned.
+func serveHTTPProxy(httpServer *http.Server, tlsCfg *tls.Config, certPath, keyPath string, runBackfill func(net.Listener), wg *sync.WaitGroup) error {
+	// net/http calls BaseContext after registering the bound listener and
+	// preparing TLS. A bind or certificate failure must not start database work.
+	httpServer.BaseContext = func(listener net.Listener) context.Context {
+		wg.Go(func() { runBackfill(listener) })
+		return context.Background()
+	}
+	var err error
+	if tlsCfg != nil {
+		httpServer.TLSConfig = tlsCfg
+		err = httpServer.ListenAndServeTLS(certPath, keyPath)
+	} else {
+		err = httpServer.ListenAndServe()
+	}
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+	return err
 }
 
 type healthzResponse struct {
@@ -794,6 +819,16 @@ func parseOptionalBool(s string) *bool {
 		return nil
 	}
 	return &v
+}
+
+// parseOptionalString converts a string to *string. Returns nil if the string
+// is empty or consists only of whitespace.
+func parseOptionalString(s string) *string {
+	trimmed := strings.TrimSpace(s)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
 }
 
 // getPVCSpec retrieves the default workspace PersistentVolumeClaimSpec from the config.

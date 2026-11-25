@@ -16,6 +16,7 @@ package storage
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -1001,12 +1002,53 @@ func TestUpdateRunFromWorkflow_RejectsTerminationRace(t *testing.T) {
 			assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
 			assert.Equal(t, "Terminating", persistedRun.Conditions)
 			assert.Equal(t, expectedWorkflowRuntimeManifest, persistedRun.WorkflowRuntimeManifest)
-			assert.Equal(t, []*model.RuntimeStatus{{
+			require.Len(t, persistedRun.StateHistory, 2)
+			assert.Equal(t, &model.RuntimeStatus{
 				UpdateTimeInSec: 1,
 				State:           model.RuntimeStateRunning,
-			}}, persistedRun.StateHistory)
+			}, persistedRun.StateHistory[0])
+			assert.Equal(t, model.RuntimeStateCancelling, persistedRun.StateHistory[1].State)
 		})
 	}
+}
+
+// A terminal report that loaded the run before TerminateRun committed passes
+// the manifest preconditions, because termination changes neither manifest nor
+// RetryGeneration. Its stale history must not erase the CANCELING entry.
+func TestUpdateRunIfRuntimeManifestsUnchanged_KeepsConcurrentCancellationHistory(t *testing.T) {
+	db, _, runStore := initializeRunStore()
+	defer db.Close()
+
+	staleRun, err := runStore.GetRun("1", true)
+	require.NoError(t, err)
+	require.Len(t, staleRun.StateHistory, 1)
+	expectedWorkflowRuntimeManifest := staleRun.WorkflowRuntimeManifest
+	expectedPipelineRuntimeManifest := staleRun.PipelineRuntimeManifest
+	require.NoError(t, runStore.TerminateRun("1"))
+
+	staleRun.State = model.RuntimeStateSucceeded
+	staleRun.Conditions = string(model.RuntimeStateSucceeded.ToExecutionPhase())
+	staleRun.WorkflowRuntimeManifest = "finished-workflow"
+	updated, err := runStore.UpdateRunIfRuntimeManifestsUnchanged(
+		staleRun,
+		expectedWorkflowRuntimeManifest,
+		expectedPipelineRuntimeManifest,
+	)
+	require.NoError(t, err)
+	require.True(t, updated)
+
+	persistedRun, err := runStore.GetRun("1", true)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateSucceeded, persistedRun.State)
+	var states []model.RuntimeState
+	for _, status := range persistedRun.StateHistory {
+		states = append(states, status.State)
+	}
+	assert.Equal(t, []model.RuntimeState{
+		model.RuntimeStateRunning,
+		model.RuntimeStateCancelling,
+		model.RuntimeStateSucceeded,
+	}, states)
 }
 
 func TestUpdateRunFromWorkflow_MatchesLegacyStateRepresentations(t *testing.T) {
@@ -1113,6 +1155,10 @@ func TestTerminateRun(t *testing.T) {
 					UpdateTimeInSec: 1,
 					State:           model.RuntimeStateRunning,
 				},
+				{
+					UpdateTimeInSec: 4,
+					State:           model.RuntimeStateCancelling,
+				},
 			},
 		},
 
@@ -1127,6 +1173,50 @@ func TestTerminateRun(t *testing.T) {
 	runDetail, err := runStore.GetRun("1", false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRun.ToV2(), runDetail.ToV2())
+}
+
+func TestTerminateRun_AppendsCancelingToStateHistory(t *testing.T) {
+	db, _, runStore := initializeRunStore()
+	defer db.Close()
+
+	require.NoError(t, runStore.TerminateRun("1"))
+	run, err := runStore.GetRun("1", false)
+	require.NoError(t, err)
+	require.Len(t, run.StateHistory, 2)
+	assert.Equal(t, &model.RuntimeStatus{UpdateTimeInSec: 1, State: model.RuntimeStateRunning}, run.StateHistory[0])
+	assert.Equal(t, model.RuntimeStateCancelling, run.StateHistory[1].State)
+	assert.Positive(t, run.StateHistory[1].UpdateTimeInSec)
+
+	require.NoError(t, runStore.TerminateRun("1"))
+	run, err = runStore.GetRun("1", false)
+	require.NoError(t, err)
+	assert.Len(t, run.StateHistory, 2, "terminating an already-canceling run should not add another entry")
+}
+
+func TestTerminateRun_EmptyStateHistory(t *testing.T) {
+	db, _, runStore := initializeRunStore()
+	defer db.Close()
+	_, err := db.Exec("UPDATE run_details SET StateHistory = NULL WHERE UUID = ?", "1")
+	require.NoError(t, err)
+
+	require.NoError(t, runStore.TerminateRun("1"))
+	run, err := runStore.GetRun("1", false)
+	require.NoError(t, err)
+	require.Len(t, run.StateHistory, 1)
+	assert.Equal(t, model.RuntimeStateCancelling, run.StateHistory[0].State)
+}
+
+func TestTerminateRun_FinishedRunKeepsStateHistory(t *testing.T) {
+	db, _, runStore := initializeRunStore()
+	defer db.Close()
+	before, err := runStore.GetRun("2", false)
+	require.NoError(t, err)
+
+	require.Error(t, runStore.TerminateRun("2"))
+	after, err := runStore.GetRun("2", false)
+	require.NoError(t, err)
+	assert.Equal(t, before.StateHistory, after.StateHistory)
+	assert.Equal(t, before.State, after.State)
 }
 
 func TestTerminateRun_LegacyStateRepresentations(t *testing.T) {
@@ -1449,8 +1539,47 @@ func TestParseRuntimeConfig(t *testing.T) {
 		Valid:  true,
 		String: "gs://my-bucket/path/to/root/run1",
 	}
-	actualRuntimeConfig := parseRuntimeConfig(parametersNullString, pipelineRootNullString)
+	actualRuntimeConfig := parseRuntimeConfig(parametersNullString, pipelineRootNullString, sql.NullBool{})
 	assert.Equal(t, expectedRuntimeConfig, actualRuntimeConfig)
+}
+
+// enable_caching is nullable: NULL (unset) must not be read back as false.
+func TestRunAndJobStoreEnableCaching(t *testing.T) {
+	for i, enableCaching := range []*bool{nil, util.BoolPointer(false), util.BoolPointer(true)} {
+		db, testDialect, runStore := initializeRunStore()
+		id := fmt.Sprintf("enable-caching-%d", i)
+		_, err := runStore.CreateRun(&model.Run{
+			UUID: id, ExperimentId: defaultFakeExpId, K8SName: id, DisplayName: id,
+			StorageState: model.StorageStateAvailable, Namespace: "n1",
+			RunDetails:   model.RunDetails{CreatedAtInSec: 1, ScheduledAtInSec: 1, State: model.RuntimeStatePending},
+			PipelineSpec: model.PipelineSpec{RuntimeConfig: model.RuntimeConfig{EnableCaching: enableCaching}},
+		})
+		require.NoError(t, err)
+		run, err := runStore.GetRun(id, false)
+		require.NoError(t, err)
+		assert.Equal(t, enableCaching, run.EnableCaching, "GetRun")
+		runs, _, _, err := runStore.ListRuns(&model.FilterContext{}, list.EmptyOptions(), false)
+		require.NoError(t, err)
+		found := false
+		for _, listed := range runs {
+			if listed.UUID == id {
+				found = true
+				assert.Equal(t, enableCaching, listed.EnableCaching, "ListRuns")
+			}
+		}
+		assert.True(t, found)
+
+		jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil, testDialect)
+		_, err = jobStore.CreateJob(&model.Job{
+			UUID: id, DisplayName: id, K8SName: id, Namespace: "n1", Enabled: true, ExperimentId: defaultFakeExpId,
+			PipelineSpec: model.PipelineSpec{PipelineId: "p1", RuntimeConfig: model.RuntimeConfig{EnableCaching: enableCaching}},
+		})
+		require.NoError(t, err)
+		job, err := jobStore.GetJob(id)
+		require.NoError(t, err)
+		assert.Equal(t, enableCaching, job.EnableCaching, "GetJob")
+		db.Close()
+	}
 }
 
 func TestParseResourceReferences(t *testing.T) {
@@ -1535,7 +1664,7 @@ func TestBuildSelectRunsQuery_PgxPlaceholder(t *testing.T) {
 	// subquery (UUID + sort key, ORDER BY + LIMIT) is the innermost layer, and
 	// the refs/tasks/metrics aggregation runs only over the paged rows. The
 	// outer ORDER BY re-sorts the final result without LIMIT (already applied).
-	expectedSQL := `SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", "PipelineRuntimeManifest", "WorkflowRuntimeManifest", "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec", "ImportedFrom", "ImportDigest", "refs" FROM (SELECT rd."UUID", rd."ExperimentUUID", rd."DisplayName", rd."Name", rd."StorageState", rd."Namespace", rd."ServiceAccount", rd."Description", rd."CreatedAtInSec", rd."ScheduledAtInSec", rd."FinishedAtInSec", rd."Conditions", rd."PipelineId", rd."PipelineVersionId", rd."PipelineName", rd."PipelineSpecManifest", rd."WorkflowSpecManifest", rd."Parameters", rd."RuntimeParameters", rd."PipelineRoot", rd."PipelineRuntimeManifest", rd."WorkflowRuntimeManifest", rd."JobUUID", rd."State", rd."StateHistory", rd."PluginsInput", rd."PluginsOutput", rd."PipelineContextId", rd."PipelineRunContextId", rd."RetryGeneration", rd."RetryClaimedAtInSec", rd."ArchivedAtInSec", rd."ImportedFrom", rd."ImportDigest", withrefs."refs" FROM (SELECT filtered."UUID", '[' || COALESCE(string_agg(rr."Payload", ','), '') || ']' AS "refs" FROM (SELECT "UUID", "CreatedAtInSec" FROM (SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", '' AS PipelineRuntimeManifest, '' AS WorkflowRuntimeManifest, "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec", "ImportedFrom", "ImportDigest" FROM "run_details" WHERE "ExperimentUUID" = $1) AS filtered ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC LIMIT 11) AS filtered LEFT JOIN "resource_references" AS rr ON rr."ResourceType"='Run' AND filtered."UUID"=rr."ResourceUUID" GROUP BY filtered."UUID") AS withrefs JOIN "run_details" AS rd ON withrefs."UUID"=rd."UUID") AS final ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC`
+	expectedSQL := `SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", "EnableCaching", "PipelineRuntimeManifest", "WorkflowRuntimeManifest", "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec", "ImportedFrom", "ImportDigest", "refs" FROM (SELECT rd."UUID", rd."ExperimentUUID", rd."DisplayName", rd."Name", rd."StorageState", rd."Namespace", rd."ServiceAccount", rd."Description", rd."CreatedAtInSec", rd."ScheduledAtInSec", rd."FinishedAtInSec", rd."Conditions", ` + effectiveRunPipelineID(runStore.dbDialect.QuoteIdentifier, "rd") + ` AS "PipelineId", rd."PipelineVersionId", rd."PipelineName", rd."PipelineSpecManifest", rd."WorkflowSpecManifest", rd."Parameters", rd."RuntimeParameters", rd."PipelineRoot", rd."EnableCaching", rd."PipelineRuntimeManifest", rd."WorkflowRuntimeManifest", rd."JobUUID", rd."State", rd."StateHistory", rd."PluginsInput", rd."PluginsOutput", rd."PipelineContextId", rd."PipelineRunContextId", rd."RetryGeneration", rd."RetryClaimedAtInSec", rd."ArchivedAtInSec", rd."ImportedFrom", rd."ImportDigest", withrefs."refs" FROM (SELECT filtered."UUID", '[' || COALESCE(string_agg(rr."Payload", ','), '') || ']' AS "refs" FROM (SELECT "UUID", "CreatedAtInSec" FROM (SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", "EnableCaching", '' AS PipelineRuntimeManifest, '' AS WorkflowRuntimeManifest, "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec", "ImportedFrom", "ImportDigest" FROM "run_details" WHERE "ExperimentUUID" = $1) AS filtered ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC LIMIT 11) AS filtered LEFT JOIN "resource_references" AS rr ON rr."ResourceType"='Run' AND filtered."UUID"=rr."ResourceUUID" GROUP BY filtered."UUID") AS withrefs JOIN "run_details" AS rd ON withrefs."UUID"=rd."UUID") AS final ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC`
 	assert.Equal(t, expectedSQL, sqlStr,
 		"SQL must use $N placeholders (not ?) and $1 must appear exactly once for ExperimentUUID")
 
@@ -2788,7 +2917,34 @@ func TestListRuns_RejectsRetiredMetricSort(t *testing.T) {
 	require.Contains(t, err.Error(), "Invalid sorting field")
 }
 
-// SQLite evaluates this overflow while advancing rows, after Query succeeds.
+func TestRunStorePropagatesSQLiteQueryError(t *testing.T) {
+	db, dbDialect, store := initializeRunStore()
+	defer db.Close()
+	columns := dialect.QuoteAll(dbDialect.QuoteIdentifier, runColumns)
+	columns[0] = "abs(-9223372036854775808) AS UUID"
+	_, err := db.Exec("ALTER TABLE run_details RENAME TO source_run_details")
+	require.NoError(t, err)
+	_, err = db.Exec("CREATE VIEW run_details AS SELECT " + strings.Join(columns, ", ") + " FROM source_run_details")
+	require.NoError(t, err)
+	t.Run("GetRun", func(t *testing.T) {
+		run, err := store.GetRun("1", false)
+		require.ErrorContains(t, err, "integer overflow")
+		require.Nil(t, run)
+		require.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	})
+	t.Run("ListRuns", func(t *testing.T) {
+		opts, err := list.NewOptions(&model.Run{}, 10, "", nil)
+		require.NoError(t, err)
+		runs, total, token, err := store.ListRuns(&model.FilterContext{}, opts, false)
+		require.ErrorContains(t, err, "integer overflow")
+		require.Nil(t, runs)
+		require.Zero(t, total)
+		require.Empty(t, token)
+		require.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	})
+}
+
+// Keep first-row error coverage independent of SQLite's eager query execution.
 func TestScanRowsToRuns_IterationError(t *testing.T) {
 	db, _, store := initializeRunStore()
 	defer db.Close()
@@ -2796,8 +2952,15 @@ func TestScanRowsToRuns_IterationError(t *testing.T) {
 	valid := "SELECT " + strings.Join(columns, ", ") + " FROM run_details WHERE UUID = '1'"
 	columns[0] = "abs(-9223372036854775808)"
 	invalid := "SELECT " + strings.Join(columns, ", ") + " FROM run_details WHERE UUID = '1'"
+	t.Run("before first row", func(t *testing.T) {
+		streamErr := errors.New("simulated row iteration failure")
+		rows := queryErrStreamRows(t, columns, nil, streamErr)
+		runs, err := store.scanRowsToRuns(rows)
+		require.ErrorIs(t, rows.Err(), streamErr)
+		require.ErrorIs(t, err, streamErr)
+		require.Nil(t, runs, "incomplete query results must not be returned as successful runs")
+	})
 	for _, tc := range []struct{ name, query string }{
-		{"before first row", invalid},
 		{"after valid row", valid + " UNION ALL " + invalid},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

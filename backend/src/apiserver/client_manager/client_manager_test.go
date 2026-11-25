@@ -16,6 +16,7 @@ package clientmanager
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -23,10 +24,12 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	mysqlStd "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/mysql"
@@ -115,6 +118,19 @@ func TestFieldMeta_TaskRunId(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "tasks", table)
 	assert.Equal(t, "RunUUID", dbCol)
+}
+
+// The legacy upgrade resolves every LengthSpecs entry before changing the
+// schema, so a spec that names a renamed field stops every legacy upgrade.
+func TestLengthSpecsResolveToModelFields(t *testing.T) {
+	db := getTestSQLite(t)
+	for _, spec := range validation.LengthSpecs {
+		_, _, err := FieldMeta(db, spec.Model, spec.Field)
+		assert.NoError(t, err, "LengthSpecs entry %T.%s", spec.Model, spec.Field)
+	}
+
+	require.NoError(t, autoMigrate(db))
+	assert.NoError(t, runPreflightLengthChecks(db, dialect.NewDBDialect("sqlite"), validation.LengthSpecs))
 }
 
 func TestAutoMigrateCreatesTaskLogicalKeyUniqueIndex(t *testing.T) {
@@ -672,7 +688,7 @@ func TestBackfillRefColumnSQL_QuotesPerDialect(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.dialect, func(t *testing.T) {
-			sql := backfillRefColumnSQL(dialect.NewDBDialect(tt.dialect), "run_details", "PipelineId", model.PipelineResourceType)
+			sql := backfillRefColumnSQL(dialect.NewDBDialect(tt.dialect), "run_details", "PipelineId", model.PipelineResourceType).updateSQL
 
 			assert.Contains(t, sql, tt.quoted)
 
@@ -681,7 +697,7 @@ func TestBackfillRefColumnSQL_QuotesPerDialect(t *testing.T) {
 			assert.Contains(t, sql, "= 'pipeline'")
 			assert.Contains(t, sql, "= 'Run'")
 
-			pvSQL := backfillRefColumnSQL(dialect.NewDBDialect(tt.dialect), "run_details", "PipelineVersionId", model.PipelineVersionResourceType)
+			pvSQL := backfillRefColumnSQL(dialect.NewDBDialect(tt.dialect), "run_details", "PipelineVersionId", model.PipelineVersionResourceType).updateSQL
 			assert.Contains(t, pvSQL, "= 'PipelineVersion'")
 		})
 	}
@@ -724,6 +740,13 @@ func TestBackfillPipelineRefs_RunsOnceThenSkips(t *testing.T) {
 	require.NoError(t, autoMigrate(db))
 	dbDialect := dialect.NewDBDialect("sqlite")
 
+	// On large installations with no legacy references, even a zero-row
+	// locking UPDATE can stall live traffic. Only the marker should be written.
+	require.NoError(t, db.Callback().Raw().Before("gorm:raw").Register("test:reject-target-update", func(tx *gorm.DB) {
+		if strings.HasPrefix(strings.TrimSpace(tx.Statement.SQL.String()), "UPDATE ") {
+			tx.AddError(errors.New("unexpected UPDATE with no candidates"))
+		}
+	}))
 	require.NoError(t, backfillPipelineRefsToRunTable(db, dbDialect))
 
 	applied, err := migrationApplied(db, backfillPipelineRefsMigration)
@@ -755,26 +778,98 @@ func TestClaimMigration_OnlyOneCallerWins(t *testing.T) {
 	assert.Equal(t, int64(1), count)
 }
 
-func TestClaimMigration_MySQLClientFoundRows(t *testing.T) {
-	dsn := os.Getenv("KFP_TEST_MYSQL_DSN")
-	if dsn == "" {
-		t.Skip("KFP_TEST_MYSQL_DSN not set")
+// getTestMySQL creates a MySQL database for the test and drops it afterwards.
+// It skips the test unless KFP_MIGRATION_MYSQL_TEST_DSN names a MySQL server.
+func getTestMySQL(t *testing.T) *gorm.DB {
+	t.Helper()
+	serverDSN := os.Getenv("KFP_MIGRATION_MYSQL_TEST_DSN")
+	if serverDSN == "" {
+		t.Skip("set KFP_MIGRATION_MYSQL_TEST_DSN to run against MySQL")
 	}
-	require.Contains(t, dsn, "clientFoundRows=true",
-		"the DSN must mirror initDBDriver, otherwise this test cannot reproduce the case it guards")
+	return newTestMySQL(t, serverDSN)
+}
 
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	require.NoError(t, err)
-	require.NoError(t, db.Migrator().DropTable(&model.MigrationStatus{}))
+func newTestMySQL(t *testing.T, serverDSN string) *gorm.DB {
+	t.Helper()
+	mysqlConfig, parseError := mysqlStd.ParseDSN(serverDSN)
+	require.NoError(t, parseError)
+	mysqlConfig.DBName = ""
+	server, openError := sql.Open("mysql", mysqlConfig.FormatDSN())
+	require.NoError(t, openError)
+	t.Cleanup(func() { require.NoError(t, server.Close()) })
+
+	quote := dialect.NewDBDialect("mysql").QuoteIdentifier
+	databaseName := fmt.Sprintf("kfp_migration_test_%d", time.Now().UnixNano())
+	_, createError := server.Exec("CREATE DATABASE " + quote(databaseName))
+	require.NoError(t, createError)
+	t.Cleanup(func() {
+		_, dropError := server.Exec("DROP DATABASE " + quote(databaseName))
+		require.NoError(t, dropError)
+	})
+
+	mysqlConfig.DBName = databaseName
+	// initDBDriver connects with ClientFoundRows.
+	mysqlConfig.ClientFoundRows = true
+	db, gormError := gorm.Open(mysql.Open(mysqlConfig.FormatDSN()), &gorm.Config{})
+	require.NoError(t, gormError)
+	t.Cleanup(func() {
+		connectionPool, poolError := db.DB()
+		require.NoError(t, poolError)
+		require.NoError(t, connectionPool.Close())
+	})
+	return db
+}
+
+// TestClaimMigration_MySQLClientFoundRows needs a MySQL server: the SQLite
+// tests cannot catch a claim that trusts the affected-row count, because only
+// MySQL with ClientFoundRows reports a matched row for a duplicate insert.
+func TestClaimMigration_MySQLClientFoundRows(t *testing.T) {
+	db := getTestMySQL(t)
 	require.NoError(t, db.AutoMigrate(&model.MigrationStatus{}))
 
-	won, err := claimMigration(db, "m1")
-	require.NoError(t, err)
+	won, claimError := claimMigration(db, "m1")
+	require.NoError(t, claimError)
 	assert.True(t, won)
 
-	won, err = claimMigration(db, "m1")
-	require.NoError(t, err)
+	won, claimError = claimMigration(db, "m1")
+	require.NoError(t, claimError)
 	assert.False(t, won, "with ClientFoundRows a duplicate reports one matched row; the loser must still skip")
+}
+
+func TestBackfillExperimentIDToRunTable_MySQL(t *testing.T) {
+	db := getTestMySQL(t)
+	require.NoError(t, db.AutoMigrate(&model.Run{}, &model.ResourceReference{}))
+	for _, run := range []struct{ runID, experimentID string }{
+		{"run-legacy", ""},
+		{"run-current", "experiment-current"},
+		{"run-unreferenced", ""},
+	} {
+		require.NoError(t, db.Create(&model.Run{
+			UUID: run.runID, DisplayName: run.runID, K8SName: run.runID, Namespace: "ns",
+			ExperimentId: run.experimentID, StorageState: model.StorageStateAvailable,
+		}).Error)
+	}
+	for _, runID := range []string{"run-legacy", "run-current"} {
+		require.NoError(t, db.Create(&model.ResourceReference{
+			ResourceUUID: runID, ResourceType: model.RunResourceType,
+			ReferenceUUID: "experiment-legacy", ReferenceType: model.ExperimentResourceType,
+			Relationship: model.OwnerRelationship,
+		}).Error)
+	}
+
+	require.NoError(t, backfillExperimentIDToRunTable(db, dialect.NewDBDialect("mysql")))
+
+	assert.Equal(t, "experiment-legacy", storedRunExperimentID(t, db, "run-legacy"),
+		"a legacy run must take its experiment from its resource reference")
+	assert.Equal(t, "experiment-current", storedRunExperimentID(t, db, "run-current"))
+	assert.Equal(t, "", storedRunExperimentID(t, db, "run-unreferenced"))
+}
+
+func storedRunExperimentID(t *testing.T, db *gorm.DB, runID string) string {
+	t.Helper()
+	var run model.Run
+	require.NoError(t, db.Where(map[string]any{"UUID": runID}).First(&run).Error)
+	return run.ExperimentId
 }
 
 func TestBackfillPipelineRefs_VersionIdColumnWithoutReference(t *testing.T) {
@@ -848,7 +943,7 @@ func TestBackfillPipelineRefs_LegacyJobs(t *testing.T) {
 
 func TestBackfillRefColumnSQL_JobsUseJobResourceType(t *testing.T) {
 	// Job references use ResourceType 'Job'; matching 'Run' would backfill nothing.
-	sql := backfillRefColumnSQL(dialect.NewDBDialect("sqlite"), "jobs", "PipelineId", model.PipelineResourceType)
+	sql := backfillRefColumnSQL(dialect.NewDBDialect("sqlite"), "jobs", "PipelineId", model.PipelineResourceType).updateSQL
 	assert.Contains(t, sql, "= 'Job'")
 	assert.Contains(t, sql, "UPDATE jobs")
 	assert.NotContains(t, sql, "= 'Run'")
@@ -913,4 +1008,36 @@ func TestCreateExpressionIndexes_NonPostgresNoop(t *testing.T) {
 	assert.NotPanics(t, func() {
 		createExpressionIndexes(db, dialect.NewDBDialect("sqlite"))
 	})
+}
+
+func TestBackfillPipelineRefs_RestartsAfterPartialCommit(t *testing.T) {
+	db := getTestSQLite(t)
+	require.NoError(t, autoMigrate(db))
+	insertBackfillCandidates(t, db, pipelineRefBatchSize+1)
+	interrupted := errors.New("interrupted second batch")
+	updates := 0
+	require.NoError(t, db.Callback().Raw().Before("gorm:raw").Register("test:interrupt", func(tx *gorm.DB) {
+		if isRunBackfillWrite(tx) {
+			updates++
+			if updates == 2 {
+				tx.AddError(interrupted)
+			}
+		}
+	}))
+	d := dialect.NewDBDialect("sqlite")
+	require.ErrorIs(t, backfillPipelineRefsToRunTable(db, d), interrupted)
+	countRepaired := func() int64 {
+		var count int64
+		require.NoError(t, db.Model(&model.Run{}).Where(map[string]any{"PipelineId": "pipeline"}).Count(&count).Error)
+		return count
+	}
+	require.EqualValues(t, pipelineRefBatchSize, countRepaired())
+	applied, err := migrationApplied(db, backfillPipelineRefsMigration)
+	require.NoError(t, err)
+	require.False(t, applied)
+	require.NoError(t, backfillPipelineRefsToRunTable(db, d))
+	require.EqualValues(t, pipelineRefBatchSize+1, countRepaired())
+	applied, err = migrationApplied(db, backfillPipelineRefsMigration)
+	require.NoError(t, err)
+	require.True(t, applied)
 }

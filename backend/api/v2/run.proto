@@ -305,11 +305,19 @@ message Run {
 
 // Reference to an existing pipeline version.
 message PipelineVersionReference {
-  // Input. Required. Unique ID of the parent pipeline.
+  // Input. Unique ID of the parent pipeline. Required unless pipeline_name is set.
   string pipeline_id = 1;
 
   // Input. Optional. Unique ID of an existing pipeline version. If unset, the latest pipeline version is used.
   string pipeline_version_id = 2;
+
+  // Input. Optional. Name of the parent pipeline in the run's namespace, used
+  // instead of pipeline_id. Not returned in responses.
+  string pipeline_name = 3;
+
+  // Input. Optional. Name of a version of the pipeline named by pipeline_name,
+  // used instead of pipeline_version_id. Not returned in responses.
+  string pipeline_version_name = 4;
 }
 
 // Describes the runtime state of an entity.

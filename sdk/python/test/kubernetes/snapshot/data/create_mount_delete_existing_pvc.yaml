@@ -67,7 +67,11 @@ components:
 
             to back the PVC. ``None`` indicates to use the cluster''s default
 
-            storage_class_name. Set to ``''''`` for a statically specified PVC.'
+            storage_class_name, or the server-configured default StorageClass
+
+            when one is set by the administrator. Set to ``''''`` for a
+
+            statically specified PVC.'
           isOptional: true
           parameterType: STRING
         volume_name:

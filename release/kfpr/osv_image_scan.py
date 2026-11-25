@@ -55,10 +55,55 @@ def verify_archive(path: Path, image_id: str, platform: str) -> str:
         ):
             raise ValueError('Docker archive has an invalid config path')
         config_bytes = read_member(config, 16 * 1024 * 1024)
-        if 'sha256:' + hashlib.sha256(config_bytes).hexdigest() != image_id:
-            raise ValueError(
-                'Docker archive config does not match built image ID'
+        config_digest = 'sha256:' + hashlib.sha256(config_bytes).hexdigest()
+
+        def binds_config(digest: str, depth: int = 0) -> bool:
+            # Containerd exposes a manifest/index ID instead of a config ID.
+            # Verify each archived descriptor before following its native child.
+            if depth > 4 or not re.fullmatch(r'sha256:[0-9a-f]{64}', digest):
+                return False
+            raw = read_member('blobs/sha256/' + digest[7:], 16 * 1024 * 1024)
+            if 'sha256:' + hashlib.sha256(raw).hexdigest() != digest:
+                return False
+            document = json.loads(raw)
+            if (
+                not isinstance(document, dict)
+                or document.get('schemaVersion') != 2
+            ):
+                return False
+            if isinstance(document.get('config'), dict):
+                return document['config'].get('digest') == config_digest
+            descriptors = document.get('manifests')
+            if not isinstance(descriptors, list):
+                return False
+            native = [
+                item
+                for item in descriptors
+                if isinstance(item, dict)
+                and isinstance(item.get('platform'), dict)
+                and (
+                    item['platform'].get('os'),
+                    item['platform'].get('architecture'),
+                )
+                == tuple(platform.split('/'))
+            ]
+            return (
+                len(native) == 1
+                and isinstance(native[0].get('digest'), str)
+                and binds_config(native[0]['digest'], depth + 1)
             )
+
+        if config_digest != image_id:
+            try:
+                bound = binds_config(image_id)
+            except (ValueError, KeyError, TypeError) as error:
+                raise ValueError(
+                    'Docker archive cannot bind the image ID to its native config'
+                ) from error
+            if not bound:
+                raise ValueError(
+                    'Docker archive image ID does not match its native config'
+                )
         metadata = json.loads(config_bytes)
         if not isinstance(metadata, dict):
             raise ValueError('Docker archive config must be an object')
@@ -210,9 +255,9 @@ def scan_image(
                 stderr=errors,
                 check=False,
             )
-        if report_format == 'json' and 'Error during extraction:' in (
-            output / 'scan.stderr.log'
-        ).read_text(errors='replace'):
+        if 'Error during extraction:' in (output / 'scan.stderr.log').read_text(
+            errors='replace'
+        ):
             raise ValueError(
                 'OSV image scan reported incomplete package extraction'
             )

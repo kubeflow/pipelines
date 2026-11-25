@@ -250,6 +250,34 @@ Argo controller `workflowDefaults.spec.podMetadata` instead. This includes
 component Pods and is not an automatic translation of the old driver-only
 settings. Check template-level metadata overrides and mesh behavior before
 rollout. KFP does not install a metadata-mutating admission policy for you.
+## Image pull failure handling (opt-in)
+
+By default a pipeline run whose pod can never pull its container image stays
+`Running` until someone terminates it. The persistence agent can instead detect
+pods stuck in `ImagePullBackOff` / `ErrImagePull` and fail the run after a grace
+period (five minutes by default). The feature is off by default because it
+needs two extra permissions for the persistence agent: reading pods and
+patching Argo Workflows. Those permissions ship in opt-in components rather
+than in the base persistence agent Role / ClusterRole, so installations that do
+not opt in do not carry them.
+
+Add the matching component to your kustomization:
+
+```yaml
+components:
+# Standalone (single namespace) installations:
+- ../../components/image-pull-failure-handling
+# Multi-user installations (cluster-wide persistence agent):
+# - ../../components/image-pull-failure-handling-multi-user
+```
+
+The component sets `IMAGE_PULL_FAILURE_HANDLING_ENABLED=true` on the persistence
+agent deployment and creates a dedicated Role/RoleBinding (or
+ClusterRole/ClusterRoleBinding) bound to its service account. Adjust
+`IMAGE_PULL_FAILURE_GRACE_PERIOD_SEC` on the deployment to change the grace
+period. When a run is failed this way, the workflow is annotated with
+`pipelines.kubeflow.org/termination-reason: ImagePullFailure` and
+`pipelines.kubeflow.org/failed-image: <image>`.
 
 ## Artifact download responses
 

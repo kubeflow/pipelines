@@ -80,6 +80,7 @@ type DriverPluginArgs struct {
 	DefaultRunAsGroup               *int64      `json:"default_run_as_group,omitempty"`
 	DefaultRunAsNonRoot             string      `json:"default_run_as_non_root,omitempty"`
 	DefaultHostUsers                string      `json:"default_host_users,omitempty"`
+	DefaultPVCStorageClass          string      `json:"default_pvc_storage_class,omitempty"`
 	RuntimeArgs                     RuntimeArgs `json:"runtime_args,omitempty"`
 }
 

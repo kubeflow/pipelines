@@ -36,6 +36,22 @@ class ArtifactTest(unittest.TestCase):
             'workflow': client.WORKFLOW,
             'title': 'request title',
         }
+        self.third_party_scan = {
+            'name': 'third-party-abcd',
+            'target': IMAGE,
+            'raw_report': 'third-party/scans/abcd/scan.json',
+            'findings': [],
+        }
+        self.third_party = {
+            'images': [],
+            'scans': [self.third_party_scan],
+            'inventory': {'first_party_names': ['api']},
+        }
+        patcher = mock.patch.object(
+            client, 'verify_third_party', return_value=self.third_party
+        )
+        self.third_party_verify = patcher.start()
+        self.addCleanup(patcher.stop)
         self.expected = {
             'schema': 1,
             **{
@@ -96,6 +112,9 @@ class ArtifactTest(unittest.TestCase):
             'include_backend': True,
             'include_sdk': False,
             'images': [],
+            'third_party_manifest_sha256': self.write(
+                'third-party/third-party.json', {'schema': 1}
+            ),
             'security_manifest_sha256': self.write(
                 'security/security.json', security
             ),
@@ -119,8 +138,92 @@ class ArtifactTest(unittest.TestCase):
         self.artifact()
         result = client.read_artifact(self.root, IMAGES, [], self.identity)
         self.assertEqual(len(result['images']), 2)
-        self.assertEqual(len(result['scans']), 3)
+        self.assertEqual(len(result['scans']), 4)
+        self.assertEqual(
+            result['third_party']['scans'], [self.third_party_scan]
+        )
         self.assertIsNone(result['wheels'])
+
+    def test_kfp_binary_provenance_is_required_bound_and_revalidated(self):
+        from .go_build_provenance_test import TIME, build_info
+
+        manifest = self.artifact()
+        for record in manifest['images']:
+            arch = record['platform'].split('/')[1]
+            raw = json_envelope(IMAGE)
+            info = build_info()
+            info['ELFMachine'] = (
+                'EM_X86_64' if arch == 'amd64' else 'EM_AARCH64'
+            )
+            for item in info['Settings']:
+                if item['Key'] == 'GOARCH':
+                    item['Value'] = arch
+            raw['report']['results'][0]['source']['path'] = '/bin/kfp'
+            raw['report']['results'][0]['packages'][0]['package'] = {
+                'name': client.go_build_provenance.MODULE,
+                'ecosystem': 'Go',
+                'version': info['Main']['Version'],
+            }
+            record['scan_sha256'] = self.write(record['scan_file'], raw)
+            proof = {
+                'schema': 1,
+                'image_id': IMAGE,
+                'platform': record['platform'],
+                'source_sha': self.identity['source_sha'],
+                'source_time': TIME,
+                'binaries': [
+                    {
+                        'path': '/bin/kfp',
+                        'sha256': 'f' * 64,
+                        'build_info': info,
+                        'module': info['Main']['Path'],
+                        'version': info['Main']['Version'],
+                        'vcs': 'git',
+                        'revision': self.identity['source_sha'],
+                        'time': TIME,
+                        'modified': False,
+                    }
+                ],
+            }
+            filename = f'provenance/api-{arch}.json'
+            record['go_provenance_file'] = filename
+            record['go_provenance_sha256'] = self.write(filename, proof)
+        self.write('manifest.json', manifest)
+        with self.assertRaisesRegex(ValueError, 'source Git repository'):
+            client.read_artifact(self.root, IMAGES, [], self.identity)
+        with mock.patch.object(
+            client.go_build_provenance,
+            'source_identity',
+            return_value={'source_time': TIME},
+        ):
+            result = client.read_artifact(
+                self.root, IMAGES, [], self.identity, source_repo=self.root
+            )
+            self.assertEqual(result['images'], manifest['images'])
+            self.assertEqual(result['scans'][1]['findings'], [])
+            # A forged summary with a matching outer checksum still cannot
+            # change the actual standard Go build metadata.
+            record = manifest['images'][0]
+            proof = json.loads(
+                (self.root / record['go_provenance_file']).read_text()
+            )
+            proof['binaries'][0]['modified'] = True
+            record['go_provenance_sha256'] = self.write(
+                record['go_provenance_file'], proof
+            )
+            self.write('manifest.json', manifest)
+            with self.assertRaisesRegex(ValueError, 'summary'):
+                client.read_artifact(
+                    self.root, IMAGES, [], self.identity, source_repo=self.root
+                )
+            del record['go_provenance_file']
+            self.write('manifest.json', manifest)
+            with self.assertRaisesRegex(
+                ValueError, 'Missing KFP binary provenance'
+            ):
+                client.read_artifact(
+                    self.root, IMAGES, [], self.identity, source_repo=self.root
+                )
 
     def test_identity_and_scope_mutations_fail_before_acceptance(self):
         baseline = self.artifact()
@@ -205,6 +308,30 @@ class ArtifactTest(unittest.TestCase):
             (self.root / 'security', self.expected, {'3.10', '3.13'}),
         )
 
+    def test_backend_requires_third_party_checksum_and_complete_verification(
+        self,
+    ):
+        baseline = self.artifact()
+        for checksum in (None, 'f' * 64):
+            self.write(
+                'manifest.json',
+                {**baseline, 'third_party_manifest_sha256': checksum},
+            )
+            with self.assertRaisesRegex(ValueError, 'Third-party.*checksum'):
+                client.read_artifact(self.root, IMAGES, [], self.identity)
+        self.write('manifest.json', baseline)
+        self.third_party_verify.side_effect = ValueError(
+            'Third-party inventory incomplete'
+        )
+        with self.assertRaisesRegex(ValueError, 'inventory incomplete'):
+            client.read_artifact(self.root, IMAGES, [], self.identity)
+
+    def test_ownership_exclusions_must_match_native_release_inventory(self):
+        self.artifact()
+        self.third_party['inventory']['first_party_names'].append('seaweedfs')
+        with self.assertRaisesRegex(ValueError, 'ownership'):
+            client.read_artifact(self.root, IMAGES, [], self.identity)
+
     def test_symlinked_evidence_is_rejected(self):
         self.artifact()
         path = self.root / 'scans/api-amd64.json'
@@ -244,21 +371,41 @@ class DispatchPolicyTest(unittest.TestCase):
         self.read = mock.patch.object(
             client,
             'read_artifact',
-            side_effect=lambda *args: copy.deepcopy(self.result),
+            side_effect=lambda *args, **kwargs: copy.deepcopy(self.result),
         ).start()
         self.verify = mock.patch.object(client, 'verify_run').start()
         self.addCleanup(mock.patch.stopall)
 
     def fake_api(self, context, endpoint):
-        if endpoint == 'commits/master':
+        if endpoint.startswith('actions/runs/'):
+            return {
+                'id': 123,
+                'path': client.WORKFLOW,
+                'event': 'workflow_dispatch',
+                'head_sha': self.identity['workflow_sha'],
+                'display_title': self.identity['title'],
+                'run_attempt': 2,
+                'head_branch': self.identity['workflow_ref'],
+                'repository': {'full_name': client.REPO},
+                **self.final,
+            }
+        if endpoint == '':
+            return {'default_branch': getattr(self, 'branch', 'master')}
+        if endpoint == 'commits/' + getattr(self, 'branch', 'master'):
             return {'sha': 'b' * 40}
         return {'type': 'file', 'path': client.WORKFLOW}
 
-    def fake_dispatch(self, api, run, identity, inputs):
+    def fake_dispatch(self, api, run, identity, inputs, **kwargs):
         self.inputs = inputs
         identity.update(run_id='123', run_attempt=2)
         self.identity = identity
         return self.final
+
+    def test_dispatch_uses_main_after_default_branch_rename(self):
+        self.branch = 'main'
+        self.qualify()
+        self.assertEqual(self.identity['workflow_ref'], 'main')
+        self.assertEqual(self.identity['workflow_sha'], 'b' * 40)
 
     def qualify(self):
         return client.qualify_ci(
@@ -313,6 +460,7 @@ class DispatchPolicyTest(unittest.TestCase):
             self.finding('source', 'go.mod'),
             self.finding('python-3.10', '3.10'),
             self.finding('image-api-amd64', IMAGE),
+            self.finding('third-party-external-amd64', IMAGE),
         ]
         document = {
             'schema': 1,
@@ -336,12 +484,20 @@ class DispatchPolicyTest(unittest.TestCase):
         path = self.root / 'exceptions.json'
         path.write_text(json.dumps(document))
         self.context.state.answers.update(
-            security_policy='approved-exceptions', security_exceptions=str(path)
+            security_policy='approved-exceptions',
+            security_exceptions=str(path),
         )
         result = self.qualify()
-        self.assertEqual(result['security']['accepted_count'], 3)
+        self.assertEqual(result['security']['accepted_count'], 4)
         self.assertEqual(result['security']['blocking_count'], 0)
         self.assertEqual(result['security']['exceptions'], document)
+
+    def test_third_party_findings_block_without_an_exact_exception(self):
+        self.result['scans'] = [self.finding('third-party-external', IMAGE)]
+        with self.assertRaisesRegex(ValueError, 'fixable blocking'):
+            self.qualify()
+        evidence = json.loads((self.output / 'security.json').read_text())
+        self.assertEqual(evidence['blocking_count'], 1)
 
     def test_failed_workflow_downloads_diagnostics_without_acceptance(self):
         self.final['conclusion'] = 'failure'
@@ -366,6 +522,111 @@ class DispatchPolicyTest(unittest.TestCase):
             self.qualify()
         self.verify.assert_not_called()
         self.assertFalse((self.output / 'security.json').exists())
+
+    def test_resume_recollects_same_attempt_without_dispatch_or_release_state(
+        self,
+    ):
+        self.qualify()
+        del self.context.state
+        self.dispatch.reset_mock()
+        result = client.collect_ci(
+            self.context,
+            'a' * 40,
+            [],
+            ['3.10', '3.13'],
+            self.output,
+            resume=True,
+        )
+        self.dispatch.assert_not_called()
+        self.assertEqual(result['run']['run_attempt'], 2)
+        self.assertEqual(self.read.call_count, 2)
+
+    def test_resume_rejects_changed_live_attempt_before_download(self):
+        self.qualify()
+        original_api = self.fake_api
+
+        def changed(context, endpoint):
+            data = original_api(context, endpoint)
+            if endpoint.startswith('actions/runs/'):
+                data['run_attempt'] = 3
+            return data
+
+        self.api.side_effect = changed
+        self.context.runner.run.reset_mock()
+        with self.assertRaisesRegex(ValueError, 'provenance changed'):
+            client.collect_ci(
+                self.context,
+                'a' * 40,
+                [],
+                ['3.10', '3.13'],
+                self.output,
+                resume=True,
+            )
+        self.context.runner.run.assert_not_called()
+
+    def test_request_identity_survives_interrupted_watch(self):
+        def interrupted(api, run, identity, inputs, **kwargs):
+            identity.update(run_id='123', run_attempt=2)
+            raise KeyboardInterrupt()
+
+        self.dispatch.side_effect = interrupted
+        with self.assertRaises(KeyboardInterrupt):
+            self.qualify()
+        identity = json.loads((self.output / 'request.json').read_text())
+        self.assertEqual(identity['run_id'], '123')
+        self.assertEqual(identity['run_attempt'], 2)
+        self.read.assert_not_called()
+
+    def test_validated_identity_is_persisted_before_watch(self):
+        from .workflow_runs import dispatch_and_watch
+
+        self.dispatch.side_effect = dispatch_and_watch
+        original_api = self.fake_api
+
+        def api(context, endpoint):
+            if endpoint.startswith('actions/workflows/'):
+                self.identity = json.loads(
+                    (self.output / 'request.json').read_text()
+                )
+                return {
+                    'workflow_runs': [original_api(context, 'actions/runs/123')]
+                }
+            return original_api(context, endpoint)
+
+        def run(command, **kwargs):
+            if command[:3] == ['gh', 'run', 'watch']:
+                saved = json.loads((self.output / 'request.json').read_text())
+                self.assertEqual(saved['run_id'], '123')
+                self.assertEqual(saved['run_attempt'], 2)
+                raise KeyboardInterrupt()
+
+        self.api.side_effect = api
+        self.context.runner.run.side_effect = run
+        with self.assertRaises(KeyboardInterrupt):
+            self.qualify()
+        self.context.runner.run.side_effect = None
+        self.dispatch.reset_mock()
+        client.collect_ci(
+            self.context,
+            'a' * 40,
+            [],
+            ['3.10', '3.13'],
+            self.output,
+            resume=True,
+        )
+        self.dispatch.assert_not_called()
+
+    def test_resume_scope_or_source_tampering_is_rejected(self):
+        self.qualify()
+        with self.assertRaisesRegex(ValueError, 'different source or scope'):
+            client.collect_ci(
+                self.context,
+                'b' * 40,
+                [],
+                ['3.10', '3.13'],
+                self.output,
+                resume=True,
+            )
 
 
 if __name__ == '__main__':

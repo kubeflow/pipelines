@@ -58,3 +58,12 @@ isolates both the SDK build source and the subprocess installation destination.
 Even `use_venv=False` tests use a disposable per-test interpreter, while retaining
 the runner's actual install locking and per-task-venv behavior. Never let test
 components reinstall packages into the pytest workers' shared environment.
+
+The SDK integration presubmit builds one wheel from the actual checkout and uses
+it for both local-execution and runtime regressions. DockerRunner tests bind-mount
+that wheel read-only at its absolute package path; subprocess tests install the
+same artifact. Keep real per-component installs, dependency resolution, both Python
+versions, and all cases. Do not restore Git URL installs per component: queue-SHA
+fetches and repeated builds can exceed the integration job's timeout. Run
+`PYTHONPATH=.github/resources/scripts python -m unittest sdk_runtime_test queue_test_sources_test`
+and the local-execution wheel-mount regressions after changing this handoff.

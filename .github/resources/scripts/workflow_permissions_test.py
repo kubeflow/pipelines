@@ -25,7 +25,11 @@ WORKFLOWS = ROOT / '.github/workflows'
 # Each write grant must have an identified consumer. The generated analyzer's
 # issue output, cancellation, and inference grants stay in its source contract.
 WRITE_PERMISSIONS = {
-    'release-branch-image-scanning.yml': {'upload': {'security-events'}},
+    'release-branch-image-scanning.yml': {
+        'upload': {'security-events'},
+        'third-party-evidence': {'security-events'},
+    },
+    'third-party-image-scanning.yml': {'upload': {'security-events'}},
     'release-promote-latest.yml': {'promote': {'packages'}},
     'ai-analyzer.lock.yml': {
         'activation': {'issues'},
@@ -36,6 +40,7 @@ WRITE_PERMISSIONS = {
         'pre_activation': {'actions', 'issues'},
         'safe_outputs': {'issues'},
     },
+    'bot-branch-cleanup.yml': {'delete-branch': {'contents'}},
     'build-and-push.yml': {
         'build-and-push-images': {'packages', 'attestations', 'id-token'},
     },
@@ -44,7 +49,13 @@ WRITE_PERMISSIONS = {
         'publish-tools': {'packages'},
     },
     'ci-checks.yml': {
-        'check_ci_status': {'pull-requests', 'statuses'},
+        'check_ci_status': {'actions', 'pull-requests', 'statuses'},
+        'recover_merged_release': {'statuses'},
+        'check_merge_group_status': {'statuses'},
+        'queue_admission': {'contents', 'pull-requests', 'actions', 'statuses'},
+    },
+    'merge-queue-recovery.yml': {
+        'queue_recovery': {'contents', 'pull-requests', 'actions', 'statuses'},
     },
     'ci-health-report.yml': {
         'report': {'issues'},
@@ -76,12 +87,16 @@ WRITE_PERMISSIONS = {
     'osv-scanner.yml': {
         'scan-source': {'security-events'},
         'scan-images': {'security-events'},
+        'third-party-evidence': {'security-events'},
     },
     'pr-gate.yml': {
         'check-pr-author': {'actions', 'pull-requests'},
     },
     'publish-packages.yml': {
         'publish': {'id-token'},
+    },
+    'ready-command.yml': {
+        'ready': {'issues'},
     },
     'runtime-base-images.yml': {
         'prune-runtime-base-image-caches': {'actions'},
@@ -119,6 +134,30 @@ class WorkflowPermissionsTest(unittest.TestCase):
     def permissions(self, workflow_name, job_name):
         workflow = self.workflows[workflow_name]
         return effective_permissions(workflow, workflow['jobs'][job_name])
+
+    def test_landed_release_verifier_executes_only_trusted_tooling(self):
+        workflow = self.workflows['release-landed-ci.yml']
+        self.assertEqual(
+            set(workflow.get('on', workflow.get(True))), {'workflow_dispatch'}
+        )
+        self.assertEqual(workflow['cache-mode'], 'none')
+        job = workflow['jobs']['ci-passed']
+        self.assertEqual(
+            job['if'],
+            "github.repository == 'kubeflow/pipelines' && github.ref == 'refs/heads/main'",
+        )
+        checkouts = [
+            step
+            for step in job['steps']
+            if step.get('uses', '').startswith('actions/checkout@')
+        ]
+        self.assertEqual(len(checkouts), 1)
+        self.assertEqual(
+            checkouts[0]['with'],
+            {'ref': '${{ github.workflow_sha }}', 'persist-credentials': False},
+        )
+        for step in job['steps']:
+            self.assertNotIn('${{ inputs.', step.get('run', ''))
 
     def test_every_job_has_explicit_permissions_and_only_expected_writes(self):
         actual_writers = {}
@@ -228,6 +267,10 @@ class WorkflowPermissionsTest(unittest.TestCase):
                                 'actions': 'read',
                             },
                         )
+        self.assertEqual(
+            self.permissions('ci-images.yml', 'source'),
+            {'contents': 'read', 'pull-requests': 'read'},
+        )
         image_workflow = self.workflows['image-builds.yml']
         self.assertFalse(
             {'GITHUB_TOKEN', 'GH_TOKEN'} & image_workflow.get('env', {}).keys()
@@ -241,7 +284,11 @@ class WorkflowPermissionsTest(unittest.TestCase):
         for workflow_name, workflow in self.workflows.items():
             for job_name, job in workflow['jobs'].items():
                 if not any(
-                    step.get('uses') == './.github/actions/deploy'
+                    step.get('uses')
+                    in {
+                        './.github/actions/deploy',
+                        './.github/actions/shared-ci-images',
+                    }
                     for step in job.get('steps', [])
                 ):
                     continue
@@ -278,10 +325,6 @@ class WorkflowPermissionsTest(unittest.TestCase):
                 'validate-generated-files.yml', 'validate-generated-files'
             ),
             {},
-        )
-        self.assertEqual(
-            self.permissions('arm64-presubmit.yml', 'smoke'),
-            {'contents': 'read'},
         )
         self.assertEqual(
             self.permissions(

@@ -11,6 +11,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag/jsonutils"
 	"github.com/go-openapi/swag/typeutils"
+	"github.com/go-openapi/validate"
 )
 
 // V2ListRecurringRunsResponse v2 list recurring runs response
@@ -48,8 +49,8 @@ func (m *V2ListRecurringRunsResponse) validateRecurringRuns(formats strfmt.Regis
 	}
 
 	for i := 0; i < len(m.RecurringRuns); i++ {
-		if typeutils.IsZero(m.RecurringRuns[i]) { // not required
-			continue
+		if m.RecurringRuns[i] == nil {
+			return validate.Required("recurringRuns"+"."+strconv.Itoa(i), "body", m.RecurringRuns[i])
 		}
 
 		if m.RecurringRuns[i] != nil {
@@ -93,7 +94,7 @@ func (m *V2ListRecurringRunsResponse) contextValidateRecurringRuns(ctx context.C
 		if m.RecurringRuns[i] != nil {
 
 			if typeutils.IsZero(m.RecurringRuns[i]) { // not required
-				return nil
+				continue
 			}
 
 			if err := m.RecurringRuns[i].ContextValidate(ctx, formats); err != nil {

@@ -62,6 +62,10 @@ type Options struct {
 	// in a dedicated Linux user namespace: UID 0 inside the pod maps to an
 	// unprivileged host UID, so root processes in the container are not root on the host.
 	DefaultHostUsers *bool
+	// Optional: administrator-configured default StorageClass for PVCs created
+	// by CreatePVC pipeline tasks. Nil means not set, so tasks that omit
+	// storage_class_name fall back to Kubernetes defaulting.
+	DefaultPVCStorageClass *string
 	// Optional: base audience for projected service-account tokens used by runtime
 	// pods. Empty means DefaultTokenReviewAudience. The API server passes
 	// TOKEN_REVIEW_AUDIENCE so minted audiences match TokenReview.
@@ -237,6 +241,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		c.defaultRunAsGroup = opts.DefaultRunAsGroup
 		c.defaultRunAsNonRoot = opts.DefaultRunAsNonRoot
 		c.defaultHostUsers = opts.DefaultHostUsers
+		c.defaultPVCStorageClass = opts.DefaultPVCStorageClass
 		c.tokenReviewAudience = opts.TokenReviewAudience
 		if opts.LauncherImage != "" {
 			c.launcherImage = opts.LauncherImage
@@ -252,16 +257,14 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		return nil, err
 	}
 
-	// A task's retry settings only mean what they say if nothing above the pod
-	// also retries. Argo's templateDefaults gives every strategy-less template
-	// the deployment-wide retryStrategy, so the generated DAG templates would
-	// re-run whole subgraphs on top of the task's own retries, multiplying the
-	// attempt count and overriding the selected policy. Zero them so the pod
-	// owns retry. Scoped to pipelines that actually configure retry, so
-	// everything else compiles exactly as before.
-	if pipelineConfiguresRetry(spec) {
-		neutralizeDAGRetries(c.wf)
-	}
+	// Argo's templateDefaults gives every strategy-less template the
+	// deployment-wide retryStrategy. On a DAG that re-runs the whole subgraph,
+	// and because DAGs nest those re-runs multiply. KFP never sets a meaningful
+	// retryStrategy on a DAG and group-level retry is not a supported KFP
+	// operation, so such a retry is always inherited rather than intended.
+	// Whether a task uses set_retry says nothing about whether the deployment
+	// configures a cascading policy, so this cannot be conditional on it.
+	neutralizeDAGRetries(c.wf)
 
 	// Apply any workflow spec patches from environment variable
 	patchJSON := common.GetCompiledPipelineSpecPatch()
@@ -339,19 +342,20 @@ type workflowCompiler struct {
 	spec      *pipelinespec.PipelineSpec
 	executors map[string]*pipelinespec.PipelineDeploymentConfig_ExecutorSpec
 	// state
-	wf                   *wfapi.Workflow
-	templates            map[string]*wfapi.Template
-	launcherImage        string
-	launcherCommand      []string
-	cacheDisabled        bool
-	defaultWorkspace     *k8score.PersistentVolumeClaimSpec
-	mlPipelineTLSEnabled bool
-	defaultRunAsUser     *int64
-	defaultRunAsGroup    *int64
-	defaultRunAsNonRoot  *bool
-	defaultHostUsers     *bool
-	tokenReviewAudience  string
-	kubernetesConfigs    map[string]*kubernetesplatform.KubernetesExecutorConfig
+	wf                     *wfapi.Workflow
+	templates              map[string]*wfapi.Template
+	launcherImage          string
+	launcherCommand        []string
+	cacheDisabled          bool
+	defaultWorkspace       *k8score.PersistentVolumeClaimSpec
+	mlPipelineTLSEnabled   bool
+	defaultRunAsUser       *int64
+	defaultRunAsGroup      *int64
+	defaultRunAsNonRoot    *bool
+	defaultHostUsers       *bool
+	defaultPVCStorageClass *string
+	tokenReviewAudience    string
+	kubernetesConfigs      map[string]*kubernetesplatform.KubernetesExecutorConfig
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {
@@ -713,26 +717,6 @@ func GetWorkspacePVC(
 		},
 		Spec: pvcSpec,
 	}, nil
-}
-
-// pipelineConfiguresRetry reports whether any task in the pipeline sets a retry
-// policy, including tasks inside nested pipelines.
-func pipelineConfiguresRetry(spec *pipelinespec.PipelineSpec) bool {
-	if spec.GetRoot().GetDag() != nil {
-		for _, task := range spec.GetRoot().GetDag().GetTasks() {
-			if task.GetRetryPolicy() != nil {
-				return true
-			}
-		}
-	}
-	for _, component := range spec.GetComponents() {
-		for _, task := range component.GetDag().GetTasks() {
-			if task.GetRetryPolicy() != nil {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // neutralizeDAGRetries gives every DAG template an explicit zero-retry strategy

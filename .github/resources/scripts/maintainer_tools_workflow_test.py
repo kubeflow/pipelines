@@ -110,16 +110,26 @@ class MaintainerToolsWorkflowTest(unittest.TestCase):
             self.build['permissions'], {'contents': 'read', 'packages': 'write'}
         )
         self.assertEqual(self.publish['permissions'], self.build['permissions'])
-        for event in ('pull_request', 'push', 'workflow_dispatch'):
+        for event in (
+            'pull_request',
+            'merge_group',
+            'push',
+            'workflow_dispatch',
+        ):
             with self.subTest(event=event):
                 context = {
-                    'github': {'event_name': event},
+                    'github': {
+                        'event_name': event,
+                        'ref': 'refs/heads/main',
+                        'ref_name': 'main',
+                        'event': {'repository': {'default_branch': 'main'}},
+                    },
                     'needs': {
                         'build-tools': {'result': 'success'},
                         'compare-generated': {'result': 'success'},
                     },
                 }
-                is_pr = event == 'pull_request'
+                is_pr = event in ('pull_request', 'merge_group')
                 self.assertEqual(evaluate(self.check['if'], context), is_pr)
                 self.assertEqual(evaluate(self.build['if'], context), not is_pr)
                 self.assertEqual(
@@ -139,8 +149,36 @@ class MaintainerToolsWorkflowTest(unittest.TestCase):
             self.step_running(self.native_build, 'maintainer_tools_smoke.sh'),
         )
 
+    def test_only_current_default_can_publish_shared_development_tag(self):
+        for default in ('master', 'main'):
+            for branch in ('master', 'main', 'release-2.18', 'feature-tools'):
+                with self.subTest(default=default, branch=branch):
+                    context = {
+                        'github': {
+                            'event_name': 'workflow_dispatch',
+                            'ref': f'refs/heads/{branch}',
+                            'ref_name': branch,
+                            'event': {
+                                'repository': {'default_branch': default}
+                            },
+                        }
+                    }
+                    self.assertEqual(
+                        evaluate(self.build['if'], context),
+                        branch == default or branch not in ('master', 'main'),
+                    )
+                    if branch == default:
+                        self.assertEqual(
+                            evaluate(
+                                self.workflow['env']['IMAGE_TAG'], context
+                            ),
+                            'master',
+                        )
+
     def test_checkouts_do_not_leave_git_credentials(self):
         for job in self.jobs.values():
+            if 'uses' in job:
+                continue  # Reusable guard has no source checkout.
             checkout = self.step_using(job, 'actions/checkout')
             self.assertIs(checkout['with']['persist-credentials'], False)
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.27.3-alpine@sha256:f2c872bcee949b7be9c490efd02b48a8a2fbf947cdf533f1c58525ec9d8170fd AS builder
+FROM golang:1.27.4-alpine@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280 AS builder
 
 RUN apk update && apk upgrade
 RUN apk add --no-cache git gcc musl-dev
@@ -32,9 +32,12 @@ RUN GO111MODULE=on go mod download
 
 COPY . .
 
-RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/viewer/*.go
+RUN GO111MODULE=on go build -buildvcs=true -mod=readonly -o /bin/controller ./backend/src/crd/controller/viewer
 
 FROM alpine:3.21
+
+# Refresh the runtime library even when the base tag still contains an older package.
+RUN apk add --no-cache 'zlib>=1.4-r0'
 WORKDIR /bin
 
 COPY --from=builder /bin/controller /bin/controller

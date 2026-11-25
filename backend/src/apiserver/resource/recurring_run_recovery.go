@@ -17,11 +17,44 @@ package resource
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
+
+// validateRecurringRunReportID keeps a report from creating a run under the ID
+// of a scheduled tick that its recurring run does not hold. In multi-user mode
+// name-based run IDs are reserved for ticks claimed through the API, and the
+// run ID label of a Workflow is editable by namespace users. Such an ID is
+// therefore accepted only for the tick this recurring run claimed last.
+//
+// Release 2.17 derived the ID of a scheduled run from its recurring run ID and
+// the run name, which it recorded on the Workflow. Such an execution can still
+// be in flight after an upgrade, so that form is accepted as well. The name is
+// editable too, but it only selects an ID under this recurring run's own
+// prefix, and names in the tick form stay reserved for claimed ticks.
+func (r *ResourceManager) validateRecurringRunReportID(jobID, runID, reportedRunName string) error {
+	if !common.IsMultiUserMode() || !util.IsDeterministicUUID(runID) {
+		return nil
+	}
+	if reportedRunName != "" && !strings.HasPrefix(reportedRunName, "tick/") &&
+		runID == util.NewDeterministicUUID(jobID+"/"+reportedRunName) {
+		return nil
+	}
+	claim, err := r.jobStore.GetRecurringRunState(jobID)
+	if err != nil {
+		return err
+	}
+	if claim.LastRunIndex <= 0 || runID != util.NewDeterministicUUID(jobID+"/tick/"+strconv.FormatInt(claim.LastRunIndex, 10)) {
+		r.recordWorkflowReportRejection(workflowReportRejectionIdentityMismatch)
+		return util.NewInvalidInputError(
+			"Failed to report workflow: run ID is not the claimed tick of its recurring run")
+	}
+	return nil
+}
 
 // A report can insert the run before CreateRun does. Preserve the source already
 // selected for this execution rather than resolving the schedule's latest again.
@@ -78,9 +111,15 @@ func (r *ResourceManager) recurringRunReportPipelineSpec(job *model.Job, executi
 		return source, util.NewFailedPreconditionError(fmt.Errorf("selected pipeline manifest is missing"),
 			"Restore the manifest of pipeline version %s before recovering recurring run %s", version.UUID, runID)
 	}
+	// CreateRun stores the manifest with the recurring run's enable_caching
+	// override applied, so a recovered run must store the same manifest.
+	manifest, err := template.ApplyCachingOverride([]byte(version.PipelineSpec), source.EnableCaching)
+	if err != nil {
+		return source, util.Wrapf(err, "Failed to restore the selected pipeline source for recurring run %s", runID)
+	}
 	source.PipelineId = version.PipelineId
 	source.PipelineName = version.Name
-	source.PipelineSpecManifest = version.PipelineSpec
+	source.PipelineSpecManifest = model.LargeText(manifest)
 	source.WorkflowSpecManifest = ""
 	return source, nil
 }

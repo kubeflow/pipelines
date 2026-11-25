@@ -123,6 +123,12 @@ data:
   ## namespace isolation for customer workloads. When "false", UID 0 inside
   ## the pod maps to an unprivileged host UID. Set "" to disable.
   defaultSecurityContextHostUsers: ""
+  ## Default StorageClass for PersistentVolumeClaims created by CreatePVC
+  ## pipeline tasks. Leave empty (default) to let Kubernetes apply the
+  ## cluster's default StorageClass. A storage_class_name supplied by the
+  ## pipeline, including an explicit empty string (opt-out), always takes
+  ## precedence over this value.
+  defaultPVCStorageClass: ""
   ## USERID_HEADER and USERID_PREFIX define the multi-user identity contract shared
   ## by the API server, the UI, and the scheduled-workflow controller. They are only
   ## consumed by the multi-user overlay; in single-user installs they are ignored.

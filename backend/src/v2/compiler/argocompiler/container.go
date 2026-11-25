@@ -192,6 +192,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() (string, error) {
 	if c.defaultHostUsers != nil {
 		args["default_host_users"] = strconv.FormatBool(*c.defaultHostUsers)
 	}
+	if c.defaultPVCStorageClass != nil && *c.defaultPVCStorageClass != "" {
+		args["default_pvc_storage_class"] = *c.defaultPVCStorageClass
+	}
 
 	containerDriverPlugin, err := driverPlugin(args)
 	if err != nil {

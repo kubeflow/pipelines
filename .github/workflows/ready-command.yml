@@ -1,0 +1,67 @@
+# Applies the `ready` label when a maintainer or any OWNERS approver comments
+# `/ready` on its own line in an issue. The PR Gate admits external pull
+# requests only for issues with this label.
+#
+# Security: issue_comment runs with a write token for comments from anyone, so
+# this workflow never checks out or executes code from pull requests, never
+# interpolates event text into scripts, and keeps the token out of every step
+# except the one that calls the API.
+name: Ready Command
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+jobs:
+  ready:
+    name: Apply ready label
+    # Pull request comments also emit issue_comment; only issues are admitted.
+    if: >-
+      github.repository == 'kubeflow/pipelines' &&
+      !github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/ready')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Serialize commands per issue; queued runs are not cancelled so every
+    # command is answered.
+    concurrency:
+      group: ready-command-${{ github.event.issue.number }}
+      cancel-in-progress: false
+    permissions:
+      contents: read # Check out OWNERS files and the command script.
+      issues: write # Add the label and react to the command comment.
+
+    steps:
+      - name: Checkout trusted OWNERS files and workflow scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          # issue_comment runs from the default branch, so OWNERS is trusted.
+          ref: ${{ github.workflow_sha }}
+          sparse-checkout: |
+            OWNERS
+            .github/scripts/ready_command.py
+            .github/scripts/kubeflow_membership.py
+            .github/scripts/requirements.txt
+          sparse-checkout-cone-mode: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.13'
+
+      - name: Install workflow script dependencies
+        run: python3 -m pip install -r .github/scripts/requirements.txt
+
+      - name: Apply ready label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          # Untrusted input is passed only through the environment.
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          COMMENTER: ${{ github.event.comment.user.login }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: python3 .github/scripts/ready_command.py

@@ -1,0 +1,118 @@
+# PIPELINE DEFINITION
+# Name: sdk-create-pvc-nonempty-default-storage-class
+components:
+  comp-createpvc:
+    executorLabel: exec-createpvc
+    inputDefinitions:
+      parameters:
+        access_modes:
+          description: Values for ``PersistentVolumeClaim.spec.accessModes``.
+          parameterType: LIST
+        annotations:
+          description: 'Annotations for the PVC''s metadata. Corresponds to
+
+            `PersistentVolumeClaim.metadata.annotations
+
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.'
+          isOptional: true
+          parameterType: STRUCT
+        data_source:
+          description: 'Specifies the data source for the PVC. This can be used to
+
+            create a PVC from a VolumeSnapshot or to clone an existing PVC.
+
+            Should be a dictionary with ``''apiGroup''``, ``''kind''``, and
+
+            ``''name''`` keys. For example:
+
+            ``{''apiGroup'': ''snapshot.storage.k8s.io'', ''kind'': ''VolumeSnapshot'',
+            ''name'': ''my-snapshot''}``.
+
+            Corresponds to `PersistentVolumeClaim.spec.dataSource
+
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.'
+          isOptional: true
+          parameterType: STRUCT
+        pvc_name:
+          description: 'Name of the PVC. Corresponds to
+
+            `PersistentVolumeClaim.metadata.name
+
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
+
+            Only one of ``pvc_name`` and ``pvc_name_suffix`` can be provided.'
+          isOptional: true
+          parameterType: STRING
+        pvc_name_suffix:
+          description: 'Prefix to use for a dynamically generated name, which
+
+            will take the form ``<argo-workflow-name>-<pvc_name_suffix>``. Only
+
+            one of ``pvc_name`` and ``pvc_name_suffix`` can be provided.'
+          isOptional: true
+          parameterType: STRING
+        size:
+          description: 'The size of storage requested by the PVC that will be
+
+            provisioned. For example, ``''5Gi''``. Corresponds to
+
+            `PersistentVolumeClaim.spec.resources.requests.storage
+
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.'
+          parameterType: STRING
+        storage_class_name:
+          defaultValue: standard-sc
+          description: 'Name of StorageClass from which to provision the PV
+
+            to back the PVC. ``None`` indicates to use the cluster''s default
+
+            storage_class_name. Set to ``''''`` for a statically specified PVC.'
+          isOptional: true
+          parameterType: STRING
+        volume_name:
+          description: 'Pre-existing PersistentVolume that should back the
+
+            provisioned PersistentVolumeClaim. Used for statically
+
+            specified PV only. Corresponds to
+
+            `PersistentVolumeClaim.spec.volumeName
+
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.'
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        name:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-createpvc:
+      container:
+        image: argostub/createpvc
+pipelineInfo:
+  name: sdk-create-pvc-nonempty-default-storage-class
+root:
+  dag:
+    tasks:
+      createpvc:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-createpvc
+        inputs:
+          parameters:
+            access_modes:
+              runtimeValue:
+                constant:
+                - ReadWriteOnce
+            pvc_name:
+              runtimeValue:
+                constant: sdk-pvc
+            size:
+              runtimeValue:
+                constant: 5Mi
+        taskInfo:
+          name: createpvc
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.17.0

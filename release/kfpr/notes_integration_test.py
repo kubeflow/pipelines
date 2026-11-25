@@ -3,6 +3,7 @@
 import contextlib
 import io
 import json
+import re
 import subprocess
 import unittest
 from pathlib import Path
@@ -11,7 +12,7 @@ from unittest import mock
 
 from typer.testing import CliRunner
 
-from kfpr import core, steps
+from kfpr import core, previews, steps
 from kfpr.cli import app
 from kfpr.editorial import editorial_scaffold
 
@@ -20,6 +21,7 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
     def setUp(self):
         for name, value in (
             ('qualification.require_qualification', None),
+            ('rtd.publish_backend_docs', None),
             ('_ensure_release_tag', None),
             ('_should_set_backend_latest', True),
             ('_sdk_release_is_consolidated', False),
@@ -201,9 +203,106 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
         )
         self.assertIn('Back up the database.', text.split('## 2.1.1', 1)[1])
         self.assertTrue(text.endswith(history))
-        with self.assertRaisesRegex(ValueError, 'reviewed|edited'):
-            steps._update_changelog(self.context, selected)
+        self.context.state = core.ReleaseState.load(self.context.state.path)
+        steps._update_changelog(self.context, selected)
         self.assertEqual(path.read_text(), text)
+
+    def test_backend_preparation_retries_after_interrupted_write(self):
+        path = self.root / 'CHANGELOG.md'
+        original = (
+            'Changelog\n\n## Unreleased\n\nKeep this migration warning.\n'
+        )
+        path.write_text(original)
+        self.context.runner.dry_run = False
+        selected = steps._notes_range(self.context, 'backend')
+        write_text = Path.write_text
+        temporary_file = previews.NamedTemporaryFile
+        temporary_paths = []
+
+        def interrupted(target, text, *args, **kwargs):
+            if target == path:
+                write_text(target, text[:8], *args, **kwargs)
+                raise OSError('interrupted changelog write')
+            return write_text(target, text, *args, **kwargs)
+
+        def partial_temporary_file(*args, **kwargs):
+            file = temporary_file(*args, **kwargs)
+            temporary_paths.append(Path(file.name))
+            write = file.write
+
+            def partial_write(contents):
+                write(contents[:8])
+                file.flush()
+                raise OSError('interrupted changelog write')
+
+            file.write = partial_write
+            return file
+
+        with (
+            mock.patch.object(Path, 'write_text', interrupted),
+            mock.patch.object(
+                previews, 'NamedTemporaryFile', partial_temporary_file
+            ),
+        ):
+            with self.assertRaisesRegex(OSError, 'interrupted'):
+                steps._update_changelog(self.context, selected)
+        self.assertEqual(path.read_text(), original)
+        self.assertTrue(temporary_paths)
+        self.assertTrue(all(not p.exists() for p in temporary_paths))
+        self.context.state = core.ReleaseState.load(self.context.state.path)
+        saved_entry = self.context.state.answers['prepared_changelog']['entry']
+        steps._update_changelog(self.context, selected)
+        prepared = path.read_text()
+        steps._update_changelog(self.context, selected)
+        self.assertEqual(path.read_text(), prepared)
+        self.assertIn(saved_entry, prepared)
+        self.assertEqual(prepared.count('Keep this migration warning.'), 1)
+
+    def test_backend_preparation_retries_after_failed_replacement(self):
+        path = self.root / 'CHANGELOG.md'
+        original = (
+            'Changelog\n\n## Unreleased\n\nKeep this migration warning.\n\n'
+            '## 2.1.0 (2026-01-01)\n\nOriginal history.\n'
+        )
+        path.write_text(original)
+        self.context.runner.dry_run = False
+        selected = steps._notes_range(self.context, 'backend')
+        replace = previews.os.replace
+        temporary_paths = []
+
+        def interrupted(source, target):
+            if Path(target) == path:
+                temporary_paths.append(Path(source))
+                raise OSError('interrupted changelog replacement')
+            return replace(source, target)
+
+        with mock.patch.object(previews.os, 'replace', interrupted):
+            with self.assertRaisesRegex(OSError, 'interrupted'):
+                steps._update_changelog(self.context, selected)
+        self.assertEqual(path.read_text(), original)
+        self.assertTrue(temporary_paths)
+        self.assertTrue(all(not p.exists() for p in temporary_paths))
+        self.context.state = core.ReleaseState.load(self.context.state.path)
+        steps._update_changelog(self.context, selected)
+        prepared = path.read_text()
+        steps._update_changelog(self.context, selected)
+        self.assertEqual(path.read_text(), prepared)
+        self.assertEqual(prepared.count('Keep this migration warning.'), 1)
+        self.assertTrue(prepared.endswith('Original history.\n'))
+
+    def test_backend_preparation_rejects_changed_range_on_resume(self):
+        path = self.root / 'CHANGELOG.md'
+        path.write_text('Changelog\n\n## Unreleased\n\nKeep upgrade advice.\n')
+        self.context.runner.dry_run = False
+        selected = steps._notes_range(self.context, 'backend')
+        steps._update_changelog(self.context, selected)
+        original = path.read_text()
+        self.context.state = core.ReleaseState.load(self.context.state.path)
+        self.context.release_target = 'HEAD'
+        changed = steps._notes_range(self.context, 'backend')
+        with self.assertRaisesRegex(ValueError, 'range changed'):
+            steps._update_changelog(self.context, changed)
+        self.assertEqual(path.read_text(), original)
 
     def test_backend_retry_refuses_to_overwrite_edited_version(self):
         path = self.root / 'CHANGELOG.md'
@@ -244,9 +343,14 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
             json.loads(sidecar.read_text())['generated_notes'], original
         )
         path.write_text(
-            original.replace(
-                editorial_scaffold(),
-                '## Highlights\n\nHandwritten upgrade advice.\n\n',
+            re.sub(
+                r'<!-- TODO:.*?-->',
+                '',
+                original.replace(
+                    editorial_scaffold('sdk').splitlines()[2],
+                    'Handwritten upgrade advice.',
+                ),
+                flags=re.DOTALL,
             )
         )
         self.context.release_target = 'HEAD'
@@ -285,6 +389,29 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
             path.read_text().count('Handwritten upgrade advice.'), 1
         )
 
+    def test_regeneration_saves_repaired_generated_blocks(self):
+        selected = steps._notes_range(self.context, 'sdk')
+        generated = steps._sdk_release_body(self.context, selected)
+        path = steps._release_notes_preview(
+            self.context, 'sdk-2.1.1', lambda: generated, selected
+        )
+        # Model a clean merge that retained prose but omitted managed blocks.
+        merged = 'Reviewed café migration instructions.\n'
+        result = subprocess.CompletedProcess([], 0, merged.encode('utf-8'), b'')
+        with mock.patch.object(previews.subprocess, 'run', return_value=result):
+            self.assertTrue(
+                previews.regenerate_preview(path, selected, generated)
+            )
+        saved = path.read_text()
+        self.assertTrue(saved.startswith(merged))
+        for section in ('credits', 'assets'):
+            pattern = rf'<!-- kfpr:generated:{section}:start -->.*?<!-- kfpr:generated:{section}:end -->'
+            self.assertEqual(
+                re.findall(pattern, saved, re.DOTALL),
+                re.findall(pattern, generated, re.DOTALL),
+            )
+        self.assertEqual(saved.count('## Assets'), 1)
+
     def test_preview_scaffold_is_shared_and_editorial_warnings_are_advisory(
         self,
     ):
@@ -294,10 +421,17 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
         ):
             selected = steps._notes_range(self.context, product)
             body = render(self.context, selected)
-            self.assertTrue(body.startswith(editorial_scaffold()))
+            self.assertTrue(body.startswith('## Highlights\n'))
+            self.assertIn('## Bug fixes', body)
+            self.assertIn('## Contributors', body)
+            self.assertIn('## Security improvements', body)
+            self.assertIn('## Assets', body)
+            self.assertEqual(
+                body.count('## Installation'), int(product == 'sdk')
+            )
             self.assertLess(
                 body.index('## Action required'),
-                body.index("## What's Changed"),
+                body.index('Commit reference for editors'),
             )
         selected = steps._notes_range(self.context, 'backend')
         self.context.runner.dry_run = False
@@ -367,18 +501,60 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
             )
         self.assertEqual(path.read_text(), 'Reviewed notes\n')
 
+    def write_reviewed_notes(self):
+        for tag, publish in (
+            ('sdk-2.1.1', steps.step_create_sdk_release),
+            ('2.1.1', steps.step_create_backend_release),
+        ):
+            publish(self.context)
+            path = self.root / 'release-state-notes' / f'{tag}.md'
+            path.write_text('Reviewed user-facing changes.\n')
+
+    def test_first_publication_can_complete_fresh_drafts_at_edit_prompt(self):
+        self.context.runner.dry_run = False
+        directory = self.root / 'release-state-notes'
+
+        def edit(_prompt):
+            for tag in ('sdk-2.1.1', '2.1.1'):
+                draft = directory / f'{tag}.md'
+                self.assertIn('<!-- TODO:', draft.read_text())
+                draft.write_text('Reviewed release notes.\n')
+
+        with (
+            mock.patch.object(
+                self.context.runner,
+                'run',
+                return_value=subprocess.CompletedProcess([], 1),
+            ) as run,
+            mock.patch.object(
+                self.context.runner, 'capture', return_value='[[]]'
+            ),
+            mock.patch.object(
+                steps, '_remote_release_sha', return_value=self.target
+            ),
+            mock.patch.object(steps, 'confirm', side_effect=edit) as confirm,
+            contextlib.redirect_stdout(io.StringIO()) as output,
+        ):
+            steps.step_create_sdk_release(self.context)
+
+        confirm.assert_called_once()
+        for product in ('backend', 'sdk'):
+            self.assertRegex(output.getvalue(), rf'{product}: [^\n]*unfinished')
+        self.assertIn(
+            ['gh', 'release', 'create', 'sdk-2.1.1'],
+            [call.args[0][:4] for call in run.call_args_list],
+        )
+
     def test_publication_uses_resolved_target_and_reviewed_file(self):
+        self.write_reviewed_notes()
         for product, remote_sha, publish in (
             ('sdk', self.target, steps.step_create_sdk_release),
             ('backend', self.target, steps.step_create_backend_release),
             ('backend', '', steps.step_create_backend_release),
         ):
             with self.subTest(product=product, remote_sha=remote_sha):
-                self.context.runner.dry_run = True
-                publish(self.context)
                 tag = 'sdk-2.1.1' if product == 'sdk' else '2.1.1'
                 path = self.root / 'release-state-notes' / f'{tag}.md'
-                path.write_text('Reviewed user-facing changes.\n')
                 self.context.runner.dry_run = False
                 with (
                     mock.patch.object(
@@ -386,6 +562,9 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
                         'run',
                         return_value=subprocess.CompletedProcess([], 1),
                     ) as run,
+                    mock.patch.object(
+                        self.context.runner, 'capture', return_value='[[]]'
+                    ),
                     mock.patch.object(steps, 'confirm'),
                     mock.patch.object(
                         steps, '_remote_release_sha', return_value=remote_sha
@@ -404,9 +583,122 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
                     Path(create[create.index('--notes-file') + 1]).resolve(),
                     path.resolve(),
                 )
-                self.assertEqual(
-                    path.read_text(), 'Reviewed user-facing changes.\n'
+                self.assertTrue(
+                    path.read_text().startswith(
+                        'Reviewed user-facing changes.\n'
+                    )
                 )
+                self.assertIn('## Contributors', path.read_text())
+                self.assertIn('## Assets', path.read_text())
+
+    def test_publication_rechecks_advisory_coverage_on_resume_and_after_edits(
+        self,
+    ):
+        issue = 'GHSA-j53r-x5f5-j4hr'
+        url = (
+            f'https://github.com/kubeflow/pipelines/security/advisories/{issue}'
+        )
+        published = [
+            [
+                {
+                    'ghsa_id': issue,
+                    'html_url': url,
+                    'summary': 'Backend downtime advisory',
+                    'published_at': '2026-11-18T12:00:00Z',
+                    'state': 'published',
+                    'vulnerabilities': [
+                        {
+                            'package': {
+                                'ecosystem': 'go',
+                                'name': 'github.com/kubeflow/pipelines',
+                            },
+                            'patched_versions': '2.1.1',
+                        }
+                    ],
+                }
+            ]
+        ]
+        self.write_reviewed_notes()
+        backend = self.root / 'release-state-notes' / '2.1.1.md'
+        self.context.state.mark_done('create-sdk-release')
+        self.context.runner.dry_run = False
+        for edit_during_review in (False, True):
+            with self.subTest(edit_during_review=edit_during_review):
+                body = (
+                    f'Fixed the backend availability issue. [{issue}]({url})\n'
+                )
+                backend.write_text(
+                    body if edit_during_review else 'Reviewed fixes.\n'
+                )
+
+                def confirm(_prompt):
+                    if edit_during_review:
+                        backend.write_text('Reviewed fixes.\n')
+
+                def capture(command, **kwargs):
+                    if any('security-advisories?' in arg for arg in command):
+                        return json.dumps(published)
+                    self.assertIn('sdk-2.1.1', ' '.join(command))
+                    return 'Published SDK notes.'
+
+                with (
+                    mock.patch.object(
+                        self.context.runner,
+                        'capture',
+                        side_effect=capture,
+                    ),
+                    mock.patch.object(self.context.runner, 'run') as run,
+                    mock.patch.object(steps, 'confirm', side_effect=confirm),
+                    mock.patch.object(
+                        steps, '_remote_release_sha', return_value=self.target
+                    ),
+                ):
+                    with self.assertRaisesRegex(
+                        (ValueError, RuntimeError), issue
+                    ):
+                        steps.step_create_backend_release(self.context)
+                self.assertFalse(
+                    any(
+                        call.args[0][:3] == ['gh', 'release', 'create']
+                        for call in run.call_args_list
+                    )
+                )
+
+    def test_tag_moving_during_review_cannot_publish(self):
+        self.write_reviewed_notes()
+        self.context.runner.dry_run = False
+        with (
+            mock.patch.object(
+                self.context.runner,
+                'run',
+                return_value=subprocess.CompletedProcess([], 1),
+            ) as run,
+            mock.patch.object(
+                self.context.runner, 'capture', return_value='[[]]'
+            ),
+            mock.patch.object(steps, 'confirm'),
+            mock.patch.object(
+                steps,
+                '_remote_release_sha',
+                side_effect=[self.target, 'f' * 40],
+            ),
+        ):
+            with self.assertRaisesRegex(ValueError, 'differs'):
+                steps.step_create_sdk_release(self.context)
+        self.assertFalse(
+            any(
+                call.args[0][:3]
+                in (['gh', 'release', 'create'], ['gh', 'release', 'delete'])
+                for call in run.call_args_list
+            )
+        )
+
+    def test_dry_run_does_not_restore_deleted_blocks_in_existing_draft(self):
+        steps.step_create_sdk_release(self.context)
+        path = self.root / 'release-state-notes/sdk-2.1.1.md'
+        path.write_text('My complete rewrite.\n')
+        steps.step_create_sdk_release(self.context)
+        self.assertEqual(path.read_text(), 'My complete rewrite.\n')
 
     def test_remote_tag_mismatch_or_missing_sdk_blocks_publication(self):
         for product, remote_sha, publish in (

@@ -22,6 +22,7 @@ from google.protobuf import json_format, struct_pb2
 from kfp import dsl
 from kfp.compiler import pipeline_spec_builder
 from kfp.dsl import utils
+from kfp.local import executor_output_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 _EXECUTOR_OUTPUT_FILE = 'executor_output.json'
@@ -205,23 +206,29 @@ def executor_input_to_dict(
     """Converts the executor input to a dictionary.
 
     Since protobuf value represents ints and floats the same way, we
-    cast ints to their correct type. This should be called before
-    replacing placeholders with values.
+    cast ints to their correct type, including whole numbers nested in
+    LIST and STRUCT parameters. This should be called before replacing
+    placeholders with values.
 
     This is consistent with the remote backend behavior.
     """
     executor_input_dict = json_format.MessageToDict(executor_input)
-    inputs_typed_int = [
-        in_param_name
+    parameter_types = {
+        in_param_name: parameter_spec.parameter_type
         for in_param_name, parameter_spec in component_spec.input_definitions.parameters.items()
-        if parameter_spec.parameter_type
-        == pipeline_spec_pb2.ParameterType.ParameterTypeEnum.NUMBER_INTEGER
-    ]
-    for param_name, param_value in (
-        executor_input_dict.get('inputs', {}).get('parameterValues', {}).items()
-    ):
-        if param_name in inputs_typed_int:
-            executor_input_dict['inputs']['parameterValues'][param_name] = int(
-                param_value
+    }
+    parameter_values = executor_input_dict.get('inputs', {}).get(
+        'parameterValues', {}
+    )
+    for param_name, param_value in parameter_values.items():
+        parameter_type = parameter_types.get(param_name)
+        if (
+            parameter_type
+            == pipeline_spec_pb2.ParameterType.ParameterTypeEnum.NUMBER_INTEGER
+        ):
+            parameter_values[param_name] = int(param_value)
+        elif parameter_type in executor_output_utils.NESTED_PARAMETER_TYPES:
+            parameter_values[param_name] = (
+                executor_output_utils.cast_nested_whole_numbers(param_value)
             )
     return executor_input_dict

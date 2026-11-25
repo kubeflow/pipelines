@@ -382,8 +382,8 @@ func (m *V2Run) validateStateHistory(formats strfmt.Registry) error {
 	}
 
 	for i := 0; i < len(m.StateHistory); i++ {
-		if typeutils.IsZero(m.StateHistory[i]) { // not required
-			continue
+		if m.StateHistory[i] == nil {
+			return validate.Required("state_history"+"."+strconv.Itoa(i), "body", m.StateHistory[i])
 		}
 
 		if m.StateHistory[i] != nil {
@@ -435,8 +435,8 @@ func (m *V2Run) validateTasks(formats strfmt.Registry) error {
 	}
 
 	for i := 0; i < len(m.Tasks); i++ {
-		if typeutils.IsZero(m.Tasks[i]) { // not required
-			continue
+		if m.Tasks[i] == nil {
+			return validate.Required("tasks"+"."+strconv.Itoa(i), "body", m.Tasks[i])
 		}
 
 		if m.Tasks[i] != nil {
@@ -681,7 +681,7 @@ func (m *V2Run) contextValidateStateHistory(ctx context.Context, formats strfmt.
 		if m.StateHistory[i] != nil {
 
 			if typeutils.IsZero(m.StateHistory[i]) { // not required
-				return nil
+				continue
 			}
 
 			if err := m.StateHistory[i].ContextValidate(ctx, formats); err != nil {
@@ -735,7 +735,7 @@ func (m *V2Run) contextValidateTasks(ctx context.Context, formats strfmt.Registr
 		if m.Tasks[i] != nil {
 
 			if typeutils.IsZero(m.Tasks[i]) { // not required
-				return nil
+				continue
 			}
 
 			if err := m.Tasks[i].ContextValidate(ctx, formats); err != nil {

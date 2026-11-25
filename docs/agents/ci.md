@@ -1,8 +1,157 @@
 # CI and Workflows
 
+The Go test action uses the repository default branch for nested SDK installs on ordinary runs; merge-queue runs retain their exact candidate SHA. The third-party OSV inventory job runs `setup-github-cli.sh` before branch discovery, so Linux runners without a preinstalled `gh` use the existing checksum-verified bootstrap. Local Go test invocations default to `main` and can override it with `-branchName`. Keep container `:master` tags unchanged: these are compatibility aliases, not Git branch references.
+
 Legacy v2 integration migration is tracked in #14950. The legacy v2 workflow is retired on master; the API workflow enforces its replacement coverage. Keep its completion-event subscription in `ci-checks.yml` while release branches still run it, so release reruns update `ci-passed`. Existing assertion parity and CI evidence are recorded in `backend/test/v2/api/legacy-migration.md`. The API workflow verifies the migration manifest against actual Ginkgo JSON reports in cache-enabled standalone and Kubernetes-native jobs; cache-disabled standalone jobs exclude cache-hit assertions. The retired API harness and its unused cleanup/diagnostic helpers are removed. The integration directory retains the standalone webhook tests and Makefile; database initialization remains in `backend/test/integration`.
 
 GitHub Actions workflows are in `.github/workflows/`; reusable composite actions are in `.github/actions/`.
+
+
+## API request accounting
+
+CI Check's preparation, finalization, recovery discovery and merged-release
+recovery steps, plus stale-status revocation, emit one JSON log record with
+`event: github_request_accounting` in their finalizer, including on errors. The
+Octokit request hook includes REST pagination, GraphQL and status/label writes
+made by that particular github-script client. Merge-group publication, queue
+admission/dispatch, and scheduled queue recovery also emit these summaries with
+the scopes `merge_group`, `queue_admission`, and `queue_recovery`. Parallel gate
+reads settle all
+sibling reads and pagination before the summary is emitted, retaining the first
+observed rejection when any read fails. `measurement` is
+`octokit_request_hook`; `hook_available` distinguishes a client without hooks
+from a measured zero-request operation. It does not measure other Actions
+clients or transport retries hidden below
+the hook.
+
+The shared-image CLI emits the same event once per command on stderr, keeping
+its machine-readable outputs unchanged. Its `measurement: gh_api_invocations`
+counts each invocation of `gh api`, including individual pagination and
+conditional requests. Redirects and retries internal to gh, artifact download
+actions, and other processes are outside that boundary. An expired deadline
+that prevents launching gh does not count as a request.
+
+Both summaries contain `scope`, `requests`, and bounded `counts` grouped by
+method, endpoint category and observed status; missing HTTP responses use
+`transport_error`. `rate_limits` keeps the first/last available numeric
+`limit`, `remaining`, `used`, and `reset` headers per bounded resource category,
+plus its observation count. These are observed shared-pool snapshots, not
+requests attributable to this job. A 304 is still an observed request even when
+it does not consume primary quota. No URL, query, request/response body,
+credentials, repository name, or arbitrary header value is recorded. Accounting
+adds no API calls and preserves results and exceptions. These records support
+bounded comparisons; they are not a complete installation request ledger.
+
+The artifact-download retry wrapper and centralized gate clients also preload
+`node_http_accounting.cjs` in their individual Node action steps. Its
+`measurement: node_http_attempts` passively observes Undici and native HTTP
+transport diagnostics, including pagination, redirects, retry attempts and
+transport failures. This covers the downloader and centralized gate clients
+that the Octokit hook cannot observe, plus retries below the gate's Octokit
+hooks. The summary is emitted synchronously on normal process exit, including
+nonzero exits. A hard kill, non-Node subprocess, or uninstrumented action remains
+outside this boundary. `transport_supported` is false on runtimes older than
+Node 24; zero requests on an unsupported runtime is not measured zero traffic.
+Only API-origin responses contribute numeric rate-limit observations; artifact
+service and other HTTP traffic are separate bounded endpoint categories, with
+no URLs, signed query strings, credentials or bodies recorded.
+
+Compare `node_http_attempts` records across the scoped action steps. Do not add
+the overlapping `octokit_request_hook` records to those totals: the latter
+measure logical client requests. Shared-image `gh_api_invocations` are a separate
+process boundary and retain their explicit opaque-transport limitation. Quota
+header deltas reflect the shared installation pool, not usage attributable to
+one step. These summaries add no API calls and do not change polling, retries,
+Dependabot scheduling, or rebase policy.
+
+Use the per-candidate `queue_candidate_dispatch` summary to correlate the SHA
+with validation attempts, reservation writes attempted and workflow dispatches
+attempted during one reconciliation. A validation can include both a GraphQL
+snapshot and a branch-rule REST read. The request summaries give the endpoint
+counts and response codes for those operations, including separate
+`branch_rules`, `repository_metadata` and `workflow_dispatches` categories.
+
+Run `github_request_accounting_test.py`, `node_http_accounting_test.py`, and
+`shared_ci_request_accounting_test.py` with the CI script tests.
+
+## Shared CI image builds
+
+`ci-images.yml` (`Shared CI Images`) is the application-image producer for the
+active integration workflows. It invokes `image-builds.yml` once per required
+architecture: seven AMD64 images shared by six workflows, and seven ARM64 images
+for the ARM smoke. Each consumer workflow calls `shared-ci-images-ready.yml`
+once before its deployment jobs. That job resolves the required runtime and
+application artifacts together and passes the exact immutable IDs and producer
+identity to every dependent lane. ARM readiness selects only ARM application
+images. Cluster setup starts after this barrier; the existing runtime fingerprint
+cache is unchanged. The paused upgrade workflow and its readiness job remain paused.
+
+The producer publishes checkout identity before builds, then immutable
+attempt-specific image archives. Each archive includes its source identity and
+file checksums in a distinct `*.provenance.json` file, prepared before upload.
+After all seven application images build, a same-run artifact-service job
+verifies their current-attempt provenance and hashes and publishes one
+architecture-specific bundle. Runtime images remain separate. New readiness
+resolution waits for the bundle; it cannot fall back to individual artifacts
+while publication is pending. Previously prepared individual-artifact states
+remain valid only under the existing exact-source and producer-attempt checks. A failed or skipped readiness
+job prevents its deployment jobs from starting. Direct users of the deploy or
+shared-image action retain discovery and bounded polling by default.
+Consumers require the same repository, event/ref, actual checkout SHA (the PR
+merge SHA, not only its head), PR head/base identity, architecture and producer
+attempt. They download exact artifact IDs, verify archive SHA-256 checksums and
+recheck the live attempt. Missing, expired or inconsistent evidence fails closed;
+consumers never rebuild application images or substitute default-branch images.
+The producer and consumers need only read permissions for discovery/download.
+
+If an image build fails or artifacts expire, rerun **all jobs** in the producer,
+then rerun its consumers. Failed-jobs-only producer reruns cannot assemble a
+complete new-attempt image set and are intentionally rejected. A producer rerun
+invalidates consumers pinned to its previous attempt. Manual consumers can reuse
+a push/manual producer only at the exact same source/ref; dispatch
+`ci-images.yml` at that ref first when no eligible producer exists. Discovery is
+bounded to 40 minutes; a completed producer missing artifacts gets a 60-second
+publication grace period. When the PR head is unchanged but its merge SHA changes,
+readiness keeps looking for the exact checkout within the discovery deadline.
+It skips verified unrelated run attempts on subsequent polls. Revision-specific concurrency prevents a newer
+revision from cancelling images still needed by older consumers.
+
+Artifact readiness is polled once per consumer workflow every ten seconds,
+with producer status checked at most thirty seconds apart and again at readiness.
+Dependent lanes validate the supplied source/run identity and skip discovery and
+readiness polling. A failed-job-only consumer retry may reuse a successful
+readiness result from an earlier attempt of that same workflow run/source;
+the producer attempt is never rewritten. Per-consumer validation still rejects
+a changed producer attempt, failed producer or deleted artifact. On an AMD64
+runtime-cache miss, deployment downloads runtime and application artifacts in
+one selection, hashes every archive, and validates all records with one fresh
+artifact inventory and one live producer-run read before loading either set.
+This reduces verification metadata reads from four to two per deployment job
+for a single-page inventory (and removes a duplicate downloader invocation).
+The application bundle reduces the downloader selection from seven artifact IDs
+to one (two with runtime on an AMD64 cache miss). For a single-page inventory,
+application download plus verification therefore uses four REST requests instead
+of ten: one artifact listing, one download redirect, and two fresh verification
+reads. Runtime cache misses use five instead of eleven. Blob transfer is
+separate from these REST counts. The bundle adds one producer transfer/upload
+step; it does not remove per-image provenance checks or live consumer checks.
+Cache hits select only application images; ARM keeps its application-only path.
+Direct callers may still select an individual set. No metadata snapshot is
+cached across consumer jobs or reused after hashing. Authenticated conditional
+requests reuse unchanged metadata pages without charging GitHub's primary API
+quota; pagination and rate-limit retry headers are preserved. Archive verification
+uses fresh unconditional metadata after hashing. These controls keep the handoff
+short while retaining source/attempt checks under the full consumer fanout.
+Benchmark elapsed image-ready time before runner-work savings: run baseline and
+shared scenarios separately so they do not compete for the same runner slots.
+
+When adding consumers or changing paths, update the producer trigger union and
+architecture planner, regenerate `ci-workflow-inventory.json`, and retain the
+`Shared CI Images` completion subscription in `ci-checks.yml`. Run the
+`shared_ci_images_test.py`, `shared_ci_bundle_test.py`,
+`shared_ci_combined_verification_test.py`,
+`shared_ci_image_producer_test.py`, artifact caller,
+and workflow overlap contracts with the rest of CI Scripts Tests.
 
 - Frontend Node consumers read `frontend/.nvmrc`; update its exact version together with the frontend manifest and lockfile engine. The dependency configuration tests guard these pins, shared CI/image consumers, and npm's strict engine enforcement. jsdom 30's CSS dependency tree requires at least Node 24.15.0 on the Node 24 line.
 
@@ -13,29 +162,36 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - `release-branch-image-scanning.yml` runs centrally from master for `release-2.18`: any completed same-repository `pre-commit` push run wakes it, with weekly and manual recovery. Lint failures do not suppress image security scans. The resolver validates the triggering workflow/repository/branch and reads the current release branch SHA, so late events scan current code. Runs serialize per tool branch; unrelated events cannot replace pending scans. Tooling comes from `github.workflow_sha`; the literal release source checkout is immediately checked against its resolved full SHA. Its own VERSION and image/platform matrix define the build. The shared qualification runner builds native lanes without registry login or publication. Branch scans explicitly select checksum-pinned OSV 2.5.0, export each immutable local image to a Docker archive, verify the archive config digest matches the image ID, and scan that archive without registry fallback. Evidence binds the image ID, archive checksum, scanner identity, exit status and unfiltered SARIF to the source/tool/request/run attempt. Exit codes other than 0/1, missing packages/reports, mixed scanners, missing lanes or checksum mismatches fail closed. Complete aggregate validation precedes extraction of the unchanged OSV SARIF; clean scans retain valid empty results. Only the separate master-only upload job has `security-events: write`, with exact release SHA/ref and stable image/platform categories. Manual candidate-branch dispatches build and validate all artifacts but skip upload; they cannot clear release alerts. Release qualification also uses OSV, but retains full JSON evidence for fixability policy; branch alert uploads retain SARIF. Test using `PYTHONPATH=release python -m unittest kfpr.branch_scan_test kfpr.ci_images_runner_test kfpr.osv_image_scan_test` plus the release branch workflow contract test. Scanner migrations require successful merged-workflow uploads for every expected lane before deleting old scanner configurations.
 
 - The bundled MySQL database stays on 8.4 LTS. Pin its exact patch and multi-platform index digest in `manifests/kustomize/third-party/mysql/base/mysql-deployment.yaml` and keep `.github/resources/runtime-base-images.txt` identical after registry-name normalization. Dependabot ignores versions outside 8.4, while patch and digest refreshes remain enabled. Review future proposals for both references; the preload consistency test rejects drift. Major/LTS migrations require explicit authentication, persisted-data upgrade, and recovery validation, not an image-only bump.
-- The analyzer lockfile is generated with gh-aw v0.91.12 (`gh aw compile ai-analyzer`); keep `.github/aw/actions-lock.json` with the generated update. Actionlint v1.7.12 does not yet understand GitHub's `concurrency.queue` or `copilot-requests` permission. `.github/actionlint.yaml` ignores only those exact diagnostics in `ai-analyzer.lock.yml`; `actionlint_compatibility_test.py` checks the exception scope and generated values. Remove these exceptions once actionlint supports the fields; do not exclude the generated workflow from linting. The compiler excludes collector endpoint/header credentials from both the primary agent and threat-detection sandboxes while retaining host/API-proxy telemetry; `analyzer_telemetry_isolation_test.py` guards both boundaries.
+- The analyzer lockfile is generated with gh-aw v1.2.2 (`gh aw compile ai-analyzer`); keep `.github/aw/actions-lock.json` with the generated update. The `github/gh-aw-actions/setup` version in the lockfile must equal its `compiler_version`, because the setup action only trusts the firewall and Copilot CLI releases its own compiler pins. A Dependabot bump of the setup action alone fails every analyzer run before the agent starts; recompile with the matching gh-aw instead. `analyzer_lock_versions_test.py` enforces this. Actionlint v1.7.12 does not yet understand GitHub's `concurrency.queue`, `copilot-requests` permission, or `job.workflow_sha`. `.github/actionlint.yaml` ignores only those exact diagnostics in `ai-analyzer.lock.yml`; `actionlint_compatibility_test.py` checks the exception scope and generated values. Remove these exceptions once actionlint supports the fields; do not exclude the generated workflow from linting. The compiler excludes collector endpoint/header credentials from both the primary agent and threat-detection sandboxes while retaining host/API-proxy telemetry; `analyzer_telemetry_isolation_test.py` guards both boundaries.
 - The backend test workflow and shared `test-and-report` action prefetch root Go modules through `download-go-modules.sh`. It preserves an explicit `GOPROXY`, otherwise defaults to `https://proxy.golang.org|direct`, and leaves checksum verification unchanged. Downloads get up to three attempts with ten-second delays inside one five-minute deadline plus a ten-second termination grace. The backend workflow downloads before its single-run module-tidy check and test suite; the shared action downloads after cache restore and before API setup. Exhaustion or timeout stops the job before tests; test execution itself is never retried.
 - Generated API validation watches `backend/api/hack/**`, including the Go compatibility generator. Canonical v2 generation also refreshes v2beta1 Go import shims; the test-only frozen legacy descriptor snapshot is never regenerated from v2.
 - Namespace transfer regression tests run with backend CI, including MySQL/PostgreSQL history checks through `KFP_HISTORY_MYSQL_TEST_DSN` and `KFP_HISTORY_POSTGRES_TEST_DSN`. Tests allocate isolated databases/schemas and require create/drop permissions. Self-service HTTP and authorization tests cover bounded archives, preview/apply and namespace isolation; frontend CI covers the export/import page. Local engine integration subtests skip without their DSNs.
-- `presubmit-backend.yml` runs recurring-run transaction concurrency tests against disposable MySQL 8.0 and PostgreSQL 16 services using `KFP_RECURRING_MYSQL_TEST_DSN` and `KFP_RECURRING_POSTGRES_TEST_DSN`. Tests allocate isolated databases/schemas and independent connections; the configured test roles need permission to create and drop their test database/schema and observe session lock metadata. These checks cover storage transaction behavior, not a live KFP upgrade.
+- `presubmit-backend.yml` runs recurring-run transaction concurrency tests against disposable MySQL 8.0 and PostgreSQL 16 services using `KFP_RECURRING_MYSQL_TEST_DSN` and `KFP_RECURRING_POSTGRES_TEST_DSN`. Tests allocate isolated databases/schemas and independent connections; the configured test roles need permission to create and drop their test database/schema and observe session lock metadata. The MySQL binlog regression tests also create triggers and set session binary-log variables on an instance with binary logging enabled. The disposable MySQL account needs `SESSION_VARIABLES_ADMIN` on MySQL 8.0.14 and later for those settings and `LOCK TABLES` to exercise metadata-lock contention. The backfill tests on both engines overlap foreground writes with a held repair and cover ownership, cancellation and restart.
+- The standalone MySQL API job on Kubernetes 1.36.1 with Argo 4.0.13, caching enabled, and proxy and TLS disabled also runs `native-backfill-rollout.sh`. It checks candidate readiness and old-replica run creation and workflow reporting while a real repair is paused, then verifies the repaired row and final marker. This native-to-native fixture uses the pre-fix main API image pinned by digest; the MLMD upgrade gate remains tracked separately in #14029.
 - `build-tools-images.yml` builds `kfp-api-generator` and its child `kfp-release` on native AMD64 and ARM64 runners. The release image inherits the same job's locally built generator through the Docker daemon, not a mutable registry tag. Each lane executes both images' API/Swagger/SDK-owned Python-client generation and unified SDK wheel builds plus release manifest/changelog preparation in a disposable source archive; source inventories include `sdk/python/kfp/server_api`, canonical REST documentation, and generated v2beta1 Go import shims, and must match between images and architectures before shared branch tags are promoted. The wheel build uses the images' existing pip tooling without installing SDK runtime dependencies. Only packaging artifacts and the synthetic changelog heading's date are excluded from comparison. PRs never publish. Push/manual runs stage uniquely named per-attempt native indexes, then reuse `publish_image_index.py` to verify both platforms and promote shared tags without changing `latest`. Rerun the whole workflow after a failure so artifact attempts match. Existing 2.x branches retain their own tooling workflow; native maintainer-host support is independent of runtime architecture support.
 - `pr-gate.yml` skips PRs authored by `dependabot[bot]` or `copybara-service[bot]`, regardless of the event actor. For other PRs, membership comes exclusively from the `admins` and `members` lists in `kubeflow/internal-acls/github-orgs/kubeflow/org.yaml`, using a case-insensitive username match rather than GitHub's `author_association`. The gate and contributor report share `.github/scripts/kubeflow_membership.py`, which reads the ACL from `master` through the authenticated `gh` CLI and raises on lookup errors instead of returning a negative result. Both workflows check out the helper and `.github/scripts/requirements.txt` only from `github.workflow_sha`; the gate also checks out `.github/scripts/pr_gate_issue.py` from that trusted commit. The helper uses a PyYAML `SafeLoader` subclass that rejects duplicate mapping keys (including merge overrides) and validates the membership lists; lookup failures, malformed YAML, or invalid membership data fail the workflow without closing the PR. The gate, report, and CI Scripts Tests install the shared pinned requirements using Python 3.13. Authors absent from the ACL must reference an issue in this repository with the exact `ready` label. The gate uses GitHub's closing issue links and, for non-default-branch PRs where GitHub does not create a link from a closing keyword, accepts an explicit closing reference on its own line in the PR body. It closes PRs without an eligible issue. Both closure paths use the same contribution-focused message with a direct link to the [external-contributor admission guidelines](../../CONTRIBUTING.md#pull-request-admission-for-external-contributors). This author-specific exemption does not approve other workflow runs or bypass merge requirements.
-- After admitting an external contributor, `pr-gate.yml` adds `ok-to-test`, removes any existing `needs-ok-to-test`, and approves pending `pull_request` runs for that PR's current head through the Actions API. It checks the live PR state and labels, requires the fork repository, branch, and SHA to identify exactly one open PR, and filters runs to that head. The gate cannot rely on its `GITHUB_TOKEN` label change to trigger `gh-workflow-approve.yml`; GitHub suppresses that labeled event. The separate approval workflow still handles trusted authors and labels applied by maintainers, with the same unique-head guard, and sweeps admitted open PRs every 15 minutes for runs that appear after the gate's polling window. A later conflicting `needs-ok-to-test` label blocks automatic approval until fresh admission or maintainer review. CI Check reconciles `ci-passed` when the approved workflows complete.
+- `ready-command.yml` applies the `ready` label when an issue comment contains `/ready` on its own line and the commenter (case-insensitive) is in `approvers` of any `OWNERS` file; reviewers do not qualify. Because `issue_comment` runs with a write token for comments from anyone, the job ignores PR comments, sparse-checks out only `OWNERS` files and `.github/scripts/ready_command.py` with its helper and requirements from `github.workflow_sha`, passes event data only through the final step's environment, never echoes the comment body (stdout is parsed for workflow commands), and calls `gh` without a shell. It reacts 👍 on success and 👎 on denial instead of replying, and malformed `OWNERS` data fails the job before any API call. `.github/scripts/ready_command_test.py` covers command parsing, OWNERS loading, and hostile input; `ready_command_workflow_test.py` guards the trust boundaries.
+- `bot-branch-cleanup.yml` deletes the branch of a Dependabot or Copybara PR that closes without merging, since repository auto-delete covers merged PRs only. The job runs on `pull_request_target` `closed` and requires an unmerged PR from this repository whose author is `dependabot[bot]` with a `dependabot/` branch or `copybara-service[bot]` with a `test_` branch. It sparse-checks out only `.github/scripts/bot_branch_cleanup.py` from `github.workflow_sha`, passes event data only through the final step's environment, and holds `contents: write` plus `pull-requests: read`. The script re-reads the PR and keeps the branch if the PR was reopened or merged, the branch tip moved from the closed head SHA, or an open PR uses it as head or base. It deletes through the GraphQL `updateRefs` mutation with `beforeOid` set to the closed head SHA, so a push landing after those checks survives; if the mutation is rejected, a re-read that finds the branch moved or gone is success, and any other failure fails the job. Deleted branches can be restored from the PR page. The workflow depends on a `pull_request_target` allowance; see [Workflow credentials and settings rollout](#workflow-credentials-and-settings-rollout). `.github/scripts/bot_branch_cleanup_test.py` covers the safety checks and `bot_branch_cleanup_workflow_test.py` guards the trust boundaries.
+- After admitting an external contributor, `pr-gate.yml` adds `ok-to-test`, removes any existing `needs-ok-to-test`, and approves pending `pull_request` runs for that PR's current head through the Actions API. It checks the live PR state and labels, requires the fork repository, branch, and SHA to identify exactly one open PR, and filters runs to that head. The gate cannot rely on its `GITHUB_TOKEN` label change to trigger `gh-workflow-approve.yml`; GitHub suppresses that labeled event. The separate approval workflow still handles trusted authors and labels applied by maintainers, with the same unique-head guard, and sweeps admitted open PRs every 15 minutes for runs that appear after the gate's polling window. A later conflicting `needs-ok-to-test` label blocks automatic approval until fresh admission or maintainer review. CI Check reconciles `ci-passed` when the approved workflows complete. The PR-event approval loop discovers pending runs before fetching PR details or peer PRs; an empty single-page poll uses eight reads instead of twenty-two. Every newly discovered approval batch still requires fresh state, head, labels and unique-head validation. Scheduled recovery keeps its per-SHA queries and pagination guards.
+- `presubmit-backend.yml` sets `KFP_MIGRATION_MYSQL_TEST_DSN` for `TestClaimMigration_MySQLClientFoundRows`, which checks the startup migration claim against MySQL with `ClientFoundRows`, as the API server connects. The test creates and drops its own database; SQLite cannot reproduce the duplicate-insert row count it guards.
 - `presubmit-backend.yml` supplies a health-checked PostgreSQL 16 service and `KFP_NATIVE_POSTGRES_TEST_DSN` to the backend suite on PRs and master. This enables `TestNativeStoresPostgreSQL`, which migrates and cleans up its own isolated schema; local unit runs still skip it unless the DSN is set. Connection or migration failures must fail the job, not silently skip coverage.
 - `e2e-test.yml` has a dedicated `DAG Scale Test - 120 nodes` job (`E2EScale`), separate from the functional matrices. Its static DAG uses six layers of twenty short-lived Alpine tasks with caching disabled. Require all 120 named tasks to succeed with execution pods; a successful run or compilation alone is insufficient. The run has a 20-minute completion budget, not a performance SLA. Keep `valid/scale` in the runtime fixture image inventory.
 - The cache-enabled/disabled lanes configure v2 task caching through the API server; they do not deploy an admission-webhook cache server.
 - The manifest presubmit runs `manifests/kustomize/hack/driver_plugin_test.py` with Kustomize and yq v4. OpenShift uses the standard init/main layout with UID-clearing controller/plugin patches; TLS agents use a public-CA-only volume projection. `executorplugin/agent_manifest_test.go` applies these patches with the Kubernetes strategic merge engine used by Argo; live SCC admission and certificate rotation still require cluster validation. It checks rendered standalone/TLS/dev/CI driver sidecars, release-image alignment, shared runtime configuration, runtime token Secrets, and application-controller resource requests. Full-string sidecar patches may differ only by image, TLS configuration, and OpenShift's SCC-assigned UID. Log mounts must use the driver container's own token subdirectory, and unused MinIO credential env refs must not become startup dependencies. The suite renders the README's nondefault custom-CA migration without cert-manager and its namespace-local, exact-name artifact Secret Role/RoleBinding, and checks the attempt resolver's get-only WorkflowTaskSet grant; these checks do not establish live TLS or RBAC enforcement.
 - `collect-logs.sh` selects the driver container and `kfp-readiness/wait_for_pods.py` excludes workflow agents using `workflows.argoproj.io/component=agent`. Ordinary workloads ending in `-agent` retain normal log collection, readiness checks, and slow-Pod diagnostics. CI Scripts Tests covers both paths in `collect_logs_test.py` and `wait_for_pods_test.py`; the readiness tests mock Kubernetes access and require no cluster.
+- The standalone `default` API overlay (`.github/resources/manifests/standalone/default`) opts into the persistence agent's image pull failure handling through `manifests/kustomize/components/image-pull-failure-handling` and shortens `IMAGE_PULL_FAILURE_GRACE_PERIOD_SEC` to 60 seconds via `base/persistenceagent-image-pull-grace-period.yaml`. `backend/test/v2/api/image_pull_failure_api_test.go` reads the deployed persistence agent's environment, skips when the feature is off, and otherwise runs a pipeline whose image is under the reserved `.invalid` TLD and expects the run to fail with the termination annotations on the workflow. The standalone job's Run Tests step sets `IMAGE_PULL_FAILURE_HANDLING_EXPECTED=true` for the matrix entries that `deploy-kfp.sh` maps to the `default` overlay (cache enabled, no proxy, no TLS, MySQL); there a disabled feature fails the specs instead of skipping them, so dropping the component or its env patch cannot silently stop the end-to-end check from running. Keep the component, the grace period patch, the env condition, and that test aligned; other lanes keep the feature disabled, so a pod stuck in `ImagePullBackOff` for over a minute fails its run only in this lane.
 - `backend/src/v2/Makefile` test, golden-update, and watch targets run without starting MLMD. `v2_dev_workflow_test.py` exercises each target with stubbed tools and rejects Docker calls. The removed legacy MLMD bindings and deployment-upgrade tool do not implement the MLMD-to-native migration tracked in #14029.
 - `kfp-webhooks.yml` runs `make -C backend/test/v2/integration test-webhook` against Kubernetes-native pipeline storage. Like the shared integration runner, its Go module proxy defaults to `https://proxy.golang.org|direct` so transport and server errors can fall back to the source repository. Explicit `GOPROXY` overrides and checksum verification remain intact; test failures are not retried. `kfp-sdk-tests.yml` also compiles/reloads the shared migrated container fixtures with `test_data/component_migration_test.py`. Source-tree `components/google-cloud` is outside the v1-removal migration scope: do not add it to this suite's `PYTHONPATH` or import its legacy-YAML-backed StarryNet components. Installed Google Cloud component dependencies used by v2 fixtures remain covered; SDK loader tests assert that legacy component YAML is rejected.
 - `api-server-tests.yml` runs the serial `LegacyAPICompatibility` specs by default in every existing standalone, Kubernetes-native, and multi-user API job, with no opt-in environment gate. Multi-user shard filters explicitly include this small compatibility smoke in addition to their normal partition. The specs issue literal v2beta1 and v2 HTTP requests to the same deployment, exercising cross-version CRUD and a legacy-submitted pipeline through completion, tasks, artifact metadata, and logs. They reuse the preloaded Alpine artifact fixture, reject redirects/fallbacks, poll Kubernetes-native version visibility, and clean up only their own resources; no extra cluster or redeployment is added. See `backend/test/v2/api/README.md` for running against an existing cluster.
+- The multi-user MySQL/cache-enabled API lane runs `.github/resources/scripts/run-api-availability-check.sh` after shard A's parallel Ginkgo specs. It creates a second disposable Profile and uses two tenant Pods to send bounded Report, multipart, and ZIP requests while an authenticated benign client polls `ListPipelines`. The probe fails on repeated benign request errors, an API restart, or an inconclusive attack path, and records each result in the job summary. A generic ZIP upload error is only a candidate: bounded API logs starting immediately before that isolated request must confirm the missing `pipeline.yaml` directory-scan error. Missing or unreadable evidence fails the case; public API errors remain sanitized. A passing run covers only those inputs and the CI Kind configuration; it is not a production capacity guarantee. Keep the probe out of parallel Ginkgo traffic and shared clusters.
 - On pushes to master only, `api-server-tests.yml` adds an API-version matrix (`v2`, `v2beta1`) for the full `ApiServerTests` suite on a representative standalone MySQL deployment. The shared action forwards `use_legacy_api_prefix` to `-useLegacyAPIPrefix=true`; ordinary jobs keep the canonical default. This adds two post-merge clusters and no PR-time clusters. Cross-version smoke specs use their own literal paths in both lanes. `v2_deployment_contract_test.py` checks the event gate, full-suite selection, version-specific reports, flag forwarding, and generated `Run.tasks` tag guard.
-- The API, initialization, and integration lanes exercise the v2 API. The API suite replaces the retired legacy v2 harness and preserves its store, TLS, PostgreSQL, and PVC-cache coverage. Start API forwarding after fixture setup finishes rolling the API pod. Starting it before that rollout leaves a stale forward and can collide on port 8888. Readiness uses the same configured API URL and TLS trust as the test clients, not a separate hardcoded HTTP probe. Deployment and UI health probes use `/apis/v2/healthz`. URL-import fixtures must be listed in both the fixture ConfigMap generator and the Deployment's projected items; `pipeline_test_fixtures_test.py` serves those projections over HTTP and checks the paths requested by the v2 integration suites.
+- The API, initialization, and integration lanes exercise the v2 API. The API suite replaces the retired legacy v2 harness and preserves its store, TLS, PostgreSQL, and PVC-cache coverage. Every API workflow lane, including the master-only version matrix, must set `forward_port: 'false'` on the deploy action so `test-and-report` owns the sole API forward after fixture setup finishes rolling the API pod. Starting it before that rollout leaves a stale forward and can collide on port 8888. `v2_deployment_contract_test.py` checks this ownership for every API workflow job using the test action. Readiness uses the same configured API URL and TLS trust as the test clients, not a separate hardcoded HTTP probe. Deployment and UI health probes use `/apis/v2/healthz`. URL-import fixtures must be listed in both the fixture ConfigMap generator and the Deployment's projected items; `pipeline_test_fixtures_test.py` serves those projections over HTTP and checks the paths requested by the v2 integration suites.
 - CI covers supported Kubernetes and Argo versions, database and Kubernetes pipeline stores, proxy/cache variants, GPU scheduling, and DRA (Dynamic Resource Allocation). Preserve the relevant matrix coverage when changing a lane. Master tests Argo 4.0.x as the compatibility floor and 4.1.x as the default runtime; exact patches come from `third_party/argo/COMPATIBILITY_VERSION` and `VERSION`. Do not restore the KFP 2.x-only 3.7 lane on master.
-- Automatic multi-user API runs split each supported deployment (MySQL with cache enabled/disabled and PostgreSQL with cache enabled) into two shards, retaining two Ginkgo workers per cluster. Both upload and run cases alternate over the same sorted pipeline-file inventory, including runtime-skipped files. Shard A selects `ApiPipelineShardA || Pipeline`; shard B selects its complement, each intersected with the existing cache filter. New and unlabelled specs stay covered. This balances measured spec time approximately 49/51% in cache-enabled lanes and 48/52% in the cache-disabled lane. Manual dispatch retains one user-selected suite per deployment and its worker/namespace overrides. Job and report names include the shard. Changes under `backend/test/constants/**` trigger the API workflow, and Go unit tests guard the shared partition labels and balance. Sharding adds three cluster setups; hosted timing and runner queueing determine the net wall-time improvement.
-- Automatic multi-user Critical E2E runs use the existing A/B shards for both MySQL and PostgreSQL. PostgreSQL remains cache-enabled with artifact proxy disabled; no cache-disabled PostgreSQL multi-user overlay exists. Manual dispatch keeps one user-selected test group per supported database/cache combination. Multi-user report names include the database and shard to keep uploaded artifacts distinct.
+- Automatic Kubernetes-native API runs split each of the eight Kubernetes/Argo/upload-client configurations into two independent runner shards, retaining five Ginkgo workers per cluster. Shard A selects `ApiServerTests && (ApiPipelineShardA || Pipeline)` and shard B selects its complement within `ApiServerTests`. The union preserves the full suite, including unlabelled future specs on B. Only B prepares cache fixtures and enforces the complete legacy migration manifest. Ordinary manual dispatch retains the original full native suite, workers and namespace in each configuration. Job and report names include the shard. `api_native_shards_test.py` checks workflow selection and accepts actual Ginkgo dry-run reports through `NATIVE_API_DRY_RUN_REPORTS` to verify inventory coverage. Measure total triggered CI completion, including queueing and repeated cluster setup, when changing the partition.
+- Automatic multi-user API runs retain two Ginkgo workers per cluster and all three supported deployments (MySQL with cache enabled/disabled and PostgreSQL with cache enabled). Shard A selects `ApiPipelineShardA || Pipeline` within the existing cache filter. In cache-enabled deployments, shard B selects `LegacyMigration` from the complementary partition and shard C selects the remainder. Only B prepares the released-SDK cache fixtures and custom schedule service account and enforces its required specs. This lets the pipeline cases on C run independently of migration tests and fixture preparation. Cache-disabled MySQL retains the original A/B partition. Every shard includes the serial `LegacyAPICompatibility` smoke; other selections are disjoint and their union is unchanged, including future unlabelled specs. Ordinary manual dispatch retains one user-selected suite per deployment and its worker/namespace overrides. Job and report names include the shard. Changes under `backend/test/constants/**` trigger the API workflow. `api_multi_user_shards_test.py` checks matrix/filter contracts and accepts actual before/after Ginkgo reports through `MULTI_USER_API_DRY_RUN_REPORTS` to verify selection and fixture ownership. Benchmark total triggered CI completion, including queueing and the two additional cluster setups, rather than assuming fewer tests per job improve overall latency.
+- Automatic multi-user Critical E2E runs use the existing A/B shards for both MySQL and PostgreSQL. PostgreSQL remains cache-enabled with artifact proxy disabled; no cache-disabled PostgreSQL multi-user overlay exists. Ordinary manual dispatch keeps one user-selected test group per supported database/cache combination. Multi-user report names include the database and shard to keep uploaded artifacts distinct.
 - Current KFP Python jobs require Python 3.11 or newer. SDK and Kubernetes library matrices cover 3.11 and 3.13; package metadata, syntax checks, and export compatibility checks must preserve the 3.11 minimum.
-- The `dra-check` E2E lane runs on a Kind cluster with Kubernetes 1.34 (DRA GA minimum). It generates both Python and Go pipeline-spec bindings, then uses `kfp component build` with the checked-out unified SDK (including Kubernetes helpers and generated pipeline-spec bindings) to create the `kfp-dra-sdk:test` component image, then loads that image into Kind. `.github/actions/install-dra-driver` installs dra-example-driver via Helm, runs a smoke test that verifies a pod can schedule with a DRA ResourceClaim, then the E2E suite uploads DRA pipelines and validates pod-level `resourceClaimStatuses`. The driver version is pinned in `action.yml`; v0.2.1 targets K8s 1.34, while v0.4.0+ requires K8s 1.36.
+- The `dra-check` E2E lane retains Kubernetes 1.34 (DRA GA minimum) and requires patch 1.34.13 or later for the [multi-claim status fix](https://github.com/kubernetes/kubernetes/pull/142025). Until a corresponding Kind node image is published, `create-cluster` builds it from the checksum-verified official server release tarball and caches it by OS, architecture, Kubernetes version, and Kind version; other lanes retain prebuilt images. It generates both Python and Go pipeline-spec bindings, then uses `kfp component build` with the checked-out unified SDK (including Kubernetes helpers and generated pipeline-spec bindings) to create the `kfp-dra-sdk:test` component image, then loads that image into Kind. `kfp component build` uses Docker's classic builder, whose images record no platform on the containerd image store (the default from Docker 29, used by `ubuntu-26.04` runners), so the lane re-exports the image through BuildKit for the Kind node platform from `runtime_image_platform`, saves a platform-scoped temporary archive and loads it with `kind load image-archive`. `.github/actions/install-dra-driver` installs dra-example-driver via Helm, runs a smoke test that verifies a pod can schedule with a DRA ResourceClaim, then the E2E suite uploads DRA pipelines and validates pod-level `resourceClaimStatuses`. The driver version is pinned in `install-dra-driver.sh`; v0.2.1 targets K8s 1.34, while v0.4.0+ requires K8s 1.36.
 - Use `.github/actions/setup-python` for uv workspace jobs; it synchronizes the CI extra from `uv.lock`. Include `**/pyproject.toml`, `uv.lock`, and the setup action in dependency-sensitive workflow triggers. Legacy jobs outside the workspace retain `.github/actions/setup-python-pip-cache` with distinct cache scopes.
 - The workspace `ci` extra includes `test`, which activates `kfp[notebooks]`. This makes the real-kernel regression in `sdk/python/kfp/dsl/notebook_component_decorator_test.py` run in both SDK unit-test matrix lanes (Python 3.11 and 3.13). It executes the generated notebook helper with the test interpreter and temporary kernelspec/Jupyter directories, covering parameter injection, streamed stdout/stderr, artifact output, and cell-error propagation without Docker. The test skips only when notebook dependencies are absent from an ad hoc environment; keep them enabled in the CI extra.
 - `pre-commit.yml` runs the hooks pinned by `.pre-commit-config.yaml` over each base-to-head change. Its local Ruff hooks use `uv run --frozen --extra lint ruff`, sharing the CI formatter version from the root lint extra and `uv.lock`; do not add a separate pre-commit pin. `sdk-isort.yml` and `sdk-yapf.yml` now run repository-wide Ruff lint and formatting checks using `pyproject.toml`. Their display names are `Python Ruff Lint` and `Python Ruff Format`. Keep their legacy file paths because CI Check matches paths from the PR's immutable base; display-name changes must also update CI Check's completion selector and regenerate the workflow inventory. Docformatter remains a separate prose-wrapping check and runs before Ruff in pre-commit. Hook configuration and workspace dependency updates also run each applicable content hook against a small set of clean representative files so a hook upgrade executes without requiring the repository's historical formatting backlog to be fixed in the same PR.
@@ -51,40 +207,42 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - `python-syntax.yml` parses every tracked Python file with Python 3.11 grammar without importing it, so syntax errors fail presubmit without creating `__pycache__` directories.
 - `docs.yml` builds the Sphinx documentation site with warnings treated as errors and runs a non-blocking external link check; Read the Docs (`.readthedocs.yml`) handles publishing, not this workflow. Both jobs use the uv CI extra and generate the Python API bindings through `.github/actions/protobuf`. Read the Docs generates Python bindings directly with its system protoc, without Docker.
 - `check-requirements-txt.yml` checks lock consistency, installs the frozen Python 3.11 workspace, builds SDK distributions, validates temporary dependency-only pip exports, and installs/imports the wheel in a clean pip environment. Workspace exports are not tracked. Release-tool checks use `uv run --with-editable ./release` to exercise current sources with declared dependencies.
-- Release-tool coverage in `readthedocs-builds.yml` includes real temporary Git histories for explicit release ranges, shared note classification, preview provenance, and three-way preview regeneration with conflict blocking, and advisory editorial validation. The job configures fixture identity from the checked-out commit before running the tests. Note generation runs in the host CLI with one Python renderer; the release container no longer runs git-cliff. Preserve handwritten SDK notes and fail on stale preview ranges or mismatched published tag commits.
+- Release-tool coverage in `readthedocs-builds.yml` includes real temporary Git histories for explicit release ranges, shared note classification, preview provenance, and three-way preview regeneration with conflict blocking, and advisory editorial validation. The job configures fixture identity from the checked-out commit before running the tests. Note generation runs in the host CLI with one Python renderer; the release container no longer runs git-cliff. Preserve handwritten SDK notes and fail on stale preview ranges or mismatched published tag commits. The job also runs `state_test`, which pins the `release-state.json` round trip and checks that commands changing the checkpoint refuse an invalid file without modifying it, and `modules_test`, which checks that `kfpr.core` re-exports exactly its original names, that each module imports on its own, and that the modules release workflows run import with only PyYAML installed. Tests for code moved out of `core.py` run as `metadata_test`, `runner_test`, `prompts_test`, `github_api_test`, `commands_test`, `validation_test` and `context_test`.
 - `check-uv-lock.yml` validates every push to `master` and `release-*`; PR checks remain filtered to dependency metadata and the workflow itself.
 - `publish-packages.yml` uses checkout-independent tool setup so its tag input can target pre-uv releases. The selected tag's Makefiles build SDK/spec/Kubernetes distributions with their original backend and protobuf generation; the server API uses a source-path `uv build`, which supports both Hatch metadata and legacy setuptools. Twine 7 runs outside the workspace through `uvx` on Python 3.12 to validate current Hatch metadata; the runner's build interpreter is Python 3.11. Do not require a local action or workspace sync from the selected tag.
 - Unified tags publish only `kfp`; the publishing workflow detects legacy source tags and retains their four-distribution builds. Explicitly requesting a retired distribution from a unified tag fails. The retired Kubernetes publisher exits with guidance to the SDK flow; old release branches retain their original publisher.
 - CI retains explicit generation before builds/tests. `.github/actions/protobuf` generates pipeline and Kubernetes Python bindings; `.github/actions/kfp-k8s` runs `make -C sdk python` before installing one wheel. Generated modules are committed to support Git/component installs. The existing generated-file workflow enforces drift on PRs and master. The Python 3.11/3.13 SDK unit lanes also validate wheel contents, isolated imports, and rebuilding from the standalone sdist. Kubernetes tests retain their separate Python matrix at `sdk/python/test/kubernetes`. Generated code remains outside handwritten-code formatting, as before the move.
 - `presubmit-tests-sdk.sh` builds a fresh wheel before testing. Docker-backed regressions retain their Git source URL; the runtime command regressions run separately with `KFP_PACKAGE_PATH` pointing to that wheel and append their coverage. Each runtime case creates a clean uv venv, preserves the compiled `--no-deps` installation and executor commands, and verifies the installed wheel's origin. A missing wheel or unrecognized installation wrapper fails instead of testing an older PyPI release. This also applies after the unified SDK is released.
 - The backend compiler image uses `make -C api fetch-protos` for shared protobuf revisions and download retries before generating Python bindings.
-- `osv-scanner.yml` scans supported source dependency manifests and lockfiles on master pushes, weekly, and manual dispatch. Image scans run after a successful `Build and Push for master`, weekly, or manually; ordinary pushes only scan source. Image selection resolves the newest successful master push by producer run number, verifies its repository/workflow/SHA/attempt, and treats late completion events as wakeups to scan that newest publication. This prevents a late successful event from replacing a newer pending event and then skipping the needed scan. Overall producer success includes ARM smoke: a publication followed by a failed smoke job is not selected. The exact run's attempt-specific `published-index-*` artifacts must provide all seven KFP AMD64/ARM64 index records, including driver and launcher, with matching source SHA and GHCR owner. Records are retained for 90 days; missing/expired/inconsistent records fail rather than falling back to release pins or mutable tags. The scanner renders both standard Kustomize overlays from the producer SHA, replaces only the seven known first-party repositories with immutable index references, and retains third-party images. Scans currently run on AMD64; validating a multi-platform index does not scan every architecture. SARIF uploads explicitly identify the producer SHA on master. Image runs serialize, with source-only pushes and failed producer notifications in separate concurrency groups so they cannot evict pending image scans.
-- OSV image discovery uses the shared pinned PyYAML dependency to traverse container mappings, not text inside YAML scalar values. The signing-key ConfigMap embeds an untransformed Job template for hashing; its `:dummy` image is not deployed and must not become a scan job. Actual container images, including unresolved placeholders, remain in the inventory. Structurally identical SARIF results are removed before upload. Source scans do not re-resolve compiled Python requirements; generated API-client constraint directories are excluded because they specify compatibility minimums rather than installed versions. Dependabot remains responsible for remediation PRs.
+- `osv-scanner.yml` scans supported source dependency manifests and lockfiles on master pushes, weekly, and manual dispatch. Image scans run after a successful `Build and Push for master`, weekly, or manually; ordinary pushes only scan source. Image selection resolves the newest successful master push by producer run number, verifies its repository/workflow/SHA/attempt, and treats late completion events as wakeups to scan that newest publication. This prevents a late successful event from replacing a newer pending event and then skipping the needed scan. Overall producer success includes ARM smoke: a publication followed by a failed smoke job is not selected. The exact run's attempt-specific `published-index-*` artifacts must provide all eight KFP AMD64/ARM64 index records, including driver and launcher, with matching source SHA and GHCR owner. Records are retained for 90 days; missing/expired/inconsistent records fail rather than falling back to release pins or mutable tags. The scanner renders both standard Kustomize overlays from the producer SHA, replaces only the eight known first-party repositories with immutable index references, and retains third-party images. Scans currently run on AMD64; validating a multi-platform index does not scan every architecture. SARIF uploads explicitly identify the producer SHA on master. Image runs serialize, with source-only pushes and failed producer notifications in separate concurrency groups so they cannot evict pending image scans.
+- OSV image discovery uses the shared pinned PyYAML dependency to traverse container mappings, not text inside YAML scalar values. The signing-key ConfigMap embeds an untransformed Job template for hashing; its `:dummy` image is not deployed and must not become a scan job. Actual container images, including unresolved placeholders, remain in the inventory. Source uploads remove structurally identical SARIF results; image uploads use the summaries described below. Source scans do not re-resolve compiled Python requirements; generated API-client constraint directories are excluded because they specify compatibility minimums rather than installed versions. Dependabot remains responsible for remediation PRs.
 - OSV image categories hash the repository name without its tag or digest (registry ports remain significant). The Actions matrix contains only that stable category; exact image references live in a separate discovery output because matrix values also identify code-scanning configurations. Discovery fails when multiple references share a repository: align their versions or introduce explicit stable scan targets before intentionally scanning concurrent versions. After a successful default-branch identity migration, maintainers must verify replacement coverage and remove obsolete configurations in GitHub code scanning; the workflow does not delete scan history. Retired repositories still require explicit cleanup.
 - `ai-analyzer.md` is the source for the AI issue quality analyzer; `ai-analyzer.lock.yml` is generated by GitHub Agentic Workflows. The analyzer runs when an issue is opened. Invalid-title runs post guidance and attempt to self-cancel so a correction stays quota-free. A title edit retries analysis only while the current title is valid and no prior quality verdict exists; other title edits also attempt to self-cancel before inference, and successful cancellations do not count toward the user rate limit. Body-only edits use isolated concurrency groups and skip without provisioning a runner, while analyzed per-issue runs use a full queue so later edits cannot evict a pending title correction. After editing the source, run `gh aw compile .github/workflows/ai-analyzer.md` and commit both files.
-- `contributor-report.yml` is a repo-local fork-safe PR metadata workflow. It runs on `pull_request_target` `opened`, `reopened`, `ready_for_review`, and `synchronize`, skips the job for PR authors `dependabot[bot]` and `copybara-service[bot]` regardless of the triggering actor, checks out only `.github/scripts/contributor-report.py`, its shared membership module `.github/scripts/kubeflow_membership.py`, and `.github/scripts/requirements.txt` from the trusted workflow commit (`github.workflow_sha`) so release branches do not need their own copy, and posts or updates one PR comment with five signals: whether the author is listed in `kubeflow/internal-acls` `github-orgs/kubeflow/org.yaml`, how many issues they have opened in `kubeflow/pipelines`, how many merged PRs they have in `kubeflow/pipelines`, GitHub account age, and how many PR thread comments they have left in `kubeflow/pipelines` (excluding review comments).
+- `contributor-report.yml` is a repo-local fork-safe PR metadata workflow. It runs on `pull_request_target` `opened`, `reopened`, and `ready_for_review`, skips the job for PR authors `dependabot[bot]` and `copybara-service[bot]` regardless of the triggering actor, checks out only `.github/scripts/contributor-report.py`, its shared membership module `.github/scripts/kubeflow_membership.py`, and `.github/scripts/requirements.txt` from the trusted workflow commit (`github.workflow_sha`) so release branches do not need their own copy, and posts or updates one PR comment with five signals: whether the author is listed in `kubeflow/internal-acls` `github-orgs/kubeflow/org.yaml`, how many issues they have opened in `kubeflow/pipelines`, how many merged PRs they have in `kubeflow/pipelines`, GitHub account age, and how many PR thread comments they have left in `kubeflow/pipelines` (excluding review comments). The report is a dated UTC informational snapshot, not an authorization decision; pushes do not refresh it. The first comment-history page fetches account metadata and search counts once, continuation pages fetch only comments, and identical report bodies skip the PATCH. Full history is retained for exact counts; inaccessible history remains explicitly unavailable.
 - Workflows that deploy CI-built images overlap Kind setup with current-branch image builds. The shared deploy action waits for the complete artifact inventory; its normal window extends while a missing artifact's producer is queued or running, and completed producers receive a short publication grace.
 - Every caller of the shared artifact downloader must supply a nonempty `required-files` list covering its expected output. Deployment, ARM64, publication and tooling lists come from inventories or inputs; `ci-image-artifacts.sh` defines tooling outputs consumed by both producers and manifests, and its `--github-output` mode formats every generated manifest in one place. Caller tests execute the tooling producers' file-writing paths rather than scraping shell source; runtime recovery tests execute the archive producer against its declared filenames. The executable `artifact-files.sh` rejects symlink components in both the destination and required paths before file operations, trims outer whitespace (including CRLF), and distinguishes missing/empty files from invalid input or execution errors. Destinations must not contain parent traversal; absolute local paths must use physical ancestors (for example `/private/tmp` on macOS). Only missing files or transport failures trigger the bounded retry; fatal validation errors stop immediately. Each attempt clears its declared files and downloads the whole selection, because failed transfers can leave partial files and the downloader exposes no per-file completion evidence. Missing or empty files after the retry fail the action, and an omitted or blank list fails before downloading. Keep downstream source-SHA, digest, platform, image-loading, and generated-output checks: file completeness does not establish content correctness.
 - Runtime-cache fallback is recorded in the job summary, removes the job-owned failed cache directory before allocating fresh archives under `runner.temp`, and verifies that directory against the same required list before exposing it for upload. A renamed or missing producer output fails, and stale files from the cache download cannot satisfy validation or enter the rebuilt artifact. All PR workflows that deploy through the wrapper cover both its action directory and the shared scripts in their path filters; trigger tests check path applicability without asserting unrelated pause policy. Artifact tests share one restricted expression helper; unsupported syntax or coercion fails explicitly, and hosted CI remains necessary to verify runner semantics.
-- Published image matrices build one immutable source commit: master uses the triggering SHA and release dispatch resolves its source ref before starting the matrix. Build records and verified-index artifacts include `github.run_attempt`; rerun the complete publication workflow after a failure, since retrying only failed jobs cannot reuse an older attempt's records. Manifest publication validates every source index and the exact merged Linux platform inventory before promoting a unique `run-<run_id>-<attempt>` staging tag to the shared tag. Linked BuildKit attestation descriptors are allowed; all seven runtime images require both Linux AMD64 and ARM64. The staging tags remain available for diagnosis. Each `published-index-<image>-<attempt>` artifact contains `<image>.json` with `image`, `source_sha`, `reference` (the immutable shared index digest), and `platforms`. Downstream deployment checks must use these same-run digest references so overlapping publications cannot mix revisions.
+- Published image matrices build one immutable source commit: master uses the triggering SHA and release dispatch resolves its source ref before starting the matrix. Build records and verified-index artifacts include `github.run_attempt`; rerun the complete publication workflow after a failure, since retrying only failed jobs cannot reuse an older attempt's records. Manifest publication validates every source index and the exact merged Linux platform inventory before promoting a unique `run-<run_id>-<attempt>` staging tag to the shared tag. Linked BuildKit attestation descriptors are allowed; all eight runtime images require both Linux AMD64 and ARM64. The staging tags remain available for diagnosis. Each `published-index-<image>-<attempt>` artifact contains `<image>.json` with `image`, `source_sha`, `reference` (the immutable shared index digest), and `platforms`. Downstream deployment checks must use these same-run digest references so overlapping publications cannot mix revisions.
   The merged inventory must preserve each platform-to-child digest mapping and each attestation-digest-to-subject mapping from the source indexes; retaining the same digest set is insufficient. Descriptor ordering does not affect this comparison.
-- The post-MLMD `image-builds-release.yml` accepts only backend 3.0+ tags matching the source `VERSION` (prerelease suffixes may differ). Before any build or publication, the source preflight compares the selected product's image inventory with the workflow inventory and rejects mismatches. Download policy and the published-record inventory run from `github.workflow_sha`, matching the dispatching publication workflow. Records are retained under `runner.temp` before checking out the resolved product source. After publication, native AMD64 and ARM64 runners pull all seven shared release tags without a platform override, verify their recorded index and selected image configuration, and run the existing ARM64 smoke against the resolved source and immutable indexes. Dry runs skip published-image checks. Validation failure blocks release qualification but does not roll back tags. The remaining 2.x release uses its own release-branch workflow and legacy inventory, with no new ARM requirement; do not backport the master workflow wholesale. See [platform validation and releases](../contributing/platform-validation.md).
+- The post-MLMD `image-builds-release.yml` accepts only backend 3.0+ tags matching the source `VERSION` (prerelease suffixes may differ). It sets workflow-level `cache-mode: none` with no job overrides, so dispatch-selected release source cannot restore or save repository Actions caches. Before any build or publication, the source preflight compares the selected product's image inventory with the workflow inventory and rejects mismatches. Download policy and the published-record inventory run from `github.workflow_sha`, matching the dispatching publication workflow. Records are retained under `runner.temp` before checking out the resolved product source. After publication, native AMD64 and ARM64 runners pull all eight shared release tags without a platform override, verify their recorded index and selected image configuration, and run the existing ARM64 smoke against the resolved source and immutable indexes. Dry runs skip published-image checks. Validation failure blocks release qualification but does not roll back tags. The remaining 2.x release uses its own release-branch workflow and legacy inventory, with no new ARM requirement; do not backport the master workflow wholesale. See [platform validation and releases](../contributing/platform-validation.md).
 - Master and 3.0+ builds no longer publish `kfp-inverse-proxy-agent` or bundle its deployment. Existing 2.x release branches retain their publication behavior, and previously published images remain available for as long as older versioned images are retained. See [the removal and migration guidance](../operator-guides/gcp-inverse-proxy-removal.md).
 - CI Docker-sensitive paths use retry wrappers for image builds, BuildKit bootstrap, and runtime-image pulls. GitHub-hosted Docker jobs configure `mirror.gcr.io` as a Docker Hub pull-through cache, docker-container builders use the same mirror through `buildkitd.toml`, and uncached images still fall back to Docker Hub. Build jobs explicitly try and locally tag the mirrored BuildKit bootstrap image before falling back to Docker Hub within the shared retry budget.
-- `runtime-base-images.yml` refreshes the shared runtime-image artifact. `image-builds.yml` prefers a matching current-source or trusted-master artifact, but rebuilds locally after a bounded lookup miss or failed download. Both workflows use `build-runtime-base-images.sh` to archive test-task, MySQL, and supported Argo images plus the Modelcar fixture. This keeps release branches and older PR snapshots working after shared artifacts expire without permanent release-specific producer lanes. Generation failures stop the job before upload; opted-in E2E lanes still require the Modelcar archive during deployment.
+- `runtime-base-images.yml` refreshes the shared runtime-image artifact. `image-builds.yml` prefers a matching current-source or trusted-default-branch artifact, but rebuilds locally after a bounded lookup miss or failed download. Both workflows use `build-runtime-base-images.sh` to archive test-task, MySQL, and supported Argo images plus the Modelcar fixture. This keeps release branches and older PR snapshots working after shared artifacts expire without permanent release-specific producer lanes. Generation failures stop the job before upload; opted-in E2E lanes still require the Modelcar archive during deployment. Runtime base-image pulls and the archive select the Docker server's platform: Kind imports archives with `--all-platforms`, and an unscoped export from the containerd image store keeps index entries for platforms that were never pulled. The archive fingerprint includes `helper-functions.sh`, so changes to this export logic invalidate old artifacts and caches.
 - Runtime E2E fixture images must be covered by `.github/resources/runtime-base-images.txt`; `runtime_fixture_images_test.py` checks selected fixture directories, Python sources, pull policies, and the proxy fixture copy. New image references need preload coverage or an explicit driver/local-build exception. Use versioned fixture tags; jq's upstream only provides `latest`, so its task explicitly uses `IfNotPresent`. Inventory entries may pin acquisition with `tag@sha256:digest`: the producer pulls the digest, then archives the fixture tag because Docker save/load does not guarantee preservation of RepoDigests. Do not use digest-qualified fixture refs with this tag-based archive path.
+- MySQL CI overlays use the `preloaded-mysql` component to derive the retained version tag from the digest-pinned base image and set `IfNotPresent`. Acquisition and production deployments retain their digest pins. The manifest suite renders every MySQL CI variant, checks its image against the shared preload inventory, and verifies PostgreSQL and production variants remain unchanged; CI overlay and inventory changes trigger that suite.
 - The source inventory scanner resolves direct and aliased DSL imports and CodeFlare `ClusterConfiguration` workload images. The sole external-workload exception is the exact compatibility-pinned Ray digest in `integration/ray_integration.py`: Ray creates its own pods and pulls that digest directly, outside the tag-based KFP executor archive. The exception is scoped by fixture and image, is checked against the compiled component, and does not exempt other Ray images or digest changes.
 - Runtime image acquisition makes at most five attempts with exponential backoff plus jitter, capped at 120 seconds between attempts. Docker CLI does not expose `Retry-After`; ECR `Data limit exceeded` fails immediately with the original error because short waits cannot repair a data quota. Consumers require the shared archive and verify each expected tag exists on every Kind node, instead of amplifying failures into per-lane registry pulls. After import, verification checks local CRI metadata up to ten times two seconds apart to allow containerd's asynchronous image index to catch up. It never pulls; exhaustion fails setup and prints both CRI and containerd inventories.
 - Positive E2E pipeline waits report image-pull failures after two minutes of continuously observed `ErrImagePull`/`ImagePullBackOff` for a pod/container/image. Reports preserve registry error details and supplement them with pod events. Recovery, pod replacement, and observation gaps reset the grace period; negative fixtures opt out. This does not change product runtime behavior or extend test timeouts.
 - For workflow-only changes, verify referenced working directories, Docker contexts/files, scripts, and local action paths exist.
 - The KFP Manifests suite also checks the rendered profile-controller NetworkPolicy for the base multi-user install and the plain, platform-agnostic, and PostgreSQL multi-user overlays. These selector/namespace/port assertions run through `manifests/kustomize/hack/test.sh`; they do not verify live CNI enforcement or override additive allowances from other policies.
-- CI Check publishes the `ci-passed` status from trusted base-branch code. It derives workflow expectations from the current PR base SHA, parsing upstream YAML as data with the shared pinned PyYAML dependency. The MLMD upgrade lane is paused only when every job has an explicit checked-in false condition; changing a repository variable cannot change gate requirements. Successful statuses record a fingerprint of their validated base branch and SHA, and recovery revisits green statuses with a missing or different base stamp. Queued and running evidence reports pending; actual failures and evidence errors remain red, and missing workflows fail after a bounded registration grace. A structured check reader distinguishes external pending checks while the pinned checker remains required for success. Changed explanations refresh the status and run link, while identical state and bounded explanation do not consume another status. See [the merge-gate contract](ci-passed.md) for evidence requirements, trigger-inventory updates, and rollout validation.
-- `.github/workflows/ci-passed-stale-revoke.yml` runs on every push to `master` and flips a stale `ci-passed` success to failure the moment the base advances, before the 15-minute sweep. It is a second writer of the `ci-passed` status but only ever writes `failure`; CI Check remains the sole writer of `success`. It reuses the publisher's freshness stamp, resolves the live master tip and skips when the tip has already moved past the triggering push, and serializes its jobs with a concurrency group. Permissions are `contents: read`, `pull-requests: read`, `statuses: write`; it never touches labels.
-- `.github/actions/arm64-smoke` validates the standalone `env/platform-agnostic` installation on a native ARM64 Kind node after master image publication and in the path-filtered `arm64-presubmit.yml` workflow. Its image records must cover all seven KFP images from the checked-out source SHA. Published records reference immutable shared AMD64/ARM64 OCI indexes from the same workflow attempt; presubmit records reference the seven Kind-loaded `:ci` images, whose Linux ARM64 architecture is inspected before loading. The overlay changes five control-plane image references and the API server's driver/launcher settings; local mode also makes the viewer controller use its loaded image. The smoke submits a cache-disabled container pipeline through the v2 API, requires a successful run, and records successful driver, launcher initialization, and launcher-executed main containers on verified ARM64 nodes. It uploads deployment, run, workflow, pod, and log evidence. The broad functional suites continue to run on AMD64; this ARM lane supplies targeted native execution coverage. Kind node cache keys include `runner.arch` to prevent cross-architecture restores.
+- CI Check publishes the `ci-passed` status from trusted base-branch code. It derives workflow expectations from the current PR base SHA, parsing upstream YAML as data with the shared pinned PyYAML dependency. The MLMD upgrade lane is paused only when every job has an explicit checked-in false condition; changing a repository variable cannot change gate requirements. Successful statuses record a fingerprint of their validated base branch and SHA, and recovery revisits green statuses with a missing or different base stamp. Queued and running evidence reports pending; actual failures and evidence errors remain red, and missing workflows fail after a bounded registration grace. The finalizer uses the structured check reader for fresh external-check assessment before and after green publication; successful preparation is required, and no separate checker repeats discovery. Changed explanations refresh the status and run link, while identical state and bounded explanation do not consume another status. Scheduled recovery can use a validated latest-workflow failure without rereading policy or every check; only full assessment can publish success. Base-push revocation batches status discovery and individually revalidates stale-green candidates before writing. See [the merge-gate contract](ci-passed.md) for evidence requirements, trigger-inventory updates, and rollout validation.
+- `.github/workflows/ci-passed-stale-revoke.yml` runs on every push to `master` or `main` and flips a stale `ci-passed` success to failure the moment the base advances, before the 15-minute sweep. It is a second writer of the `ci-passed` status but only ever writes `failure`; CI Check remains the sole writer of `success`. It reuses the publisher's freshness stamp, resolves the live triggering branch tip and skips when the tip has already moved past the triggering push, and serializes its jobs with a concurrency group. Permissions are `contents: read`, `pull-requests: read`, `statuses: write`; it never touches labels.
+- `.github/actions/arm64-smoke` validates the standalone `env/platform-agnostic` installation on a native ARM64 Kind node after master image publication and in the path-filtered `arm64-presubmit.yml` workflow. Its image records must cover all eight KFP images from the checked-out source SHA. Published records reference immutable shared AMD64/ARM64 OCI indexes from the same workflow attempt; presubmit records reference the eight Kind-loaded `:ci` images, whose Linux ARM64 architecture is inspected before loading. The overlay changes five control-plane image references and the API server's driver/launcher settings; local mode also makes the viewer controller use its loaded image. The smoke submits a cache-disabled container pipeline through the v2 API, requires a successful run, and records successful driver, launcher initialization, and launcher-executed main containers on verified ARM64 nodes. It uploads deployment, run, workflow, pod, and log evidence. The broad functional suites continue to run on AMD64; this ARM lane supplies targeted native execution coverage. Kind node cache keys include `runner.arch` to prevent cross-architecture restores.
 - Frontend CI also runs `frontend/scripts/check-spec-generation.sh` after installing `protoc`: pipeline and Kubernetes platform specs are generated into temporary directories and typechecked. Changes to either source proto directory trigger this workflow.
 - The frontend protobuf installation scopes both APT commands to `/etc/apt/sources.list.d/ubuntu.sources`, excluding unrelated runner repositories such as Chrome without changing their configuration or bypassing package verification. If the runner's source layout changes, update this explicit path; the step checks that it exists before running APT. Browser integration tests continue to use their separate Selenium container.
 - `manifests/kustomize/hack/test.sh` runs `tensorboard_signing_key_test.py` to verify the shared Secret, least-privilege initializer permissions, migration-safe `Recreate` and documented opt-in `RollingUpdate`, generated Job names, and the actual CI and OpenShift overlays. The suite renders the exact rolling-update patch from `docs/operator-guides/server-config.md`, so changes to that guide also trigger `kubeflow-pipelines-manifests.yml`. The suite requires Python 3, `kustomize`, and mikefarah `yq` 4.54.1 (using its v4 command syntax); `manifests/kustomize/hack/presubmit.sh` installs pinned `kustomize` and builds pinned `yq` from `backend/api/tools` with the repository Go toolchain. Keep coverage for CI's preloaded initializer image and OpenShift's namespace-assigned UID policy when changing these manifests.
-- `ci-scripts-tests.yml` runs script and profile-controller unit tests on pushes to master and path-filtered PRs. Its filters include the deployment contract's manifest, API, generation, and developer-workflow inputs, including deleted visualization paths so reintroductions trigger the guard. The profile-controller job runs `run_tests.sh` over HTTP against an ephemeral local server; no Kubernetes cluster is required. The script installs its test dependencies, including PyYAML for checking the DecoratorController attachment update policy.
+- `manifests/kustomize/hack/test.sh` runs `scheduledworkflow_leader_election_test.py` to verify that the standalone, multi-user, and standalone TLS installs give the scheduled workflow controller `LEADER_ELECT` and `POD_NAMESPACE`, which it reads from its environment because the TLS install overrides its command, and that its Role grants only the `kfp-scheduledworkflow` Lease.
+- `ci-scripts-tests.yml` runs script and profile-controller unit tests on pushes to master and path-filtered PRs. Its filters include the deployment contract's manifest, API, generation, and developer-workflow inputs, including deleted visualization paths so reintroductions trigger the guard. The profile-controller job runs `run_tests.sh` over HTTP against an ephemeral local server; no Kubernetes cluster is required. The script installs its test dependencies, including PyYAML for checking the DecoratorController attachment update policy. Every `release/kfpr/*_test.py` module must appear in a workflow `unittest` command, here or in `readthedocs-builds.yml`; `kfpr_test_coverage_test.py` fails when a module is missing or a listed module no longer exists. The release scanning group includes `candidate_test` for exact PR identity, stale-head rejection, complete evidence, zero-fixable policy, same-attempt resume, and release-state isolation.
 
 ## Workflow credentials and settings rollout
 
@@ -146,6 +304,17 @@ these YAML changes:
    an action allowlist separately; do not block existing third-party reusable
    workflows or old release tags as a side effect of lowering token defaults.
 
+Starting December 2, 2026, GitHub blocks `pull_request_target` by default in
+public repositories unless an applicable Actions event policy explicitly allows
+it; blocked runs fail with an error annotation and do not execute. Before that
+date, a repository or organization admin must explicitly allow
+`pull_request_target` for the workflows that rely on it, including
+`.github/workflows/bot-branch-cleanup.yml`.
+Event policies can target specific workflow files, so allow-list those files
+rather than the whole event. Without the allowance, closed bot PRs leave their
+branches behind again. See GitHub's
+[enforcement announcement](https://github.blog/changelog/2026-11-02-pull_request_target-blocked-by-default-december-2/).
+
 Do not add `environment: pypi` until the PyPI Trusted Publisher configuration
 accepts that environment's OIDC identity and its GitHub deployment policies
 permit all supported publishing refs. The upload-job split preserves the
@@ -178,7 +347,42 @@ service account and requires both pinned and follow-latest authorization
 scenarios to pass. Its manifest verifier rejects missing or skipped cases.
 Keep fixture grants scoped to that account and namespace and authorization enabled.
 
+## CI performance invariants
+
+- Frontend validation runs static/generated-code checks, UI coverage, server coverage, and production-bundle smoke in independent matrix lanes. Keep `frontend-tests` as an always-running aggregate that succeeds only when every lane succeeds. `test:bundle:ci` skips lint/typecheck because the static lane owns them; developer `build` and `test:bundle` retain those checks.
+- Frontend npm caching keys all three installed lockfiles (frontend, server, and mock backend). Keep `npm ci` and its nested postinstall; clear the download cache only during failure recovery.
+- Presubmit image builds import GitHub Actions v2 BuildKit caches scoped by image and native architecture. Only the shared `ci-images.yml` AMD64 producer on default-branch pushes enables `cache-write`; PRs and other callers import only. Do not enable exports in every caller: duplicate multi-stage caches exhausted the repository cache quota and evicted useful dependency caches. ARM presubmit remains read-only until a default-branch cache producer is deliberately provided. Cache requests specify 60s import and 120s export timeout parameters, with `mode=max` and nonfatal export errors; existing build/job deadlines bound overall execution. Frontend shell builds receive masked runtime cache credentials through the pinned GitHub Script action. Never pass these credentials into the Docker build.
+- Both image-build recovery paths remain uncached. Frontend dependency manifests, lockfiles, and `.npmrc` precede the full source copy so source-only edits reuse dependency layers; preserve all three install trees when changing that order.
+
+## Pinned Argo deployment manifests
+
+The Shared CI Images source job prepares the exact versions in
+`third_party/argo/VERSION` and `COMPATIBILITY_VERSION` once per producer attempt.
+Each upstream Git fetch gets three attempts, a 180-second per-attempt timeout,
+and a 10-second delay between failures. The producer records the resolved commit
+for each version and packages only controller, RBAC, and minimal CRD resources.
+
+`argo-manifests-attempt-N` is a separate artifact from the strict Docker image
+bundles. The deploy action downloads it from the verified shared-image producer's
+repository, run, and attempt, checks its source identity and archive checksum, and
+rechecks the producer attempt before accepting it. Deployment rewrites all five
+upstream Argo resource references to local files and selects matching controller
+and executor image tags. Repeated deployment attempts and the compatibility
+version use the same artifact; test jobs do not fetch upstream Argo manifests.
+
+CI deployment fails if the verified artifact is unavailable; it never silently
+falls back to GitHub. Rerun the complete shared producer if its fetch attempts
+are exhausted, then rerun consumers. Local/manual deployment without
+`KFP_ARGO_MANIFESTS_DIRECTORY` retains the existing remote-manifest behavior.
+When changing Argo pins or resource layouts, run the artifact/workflow tests and
+render namespace, cluster-scoped, and cluster-install overlays for both versions.
+
 ## Common CI failures
+
+- For a green PR that is not queued, inspect its optional `merge-queue-admission`
+  status and unresolved review conversations. A cancelled shared `queue_admission`
+  job is not a per-PR eligibility result. See [queue admission diagnostics](merge-queue-activation.md#why-a-pr-is-waiting).
+  Keep this diagnostic out of required checks and CI evidence to avoid an enqueue cycle.
 
 - Read the Docs release-readiness builds limit `sphinx_immaterial` font fetching to four workers with `SPHINX_IMMATERIAL_FONT_FETCH_MAX_WORKERS`, rather than its default 128. This reduces connection pressure on Google Fonts after observed TLS EOF and remote-disconnect failures. Both SDK documentation steps inherit the limit; fonts are still bundled, TLS verification stays enabled, and Sphinx errors still fail the job.
 
@@ -204,12 +408,15 @@ Keep fixture grants scoped to that account and namespace and authorization enabl
 - Kubernetes-backed API lists can lag a successful create while the informer synchronizes. Native name-filter tests use the existing bounded informer wait and retain exact filter/pipeline-ID assertions; do not replace them with fixed sleeps or weaken the expected result.
 - The legacy cache fixture `backend/test/v2/resources/hello-world-with-returning-component.yaml` uses the preloaded `python:3.12` image. The runtime fixture inventory check covers this fixture as well as E2E fixtures; registry aliases such as the public ECR mirror do not match the locally loaded Docker Hub image. The fixture still installs its SDK from PyPI at execution, so image preloading alone does not remove all external network dependencies.
 - Parallel API specs use a worker-prefixed UUID for resource names. Keep the full per-spec suffix in pipeline, experiment, filter, and tag names; wall-clock timestamps and truncated suffixes do not provide isolation between concurrent specs.
+- SDK integration builds the wheel from the exact checkout once and uses that artifact for runtime and local-execution tests. Docker tests mount the wheel file read-only; subprocess tests use the host path. Keep real package installation and the full Python/test matrix, but do not clone and rebuild the SDK for every component. Missing wheel inputs must fail rather than fall back to a published package.
+
 - Distributed SDK tests retain pytest's default output capture. Do not add `-s` to `test/presubmit-tests-sdk.sh`: pytest-xdist does not forward uncaptured worker stdout, so failures lose the subprocess stderr that the local runner prints. The regression probe runs the actual presubmit command with a failing child and checks that its diagnostic is retained.
 
 - `sdk-upgrade.yml` uses a fresh environment with all four split distributions at 2.17.0, uninstalls the three retired distributions, then force-reinstalls the single source-built `kfp` wheel. The order prevents old installation records from deleting newly installed shared modules. Check imports, absence of retired distribution metadata, and `pip check`; never use the already-installed uv workspace as an upgrade fixture.
 
 - Upgrade preparation explicitly sets `-useLegacyAPIPrefix=true` so current Go clients and readiness checks reach the old server through `/apis/v2beta1`. Verification uses the default `/apis/v2` transport. Port-forward or preparation failure blocks branch deployment and verification; cleanup still runs.
-- Upgrade jobs are explicitly paused in the workflow pending #14029. Once the MLMD-to-native migration and startup gate are implemented, remove both checked-in false conditions and their scoped `.github/actionlint.yaml` exception in a reviewed PR, then regenerate the workflow inventory. Update open PR branches to the enabling base commit before requiring upgrade coverage. Repository variables do not control this pause.
+- Upgrade jobs are explicitly paused in the workflow pending #14029. Once the MLMD-to-native migration and startup gate are implemented, remove the checked-in false conditions and their scoped `.github/actionlint.yaml` exception in a reviewed PR, then regenerate the workflow inventory. Update open PR branches to the enabling base commit before requiring upgrade coverage. Repository variables do not control this pause.
+- The two-profile browser upgrade job uses the latest published stable 2.18 MLMD release and the candidate's shared CI images in one disposable cluster. It creates runs through the source UI, then checks retained runs, metrics, artifact bytes, previews, and lineage in the native UI. It verifies both users' profile isolation and creates fresh runs after cutover. Wire the supported migration between its source and candidate deployments before enabling the job.
 
 - Pre-commit requires uv, provisioned in its CI workflow. When hook configuration, `pyproject.toml`, or `uv.lock` changes, run both the base-to-head check and the representative-file smoke command from `pre-commit.yml`; the smoke command includes files outside the PR diff. Run the hook chain twice to confirm docformatter and Ruff agree.
 - Keep docformatter on v1.7.7 until its v1.7.8 tokenization regression is fixed: v1.7.8 crashes on explicit continuations and corrupts blank-line handling. Dependabot ignores only v1.7.8, and the configuration smoke test includes the updater and SDK structures files. Verify formatter upgrades by running the full hook chain twice on these files.
@@ -218,6 +425,7 @@ Keep fixture grants scoped to that account and namespace and authorization enabl
 - A Kind checksum mismatch after cache restore means no tests or deployment ran; retry the job.
 - SeaweedFS `PutObject` timeouts are artifact-store instability; retry rather than weakening assertions or increasing pipeline timeouts.
 - For proxy failures, inspect the `tinyproxy` namespace pods, events, services, endpoints, and endpoint slices.
+- Tinyproxy runs in the foreground under Kubernetes supervision. Keep its PID file disabled; health probes use its listening socket, and no fixture consumes a PID file. This avoids requiring a writable runtime path without changing its service identity or security profiles.
 
 - CI Check recovers missing commit-to-PR associations through a bounded recent closed-PR lookup and verifies the individual merged PR record against the exact base SHA, repository, and branch. API failures or no verified match remain pending; CI freshness still uses the verified merge timestamp. See [missing base merge records](ci-passed.md#missing-base-merge-record).
 
@@ -230,8 +438,9 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   replicas at zero. Update both pins together after checking runtime provenance,
   operator-supported version, and all four file/S3 and cache-enabled/disabled
   combinations. The separate `red-hat-data-services` image selection is unchanged.
-- Multi-user CI pins Kubeflow Community Distribution at `c5e3896566d52e02090f15b476f4528605a9c35f`
-  (Istio 1.31.1), whose manifests use `docker.io/istio` for control-plane,
+- Multi-user CI uses the Kubeflow Community Distribution revision pinned in
+  `.github/resources/scripts/deploy-kfp.sh` for Dashboard v2.0.1 and Istio
+  1.31.3. Its manifests use `docker.io/istio` for control-plane,
   gateway, CNI and injected sidecar images. Apply the upstream manifests directly.
   When advancing this pin, review and render all four consumed paths, including
   the profile controller; the pin selects more than Istio images.
@@ -255,5 +464,382 @@ is inspected by the packaging regression suite to prevent tracked exports from r
 The frontend qualification reliability reporter supports `--collect --repository OWNER/REPO --since YYYY-MM-DD --until YYYY-MM-DD` with repeated `--workflow` selections. Collect into an empty directory; preserve raw attempt responses and `collection.json`. Bounds, pagination and unchanged-run identities are verified before the collection is marked complete. Collection failure remains explicit and does not publish a success report; rerun into a new directory. Scheduling, deduplicated alerts and maintainer ownership remain separate prerequisites for monitoring. See [the contributor guide](../contributing/frontend-qualification-reliability.md).
 
 - API cache scenarios use Ginkgo priority to start their long-running work before ordinary parallel specs. Cache-enabled standalone/Kubernetes-native jobs and multi-user shard B prepare offline fixture images with the original released SDK/Python matrix: kfp 2.13.0 on Python 3.12 and kfp 2.14.2 on Python 3.11. SDK wheels are prepared once per job (2.13.0 is built from its published sdist) then installed with --no-deps into preloaded bases without network access. Only fixture installer prefixes and images change; component source, arguments, outputs and PVC configuration remain intact. These cache fixtures do not consume checked-out SDK sources. Other API fixtures retain normal SDK installation. Include wheel and image preparation in wall-time comparisons; required migration labels and cache assertions remain unchanged.
+- The offline cache fixture builder exports its preloaded Python base with `ctr images export --local` using the Kind node platform. Keep this synchronous: the transfer exporter can return before its stdout copy completes. Validate the tar and Docker compatibility manifest before loading it, and keep command diagnostics out of binary image streams. Other CI exporters use named Docker/BuildKit output files; do not redirect a whole `retry` call into an archive because the wrapper writes progress to stdout.
 
 - The deploy action first restores the existing runtime-image cache using the producer’s exact source fingerprint, UTC date, and archive paths; matrix jobs never save caches. A missing, failed, or incomplete restore falls back to the same-run runtime artifact with digest checking and bounded recovery. Both archives must be nonempty before accepting a cache hit, and all required image tags are still verified in Kind. Runtime preparation overlaps branch image builds; the later barrier and positive download pattern select only the seven branch images. The two archive inventories preserve optional Modelcar coverage. Measure the full job, including cache misses: artifact transfer/extraction variability can dominate cluster setup.
+
+## PostgreSQL image upgrade checks
+
+The main-branch workflow in `.github/workflows/postgresql-main-upgrade.yml` upgrades the shipped PostgreSQL 18 deployment on its existing PVC. It checks that KFP can read the original experiment, write to the database after the upgrade, and read it again after a restart. When changing the candidate image, keep the preceding deployment image as the test baseline.
+
+## TensorBoard runtime acceptance
+
+Main builds the standalone TensorBoard image from `backend/Dockerfile.tensorboard`
+and publishes it alongside the native runtime images. The UI and controller use
+`ghcr.io/kubeflow/kfp-tensorboard:master`; release stamping updates both defaults
+and their snapshots together. Run `python3 hack/update_tensorboard_image.py --print-default` to
+verify consistency. The `master` tag remains a publication alias, not a Git ref.
+
+`tensorboard-acceptance.yml` runs direct runtime/browser checks and a deployed
+Kind acceptance suite. The deployed suite uses the real UI, API and viewer
+controller with S3/GCS protocol emulators, tests authorization, verifies growing
+and rotated event files without restarts, and recreates default/custom-image
+viewers. It waits for old viewer pods to disappear before recreation and selects
+a unique ready, nonterminating pod with the requested image. Offline lifecycle
+regressions run before deployed acceptance. These checks do not qualify cloud
+IAM or production ingress authentication.
+
+TensorBoard is an optional shared CI image set: ordinary consumers retain the
+seven-image bundle, while TensorBoard acceptance and ARM smoke request and verify
+the additional archive. Keep producer triggers, consumer readiness, publication,
+scanner and ARM inventories aligned when changing this runtime. Published-image
+acceptance is still required before a release; loading a candidate image in Kind
+does not establish registry availability.
+
+## Third-party image security alerts and evidence
+
+`third-party-image-scanning.yml` is called by the master OSV workflow and the
+release-2.18 branch scan workflow. It resolves both branch heads and uses the
+shared source-derived inventory: all Kustomize environment and legacy metadata
+profiles, configured executor/cache images where present, UI/controller
+TensorBoard defaults, and pinned
+cluster prerequisites. Prerequisites and legacy/runtime roles remain separately
+identified. Arbitrary workloads, operator overrides and non-default TensorBoard
+menu choices are outside this inventory. It scans each distinct external image
+on Linux AMD64, retaining both JSON and SARIF reports from
+the same immutable image ID. The eight published main KFP images
+continue to upload to their existing GitHub code-scanning categories. Third-party
+findings also remain in GitHub: the upload matrix binds each image to its branch
+and exact source SHA. Master retains `kubeflow-pipelines-osv-image-<repository hash>`;
+release-2.18 uses `release-2.18-third-party-image-<repository hash>-amd64`.
+Tags, digests and source commits do not affect category identity. The hash is of
+the normalized repository name for existing standard deployments. Additional
+legacy, runtime and prerequisite targets include their stable logical role in
+the hash, so different versions of one repository do not overwrite each other.
+Only exact duplicate SARIF results are removed
+from the uploaded copy; raw evidence and release-policy inputs are unchanged.
+Only the post-report upload job receives security-events write permission.
+Candidate branch runs retain and validate evidence but do not publish alerts.
+
+Inventory size and native/external classification follow the selected source.
+Runtime inventory includes the concrete UI and viewer-controller TensorBoard
+defaults. The server repository prefix requires an explicit user-selected version
+and is not an implicit latest-image default. The legacy cache default is included
+only when its source consumer exists; absence is retained explicitly and cannot
+excuse a deployed cache server.
+The standalone TensorBoard runtime on main and release-2.18 is a KFP-built image; require
+its matching native publication record rather than scanning an old default tag
+as an external TensorFlow image. Its merged Alpine cache helper has package
+metadata, replacing the old BusyBox coverage gap, but exact-image extraction and
+scanning remain required. Do not copy historical inventory totals or candidate
+scan results into a current release-readiness claim. The independent
+`third-party-image-upgrades.yml` workflow checks compatibility; it does not replace
+full-inventory security qualification or the approved-exceptions policy.
+
+Each run retains rendered inventories, source commits, immutable Docker image
+IDs and registry digests, complete OSV JSON and raw SARIF, and scanner diagnostics for seven days (the repository artifact-retention cap).
+The aggregate job preserves verified counts alongside explicit unknown coverage
+when a scanner cannot identify packages, then fails the coverage gate. Unknown
+is never zero; all production SARIF uploads remain blocked until coverage is
+complete, preserving existing alerts. Missing lanes or inconsistent reports
+also fail. Qualification preserves scan failures and continues collecting the
+remaining image scans before failing; incomplete evidence cannot authorize release. A successful evidence job means scanning completed, not that images
+have no vulnerabilities or are authorized for release.
+
+The image-level summary compares release pins with different pins already used
+on master in the same image repository. It lists advisories removed and added,
+using advisory aliases to avoid counting renamed advisories as fixes. These are
+scanned candidates, not compatibility-approved upgrades. Other findings remain
+upstream/applicability work; a package fixed version alone is not evidence that a
+replacement image exists. The JSON report retains all packages and findings.
+
+Backend release qualification uses the same complete inventory from the exact
+candidate commit. Preserved source inputs, profile catalogs, rendered YAML and
+pinned prerequisite manifests are checksummed and revalidated with the receipt.
+The trusted checkout and workflow provenance bind those inputs to the candidate;
+input checksums alone do not attest to source authenticity. Their raw findings enter the existing zero-fixable
+policy; approved exceptions remain exact to image ID, package, installed version
+and advisory, require a justification and expiry, and are rechecked at
+publication. Missing, stale or inconsistent third-party evidence blocks release.
+SDK-only qualification does not require backend images. Scheduled comparison
+reports are supplemental and cannot authorize publication.
+Retire only demonstrably obsolete GitHub configurations after the replacement
+workflow is merged and complete per-image, per-branch coverage is verified;
+archive old analyses before deletion. Never retire a category merely because
+an image is third-party. Preserve first-party/source coverage and all distinct
+advisory/package/location results.
+
+## Third-party image upgrade checks
+
+`third-party-image-upgrades.yml` reads baseline images from the PR base commit
+(or the explicit manual baseline ref) and candidate images from the tested head.
+The Kind component check preserves S3 objects, lifecycle rules and profile-issued
+IAM credentials on the same PVC across a SeaweedFS upgrade and restart. It invokes
+the actual profile webhook without Metacontroller; it does not run an MLMD,
+whole-installation or Argo upgrade. Existing API/E2E lanes cover Argo behavior.
+The helper phases retain command stderr and make cluster deletion best-effort.
+Profile credential selection requires the named artifact Secret; service-account
+token Secrets can precede it in reconciliation output. The workflow is registered
+in the trigger inventory and the CI Check completion subscription.
+
+Linux AMD64 scan jobs use the checkout's release OSV tooling and retain raw JSON,
+SARIF, immutable image identities and advisory-alias comparisons. Success means
+complete evidence, not zero findings, applicability exemptions or release approval.
+
+OSV archive verification accepts classic Docker config IDs and containerd
+manifest/index IDs only when SHA-256-verified archived descriptors bind the
+selected native config. Missing, tampered, ambiguous or mismatched chains fail.
+
+## Image vulnerability summaries in GitHub
+
+Image scans upload one summary alert per stable image target and branch, rather
+than one alert per advisory. Release image summaries combine AMD64 and ARM64;
+master publication and third-party coverage remain AMD64. Source dependency and
+CodeQL alerts remain individual findings. Distinct runtime/legacy targets can
+remain separate when they are independently versioned deployment choices.
+
+`kfpr.image_summary` is a presentation transform only. Its rule and fingerprint
+identify the stable target, not the tag, digest, advisory set or evidence run.
+Each alert shows the image reference, scanned architectures, distinct advisory-ID
+and raw-result counts, highest available security score, unknown-score count and
+a link to that run's raw evidence. Advisory IDs are not deduplicated CVE aliases.
+Dismissing the summary does not waive a release vulnerability finding.
+
+Keep complete raw JSON/SARIF, immutable image provenance and failure diagnostics
+in the existing scan artifacts. Evidence links use the exact run attempt;
+artifacts retain the repository's seven-day retention, so release qualification
+must retain its own evidence as before. Summaries never feed release gates.
+All inventory, platform, checksum and scan validation runs before publication.
+A complete clean image produces an empty report to resolve its summary; failed
+or incomplete scans must not publish an empty result or clear existing alerts.
+
+Migration reuses existing image categories and the OSV tool identity so the new
+summary replaces per-advisory results. Release uploads retain the primary AMD64
+category; the redundant ARM category receives an empty report only after GitHub
+successfully processes the combined summary. Candidate workflow dispatches retain
+evidence without changing production image alerts. After merge, run both master
+and release scans, verify summary counts, raw-artifact coverage and GitHub's
+processed alert state before manually removing any obsolete configurations.
+Do not bulk-dismiss package findings as false positives to hide the old reports.
+
+ARM summary migration requires a separate status API check for the exact upload SARIF ID: only `processing_status: complete` permits retirement. Upload-action success alone is insufficient; pending, failed, missing, or unavailable status preserves the old alerts and fails the job. CI Scripts Tests explicitly includes `kfpr.image_summary_test`.
+
+- Explicit default-branch `CI Check` dispatch can recover a pending aggregate on an already merged release PR. It requires the PR number and exact tested head and reuses the required workflow inventory and fresh external checks after successful preparation. Interrupted recovery cleanup uses bounded exact-ID retries and a fresh authenticated dispatch; normal merged-PR status preservation remains unchanged; see [merged release recovery](ci-passed.md#recover-a-pending-aggregate-after-a-release-merge).
+
+
+## Default branch migration preparation
+
+Development workflow filters accept both `master` and `main`. CI Check applies
+live-base freshness and stale-green revocation to both names; release branches
+retain their existing base-revision policy. Shared runtime image publication,
+cache maintenance, and release promotion follow the repository's current default
+branch. The publication workflow filename/name and `:master` container tags remain
+stable contracts. Build-tool publication maps the `main` branch to the existing
+`:master` tag and keeps release tags unchanged.
+
+Runtime artifact fallback and OSV publication selection use the repository's
+current default branch while preserving upstream identity and immutable source
+checks. OSV carries the selected producer branch into SARIF attribution. Release
+tooling resolves and validates the upstream default branch for dispatch and sync;
+the persisted `sync-master` step identifier remains compatible.
+
+This preparation does not rename the branch or change external settings. Before
+cutover, deploy Tide's `main` eligibility and mandatory `ci-passed` context policy,
+add the `pypi` environment branch policy, and verify Copybara/mirror, ReadTheDocs,
+and publisher trust settings. Before renaming, confirm authority for the
+[controlled first-main bootstrap merge](ci-passed.md#controlled-bootstrap-after-the-default-branch-rename).
+Historical master merge records do not prove arrival on main, so ordinary CI will
+remain pending until that reviewed bootstrap establishes main provenance. Freeze
+merges/publication, rename through GitHub,
+verify effective protection, update external periodic checkout refs and remaining
+raw-source/developer defaults, and complete the explicitly authorized bootstrap
+while the freeze remains in place. Then generate fresh runtime/image/CI evidence.
+Verify stale-green revocation, retargeted PRs, normal and Dependabot merges, release
+dry runs, and scan attribution before reopening merges. Do not retire the legacy
+image tags as part of the Git branch rename.
+
+- Merge-queue candidates for `master` and `main` run all PR CI lanes for their target branch via native `merge_group` or explicit `workflow_dispatch` on the exact queue ref, ignoring PR path filters and manual test filters. CI Check uses a separate trusted `workflow_run` publisher for exact queue-SHA `ci-passed` evidence; see [ci-passed.md](ci-passed.md#development-branch-merge-group-ci). Preserve nonpublishing queue image builds and immutable candidate refs in SDK/test downloads. Adding a development-branch PR lane also requires a corresponding merge-group trigger, guarded queue dispatch support, and inventory regeneration. Queue refs force queue mode even when dispatch inputs are missing; the required guard validates `queue_head_sha`, plain `queue_base_ref`, and `queue_base_sha` against the actual run and live base. GitHub/Tide activation is a separate coordinated change.
+
+### GitHub API efficiency
+
+- Requested/in-progress CI events use the existing writer lock to invalidate green after checking the current PR and run identity; active runs do not trigger full evidence scans. Completed delayed events still reconcile all evidence. A prepared pending/failure workflow result can be reused only within the same job after successful preparation and a fresh PR/head check; external checks remain fresh, and every success retains full pre/post-publication verification.
+
+- Requested/in-progress workflow events may skip the PR-detail lookup only when
+  the unique exact-head/repository open-PR listing has an explicit label list
+  without `ci-passed`, the live workflow run validates as active, and a fresh
+  aggregate status read is `pending`. This path performs three reads instead of
+  four for single-page responses and emits no writes or preparation outputs.
+  Keep the live run read: a delayed start can replace its final completion in
+  GitHub's pending concurrency slot, and completed runs must still reconcile all
+  evidence immediately. All other paths fetch PR details and revalidate the run
+  before publication/full checks; writes read status again rather than reusing
+  the optional probe. Probe errors fall back to normal handling. A non-pending
+  head without a green label costs one extra status probe; a green-labelled head
+  skips the probe. Test with `ci_pending_start_test.py` and the gate suite.
+
+- CI status publication deduplicates state/description transitions and reconciles the informational `ci-passed` label only when its fresh PR snapshot differs. Successful label writes update the local snapshot for rollback; ambiguous write errors invalidate it, and unknown state still permits conservative removal. Preserve green invalidation, live-base checks and post-publication rollback; do not add polling delays to reduce API load.
+
+- CI gate workflow inventories are fetched by immutable base SHA and reused only within the trusted publisher job. Runner-local entries include run/attempt and verifier/parser revisions and are validated before reuse; never restore them from shared Actions caches or PR artifacts. PR files, timeline, PR snapshots, and workflow runs remain fresh at every existing publication boundary. PR-number file responses are mutable and must not be cached under a prior head snapshot.
+- Scheduled recovery keeps the paginated REST PR listing and batches exact upstream-repository commit-status reads in sequential GraphQL groups of at most 50 unique heads. Missing or malformed commit evidence fails discovery; absent status contexts remain recovery candidates. Scheduled recovery also checks always-required, unfiltered PR lanes before starting a full assessment for a head whose aggregate status is already failure. A confirmed missing, failed, or old-base required lane can retain that existing failure. Pending statuses always receive full recovery, preserving missing-workflow deadlines and newly failed checks. Active or fresh attempts, successes, missing statuses, stale success labels, and ambiguous/API-error evidence also receive full recovery. This read-only check shares trusted base metadata only within one sweep; it never publishes success, caches mutable run evidence across sweeps, or changes the recovery interval. Run `ci_recovery_preflight_test.py` with the CI gate regressions when changing this selection.
+- Image-artifact readiness revalidates every REST page using ETags in a temporary per-wait cache. Only complete successful responses are returned; a 304 requires an exact-URL prior response. This reduces primary quota consumption, not HTTP request count or secondary-limit pressure. Preserve the configured polling cadence, producer/grace handling, and parallel image-build/cluster preparation.
+
+- Merge-queue admission is inactive unless `.github/merge-queue-policy.json` explicitly enables a development branch and GitHub reports an active `merge_queue` ruleset rule. Admission, explicit queue CI dispatch, and `ci-passed` writes use builtin `GITHUB_TOKEN`; no additional App or PAT is required. Recovery runs every five minutes, subject to GitHub scheduling delays. Per-candidate/workflow dispatch receipts allow 120 seconds for run registration and at most three dispatch attempts; registered failed/cancelled runs require an intentional rerun. A successful enqueue consumes the workflow snapshot fingerprint attached to the trusted PR success in `queue-admission-attempt`. If GitHub removes that candidate for failed checks, admission may retry once after a 15-minute cooldown, with unchanged head, fresh successful CI evidence, approvals and no holds. A durable `queue-admission-retry` reservation is written before enqueueing; the same fingerprint cannot retry again, even when an API response is lost. Manual removals do not qualify. Current run IDs, attempts, states and conclusions must still match the published fingerprint; a deliberate PR-workflow rerun followed by verified success starts a new admission budget. Preserve Prow approval and hold policy, current-head CI/retarget verification, and queue-candidate rechecks. See [activation and offline Tide patch](merge-queue-activation.md). Run `ci_merge_queue_policy_test.py`, `merge_queue_admission_test.py`, `merge_queue_admission_workflow_test.py`, `ci_merge_group_test.py`, `merge_queue_dispatch_test.py`, `merge_queue_dispatch_workflows_test.py`, and `prepare_tide_merge_queue_test.py` when changing this boundary.
+
+Queue dispatch reads candidate/base refs, the current default branch, queue
+membership, and approval policy together through a fresh GraphQL snapshot, then
+checks the active queue rule. Each batch shares one validation before its
+reservation writes and a fresh validation after all the writes settle.
+Subsequent batches recheck the live refs and policy.
+At most four workflow operations run concurrently within the serialized queue
+writer, and every started operation settles before the controller returns or
+emits its request-accounting summary. Healthy queued PRs share one policy read
+per sweep; invalid members retain the fresh recheck and dequeue path. Preserve
+the read-budget, bounded-concurrency, sibling-draining, and policy-race tests
+when changing this controller.
+
+Before admission and dispatch, scheduled queue recovery cancels active CI for
+obsolete queue candidates. It scans active runs only; a queue workflow event
+limits discovery to that candidate SHA. Cleanup requires an enabled base branch,
+a trusted workflow path, the same repository, and a valid queue ref. Dispatched runs must have the GitHub Actions bot as their original actor (ID,
+login and type), checked again on the fresh run, plus a valid controller reservation for that workflow,
+created no later than the run; independent manual runs do not qualify. A missing
+or replaced candidate ref is confirmed again alongside the current run attempt
+before cancellation. Queue membership alone, API errors, and malformed evidence
+never prove obsolescence. Current candidates and unrelated PR/manual runs are left running. Run `merge_queue_cleanup_test.py` with the controller regressions.
+
+Admission does not wait for unrelated status-recovery matrix jobs. Each newly
+verified queue-ready PR success dispatches the trusted default-branch recovery
+workflow with its PR number and exact head, inside request accounting. PR events
+and wakeups reconcile the identified PR. Queue workflow completions inspect
+the reported candidate, using its ref and SHA. Fresh policy and CI evidence
+still authorize entry. The five-minute recovery sweep catches up ready PRs,
+missed events and candidates without a workflow completion. The 15-minute full
+sweep also discovers failed aggregates eligible for PR Gate recovery. Both
+schedules are subject to GitHub scheduling delays. Wakeup failures warn without
+revoking valid CI, and scheduled recovery can retry. The
+15-minute cooldown is a minimum, not a retry-time guarantee. After the retry
+budget is exhausted, fix or rerun PR CI; a new verified workflow fingerprint
+automatically permits admission again without adding queue labels manually.
+
+### Automatic PR Gate recovery
+
+When an otherwise eligible PR has a failed `ci-passed` aggregate, admission also
+checks for trusted PR Gate membership-lookup failures. After 15 minutes it may
+rerun failed jobs once, reserving the attempt before sending the rerun request.
+Only the authoritative matching run is considered, ordered by the latest of
+creation and attempt start time, matching the aggregate verifier. Authority is
+rechecked before reservation and rerun; historical failures are never retried
+as a fallback. A second run attempt is never retried automatically, and at
+most two distinct run reservations are allowed per PR head. The exact current PR head, repository, workflow,
+run attempt, approvals and holds are rechecked around the mutation.
+
+This recovers membership-service/API failures without treating contributor-rule
+rejections or arbitrary test failures as transient. Scheduled reconciliation
+must verify the new results before admission; rerunning a gate never grants
+approval or publishes successful CI by itself. Missing or ambiguous evidence
+fails closed. Run `merge_queue_pr_gate_recovery_test.py` and the admission suite
+when changing this recovery path.
+
+### Native Go provenance in release qualification
+
+The seven KFP Go image lanes build a clean, detached snapshot of the requested
+commit with sanitized Git metadata. An external, byte-identical Dockerfile and
+its empty Dockerfile-specific ignore file preserve the tracked tree and Git
+objects without copying the caller's credentials, hooks, or untracked files.
+Package-path builds let Go derive the real main-module pseudo-version from the
+commit; do not stamp a released version or disable VCS metadata to clear CVEs.
+
+After OSV scans the immutable image, the trusted Go build-info reader extracts
+its actual KFP executables from a stopped container without running them. It
+checks native module version, full revision, timestamp, clean state, ELF and Go
+architecture, and binary SHA256. Both aggregate and client verification bind
+this evidence to the exact source, image, and raw scanner package inventory.
+Missing, dirty, mismatched, or inconsistent provenance fails collection. Raw
+OSV findings and security-policy semantics remain unchanged. The hosted
+`go_build_provenance_test` suite guards these boundaries.
+
+### Istio prerequisite patch coverage
+
+The release deployment script can select the local
+`manifests/kustomize/third-party/istio/install` overlay to apply compatible Istio
+1.31 image patches without upgrading the prerequisite manifest API surface. Its
+three runtime images, CNI version setting, and injected-sidecar version must
+match. The release inventory retains and hashes the overlay and injector values,
+renders the same local target, and rejects missing inputs or mismatched rendered
+images/injection settings. Existing candidates using the pinned remote base
+remain supported. See the overlay README for the injection-settings refresh
+procedure.
+
+The bounded Istio qualification overlay requires both injector selectors
+(`global.proxy.image` and `global.proxy_init.image`) to be `proxyv2`, with no
+`global.variant`. Matching source and rendered injector values alone cannot
+establish coverage: the selected injected image must also match the static
+prerequisite image inventory. Other selectors fail qualification.
+
+The backend install target and Kubernetes-native migration workflow both use
+cert-manager v1.21.3, matching the qualified release-2.18 prerequisite. Runtime
+Dockerfiles refresh zlib independently of their base-image tag; Alpine builds
+require at least 1.4-r0 and Debian API-server and frontend builds reject packages older
+than 1:1.3.dfsg+really1.3.1-1+deb13u1. Candidate image scans and existing release
+security gates remain authoritative for the resulting image contents.
+
+Ordinary image publication and shared CI native builds reuse the qualification
+sanitized Git context and binary reader through `image-build-provenance.py`.
+Known KFP Go runtime Dockerfiles build package paths with `-buildvcs=true
+-mod=readonly`; verification requires the exact clean source pseudo-version,
+commit/time and ELF/platform identity. Initial and fallback CI builds use the
+same context, and verification precedes reusable archive publication. Raw binary
+provenance accompanies the archives. Non-Go images retain their normal context
+and ignore rules. Publication uses tooling from the workflow revision, pulls
+the exact pushed registry digest, and verifies its binaries before
+exporting a digest to the manifest/tag publisher. A failed verification can leave
+an untagged registry digest, but cannot promote release/master tags. Older source
+revisions without package-path builds fail closed and require the source fix;
+no legacy metadata exception is added. Run `image_build_provenance_test.py`,
+`go_binary_provenance_test.py`, `image_publication_permissions_test.py`, and
+`shared_ci_image_producer_test.py` alongside qualification provenance tests.
+
+The publication binary reader uses the managed Go setup composite from the
+workflow tooling checkout, selecting the source checkout’s `go.mod` compiler.
+ARM smoke inventory loading distinguishes the retained binary-provenance reports
+from image identity records; reports never substitute for missing image records.
+Recipe paths are validated before image classification: absolute paths and parent
+traversal are rejected. Changes to the provenance wrapper, Git-context helper,
+or Go build-info reader explicitly select both shared-image architectures even
+when no consumer workflow's path filter matches.
+
+Go binary verification reports from shared CI image builds are retained in a
+separate `<image>[-arm64]-go-provenance-attempt-<attempt>` artifact. Image bundles
+contain only their registered archives, image identities, and checksum records;
+extra files still fail validation. Binary verification runs before either upload.
+
+## Merge queue policy isolation
+
+Validate approvals, holds, and PR heads only for the prefix included in the
+candidate being dispatched or published. A later ineligible entry must not
+invalidate an earlier independent candidate. When removing an ineligible PR,
+revoke its candidate and downstream candidates that contain its changes, then
+dequeue that PR. Entries sharing a candidate SHA must all pass policy checks.
+Unknown queue membership or a failed global policy snapshot still fails closed.
+
+The release-2.18 `kfp-profile-controller` image is first-party and is covered by
+the release source image matrix on AMD64 and ARM64. Its classification in
+`osv_manifest_images.py` prevents third-party inventory from rejecting that
+repository. Main’s current `alpine/k8s` profile-controller runtime remains a
+third-party scan target; classification follows the image repository, not the
+component name. Unknown KFP repositories still fail closed.
+
+Publication keeps its trusted `.publication-tooling` checkout at its original
+workspace path until post-job cleanup finishes; GitHub resolves local composite
+actions again during cleanup. All publication contexts use the committed source
+snapshot, excluding the untracked tooling checkout. Non-Go builds select their
+in-tree Dockerfile and existing ignore rules (including Dockerfile-specific
+ignore files), while native Go builds retain the external recipe/ignore override
+needed for VCS stamping. `image_publication_permissions_test.py` reproduces the
+local-action lifetime boundary and `image_build_provenance_test.py` checks root
+and subdirectory non-Go contexts without weakening binary verification.
+
+Publication dry-runs use the Docker archive exporter with BuildKit attestations
+disabled because that exporter cannot encode attestation manifest lists. Registry
+publication retains `--provenance=mode=min` and its artifact attestation; both
+paths still verify and preserve the separate binary-provenance evidence.

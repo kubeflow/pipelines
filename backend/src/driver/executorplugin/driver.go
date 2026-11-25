@@ -266,6 +266,10 @@ func (r *driverRunner) setup(ctx context.Context, args driverapi.DriverPluginArg
 		options.KubernetesExecutorConfig = k8sExecCfg
 		options.DefaultRunAsUser = args.DefaultRunAsUser
 		options.DefaultRunAsGroup = args.DefaultRunAsGroup
+		if args.DefaultPVCStorageClass != "" {
+			defaultPVCStorageClass := args.DefaultPVCStorageClass
+			options.DefaultPVCStorageClass = &defaultPVCStorageClass
+		}
 		options.DefaultRunAsNonRoot, err = driverinputs.ParseOptionalBool("default_run_as_non_root", args.DefaultRunAsNonRoot)
 		if err != nil {
 			return nil, err

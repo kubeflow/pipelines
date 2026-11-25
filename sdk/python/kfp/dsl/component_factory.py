@@ -954,7 +954,8 @@ def create_component_from_func(
     if REGISTERED_MODULES is not None:
         REGISTERED_MODULES[component_name] = component_info
 
-    if output_component_file:
+    # The component build CLI writes this after validating dependency URLs.
+    if output_component_file and REGISTERED_MODULES is None:
         component_spec.save_to_component_yaml(output_component_file)
 
     return python_component.PythonComponent(

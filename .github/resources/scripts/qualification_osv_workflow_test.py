@@ -107,7 +107,10 @@ class QualificationOsvWorkflowTest(unittest.TestCase):
 
     def test_aggregate_requires_security_and_all_requested_images(self):
         job = self.jobs['aggregate']
-        self.assertEqual(set(job['needs']), {'inventory', 'images', 'security'})
+        self.assertEqual(
+            set(job['needs']),
+            {'inventory', 'images', 'security', 'third-party'},
+        )
         self.assertIn('always()', job['if'])
         steps = job['steps']
         downloads = [
@@ -116,9 +119,13 @@ class QualificationOsvWorkflowTest(unittest.TestCase):
             if step.get('uses')
             == './tooling/.github/actions/download-artifact-with-retry'
         ]
-        self.assertEqual(len(downloads), 2)
+        self.assertEqual(len(downloads), 3)
         self.assertEqual(downloads[0]['if'], '${{ inputs.include_backend }}')
         self.assertNotIn('if', downloads[1])
+        self.assertEqual(downloads[2]['if'], '${{ inputs.include_backend }}')
+        self.assertEqual(
+            downloads[2]['with']['required-files'], 'third-party.json'
+        )
         self.assertEqual(
             downloads[1]['with']['required-files'], 'security.json'
         )
@@ -135,3 +142,15 @@ class QualificationOsvWorkflowTest(unittest.TestCase):
         )
         self.assertLess(steps.index(verify), steps.index(upload))
         self.assertNotIn('if', upload)
+
+    def test_third_party_evidence_is_backend_scoped_and_retained_on_failure(
+        self,
+    ):
+        job = self.jobs['third-party']
+        self.assertEqual(job['if'], '${{ inputs.include_backend }}')
+        command = '\n'.join(step.get('run', '') for step in job['steps'])
+        self.assertIn('kfpr.third_party collect --source source', command)
+        self.assertNotIn('upload-sarif', str(job))
+        upload = job['steps'][-1]
+        self.assertEqual(upload['if'], 'always()')
+        self.assertIn('${{ github.run_attempt }}', upload['with']['name'])
