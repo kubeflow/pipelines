@@ -44,12 +44,19 @@ You can also enable or disable caching for all components in a pipeline by
 setting the argument `enable_caching` when submitting a pipeline for execution.
 This will override the caching settings for all components in the pipeline.
 
-> **Note**: The SDK applies this override client-side by rewriting the
-> pipeline spec that is sent with the request, so it only takes effect when you
-> submit a package or a pipeline function. It is ignored when a run or
-> recurring run is created from an uploaded pipeline (`pipeline_id` /
-> `version_id`). See [#14253](https://github.com/kubeflow/pipelines/issues/14253)
-> for server-side support.
+When you submit a package or a pipeline function, the SDK applies the override
+by rewriting the pipeline spec sent with the request. When you create a run or
+recurring run from an uploaded pipeline (`pipeline_id` / `version_id`), the SDK
+sends `enable_caching` to the API server, which applies it to that run's copy of
+the pipeline spec, including nested DAGs. The uploaded pipeline version is not
+changed. A deployment with caching disabled cluster-wide still runs every task
+without caching, even with `enable_caching=True`.
+
+> **Note**: Applying `enable_caching` to `pipeline_id` / `version_id`
+> submissions requires a KFP backend that supports it. Older backends reject
+> the request, and the SDK raises an error instead of running the pipeline with
+> its compiled caching settings. `cache_key` is only applied to package
+> submissions; see [#14253](https://github.com/kubeflow/pipelines/issues/14253).
 
 ```python
 from kfp.client import Client
@@ -58,6 +65,15 @@ client = Client()
 client.create_run_from_pipeline_func(
     hello_pipeline,
     enable_caching=True,  # overrides the above disabling of caching
+)
+
+# Also works for a pipeline uploaded earlier.
+client.run_pipeline(
+    experiment_id=experiment_id,
+    job_name='hello-no-cache',
+    pipeline_id=pipeline_id,
+    version_id=version_id,
+    enable_caching=False,
 )
 ```
 
