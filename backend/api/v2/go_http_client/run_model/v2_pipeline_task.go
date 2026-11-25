@@ -22,6 +22,9 @@ type V2PipelineTask struct {
 	// cache fingerprint
 	CacheFingerprint string `json:"cache_fingerprint,omitempty"`
 
+	// ID of the source task whose result this task reused.
+	CachedTaskID string `json:"cached_task_id,omitempty"`
+
 	// Sequence of dependent tasks.
 	ChildTasks []*PipelineTaskChildTask `json:"child_tasks"`
 

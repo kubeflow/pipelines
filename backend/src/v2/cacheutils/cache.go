@@ -98,3 +98,13 @@ func GenerateCacheKey(
 
 	return &cacheKey, nil
 }
+
+// GenerateNativeFingerprint computes the cache key used by the native driver.
+func GenerateNativeFingerprint(inputs *pipelinespec.ExecutorInput_Inputs, outputs *pipelinespec.ExecutorInput_Outputs, outputTypes map[string]string, command []string, image string, volumes []string, env []*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar, pipelineName string) (string, error) {
+	arguments := append(append([]string(nil), command...), "__kfp_pipeline_name="+pipelineName)
+	key, err := GenerateCacheKey(inputs, outputs, outputTypes, arguments, image, volumes, env)
+	if err != nil {
+		return "", err
+	}
+	return GenerateFingerPrint(key)
+}

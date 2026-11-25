@@ -52,7 +52,8 @@ class V2PipelineTask(object):
         'outputs': 'PipelineTaskInputOutputs',
         'scope_path': 'str',
         'lifecycle_message': 'str',
-        'lifecycle_category': 'str'
+        'lifecycle_category': 'str',
+        'cached_task_id': 'str'
     }
 
     attribute_map = {
@@ -75,10 +76,11 @@ class V2PipelineTask(object):
         'outputs': 'outputs',
         'scope_path': 'scope_path',
         'lifecycle_message': 'lifecycle_message',
-        'lifecycle_category': 'lifecycle_category'
+        'lifecycle_category': 'lifecycle_category',
+        'cached_task_id': 'cached_task_id'
     }
 
-    def __init__(self, name=None, display_name=None, task_id=None, run_id=None, pods=None, cache_fingerprint=None, create_time=None, end_time=None, state=None, status_metadata=None, state_history=None, type=None, type_attributes=None, parent_task_id=None, child_tasks=None, inputs=None, outputs=None, scope_path=None, lifecycle_message=None, lifecycle_category=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, name=None, display_name=None, task_id=None, run_id=None, pods=None, cache_fingerprint=None, create_time=None, end_time=None, state=None, status_metadata=None, state_history=None, type=None, type_attributes=None, parent_task_id=None, child_tasks=None, inputs=None, outputs=None, scope_path=None, lifecycle_message=None, lifecycle_category=None, cached_task_id=None, local_vars_configuration=None):  # noqa: E501
         """V2PipelineTask - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -104,6 +106,7 @@ class V2PipelineTask(object):
         self._scope_path = None
         self._lifecycle_message = None
         self._lifecycle_category = None
+        self._cached_task_id = None
         self.discriminator = None
 
         if name is not None:
@@ -146,6 +149,8 @@ class V2PipelineTask(object):
             self.lifecycle_message = lifecycle_message
         if lifecycle_category is not None:
             self.lifecycle_category = lifecycle_category
+        if cached_task_id is not None:
+            self.cached_task_id = cached_task_id
 
     @property
     def name(self):
@@ -586,6 +591,29 @@ class V2PipelineTask(object):
         """
 
         self._lifecycle_category = lifecycle_category
+
+    @property
+    def cached_task_id(self):
+        """Gets the cached_task_id of this V2PipelineTask.  # noqa: E501
+
+        ID of the source task whose result this task reused.  # noqa: E501
+
+        :return: The cached_task_id of this V2PipelineTask.  # noqa: E501
+        :rtype: str
+        """
+        return self._cached_task_id
+
+    @cached_task_id.setter
+    def cached_task_id(self, cached_task_id):
+        """Sets the cached_task_id of this V2PipelineTask.
+
+        ID of the source task whose result this task reused.  # noqa: E501
+
+        :param cached_task_id: The cached_task_id of this V2PipelineTask.  # noqa: E501
+        :type cached_task_id: str
+        """
+
+        self._cached_task_id = cached_task_id
 
     def to_dict(self):
         """Returns the model properties as a dict"""

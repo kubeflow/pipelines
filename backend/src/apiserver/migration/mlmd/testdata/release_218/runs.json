@@ -1,0 +1,37 @@
+[
+  {
+    "case": "success-first",
+    "run_id": "277c4ec0-b50f-4775-a181-d68908d04346",
+    "status": "SUCCEEDED"
+  },
+  {
+    "case": "success-cache",
+    "run_id": "ee5ca2c7-c11c-4487-af54-ec8c61a75237",
+    "status": "SUCCEEDED"
+  },
+  {
+    "case": "success-long",
+    "run_id": "a32dac54-2bd0-4c3b-8ac2-d398d5575507",
+    "status": "SUCCEEDED"
+  },
+  {
+    "case": "success-optional",
+    "run_id": "38e39900-ea22-4622-820e-a586a55a15eb",
+    "status": "SUCCEEDED"
+  },
+  {
+    "case": "intentional-failure",
+    "run_id": "21d4060a-ea3b-4871-9927-1a3da694fbc8",
+    "status": "FAILED"
+  },
+  {
+    "case": "structure",
+    "run_id": "7a04653b-5e3b-488d-9db2-45bf51d3e101",
+    "status": "SUCCEEDED"
+  },
+  {
+    "case": "success-sparse",
+    "run_id": "57f5b485-f295-4e2b-8508-fb7605e1064f",
+    "status": "SUCCEEDED"
+  }
+]

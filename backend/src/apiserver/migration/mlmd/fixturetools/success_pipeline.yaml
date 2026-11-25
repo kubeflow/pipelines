@@ -1,0 +1,205 @@
+# PIPELINE DEFINITION
+# Name: release-218-source-success
+# Inputs:
+#    seed: str [Default: 'fixture']
+components:
+  comp-condition-1:
+    dag:
+      tasks:
+        consume-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-consume-2
+          inputs:
+            parameters:
+              value:
+                runtimeValue:
+                  constant: optional
+          taskInfo:
+            name: consume-2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--seed:
+          parameterType: STRING
+  comp-consume:
+    executorLabel: exec-consume
+    inputDefinitions:
+      parameters:
+        value:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-consume-2:
+    executorLabel: exec-consume-2
+    inputDefinitions:
+      parameters:
+        value:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-produce:
+    executorLabel: exec-produce
+    inputDefinitions:
+      parameters:
+        seed:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-consume:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - consume
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.18.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef consume(value: str) -> str:\n    return value + \"-consumed\"\
+          \n\n"
+        image: python:3.11
+    exec-consume-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - consume
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.18.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef consume(value: str) -> str:\n    return value + \"-consumed\"\
+          \n\n"
+        image: python:3.11
+    exec-produce:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - produce
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.18.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef produce(seed: str, dataset: Output[Dataset], metrics: Output[Metrics])\
+          \ -> str:\n    from pathlib import Path\n\n    Path(dataset.path).write_text(seed,\
+          \ encoding=\"utf-8\")\n    metrics.log_metric(\"accuracy\", 0.875)\n   \
+          \ metrics.log_metric(\"loss\", 0.125)\n    return seed + \"-produced\"\n\
+          \n"
+        image: python:3.11
+pipelineInfo:
+  name: release-218-source-success
+root:
+  dag:
+    tasks:
+      condition-1:
+        componentRef:
+          name: comp-condition-1
+        inputs:
+          parameters:
+            pipelinechannel--seed:
+              componentInputParameter: seed
+        taskInfo:
+          name: condition-1
+        triggerPolicy:
+          condition: inputs.parameter_values['pipelinechannel--seed'] == 'run-optional'
+      consume:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-consume
+        dependentTasks:
+        - produce
+        inputs:
+          parameters:
+            value:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: produce
+        taskInfo:
+          name: consume
+      produce:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-produce
+        inputs:
+          parameters:
+            seed:
+              componentInputParameter: seed
+        taskInfo:
+          name: produce
+  inputDefinitions:
+    parameters:
+      seed:
+        defaultValue: fixture
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.18.0

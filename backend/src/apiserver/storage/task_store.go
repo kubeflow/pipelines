@@ -49,6 +49,7 @@ var taskColumns = []string{
 	"StartedInSec",
 	"FinishedInSec",
 	"Fingerprint",
+	"CachedTaskUUID",
 	"Name",
 	"DisplayName",
 	"ParentTaskUUID",
@@ -154,7 +155,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 	var name, displayName, parentTaskID, pods, statusMetadata, stateHistory, inputParams, outputParams, typeAttrs, scopePath, logicalKey sql.NullString
 	var createdAtInSec, startedInSec, finishedInSec sql.NullInt64
 	var taskState, taskType int32
-	var lifecycleMessage, lifecycleCategory sql.NullString
+	var lifecycleMessage, lifecycleCategory, cachedTaskUUID sql.NullString
 	if err := rowscanner.Scan(
 		&uuid,
 		&namespace,
@@ -164,6 +165,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		&startedInSec,
 		&finishedInSec,
 		&fingerprint,
+		&cachedTaskUUID,
 		&name,
 		&displayName,
 		&parentTaskID,
@@ -239,7 +241,12 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 	if logicalKey.Valid {
 		logicalKeyNew = &logicalKey.String
 	}
+	var cachedTaskID *string
+	if cachedTaskUUID.Valid {
+		cachedTaskID = &cachedTaskUUID.String
+	}
 	return &model.Task{
+		CachedTaskUUID:    cachedTaskID,
 		UUID:              uuid,
 		Namespace:         namespace,
 		RunUUID:           runUUID,
@@ -691,6 +698,7 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 				q("StartedInSec"):      newTask.StartedInSec,
 				q("FinishedInSec"):     newTask.FinishedInSec,
 				q("Fingerprint"):       newTask.Fingerprint,
+				q("CachedTaskUUID"):    newTask.CachedTaskUUID,
 				q("Name"):              newTask.Name,
 				q("DisplayName"):       newTask.DisplayName,
 				q("ParentTaskUUID"):    newTask.ParentTaskUUID,
@@ -1241,6 +1249,9 @@ func (s *TaskStore) updateTask(new *model.Task, guard *TaskAttemptGuard) (*model
 	if new.RunUUID != "" {
 		setMap[q("RunUUID")] = new.RunUUID
 	}
+	if new.CachedTaskUUID != nil {
+		setMap[q("CachedTaskUUID")] = *new.CachedTaskUUID
+	}
 	if new.Fingerprint != "" {
 		setMap[q("Fingerprint")] = new.Fingerprint
 	}
@@ -1484,6 +1495,7 @@ func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
 				q("StartedInSec"):      retryStartedAt,
 				q("FinishedInSec"):     0,
 				q("StatusMetadata"):    nil,
+				q("CachedTaskUUID"):    nil,
 				q("pods"):              emptyJSONArray,
 				q("OutputParameters"):  emptyJSONArray,
 				q("StateHistory"):      string(historyBytes),

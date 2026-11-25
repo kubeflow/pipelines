@@ -2305,6 +2305,10 @@ func TestContainer_PluginLifecycle_CacheHitEndsOnceCached(t *testing.T) {
 	assert.Equal(t, 1, recorder.endCount)
 	require.Len(t, recorder.endStates, 1)
 	assert.Equal(t, apiv2.PipelineTask_CACHED, recorder.endStates[0])
+	stored, err := tc.MockAPI.GetTask(context.Background(), &apiv2.GetTaskRequest{RunId: opts.Run.GetRunId(), TaskId: execution.TaskID})
+	require.NoError(t, err)
+	require.Equal(t, cachedTask.GetTaskId(), stored.GetCachedTaskId())
+
 }
 
 // forceCacheHitAPI returns a fixed cached task for every FindCachedTask lookup.

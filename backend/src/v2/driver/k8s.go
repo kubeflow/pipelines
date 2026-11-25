@@ -1289,6 +1289,7 @@ func createPVCTask(
 			return cloneErr
 		}
 		taskToCreate.State = apiV2.PipelineTask_CACHED
+		taskToCreate.CachedTaskId = util.StringPointer(cachedTask.GetTaskId())
 		taskToCreate.Outputs = cachedOutputs
 		*execution.Cached = true
 		return nil
@@ -1462,6 +1463,7 @@ func deletePVCTask(
 	execution.Cached = util.BoolPointer(false)
 	if !opts.CacheDisabled && opts.Task.GetCachingOptions().GetEnableCache() && cachedTask != nil {
 		taskToCreate.State = apiV2.PipelineTask_CACHED
+		taskToCreate.CachedTaskId = util.StringPointer(cachedTask.GetTaskId())
 		taskToCreate.Outputs = cachedTask.Outputs
 		*execution.Cached = true
 		return nil
