@@ -29,10 +29,10 @@ def training_job():
 
 @dsl.component
 def generate_resource_constraints_request() -> NamedTuple(
-    'output', nbr_gpus=str, accelerator=str
+    'output', [('nbr_gpus', str), ('accelerator', str)]
 ):
     """Returns the gpu resource and constraints settings."""
-    output = NamedTuple('output', nbr_gpus=str, accelerator=str)
+    output = NamedTuple('output', [('nbr_gpus', str), ('accelerator', str)])
 
     return output('1', 'NVIDIA_TESLA_K80')
 

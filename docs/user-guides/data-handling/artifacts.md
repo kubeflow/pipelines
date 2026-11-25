@@ -147,7 +147,7 @@ from typing import NamedTuple
 @dsl.component
 def train_multiple_models(
     dataset: Dataset,
-) -> NamedTuple('outputs', model1=Model, model2=Model):
+) -> NamedTuple('outputs', [('model1', Model), ('model2', Model)]):
     with open(dataset.path) as f:
         dataset_lines = f.readlines()
 
@@ -161,7 +161,7 @@ def train_multiple_models(
     model_artifact2 = Model(uri=dsl.get_uri(suffix='model2'), metadata={'samples': len(dataset_lines)})
     trained_model2.save(model_artifact2.path)
 
-    outputs = NamedTuple('outputs', model1=Model, model2=Model)
+    outputs = NamedTuple('outputs', [('model1', Model), ('model2', Model)])
     return outputs(model1=model_artifact1, model2=model_artifact2)
 ```
 

@@ -148,14 +148,14 @@ from kfp import dsl
 from typing import NamedTuple
 
 @dsl.component
-def my_comp() -> NamedTuple('outputs', a=int, b=str):
-    outputs = NamedTuple('outputs', a=int, b=str)
+def my_comp() -> NamedTuple('outputs', [('a', int), ('b', str)]):
+    outputs = NamedTuple('outputs', [('a', int), ('b', str)])
     return outputs(1, 'hello')
 
 @dsl.pipeline
-def my_pipeline() -> NamedTuple('pipeline_outputs', c=int, d=str):
+def my_pipeline() -> NamedTuple('pipeline_outputs', [('c', int), ('d', str)]):
     task = my_comp()
-    pipeline_outputs = NamedTuple('pipeline_outputs', c=int, d=str)
+    pipeline_outputs = NamedTuple('pipeline_outputs', [('c', int), ('d', str)])
     return pipeline_outputs(task.outputs['a'], task.outputs['b'])
 ```
 

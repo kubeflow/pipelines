@@ -25,9 +25,11 @@ def training_op(n: int) -> int:
 
 
 @dsl.component
-def generate_resource_request() -> NamedTuple('output', memory=str, cpu=str):
+def generate_resource_request() -> NamedTuple(
+    'output', [('memory', str), ('cpu', str)]
+):
     """Returns the memory and cpu request."""
-    resource_output = NamedTuple('output', memory=str, cpu=str)
+    resource_output = NamedTuple('output', [('memory', str), ('cpu', str)])
     return resource_output('500Mi', '200m')
 
 
