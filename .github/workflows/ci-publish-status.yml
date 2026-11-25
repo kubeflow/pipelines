@@ -1,0 +1,134 @@
+# Publish each candidate independently, including its verified queue wakeup.
+name: Publish CI status
+on:
+  workflow_call:
+    inputs:
+      recovery_number:
+        required: true
+        type: number
+      recovery_head:
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      pull-requests: write
+      statuses: write
+    outputs:
+      pr_number: ${{ steps.finalize.outputs.pr_number }}
+      head_sha: ${{ steps.finalize.outputs.head_sha }}
+    steps:
+      - name: Check out the trusted workflow revision
+        if: github.event_name != 'pull_request_target' || github.event.action != 'closed'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Check out the trusted default branch for a closed PR
+        if: github.event_name == 'pull_request_target' && github.event.action == 'closed'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # After merge, github.sha equals the PR merge SHA and checkout's
+          # fork guard rejects it. Use the base repo's named trusted branch.
+          repository: ${{ github.repository }}
+          ref: refs/heads/${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Set up trusted workflow inventory parser
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.11'
+
+      - name: Install trusted workflow parser dependencies
+        run: python -m pip install -r .github/scripts/requirements.txt
+
+      - name: Resolve PR and verify expected CI workflows
+        # Invalidate earlier success even when parser setup failed. The finalizer
+        # requires successful prerequisites before it can publish green.
+        if: always() && !cancelled()
+        env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: prepare
+          CI_RECOVERY_NUMBER: ${{ inputs.recovery_number }}
+          CI_RECOVERY_HEAD: ${{ inputs.recovery_head }}
+        id: prepare
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting.js');
+            const {prepare} = require('./.github/resources/scripts/ci_passed.js');
+            return await withRequestAccounting({github, core, scope: 'prepare'},
+              () => prepare({github, context, core, recovery: {
+                number: Number(process.env.CI_RECOVERY_NUMBER),
+                head: process.env.CI_RECOVERY_HEAD}}));
+
+      - name: Reconcile status and informational label
+        id: finalize
+        if: always() && steps.prepare.outputs.pr_number != ''
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: finalize
+          CI_PR_NUMBER: ${{ steps.prepare.outputs.pr_number }}
+          CI_HEAD_SHA: ${{ steps.prepare.outputs.head_sha }}
+          CI_PR_SNAPSHOT: ${{ steps.prepare.outputs.snapshot }}
+          CI_PREPARATION_SUCCEEDED: ${{ job.status == 'success' && steps.prepare.outcome == 'success' }}
+          CI_VALIDATION_READY: ${{ job.status == 'success' && steps.prepare.outcome == 'success' && steps.prepare.outputs.ready == 'true' }}
+          CI_PREPARED_RESULT: ${{ steps.prepare.outcome == 'success' && steps.prepare.outputs.prepared_result || '' }}
+        with:
+          script: |
+            const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting.js');
+            const {finalize} = require('./.github/resources/scripts/ci_passed.js');
+            const {policyReason} = require('./.github/resources/scripts/merge_queue_admission.js');
+            return await withRequestAccounting({github, core, scope: 'finalize'}, async () => {
+              const pr = await finalize({github, context, core,
+                number: process.env.CI_PR_NUMBER,
+                head: process.env.CI_HEAD_SHA,
+                before: process.env.CI_PR_SNAPSHOT,
+                preparationSucceeded: process.env.CI_PREPARATION_SUCCEEDED === 'true',
+                validationReady: process.env.CI_VALIDATION_READY === 'true',
+                preparedResult: process.env.CI_PREPARED_RESULT});
+              if (pr && !policyReason(pr, `${context.repo.owner}/${context.repo.repo}`, pr.base?.ref)) {
+                core.setOutput('pr_number', String(pr.number));
+                core.setOutput('head_sha', pr.head.sha);
+              }
+            });
+
+  wake_admission:
+    needs: publish
+    # A missed notification is retried by scheduled queue recovery.
+    continue-on-error: true
+    if: needs.publish.outputs.pr_number != '' && needs.publish.outputs.head_sha != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - name: Wake queue admission for the verified head
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: wake_admission
+          CI_PR_NUMBER: ${{ needs.publish.outputs.pr_number }}
+          CI_HEAD_SHA: ${{ needs.publish.outputs.head_sha }}
+        with:
+          script: |
+            const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting.js');
+            const {wakeAdmission} = require('./.github/resources/scripts/merge_queue_wakeup.js');
+            return await withRequestAccounting({github, core, scope: 'wake_admission'},
+              () => wakeAdmission({github, context, core, number: process.env.CI_PR_NUMBER, head: process.env.CI_HEAD_SHA}));

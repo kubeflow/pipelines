@@ -193,22 +193,34 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
     def test_scheduled_recovery_uses_same_short_writer(self):
         workflow = self._read_workflow('ci-checks.yml')
         jobs = _mapping_block(workflow, 'jobs', 0)
-        writer = _mapping_block(jobs, 'check_ci_status', 2)
+        candidate = _mapping_block(jobs, 'check_ci_status', 2)
+        publisher = self._read_workflow('ci-publish-status.yml')
+        writer = _mapping_block(
+            _mapping_block(publisher, 'jobs', 0), 'publish', 2
+        )
         discovery = _mapping_block(jobs, 'recovery_candidates', 2)
         self.assertIn("cron: '7,22,37,52 * * * *'", workflow)
         self.assertIn("github.event_name == 'schedule'", discovery)
         self.assertNotIn('concurrency:', discovery)
         self.assertIn(
             'matrix.candidate.head || github.event.workflow_run.head_sha',
-            writer,
+            candidate,
         )
-        self.assertIn('name: check_ci_status', writer)
-        self.assertIn('max-parallel: 4', writer)
-        self.assertIn('fail-fast: false', writer)
         self.assertIn(
-            'CI_RECOVERY_NUMBER: ${{ matrix.candidate.number }}', writer
+            'uses: ./.github/workflows/ci-publish-status.yml', candidate
         )
-        self.assertIn('CI_RECOVERY_HEAD: ${{ matrix.candidate.head }}', writer)
+        self.assertIn("format('check_ci_status ({0}, {1})'", candidate)
+        self.assertIn("'check_ci_status (0)'", candidate)
+        self.assertIn('max-parallel: 4', candidate)
+        self.assertIn('fail-fast: false', candidate)
+        self.assertIn(
+            'recovery_number: ${{ matrix.candidate.number }}', candidate
+        )
+        self.assertIn('recovery_head: ${{ matrix.candidate.head }}', candidate)
+        self.assertIn(
+            'CI_RECOVERY_NUMBER: ${{ inputs.recovery_number }}', writer
+        )
+        self.assertIn('CI_RECOVERY_HEAD: ${{ inputs.recovery_head }}', writer)
         # One event-driven reconciliation must not hold the writer lock
         # in an external poller or pre-validation delay.
         self.assertNotIn('wechuli/allcheckspassed@', writer)
@@ -231,9 +243,9 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
                 )
 
     def test_publisher_checkout_uses_only_trusted_refs(self):
-        workflow = self._read_workflow('ci-checks.yml')
+        workflow = self._read_workflow('ci-publish-status.yml')
         writer = _mapping_block(
-            _mapping_block(workflow, 'jobs', 0), 'check_ci_status', 2
+            _mapping_block(workflow, 'jobs', 0), 'publish', 2
         )
         checkouts = [
             step
@@ -767,13 +779,17 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
 
     def test_publisher_runs_trusted_code_without_pr_interpolation(self):
         workflow = self._read_workflow('ci-checks.yml')
-        self.assertIn('ref: ${{ github.sha }}', workflow)
-        self.assertIn('persist-credentials: false', workflow)
-        self.assertNotIn('ref: ${{ github.event.pull_request.head', workflow)
-        self.assertNotIn('${{ github.event.label.name }}', workflow)
-        self.assertNotIn('wechuli/allcheckspassed@', workflow)
-        self.assertNotIn('id: poll', workflow)
-        self.assertIn('finalize({github', workflow)
+        publisher = self._read_workflow('ci-publish-status.yml')
+        for definition in (workflow, publisher):
+            self.assertIn('ref: ${{ github.sha }}', definition)
+            self.assertIn('persist-credentials: false', definition)
+            self.assertNotIn(
+                'ref: ${{ github.event.pull_request.head', definition
+            )
+            self.assertNotIn('${{ github.event.label.name }}', definition)
+            self.assertNotIn('wechuli/allcheckspassed@', definition)
+            self.assertNotIn('id: poll', definition)
+        self.assertIn('finalize({github', publisher)
         self.assertIn('finalizeMergedRecovery({github', workflow)
         self.assertIn('types: [requested, in_progress, completed]', workflow)
         self.assertIn('reopened, edited, labeled', workflow)

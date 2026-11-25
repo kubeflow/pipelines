@@ -108,7 +108,7 @@ jobs:
               () => recoveryCandidates({github, context}));
 
   check_ci_status:
-    name: check_ci_status
+    name: ${{ matrix.candidate.head && format('check_ci_status ({0}, {1})', matrix.candidate.number, matrix.candidate.head) || 'check_ci_status (0)' }}
     needs: recovery_candidates
     strategy:
       fail-fast: false
@@ -127,88 +127,16 @@ jobs:
       # and durable retarget history; correctness never depends on event order.
       group: ci-passed-reconcile-${{ matrix.candidate.head || github.event.workflow_run.head_sha || github.event.pull_request.head.sha }}
       cancel-in-progress: false
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    uses: ./.github/workflows/ci-publish-status.yml
+    with:
+      recovery_number: ${{ matrix.candidate.number }}
+      recovery_head: ${{ matrix.candidate.head }}
     permissions:
       actions: write
       checks: read
       contents: read
       pull-requests: write
       statuses: write
-    steps:
-      - name: Check out the trusted workflow revision
-        if: github.event_name != 'pull_request_target' || github.event.action != 'closed'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          repository: ${{ github.repository }}
-          ref: ${{ github.sha }}
-          persist-credentials: false
-
-      - name: Check out the trusted default branch for a closed PR
-        if: github.event_name == 'pull_request_target' && github.event.action == 'closed'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          # After merge, github.sha equals the PR merge SHA and checkout's
-          # fork guard rejects it. Use the base repo's named trusted branch.
-          repository: ${{ github.repository }}
-          ref: refs/heads/${{ github.event.repository.default_branch }}
-          persist-credentials: false
-
-      - name: Set up trusted workflow inventory parser
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        with:
-          python-version: '3.11'
-
-      - name: Install trusted workflow parser dependencies
-        run: python -m pip install -r .github/scripts/requirements.txt
-
-      - name: Resolve PR and verify expected CI workflows
-        # Invalidate earlier success even when parser setup failed. The finalizer
-        # requires successful prerequisites before it can publish green.
-        if: always() && !cancelled()
-        env:
-          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
-          CI_HTTP_ACCOUNTING_SCOPE: prepare
-          CI_RECOVERY_NUMBER: ${{ matrix.candidate.number }}
-          CI_RECOVERY_HEAD: ${{ matrix.candidate.head }}
-        id: prepare
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
-        with:
-          script: |
-            const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting.js');
-            const {prepare} = require('./.github/resources/scripts/ci_passed.js');
-            return await withRequestAccounting({github, core, scope: 'prepare'},
-              () => prepare({github, context, core, recovery: {
-                number: Number(process.env.CI_RECOVERY_NUMBER),
-                head: process.env.CI_RECOVERY_HEAD}}));
-
-      - name: Reconcile status and informational label
-        if: always() && steps.prepare.outputs.pr_number != ''
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
-        env:
-          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
-          CI_HTTP_ACCOUNTING_SCOPE: finalize
-          CI_PR_NUMBER: ${{ steps.prepare.outputs.pr_number }}
-          CI_HEAD_SHA: ${{ steps.prepare.outputs.head_sha }}
-          CI_PR_SNAPSHOT: ${{ steps.prepare.outputs.snapshot }}
-          CI_PREPARATION_SUCCEEDED: ${{ job.status == 'success' && steps.prepare.outcome == 'success' }}
-          CI_VALIDATION_READY: ${{ job.status == 'success' && steps.prepare.outcome == 'success' && steps.prepare.outputs.ready == 'true' }}
-          CI_PREPARED_RESULT: ${{ steps.prepare.outcome == 'success' && steps.prepare.outputs.prepared_result || '' }}
-        with:
-          script: |
-            const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting.js');
-            const {finalize} = require('./.github/resources/scripts/ci_passed.js');
-            const {wakeAdmission} = require('./.github/resources/scripts/merge_queue_wakeup.js');
-            return await withRequestAccounting({github, core, scope: 'finalize'}, async () => {
-              const pr = await finalize({github, context, core,
-                number: process.env.CI_PR_NUMBER,
-                head: process.env.CI_HEAD_SHA,
-                before: process.env.CI_PR_SNAPSHOT,
-                preparationSucceeded: process.env.CI_PREPARATION_SUCCEEDED === 'true',
-                validationReady: process.env.CI_VALIDATION_READY === 'true',
-                preparedResult: process.env.CI_PREPARED_RESULT});
-              await wakeAdmission({github, context, core, pr});
-            });
 
   recover_merged_release:
     if: github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
@@ -320,44 +248,9 @@ jobs:
          (startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/master/') ||
           startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/main/') ||
           startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/release-2.18/'))))))
-    concurrency:
-      group: merge-queue-admission
-      cancel-in-progress: false
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    uses: ./.github/workflows/merge-queue-admission.yml
     permissions:
       contents: write
       pull-requests: write
       actions: write
       statuses: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.workflow_sha }}
-          persist-credentials: false
-      - id: policy
-        name: Read inactive-by-default queue policy
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
-        with:
-          script: |
-            const {loadPolicy} = require('./.github/resources/scripts/merge_queue_policy');
-            core.setOutput('enabled', String(loadPolicy().enabled_branches.length > 0));
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        if: steps.policy.outputs.enabled == 'true'
-        with:
-          python-version: '3.11'
-      - name: Install trusted workflow parser dependencies
-        if: steps.policy.outputs.enabled == 'true'
-        run: python -m pip install -r .github/scripts/requirements.txt
-      - name: Reconcile admission, candidate dispatch, and verified results
-        if: steps.policy.outputs.enabled == 'true'
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
-        env:
-          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
-          CI_HTTP_ACCOUNTING_SCOPE: queue_admission
-        with:
-          script: |
-            const {reconcileQueue} = require('./.github/resources/scripts/merge_queue_dispatch');
-            const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting');
-            return await withRequestAccounting({github, core, scope: 'queue_admission'},
-              async () => await reconcileQueue({github, context, core}));

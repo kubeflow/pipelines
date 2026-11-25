@@ -15,6 +15,14 @@ assess release PRs using their own base workflow policy; release branch
 protection retains its separately configured required contexts. The publisher supports both `master` and `main`; external Tide
 and GitHub protection must cover `main` before renaming the default branch.
 
+On each PR or scheduled recovery candidate, CI Check calls
+`ci-publish-status.yml`. Its publisher reads Actions evidence and writes the
+commit status and informational PR label. A separate job receives the verified
+PR number and head SHA and can dispatch queue recovery for that candidate.
+The queue writer runs in `merge-queue-admission.yml` and shares its concurrency
+group with scheduled recovery. Both reusable workflows use the caller’s event
+and have no independent event subscriptions.
+
 ## Push-triggered stale revocation
 
 A push to `master` or `main` runs `ci-passed-stale-revoke.yml`, which flips a stale

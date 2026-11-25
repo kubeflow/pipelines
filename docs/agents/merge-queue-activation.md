@@ -31,8 +31,10 @@ identify their target branch, and recovery revisits greens when policy mode or
 base policy changes. Queue candidates continue to run all applicable lanes against
 the exact combined SHA, with no relaxation of candidate freshness or image identity.
 
-The trusted `queue_admission` job runs independently of the status-recovery
-matrix. A PR event reconciles admission or revocation for the affected PR.
+CI Check delegates queue mutations to the local reusable workflow
+`.github/workflows/merge-queue-admission.yml`. Its `reconcile` job shares the
+`merge-queue-admission` concurrency group with recovery and runs independently
+of the status-recovery matrix. A PR event reconciles admission or revocation for the affected PR.
 A newly verified PR success wakes admission for that exact head. When enqueue
 returns a built candidate, the controller can start its missing CI immediately.
 A queue workflow completion reconciles only the reported queue ref and SHA.

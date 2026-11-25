@@ -15,7 +15,7 @@
 const diagnostics = require('node:diagnostics_channel');
 const fs = require('node:fs');
 const scopes = new Set(['artifact_primary', 'artifact_retry', 'all_checks', 'merged_all_checks',
-  'prepare', 'finalize', 'recovery', 'merged_prepare', 'merged_finalize', 'revoke', 'merge_group', 'queue_admission']);
+  'prepare', 'finalize', 'recovery', 'merged_prepare', 'merged_finalize', 'revoke', 'merge_group', 'wake_admission', 'queue_admission']);
 const methods = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']);
 const resources = new Set(['core', 'graphql', 'search', 'code_search', 'integration_manifest',
   'scim', 'actions_runner_registration', 'source_import']);

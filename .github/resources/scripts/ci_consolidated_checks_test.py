@@ -17,22 +17,21 @@ from ci_pass_eligibility_test import ROOT, exercise
 
 class ConsolidatedCheckTests(unittest.TestCase):
     def test_no_duplicate_external_checker_invocations(self):
-        workflow = yaml.safe_load(
-            (ROOT / '.github/workflows/ci-checks.yml').read_text()
-        )
-        calls = [
-            step
-            for job in workflow['jobs'].values()
-            for step in job.get('steps', [])
-            if 'wechuli/allcheckspassed@' in step.get('uses', '')
-        ]
-        self.assertEqual(len(calls), 0)
+        for filename in ('ci-checks.yml', 'ci-publish-status.yml'):
+            workflow = yaml.safe_load(
+                (ROOT / '.github/workflows' / filename).read_text()
+            )
+            for job in workflow['jobs'].values():
+                for step in job.get('steps', []):
+                    self.assertNotIn(
+                        'wechuli/allcheckspassed@', step.get('uses', '')
+                    )
 
     def test_workflow_binds_validation_to_successful_prerequisites(self):
         workflow = yaml.safe_load(
-            (ROOT / '.github/workflows/ci-checks.yml').read_text()
+            (ROOT / '.github/workflows/ci-publish-status.yml').read_text()
         )
-        steps = workflow['jobs']['check_ci_status']['steps']
+        steps = workflow['jobs']['publish']['steps']
         finalizer = next(
             step
             for step in steps

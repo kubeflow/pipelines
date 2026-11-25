@@ -14,7 +14,7 @@
 
 const METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']);
 const SCOPES = new Set(['prepare', 'finalize', 'recovery', 'merged_prepare', 'merged_finalize', 'revoke',
-  'merge_group', 'queue_admission', 'queue_recovery']);
+  'merge_group', 'wake_admission', 'queue_admission', 'queue_recovery']);
 const RESOURCES = new Set(['core', 'graphql', 'search', 'code_search', 'integration_manifest',
   'scim', 'actions_runner_registration', 'source_import']);
 

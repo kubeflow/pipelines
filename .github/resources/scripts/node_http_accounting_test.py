@@ -136,7 +136,9 @@ for (const path of JSON.parse(process.argv[1])) {
         covered = set()
         for name in [
             'ci-checks.yml',
+            'ci-publish-status.yml',
             'ci-passed-stale-revoke.yml',
+            'merge-queue-admission.yml',
             'merge-queue-recovery.yml',
         ]:
             workflow = yaml.safe_load(
@@ -166,6 +168,7 @@ for (const path of JSON.parse(process.argv[1])) {
                 'revoke',
                 'merge_group',
                 'queue_admission',
+                'wake_admission',
             },
         )
         action = yaml.safe_load(

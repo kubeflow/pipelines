@@ -318,6 +318,13 @@
       "merge_group": null
     },
     {
+      "path": ".github/workflows/ci-publish-status.yml",
+      "name": "Publish CI status",
+      "header_sha256": "4e59c6140d6723c732e55149547b5628d3360d05dfd1c9c5f1d872fb7aabad0c",
+      "pull_request": null,
+      "merge_group": null
+    },
+    {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
       "header_sha256": "bd9c95720ac01f73c22e96995d0dac2e80489f6dfc96bd289d6e3c3456b2796e",
@@ -948,6 +955,13 @@
       "path": ".github/workflows/legacy-v2-api-integration-tests.yml",
       "name": "KFP API Integration V2 (Legacy)",
       "header_sha256": "fb131c8b4aac364f130bbd57934f011dc73094e09112cdba2022204dee107ae8",
+      "pull_request": null,
+      "merge_group": null
+    },
+    {
+      "path": ".github/workflows/merge-queue-admission.yml",
+      "name": "Merge Queue Admission",
+      "header_sha256": "f944cbd280bb8a986c3bcb58b05e05a50d4a29c721ce11e3076cc8f09c9fd6fa",
       "pull_request": null,
       "merge_group": null
     },

@@ -53,6 +53,13 @@ WRITE_PERMISSIONS = {
         'check_merge_group_status': {'statuses'},
         'queue_admission': {'contents', 'pull-requests', 'actions', 'statuses'},
     },
+    'ci-publish-status.yml': {
+        'publish': {'pull-requests', 'statuses'},
+        'wake_admission': {'actions'},
+    },
+    'merge-queue-admission.yml': {
+        'reconcile': {'contents', 'pull-requests', 'actions', 'statuses'},
+    },
     'merge-queue-recovery.yml': {
         'queue_recovery': {'contents', 'pull-requests', 'actions', 'statuses'},
     },

@@ -184,12 +184,16 @@ const core = {info: line => summaries.push(JSON.parse(line))};
         self.assertNotIn('secret', json.dumps(result))
 
     def test_every_gate_script_is_wrapped(self):
-        for filename in ('ci-checks.yml', 'ci-passed-stale-revoke.yml'):
+        for filename in (
+            'ci-checks.yml',
+            'ci-publish-status.yml',
+            'ci-passed-stale-revoke.yml',
+        ):
             workflow = yaml.safe_load(
                 (ROOT / '.github/workflows' / filename).read_text()
             )
             for job in workflow['jobs'].values():
-                for step in job['steps']:
+                for step in job.get('steps', []):
                     script = step.get('with', {}).get('script', '')
                     if 'ci_passed.js' in script:
                         with self.subTest(
@@ -203,7 +207,7 @@ const core = {info: line => summaries.push(JSON.parse(line))};
     def test_queue_controllers_account_for_success_and_failure(self):
         for filename, job_name, scope in (
             ('ci-checks.yml', 'check_merge_group_status', 'merge_group'),
-            ('ci-checks.yml', 'queue_admission', 'queue_admission'),
+            ('merge-queue-admission.yml', 'reconcile', 'queue_admission'),
             ('merge-queue-recovery.yml', 'queue_recovery', 'queue_recovery'),
         ):
             workflow = yaml.safe_load(

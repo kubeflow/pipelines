@@ -373,6 +373,31 @@ class CheckRunsTest(unittest.TestCase):
         )
         self.assertEqual(result['state'], 'success')
 
+    def test_nested_ci_check_jobs_require_authoritative_workflow_identity(self):
+        for name in (
+            'check_ci_status (17, sha) / publish',
+            'check_ci_status (0) / wake_admission',
+            'queue_admission / reconcile',
+        ):
+            with self.subTest(name=name):
+                failed = check(id=101, name=name, conclusion='failure')
+                publisher = run(path='.github/workflows/ci-checks.yml')
+                self.assertEqual(
+                    verify(checks=[external(), failed], runs=[publisher])[
+                        'state'
+                    ],
+                    'success',
+                )
+                self.assertEqual(verify(checks=[failed])['state'], 'failure')
+                self.assertEqual(
+                    verify(checks=[failed], runs=[])['state'], 'failure'
+                )
+                third_party = external(name=name, conclusion='failure')
+                self.assertEqual(
+                    verify(checks=[third_party], runs=[publisher])['state'],
+                    'failure',
+                )
+
     def test_self_display_name_or_excluded_job_cannot_exempt_other_workflow(
         self,
     ):
@@ -428,6 +453,8 @@ class CheckRunsTest(unittest.TestCase):
         self.assertEqual(verify(checks=[], runs=[])['state'], 'pending')
         for name in [
             'check_ci_status_bad',
+            'check_ci_status (17, sha) / tests',
+            'queue_admission / tests',
             'Prepare build',
             'Agent (extra)',
             'Upload results extra',

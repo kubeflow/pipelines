@@ -9,7 +9,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Test admission wakeups through the production finalizer caller."""
+"""Test the publisher and queue wakeup using their production scripts."""
 
 import json
 import subprocess
@@ -24,14 +24,16 @@ ROOT = Path(__file__).resolve().parents[3]
 
 def run_wakeup(**options: object) -> dict:
     workflow = yaml.load(
-        (ROOT / '.github/workflows/ci-checks.yml').read_text(),
+        (ROOT / '.github/workflows/ci-publish-status.yml').read_text(),
         Loader=yaml.BaseLoader,
     )
-    script = workflow['jobs']['check_ci_status']['steps'][-1]['with']['script']
+    jobs = workflow['jobs']
+    publish_script = jobs['publish']['steps'][-1]['with']['script']
+    wake_script = jobs['wake_admission']['steps'][-1]['with']['script']
     source = r"""
 const fs = require('node:fs');
 const f = JSON.parse(fs.readFileSync(0, 'utf8'));
-const calls = [], warnings = [];
+const calls = [], warnings = [], outputs = {};
 const github = {rest: {repos: {get: async () => {
   calls.push(['repository']);
   if (f.readFailure) throw Error('repository unavailable');
@@ -41,7 +43,8 @@ const github = {rest: {repos: {get: async () => {
   if(f.dispatchFailure) throw Error('temporary dispatch failure');
 }}}};
 const context = {repo:{owner:'owner',repo:'repo'}};
-const core = {warning:message => warnings.push(message), info:()=>{}};
+const core = {warning:message => warnings.push(message), info:()=>{},
+  setOutput:(name, value) => { outputs[name] = String(value); }};
 const realRequire = require;
 function load(path) {
   if(path.endsWith('/ci_passed.js')) return {finalize:async () => {
@@ -54,13 +57,22 @@ function load(path) {
   return realRequire(process.cwd() + '/' + path);
 }
 (async()=>{
-  await new (Object.getPrototypeOf(async function(){}).constructor)('require','github','context','core',f.script)(load,github,context,core);
+  const run = script => new (Object.getPrototypeOf(async function(){}).constructor)(
+    'require', 'github', 'context', 'core', script)(load, github, context, core);
+  await run(f.publish);
+  if (outputs.pr_number && outputs.head_sha) {
+    process.env.CI_PR_NUMBER = outputs.pr_number;
+    process.env.CI_HEAD_SHA = outputs.head_sha;
+    await run(f.wake);
+  }
   console.log(JSON.stringify({calls,warnings}));
 })().catch(error=>{console.error(error);process.exit(1)});
 """
     result = subprocess.run(
         ['node', '-e', source],
-        input=json.dumps({'script': script, **options}),
+        input=json.dumps(
+            {'publish': publish_script, 'wake': wake_script, **options}
+        ),
         text=True,
         capture_output=True,
         cwd=ROOT,
@@ -81,13 +93,19 @@ class AdmissionWakeupTest(unittest.TestCase):
                     [
                         'accounting-start',
                         'verified-finalize',
+                        'accounting-end',
+                        'accounting-start',
                         'repository',
                         'dispatch',
                         'accounting-end',
                     ],
                 )
                 self.assertEqual(
-                    result['calls'][3][1],
+                    next(
+                        call[1]
+                        for call in result['calls']
+                        if call[0] == 'dispatch'
+                    ),
                     {
                         'owner': 'owner',
                         'repo': 'repo',

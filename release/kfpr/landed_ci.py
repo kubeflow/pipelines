@@ -514,7 +514,7 @@ def verify_aggregate(sha, replay):
     recorded = datetime.datetime.fromisoformat(status['created_at'])
     require(
         any(
-            job['name'] == job_name
+            job['name'] in (job_name, f'{job_name} / publish')
             and job['conclusion'] == 'success'
             and any(
                 step['name'] == 'Reconcile status and informational label'

@@ -420,9 +420,9 @@ class BaseWorkflowsTest(unittest.TestCase):
         self,
     ):
         definition = yaml.safe_load(
-            (ROOT / '.github/workflows/ci-checks.yml').read_text()
+            (ROOT / '.github/workflows/ci-publish-status.yml').read_text()
         )
-        job = definition['jobs']['check_ci_status']
+        job = definition['jobs']['publish']
         self.assertNotIn('CI_ENABLE_MLMD_UPGRADE_TESTS', job.get('env', {}))
         steps = job['steps']
         prepare_index = next(

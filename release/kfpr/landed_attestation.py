@@ -114,10 +114,17 @@ def verify_landed_attestation(context, run_id, pr, branch, sha):
 def superseded_ci_bookkeeping(context, check, checks, head):
     """Recognize cancelled aggregate/admission jobs followed by actual
     success."""
+    # The reusable jobs keep the same duties as their original inline jobs.
+    job_names = {
+        'queue_admission': 'queue_admission / reconcile',
+        'check_ci_status (0)': 'check_ci_status (0) / publish',
+    }
+    name = job_names.get(check.get('name'), check.get('name'))
     if not (
         check.get('__typename') == 'CheckRun'
         and check.get('workflowName') == 'CI Check'
-        and check.get('name') in ('queue_admission', 'check_ci_status (0)')
+        and name
+        in (*job_names.values(), 'check_ci_status (0) / wake_admission')
         and check.get('status') == 'COMPLETED'
         and check.get('conclusion') == 'CANCELLED'
         and check.get('startedAt')
@@ -128,8 +135,9 @@ def superseded_ci_bookkeeping(context, check, checks, head):
         for other in checks
         if all(
             other.get(key) == check[key]
-            for key in ('__typename', 'workflowName', 'name', 'status')
+            for key in ('__typename', 'workflowName', 'status')
         )
+        and job_names.get(other.get('name'), other.get('name')) == name
         and other.get('conclusion') == 'SUCCESS'
         and (other.get('startedAt') or '') > check['startedAt']
     ]

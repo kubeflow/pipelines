@@ -361,6 +361,11 @@ class LandedCITest(unittest.TestCase):
             mock.patch.object(ci, 'paged', return_value=jobs),
         ):
             ci.verify_aggregate(SHA, self.replay)
+            jobs[0]['name'] += ' / wake_admission'
+            with self.assertRaisesRegex(RuntimeError, 'reconciliation job'):
+                ci.verify_aggregate(SHA, self.replay)
+            jobs[0]['name'] = f'check_ci_status (9, {SHA}) / publish'
+            ci.verify_aggregate(SHA, self.replay)
             owner['event'] = 'pull_request_target'
             with self.assertRaisesRegex(
                 RuntimeError, 'rerun a required automatic.*replay PR'
