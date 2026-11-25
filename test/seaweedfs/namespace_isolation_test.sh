@@ -180,7 +180,7 @@ main() {
     check "own-namespace prefix list" allow \
         test-profile-1 list --prefix "private-artifacts/test-profile-1/"
 
-    # Top-level delimited browse MUST be allowed (folder names only).
+    # Top-level delimited browse MUST be allowed without listing nested keys.
     check "top-level delimited browse" allow \
         test-profile-2 list --prefix "" --delimiter "/"
     check "top-level delimited browse without explicit prefix" allow \

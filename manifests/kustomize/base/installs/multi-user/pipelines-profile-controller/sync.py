@@ -433,7 +433,7 @@ def server_factory(
                 },
             }
 
-        def ensure_bucket_list_policy(self, bucket_name):
+        def ensure_bucket_list_policy(self, bucket_name, *, provisioning):
             """Bucket-wide ListBucket isolation, keyed on ${aws:username}.
 
             Top-level folder browsing is allowed for everyone; listing
@@ -444,7 +444,7 @@ def server_factory(
             bucket policy before it.
             """
             bucket_arn = f'arn:aws:s3:::{bucket_name}'
-            desired = {
+            legacy_policy = {
                 'Version': '2012-10-17',
                 'Statement': [
                     {
@@ -487,19 +487,6 @@ def server_factory(
                         },
                     },
                     {
-                        'Sid': 'AllowEmptyPrefixDelimitedBrowse',
-                        'Effect': 'Allow',
-                        'Principal': '*',
-                        'Action': 's3:ListBucket',
-                        'Resource': bucket_arn,
-                        'Condition': {
-                            'StringEquals': {
-                                's3:prefix': '',
-                                's3:delimiter': '/',
-                            },
-                        },
-                    },
-                    {
                         'Sid': 'DenyOtherDeepList',
                         'Effect': 'Deny',
                         'Principal': '*',
@@ -522,18 +509,23 @@ def server_factory(
                     },
                 ],
             }
-            desired_json = json.dumps(desired, sort_keys=True)
-
+            root_browse = {
+                'Sid': 'AllowEmptyPrefixDelimitedBrowse',
+                'Effect': 'Allow',
+                'Principal': '*',
+                'Action': 's3:ListBucket',
+                'Resource': bucket_arn,
+                'Condition': {
+                    'StringEquals': {
+                        's3:prefix': '',
+                        's3:delimiter': '/',
+                    },
+                },
+            }
             try:
-                current = s3.get_bucket_policy(Bucket=bucket_name).get(
-                    'Policy', ''
+                current = json.loads(
+                    s3.get_bucket_policy(Bucket=bucket_name)['Policy']
                 )
-                if (
-                    current
-                    and json.dumps(json.loads(current), sort_keys=True)
-                    == desired_json
-                ):
-                    return
             except Exception as exception:
                 code = (
                     getattr(exception, 'response', {})
@@ -543,10 +535,33 @@ def server_factory(
                 if code != 'NoSuchBucketPolicy':
                     print(f'ERROR: Failed to read bucket policy: {exception}')
                     return
+                if not provisioning:
+                    return
+                current = legacy_policy
+            else:
+                # Upgrade only the policy this controller used to install.
+                # Additional operator statements (including Deny) stay in place.
+                if (
+                    not isinstance(current, dict)
+                    or current.get('Version') != legacy_policy['Version']
+                ):
+                    return
+                statements = current.get('Statement')
+                if not isinstance(statements, list) or not all(
+                    isinstance(s, dict) for s in statements
+                ):
+                    return
+                if any(s.get('Sid') == root_browse['Sid'] for s in statements):
+                    return
+                if not all(
+                    rule in statements for rule in legacy_policy['Statement']
+                ):
+                    return
 
+            current['Statement'].append(root_browse)
             try:
                 s3.put_bucket_policy(
-                    Bucket=bucket_name, Policy=json.dumps(desired)
+                    Bucket=bucket_name, Policy=json.dumps(current)
                 )
                 print(
                     f'Set ListBucket isolation bucket policy on {bucket_name}'
@@ -834,7 +849,9 @@ def server_factory(
                     },
                 )
 
-            self.ensure_bucket_list_policy(S3_BUCKET_NAME)
+            self.ensure_bucket_list_policy(
+                S3_BUCKET_NAME, provisioning=not s3_secret
+            )
 
             # Only the CA rotates in place; retain observed credentials and
             # service-account tokens, including controller-populated fields,
