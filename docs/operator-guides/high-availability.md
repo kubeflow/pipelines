@@ -54,6 +54,55 @@ During a rolling upgrade, old and new API server replicas run at the same time. 
 the steps that keep recurring runs consistent, see
 [Upgrade and revocation](scheduled-service-accounts.md#upgrade-and-revocation).
 
+#### Pipeline-reference backfill during a rollout
+
+The updated API can become Ready while one replica repairs historical pipeline
+references in the background. Already-running source replicas can continue to
+create runs and report workflow status. A source binary with the older startup
+backfill checks the completion marker at startup and ignores the worker's
+advisory lock. Restarting that binary while the marker is absent can run a
+whole-table update and block application writers.
+
+Identify the deployed API images and database version, check the size of
+`run_details` and `jobs`, and verify backup readiness. Watch batch progress in
+the API logs and committed updates in `pipeline_ref_backfill_updates_total`.
+For an already-blocked original 2.18.0 MySQL deployment, see the
+[recovery procedure](mysql-2.18-upgrade.md).
+
+Before mixing replicas, check the marker with a read-only query.
+
+```sql
+-- MySQL
+SELECT 1 FROM migration_statuses WHERE Name = 'backfill_pipeline_refs';
+-- PostgreSQL
+SELECT 1 FROM migration_statuses WHERE "Name" = 'backfill_pipeline_refs';
+```
+
+If the row exists, the older startup backfill skips its sweep. If the row is
+absent and the source image contains that startup backfill, keep old binaries
+from starting until the worker commits the marker. This includes crash
+replacements, scale-ups and rollbacks. If your deployment cannot enforce that
+condition, stop all old API replicas before starting the updated image and plan
+for an API interruption. After the marker appears, the restriction for this
+backfill ends. Leave marker creation to the worker so interrupted repairs resume.
+
+The worker repairs jobs first and preserves existing IDs. A restarted worker
+resumes the remaining repairs. An old reporter can still insert a version-only
+run after the final pass. The API resolves missing pipeline IDs for retrieval,
+filtering, counts and pagination from direct references, the version's parent or
+a repaired source job that still has the same version. If all those sources are
+gone, the original parent cannot be recovered.
+
+The worker reads up to 500 candidate keys per page. With MySQL binary logging
+active, FULL row images can include both copies of a large manifest, so the
+worker commits one row at a time. With statement-based logging, it uses one
+primary key per transaction at REPEATABLE READ because InnoDB rejects writes at
+READ COMMITTED in that mode. The same single-row policy applies when the
+worker cannot read the logging settings. MySQL row-lock and metadata-lock waits on the
+worker connection are limited to two seconds. After a hard kill or node loss,
+MySQL can finish the active statement and retain the advisory lock until it
+detects the disconnect.
+
 ### Scheduled workflow controller leader election
 
 Only the replica holding the `kfp-scheduledworkflow` Lease starts scheduled runs. If

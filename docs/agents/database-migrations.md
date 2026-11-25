@@ -64,7 +64,11 @@ behind operator instructions to run the same SQL manually.
 - Make large backfills bounded, restartable and idempotent. Use short transactions,
   stable batch traversal, durable progress and explicit handling of concurrent
   application writes. Do not add an unbounded whole-table update or long transaction
-  to startup. Test interruption and resume without losing or overwriting newer data.
+  to startup. Select candidate keys with a nonlocking read. Inspect the write
+  plan, constrain updates to those keys and recheck the repair predicate at
+  write time. Include the zero-candidate case: a scan can acquire locks even
+  when no rows change. Record completion after the last batch commits. Test
+  interruption and resume without losing or overwriting newer data.
 
 ## Evidence required before declaring the upgrade safe
 
@@ -73,20 +77,29 @@ and empty-schema tests cannot establish online upgrade behavior.
 
 1. Seed representative prior-release schemas and populated tables, including long
    values and supported historical schema variants. Exercise the actual migration
-   entrypoint, not just a hand-written approximation of its SQL.
+   entrypoint, not just a hand-written approximation of its SQL. For tables with
+   large manifests or other off-page values, measure candidate discovery on wide
+   rows and verify the write bound with production logging settings. MySQL FULL
+   row images can log both copies of a manifest when only a key changes.
 2. Capture generated DDL and verify the required algorithm. Where avoiding a table
    rebuild is part of the claim, check engine evidence (for example, InnoDB table
    identity before/after) as well as successful execution.
-3. Run concurrent reads and writes throughout the operation. Prove requests
-   **complete while the migration is still active**, not only after it releases
-   locks. Record latency, errors, row counts and value preservation; a zero-error
-   result alone does not prove requests were not blocked.
+3. Make overlap deterministic. Hold the actual migration at a known point and
+   give representative reads and writes independent connections and a deadline.
+   Require them to finish before releasing the migration. For example, while
+   the first run backfill batch holds locks, create a run with its normal
+   resource references and report status on a legacy run outside that batch.
+   For a startup change, also verify that the new pod becomes Ready and the
+   old replica can serve those operations during the upgrade. Record the
+   deadline, latency, errors, row counts and preserved values.
 4. Exercise long-running transactions/metadata-lock contention, timeouts,
    cancellation, interrupted builds, repeated startup and competing replicas.
    Verify bounded failure, cleanup and recovery, including invalid indexes.
 5. Verify query correctness and useful index selection, mixed-version compatibility
    and rollback behavior where applicable. Add durable regression coverage to the
-   existing database CI lanes so engine-specific tests do not silently skip there.
+   existing database CI lanes. Have reviewers check the named engine subtest
+   in the CI output and link that run in the PR. A package-level pass can
+   include an integration test skipped because its database was unavailable.
 
 In the PR and upgrade guidance, identify the tested engines, source/target schema,
 data volume, measured impact and remaining operational limits. Distinguish schema

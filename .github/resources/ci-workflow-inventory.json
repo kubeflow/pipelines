@@ -112,6 +112,13 @@
       "merge_group": null
     },
     {
+      "path": ".github/workflows/bot-branch-cleanup.yml",
+      "name": "Bot Branch Cleanup",
+      "header_sha256": "160fd440a6b86061612aeaef009311234e58068b37026b71d387068a36a0d2ed",
+      "pull_request": null,
+      "merge_group": null
+    },
+    {
       "path": ".github/workflows/build-and-push.yml",
       "name": "Build and Push images",
       "header_sha256": "69c2fd667ef7aed48863a2273eb0ff65c101642a38f734aace901bf79aea32fb",
@@ -320,7 +327,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "3a9284f969b0b4df839297c1305089044246fa6c35b927e4ae0aa0e41a44c235",
+      "header_sha256": "bd9c95720ac01f73c22e96995d0dac2e80489f6dfc96bd289d6e3c3456b2796e",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -408,6 +415,7 @@
           "backend/test/v2/resources/hello-world-with-returning-component.yaml",
           "test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py",
           "backend/Dockerfile",
+          "backend/src/apiserver/config/sample_config.json",
           "backend/api/build_kfp_server_api_python_package.sh",
           "api/v2alpha1/python/generate_proto.py",
           "kubernetes_platform/python/generate_proto.py",

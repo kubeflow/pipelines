@@ -404,6 +404,47 @@ func TestCreateRunExistingExecutionWaitsForCreatorPersistence(t *testing.T) {
 	}
 }
 
+func TestCreateRunDoesNotAdoptAnotherOwnersRunAsTick(t *testing.T) {
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+	previous := viper.Get(common.MultiUserMode)
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, previous) })
+	manager.time = fixedRecurringTime{epoch: 200}
+	ctx := multiUserContext()
+	job, err := manager.CreateJob(ctx, &model.Job{
+		DisplayName: "schedule", Namespace: "ns1", ExperimentId: experiment.UUID,
+		Enabled: true, MaxConcurrency: 1,
+		Trigger: model.Trigger{PeriodicSchedule: model.PeriodicSchedule{
+			PeriodicScheduleStartTimeInSec: util.Int64Pointer(100), IntervalSecond: util.Int64Pointer(10),
+		}},
+		PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`}},
+	})
+	require.NoError(t, err)
+	manager.execClient = &retryWorkflowExecClient{workflowClient: &uniqueRecurringWorkflowClient{ExecutionInterface: store.ExecClientFake.Execution(job.Namespace)}}
+	// A record that holds the ID of the first tick but is not that tick.
+	tickID := util.NewDeterministicUUID(job.UUID + "/tick/1")
+	_, err = store.RunStore().CreateRun(&model.Run{
+		UUID: tickID, DisplayName: "other", K8SName: "other", Namespace: "another-namespace",
+		RunDetails: model.RunDetails{State: model.RuntimeStateSucceeded},
+	})
+	require.NoError(t, err)
+	// The first attempt collides on insert; its retry finds the tick's Workflow.
+	for range 2 {
+		run := &model.Run{DisplayName: "tick", RecurringRunId: job.UUID}
+		require.NoError(t, manager.PrepareRecurringRun(ctx, run))
+		created, err := manager.CreateRun(ctx, run)
+		require.True(t, util.IsUserErrorCodeMatch(err, codes.AlreadyExists), "another owner's run must not be returned as the tick: %v", err)
+		require.Nil(t, created)
+		require.Equal(t, tickID, run.UUID)
+		require.Equal(t, 1, store.ExecClientFake.GetWorkflowCount())
+	}
+	other, err := manager.GetRun(tickID)
+	require.NoError(t, err)
+	require.Equal(t, "another-namespace", other.Namespace)
+	require.Empty(t, other.RecurringRunId)
+}
+
 // Report synchronously after Kubernetes accepts the Workflow but before the
 // creator can insert the run. This deterministically exercises the losing SQL
 // insert rather than relying on controller timing.

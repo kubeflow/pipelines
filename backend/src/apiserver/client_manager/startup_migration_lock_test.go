@@ -380,7 +380,7 @@ func seedLegacySchema(t *testing.T, database migrationLockDatabase) {
 }
 
 // assertLegacyUpgradeFinished checks the rows seedLegacySchema added after the
-// legacy upgrade, including both of its backfills.
+// legacy upgrade, including its experiment backfill.
 func assertLegacyUpgradeFinished(t *testing.T, database migrationLockDatabase) {
 	t.Helper()
 	upgraded := database.open(t)
@@ -392,9 +392,6 @@ func assertLegacyUpgradeFinished(t *testing.T, database migrationLockDatabase) {
 	require.NoError(t, upgraded.Model(&model.Pipeline{}).Count(&pipelines).Error)
 	assert.Equal(t, int64(2), runs)
 	assert.Equal(t, int64(1), pipelines)
-	var pipelineID string
-	require.NoError(t, upgraded.Raw("SELECT `PipelineId` FROM run_details WHERE `UUID` = ?", "run-legacy").Scan(&pipelineID).Error)
-	assert.Equal(t, "pipeline-legacy", pipelineID, "the run backfill should fill PipelineId from its resource reference")
 	assert.Equal(t, "exp-1", storedRunExperimentID(t, upgraded, "run-without-experiment"),
 		"the experiment backfill should fill ExperimentUUID from its resource reference")
 }

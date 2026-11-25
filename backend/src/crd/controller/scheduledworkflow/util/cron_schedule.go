@@ -94,13 +94,15 @@ func (s *CronSchedule) getNextScheduledTimeImp(lastJobTime time.Time, catchup bo
 		startTime = s.StartTime.Time
 	}
 
-	result := schedule.Next(startTime.In(location))
 	var endTime time.Time = maxTime
 	if s.EndTime != nil {
 		endTime = s.EndTime.Time
 	}
 
-	if endTime.Before(result) {
+	result := nextActivation(schedule, startTime.In(location), endTime)
+	if result.IsZero() {
+		// The schedule has no activation before its end time, or none at all
+		// (e.g. February 30th).
 		return maxTime.In(location)
 	}
 
@@ -111,15 +113,90 @@ func (s *CronSchedule) getNextScheduledTimeImp(lastJobTime time.Time, catchup bo
 
 	// When we don't need to catch up, find the last schedule we need to run
 	// now and skip others in between.
-	next := result
-	var nextNext time.Time
-	for {
-		nextNext = schedule.Next(next)
-		if !nextNext.After(nowTime) && !nextNext.After(endTime) {
-			next = nextNext
+	limit := nowTime
+	if endTime.Before(limit) {
+		limit = endTime
+	}
+	return lastActivationNotAfter(schedule, result, limit)
+}
+
+const (
+	// schedule.Next gives up, and returns the zero time, when it finds no
+	// activation up to the end of the fifth year after the one it is asked
+	// about. Activations can be further apart: February 29th is eight years
+	// away across a century year that is not a leap year.
+	nextSearchWindowYears = 5
+	// The Gregorian calendar, weekdays included, repeats every 400 years, so a
+	// schedule with no activation in that span has none at all.
+	activationCycleYears = 400
+)
+
+// nextActivation returns the first activation of the schedule after t that is
+// not after limit, or the zero time when there is none. Unlike schedule.Next,
+// it keeps looking past a window in which Next found nothing.
+func nextActivation(schedule cron.Schedule, t time.Time, limit time.Time) time.Time {
+	horizon := t.AddDate(activationCycleYears, 0, 0)
+	if limit.Before(horizon) {
+		horizon = limit
+	}
+	for !t.After(horizon) {
+		next := schedule.Next(t)
+		if !next.IsZero() {
+			if next.After(limit) {
+				return time.Time{}
+			}
+			return next
+		}
+		// Ask again from the last second before the final year that Next
+		// looked through, so the windows overlap and nothing is skipped.
+		t = time.Date(t.Year()+nextSearchWindowYears, time.January, 1, 0, 0, 0, 0, t.Location()).Add(-time.Second)
+	}
+	return time.Time{}
+}
+
+// lastActivationNotAfter returns the last activation of the schedule that is
+// not after limit, given one of its activations. The activation is returned as
+// is when it is not before limit.
+//
+// The schedule may have started arbitrarily long ago, so the activations in
+// between are not visited one by one: the number of calls to schedule.Next
+// does not grow with the number of activations that are skipped.
+func lastActivationNotAfter(schedule cron.Schedule, activation time.Time, limit time.Time) time.Time {
+	low, high := activation.Unix(), limit.Unix()
+	if low >= high {
+		return activation
+	}
+	location := activation.Location()
+
+	// The activations of "@every <duration>" are evenly spaced, counting from
+	// the given one.
+	if every, ok := schedule.(cron.ConstantDelaySchedule); ok {
+		delay := int64(every.Delay / time.Second)
+		if delay <= 0 {
+			return activation
+		}
+		return time.Unix(low+(high-low)/delay*delay, 0).In(location)
+	}
+
+	// The activations of a cron expression are not evenly spaced, so bisect:
+	// last is the activation at low, and there is no activation after high
+	// that is not after limit.
+	last := activation
+	for low < high {
+		middle := low + (high-low)/2
+		candidate := nextActivation(schedule, time.Unix(middle, 0).In(location), limit)
+		if !candidate.IsZero() && candidate.Unix() > middle {
+			last, low = candidate, candidate.Unix()
+			if low > high {
+				// schedule.Next can pass over activations in an hour that
+				// repeats when the clocks are set back, so what it found
+				// after high does not hold: search up to limit again.
+				high = limit.Unix()
+			}
 		} else {
-			break
+			// There is nothing to run after middle.
+			high = middle
 		}
 	}
-	return next
+	return last
 }

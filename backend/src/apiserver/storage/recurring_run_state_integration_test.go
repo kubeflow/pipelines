@@ -31,6 +31,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -229,6 +230,40 @@ func TestRecurringRunProductionDatabases(t *testing.T) {
 				require.NoError(t, err)
 				require.False(t, stored.Pending)
 			})
+			// A tick's run ID is derived from public values, so a row of another
+			// owner can already hold it. Every session must report a conflict
+			// and leave the claim pending, never return that row as a replay.
+			for _, owner := range []string{"one-off", "another-recurring-run"} {
+				t.Run("replay-requires-same-owner/"+owner, func(t *testing.T) {
+					id := "owner-" + owner
+					createJob(t, id)
+					foreign := runFor(id, "foreign")
+					foreign.RecurringRunId = ""
+					if owner == "another-recurring-run" {
+						createJob(t, id+"-other")
+						foreign.RecurringRunId = id + "-other"
+						_, err := jobs[0].ClaimRecurringRun(foreign.RecurringRunId, "foreign", 0, 100, 110, "")
+						require.NoError(t, err)
+					}
+					_, err := runs[0].CreateRun(foreign)
+					require.NoError(t, err)
+					claim, err := jobs[0].ClaimRecurringRun(id, "tick", 0, 100, 110, "")
+					require.NoError(t, err)
+					errs := recurringConcurrent(len(dbs), func(i int) error {
+						_, err := runs[i].CreateRun(runFor(id, "tick"))
+						return err
+					})
+					for _, err := range errs {
+						require.True(t, util.IsUserErrorCodeMatch(err, codes.AlreadyExists), "another owner's run must not be returned as this tick: %v", err)
+					}
+					stored, err := jobs[1].GetRecurringRunState(id)
+					require.NoError(t, err)
+					require.Equal(t, claim, stored)
+					persisted, err := runs[2].GetRun(foreign.UUID, true)
+					require.NoError(t, err)
+					require.Equal(t, foreign.RecurringRunId, persisted.RecurringRunId)
+				})
+			}
 		})
 	}
 }
