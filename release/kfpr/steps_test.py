@@ -245,8 +245,25 @@ class PublishImagesStepTest(unittest.TestCase):
             self.assertIn(
                 'Workflow run: \033[4mhttps://github.com/kubeflow/pipelines/actions/runs/12345\033[0m',
                 output)
-            self.assertIn(['gh', 'run', 'watch', '12345'],
+            self.assertIn(['gh', 'run', 'watch', '12345', '--exit-status'],
                           context.runner.commands)
+
+    def test_failed_image_workflow_stops_publication(self):
+        runner = mock.Mock(spec=core.CommandRunner, dry_run=False)
+        runner.capture.return_value = '123\thttps://example.org/run/123\t2026-07-08T19:05:01Z'
+        failed_watch = ['gh', 'run', 'watch', '123', '--exit-status']
+        runner.run.side_effect = [
+            None, subprocess.CalledProcessError(1, failed_watch)
+        ]
+        context = mock.Mock(
+            runner=runner,
+            metadata=core.ReleaseMetadata.from_version('patch', '2.18.2'))
+
+        with mock.patch(
+                'time.time', return_value=1783537500), self.assertRaises(
+                    subprocess.CalledProcessError):
+            steps.step_publish_images(context)
+        self.assertEqual(runner.run.call_args, mock.call(failed_watch))
 
 
 class CreateSdkReleaseStepTest(unittest.TestCase):
@@ -468,16 +485,23 @@ class CreateBackendReleaseStepTest(unittest.TestCase):
 
 class PublishSdksStepTest(unittest.TestCase):
 
-    def test_publish_sdks_reruns_once_when_pypi_packages_are_missing(self):
+    def test_partial_sdk_workflow_failure_retries_only_missing_pypi_package(
+            self):
         with TemporaryDirectory() as tmpdir:
 
-            class NoopRunner(core.CommandRunner):
+            class PartialPublishRunner(core.CommandRunner):
+
+                def capture(self, command, cwd=None):
+                    return "123\thttps://example.org/run/123\t2026-07-08T19:05:01Z"
 
                 def run(self, command, cwd=None, check=True):
                     self.commands.append(command)
+                    if command[:3] == ['gh', 'run', 'watch'
+                                      ] and '--exit-status' in command:
+                        raise subprocess.CalledProcessError(1, command)
                     return subprocess.CompletedProcess(command, 0, '', '')
 
-            runner = NoopRunner(dry_run=False)
+            runner = PartialPublishRunner(dry_run=False)
             context = core.ReleaseContext(
                 root=Path(tmpdir),
                 state=core.ReleaseState(Path(tmpdir) / 'state.json'),
@@ -488,8 +512,8 @@ class PublishSdksStepTest(unittest.TestCase):
                 include_sdk=True,
             )
 
-            with mock.patch.object(
-                    steps, 'watch_latest_workflow_run'), mock.patch.object(
+            with mock.patch(
+                    'time.time', return_value=1783537500), mock.patch.object(
                         steps,
                         '_wait_for_pypi_packages',
                         side_effect=[['kfp-kubernetes'], []]) as wait_mock:

@@ -131,6 +131,31 @@ kfpr run --state-file release-state.json
 
 Use the exact step ID from `kfpr steps` or the list below.
 
+## Multi-user upgrade gate for 2.18
+
+The release image workflow must pass **Two-profile release upgrade acceptance**
+before publishing the 2.18 release image tags. The browser signs into a
+disposable test gateway, uploads a pipeline, and starts runs in two profiles on
+the latest published stable 2.18 patch. For a versioned release, the source
+must be older than the target. The workflow upgrades the same cluster and
+checks retained runs,
+artifacts, downloads, previews, lineage, metrics, and new browser submissions.
+The AMD64 candidate images come from the same digest artifacts used to assemble
+the release manifests.
+
+While the shared MLMD routes restored in #15844 remain enabled, qualification
+reports known cross-profile metadata visibility as warnings. Owner workflows,
+ordinary Run API authorization and unexpected failures remain blocking. To test
+a candidate isolation fix, dispatch with `enforce_profile_isolation=true`.
+When adopting that fix, set the repository variable
+`KFP_ENFORCE_PROFILE_ISOLATION=true` to enforce isolation for every run,
+including release promotion. The fixture exercises browser sessions and KFP
+authorization. Production identity providers and deployment-specific SSO are
+outside its scope.
+
+If the gate fails, fix the candidate and rerun the release workflow. The dry
+run builds images without promotion or release upgrade qualification.
+
 ## TensorBoard image publication gate for 2.18
 
 Before announcing any 2.18 release candidate or final release:

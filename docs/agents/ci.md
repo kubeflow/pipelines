@@ -143,6 +143,21 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   upload only explicit sanitized report files, and delete its isolated cluster.
   Raw manifests, token files and restoration inputs are not acceptance artifacts.
 
+- `upgrade-test.yml` runs the two-profile upgrade job for changes to the UI,
+  API, deployment manifests, and acceptance tests. Chromium signs in through a
+  disposable loopback authentication gateway and uploads and runs the fixture
+  pipeline in each profile. The source is the latest published stable 2.18 patch.
+  The job applies the candidate in place, checks
+  historical data and authorization through the Run API and browser, and starts
+  new browser runs. The release workflow uses the same harness with its AMD64
+  release digests. When replaying a versioned release, it selects the highest
+  published patch below the target. Known cross-profile MLMD visibility is
+  reported while shared routes are enabled. Owner checks, normal Run API
+  denials, and unexpected errors always block. Set `enforce_profile_isolation`
+  on either workflow dispatch to exercise strict isolation. Once the isolation
+  fix ships, set the repository variable `KFP_ENFORCE_PROFILE_ISOLATION=true`
+  to require it in PR, queue, and release qualification.
+
 - `upgrade-test.yml` has a manual, default-off `run_custom_roles` input. Its
   isolated `kind-kfp-custom-roles` cluster runs candidate API/UI images against
   namespaced custom-role users: private/shared upload and version inheritance,

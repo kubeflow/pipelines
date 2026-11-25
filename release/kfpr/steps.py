@@ -775,9 +775,13 @@ def step_publish_sdks(context: ReleaseContext) -> None:
     Args:
       context: Release context with runner and metadata.
     """
+    # PyPI records which packages succeeded when the publishing workflow partially fails.
     context.runner.run(sdk_workflow_command(context.metadata))
-    watch_latest_workflow_run(context.runner, 'publish-packages.yml',
-                              context.metadata.release_branch)
+    watch_latest_workflow_run(
+        context.runner,
+        'publish-packages.yml',
+        context.metadata.release_branch,
+        require_success=False)
     if context.runner.dry_run:
         return
     missing = _wait_for_pypi_packages(context.metadata.tag)
@@ -789,8 +793,11 @@ def step_publish_sdks(context: ReleaseContext) -> None:
     for package in missing:
         context.runner.run(
             sdk_workflow_command(context.metadata, packages=package))
-        watch_latest_workflow_run(context.runner, 'publish-packages.yml',
-                                  context.metadata.release_branch)
+        watch_latest_workflow_run(
+            context.runner,
+            'publish-packages.yml',
+            context.metadata.release_branch,
+            require_success=False)
     missing = _wait_for_pypi_packages(context.metadata.tag)
     if missing:
         raise RuntimeError(

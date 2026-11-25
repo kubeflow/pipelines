@@ -27,13 +27,33 @@ on:
         default: 'true'
         description: 'Add a sha image tag.'
         required: false
+      enforce_profile_isolation:
+        description: Require metadata isolation as well as owner compatibility
+        type: boolean
+        default: false
+        required: false
       dry_run:
         type: boolean
         default: false
         description: 'Dry run mode - build images without pushing to registry or creating tags.'
         required: false
 jobs:
+  resolve-candidate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.src_branch == github.ref_name && github.sha || inputs.src_branch }}
+          persist-credentials: false
+      - id: commit
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
   build-images-for-release:
+    needs: resolve-candidate
     permissions:
       contents: read
       packages: write
@@ -106,7 +126,7 @@ jobs:
 
     uses: ./.github/workflows/build-and-push.yml
     with:
-      src_branch: ${{ inputs.src_branch }}
+      src_branch: ${{ needs.resolve-candidate.outputs.sha }}
       target_tag: ${{ inputs.target_tag }}
       arch_tag: ${{ matrix.arch.arch_name }}
       overwrite_imgs: ${{ inputs.overwrite_imgs }}
@@ -119,9 +139,38 @@ jobs:
       runs_on: ${{ matrix.arch.runs_on }}
       push: ${{ !inputs.dry_run }}
 
+  qualify-profile-upgrade:
+    name: Two-profile release upgrade acceptance
+    needs: [resolve-candidate, build-images-for-release]
+    if: ${{ !inputs.dry_run && (github.ref_name == 'release-2.18' || startsWith(inputs.target_tag, '2.18.')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve-candidate.outputs.sha }}
+      - uses: ./.github/actions/download-artifact-with-retry
+        with:
+          path: ${{ runner.temp }}/profile-release-digests
+          pattern: digests-*-amd64
+      - uses: ./.github/actions/profile-upgrade
+        with:
+          target-tag: ${{ inputs.target_tag }}
+          release-digests: ${{ runner.temp }}/profile-release-digests
+          metadata-isolation: ${{ (inputs.enforce_profile_isolation || vars.KFP_ENFORCE_PROFILE_ISOLATION == 'true') && 'enforce' || 'report' }}
+
   create-manifests:
-    needs: build-images-for-release
-    if: ${{ !inputs.dry_run }}
+    needs: [build-images-for-release, qualify-profile-upgrade]
+    if: >-
+      ${{ always() && !cancelled() && !inputs.dry_run &&
+          needs.build-images-for-release.result == 'success' &&
+          (needs.qualify-profile-upgrade.result == 'success' ||
+           (github.ref_name != 'release-2.18' && !startsWith(inputs.target_tag, '2.18.') &&
+            needs.qualify-profile-upgrade.result == 'skipped')) }}
     permissions:
       contents: read
       packages: write
