@@ -46,7 +46,7 @@ if [ -z "$KFP_DEPLOY_RELEASE" ]; then
 
   pushd ${KFP_MANIFEST_DIR}/cluster-scoped-resources
   kustomize build | kubectl apply -f -
-  kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+  kubectl wait --for condition=established --timeout=60s crd/workflows.argoproj.io
   popd
 
   pushd ${KFP_MANIFEST_DIR}/dev
@@ -72,7 +72,7 @@ else
   pushd ${KFP_MANIFEST_DIR}/cluster-scoped-resources
   kustomize build | kubectl apply -f -
 
-  kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+  kubectl wait --for condition=established --timeout=60s crd/workflows.argoproj.io
   popd
 
   pushd ${KFP_MANIFEST_DIR}/dev
