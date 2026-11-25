@@ -38,6 +38,14 @@ class ReleaseImageWorkflowPermissionsTest(unittest.TestCase):
             with self.subTest(workflow=name):
                 self.assertIn(f'.github/workflows/{name}', paths)
 
+    def test_selected_release_source_cannot_access_repository_caches(self):
+        workflow = yaml.safe_load(
+            (WORKFLOWS / 'image-builds-release.yml').read_text())
+        self.assertEqual(workflow.get('cache-mode'), 'none')
+        for name, job in workflow['jobs'].items():
+            with self.subTest(job=name):
+                self.assertNotIn('cache-mode', job)
+
     def test_reusable_callers_grant_only_required_permissions(self):
         release_jobs = jobs('image-builds-release.yml')
         build = release_jobs['build-images-for-release']
