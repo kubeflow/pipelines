@@ -25,7 +25,7 @@ classifiers = [
 ]
 dependencies = [
   "click>=8.5.1",
-  "click-option-group>=0.5.7",
+  "click-option-group>=0.5.10",
   "docstring-parser>=0.18.0,<1",
   "google-auth>=2.62.2,<3",
   # Generated pipeline specs import google.rpc; 1.69.2 supports protobuf 6.

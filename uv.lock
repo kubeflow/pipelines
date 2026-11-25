@@ -728,14 +728,14 @@ wheels = [
 
 [[package]]
 name = "click-option-group"
-version = "0.5.9"
+version = "0.5.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ef/ff/d291d66595b30b83d1cb9e314b2c9be7cfc7327d4a0d40a15da2416ea97b/click_option_group-0.5.9.tar.gz", hash = "sha256:f94ed2bc4cf69052e0f29592bd1e771a1789bd7bfc482dd0bc482134aff95823", size = 22222, upload-time = "2025-10-09T09:38:01.474Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1d/03/454dafcda21ca579bfa3d3583edd91f283cf6fb7b9a63d00a3212e8e2d4c/click_option_group-0.5.10.tar.gz", hash = "sha256:22d6a7d102b4ead6a0b8601d577386d390deae91038662f2bd1d013806184ab7", size = 22876, upload-time = "2026-11-16T13:46:42.161Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/75/45/54bb2d8d4138964a94bef6e9afe48b0be4705ba66ac442ae7d8a8dc4ffef/click_option_group-0.5.9-py3-none-any.whl", hash = "sha256:ad2599248bd373e2e19bec5407967c3eec1d0d4fc4a5e77b08a0481e75991080", size = 11553, upload-time = "2025-10-09T09:38:00.066Z" },
+    { url = "https://files.pythonhosted.org/packages/ac/fc/cdebdc2595700ebc9a57890360750bcc8ae1bfa1863c028db5be5652f23a/click_option_group-0.5.10-py3-none-any.whl", hash = "sha256:667f9dafdbe15f69c7e877e14c94175ab2e16b6a1ab4b7ffac51513ed624a8dc", size = 11531, upload-time = "2026-11-16T13:46:40.911Z" },
 ]
 
 [[package]]
@@ -1903,7 +1903,7 @@ notebooks = [
 requires-dist = [
     { name = "certifi", specifier = ">=2026.10.19" },
     { name = "click", specifier = ">=8.5.1" },
-    { name = "click-option-group", specifier = ">=0.5.7" },
+    { name = "click-option-group", specifier = ">=0.5.10" },
     { name = "docker", marker = "extra == 'all'" },
     { name = "docstring-parser", specifier = ">=0.18.0,<1" },
     { name = "google-auth", specifier = ">=2.62.2,<3" },
