@@ -91,6 +91,14 @@ class ProfileControllerNetworkPolicyTest(unittest.TestCase):
         decorator = self.resource('DecoratorController', controller_name)
         webhook = decorator['spec']['hooks']['sync']['webhook']
         self.assertEqual(
+            webhook['service'],
+            {
+                'name': controller_name,
+                'namespace': secret['metadata']['namespace'],
+            },
+        )
+        self.assertEqual(webhook['path'], '/sync')
+        self.assertEqual(
             webhook['authorization'],
             {
                 'type': 'Bearer',

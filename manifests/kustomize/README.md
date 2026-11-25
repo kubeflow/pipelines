@@ -31,12 +31,18 @@ container, scoped RBAC, and `DecoratorController` authorization together in
 custom overlays. Existing token data is preserved on upgrades; if an operator
 intentionally rotates it, restart the profile-controller pod and update the
 `DecoratorController` spec so Metacontroller reloads the credential.
+Kustomize namespace overrides update both the webhook Service and Secret
+references.
 
 This changes direct webhook integrations: callers other than Metacontroller that POST
 to `/sync` must obtain the Secret through operator-controlled access and send
 `Authorization: Bearer <token>`. Do not grant tenants access to this Secret.
 This does not establish that a tenant-controlled Viewer Service is a trusted proxy
 destination; review other reachable services separately.
+
+The bundled webhook still uses in-cluster HTTP. The bearer check does not
+protect against an actor who can capture that traffic; installations with that
+threat require encrypted webhook transport.
 
 The manifest test suite checks the rendered selectors, namespace placement and
 port across the four multi-user entrypoints. Rendering is not enforcement
