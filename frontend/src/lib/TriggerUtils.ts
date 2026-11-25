@@ -92,6 +92,7 @@ export function buildCron(
   selectedDays: boolean[],
 ): string {
   const isAllDaysChecked = selectedDays.every((d) => !!d);
+  const isNoDayChecked = selectedDays.every((d) => !d);
   let targetDayOfMonth = '0';
   let targetHours = '0';
   let targetMinutes = '0';
@@ -122,7 +123,10 @@ export function buildCron(
       minute = targetMinutes;
       hour = targetHours;
       dayOfMonth = '?';
-      if (isAllDaysChecked) {
+      // With no day selected there is nothing to list in the day-of-week field, and an empty
+      // field would collapse the expression to five fields (invalid). Treat it like every day,
+      // which is also what an empty selectedDays array produces.
+      if (isAllDaysChecked || isNoDayChecked) {
         dayOfWeek = '*';
       } else {
         // Convert weekdays to array of indices of active days and join them.
