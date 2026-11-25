@@ -58,4 +58,6 @@ ENV LOG_LEVEL=info
 ENV EXECUTIONTYPE=Workflow
 ENV IMAGE_PULL_FAILURE_HANDLING_ENABLED=false
 ENV IMAGE_PULL_FAILURE_GRACE_PERIOD_SEC=300
-CMD ["/bin/sh", "-c", "persistence_agent --logtostderr=true --namespace=${NAMESPACE} --ttlSecondsAfterWorkflowFinish=${TTL_SECONDS_AFTER_WORKFLOW_FINISH} --numWorker ${NUM_WORKERS} --executionType ${EXECUTIONTYPE} --logLevel=${LOG_LEVEL} --imagePullFailureHandlingEnabled=${IMAGE_PULL_FAILURE_HANDLING_ENABLED} --imagePullFailureGracePeriodInSec=${IMAGE_PULL_FAILURE_GRACE_PERIOD_SEC}"]
+ENV UNSCHEDULABLE_HANDLING_ENABLED=false
+ENV UNSCHEDULABLE_GRACE_PERIOD_SEC=3600
+CMD ["/bin/sh", "-c", "persistence_agent --logtostderr=true --namespace=${NAMESPACE} --ttlSecondsAfterWorkflowFinish=${TTL_SECONDS_AFTER_WORKFLOW_FINISH} --numWorker ${NUM_WORKERS} --executionType ${EXECUTIONTYPE} --logLevel=${LOG_LEVEL} --imagePullFailureHandlingEnabled=${IMAGE_PULL_FAILURE_HANDLING_ENABLED} --imagePullFailureGracePeriodInSec=${IMAGE_PULL_FAILURE_GRACE_PERIOD_SEC} --unschedulableHandlingEnabled=${UNSCHEDULABLE_HANDLING_ENABLED} --unschedulableGracePeriodInSec=${UNSCHEDULABLE_GRACE_PERIOD_SEC}"]

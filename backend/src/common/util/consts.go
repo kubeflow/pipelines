@@ -63,15 +63,19 @@ const (
 	// reports from stale pre-retry workflow snapshots.
 	AnnotationKeyRetryGeneration = "pipelines.kubeflow.org/retry-generation"
 
-	// AnnotationKeyTerminationReason and AnnotationKeyFailedImage are stamped
-	// on a Workflow that the persistence agent terminated because one of its
-	// pods could not pull its image. They describe a single attempt and are
-	// cleared when the run is retried.
+	// AnnotationKeyTerminationReason is stamped on a Workflow that the
+	// persistence agent terminated because one of its pods was stuck for good,
+	// and AnnotationKeyFailedImage additionally names the image a pod could not
+	// pull. They describe a single attempt and are cleared when the run is
+	// retried.
 	AnnotationKeyTerminationReason = "pipelines.kubeflow.org/termination-reason"
 	AnnotationKeyFailedImage       = "pipelines.kubeflow.org/failed-image"
 	// TerminationReasonImagePullFailure is the AnnotationKeyTerminationReason
 	// value set for image pull failures.
 	TerminationReasonImagePullFailure = "ImagePullFailure"
+	// TerminationReasonUnschedulable is the AnnotationKeyTerminationReason value
+	// set when a pod stayed unschedulable past its grace period.
+	TerminationReasonUnschedulable = "Unschedulable"
 
 	AnnotationKeyIstioSidecarInject           = "sidecar.istio.io/inject"
 	AnnotationValueIstioSidecarInjectEnabled  = "true"

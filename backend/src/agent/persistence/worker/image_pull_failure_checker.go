@@ -70,25 +70,27 @@ func AddWorkflowPodIndex(informer cache.SharedIndexInformer) error {
 	return informer.AddIndexers(cache.Indexers{WorkflowPodIndexName: WorkflowPodIndexFunc})
 }
 
-// ImagePullFailureChecker checks workflow pods for image pull failures
-// and terminates the workflow if the grace period has elapsed.
-type ImagePullFailureChecker interface {
+// StuckPodChecker checks workflow pods for conditions that leave a pod stuck
+// with no chance of progress (such as an image that cannot be pulled, or a pod
+// no node can fit) and terminates the workflow once a condition has outlasted
+// its grace period.
+type StuckPodChecker interface {
 	// CheckAndTerminate inspects the pods of the running workflow identified by
-	// the given metadata and terminates the workflow once a pod has been failing
-	// to pull an image for longer than the grace period. Only pods whose
-	// controller owner reference matches the workflow name and UID are
-	// considered, since pod labels are user-controlled. The termination patch
-	// is conditioned on the workflow UID and resource version the decision was
-	// made against, so a run that was retried or recreated in the meantime is
-	// left alone. Failure tracking is scoped to the workflow UID and its
-	// retry-generation annotation, so a retried attempt never inherits the
-	// grace period consumed by the attempt it replaces. Before terminating,
-	// the failing pod is re-read from the API server (bypassing the informer
-	// cache) and must still exist with the same UID and the same failure, so
-	// a stale cached pod from a previous attempt cannot fail the current one
-	// even with a zero grace period. A live read showing the container has
-	// recovered also resets that failure's clock, so a later failure of the
-	// same image gets a full grace period of its own.
+	// the given metadata and terminates the workflow once a pod has been stuck
+	// in one of the checker's conditions for longer than that condition's grace
+	// period. Only pods whose controller owner reference matches the workflow
+	// name and UID are considered, since pod labels are user-controlled. The
+	// termination patch is conditioned on the workflow UID and resource version
+	// the decision was made against, so a run that was retried or recreated in
+	// the meantime is left alone. Failure tracking is scoped to the workflow UID
+	// and its retry-generation annotation, so a retried attempt never inherits
+	// the grace period consumed by the attempt it replaces. Before terminating,
+	// the stuck pod is re-read from the API server (bypassing the informer
+	// cache) and must still exist with the same UID and the same failure, so a
+	// stale cached pod from a previous attempt cannot fail the current one even
+	// with a zero grace period. A live read showing the pod has recovered also
+	// resets that failure's clock, so a later failure of the same kind gets a
+	// full grace period of its own.
 	CheckAndTerminate(ctx context.Context, workflow *metav1.ObjectMeta) error
 	// Forget drops any failure tracking state held for the workflow. Callers
 	// should invoke it once a workflow reaches a final state or no longer exists
@@ -96,27 +98,113 @@ type ImagePullFailureChecker interface {
 	Forget(namespace string, workflowName string)
 }
 
-// imagePullFailureChecker checks pods belonging to a workflow for image pull
-// failures and terminates the workflow after a configurable grace period.
+// StuckPodCondition describes one way a workflow pod can be stuck, how to
+// detect it on a pod, and how long it may last before the workflow is
+// terminated. A checker is built from one or more conditions and shares the
+// tracking, live confirmation and termination machinery between them. Create
+// conditions with ImagePullCondition and UnschedulableCondition.
+type StuckPodCondition struct {
+	// name identifies the condition in tracking keys and log messages.
+	name string
+	// terminationReason is stamped on the terminated workflow under
+	// util.AnnotationKeyTerminationReason.
+	terminationReason string
+	// gracePeriod is how long a failure may last, measured from when the
+	// checker first observed it, before the workflow is terminated.
+	gracePeriod time.Duration
+	// detect returns every failure of this condition on the pod, in a stable
+	// order.
+	detect func(pod *corev1.Pod) []stuckPodFailure
+	// annotations returns extra annotations that describe the failure on the
+	// terminated workflow. It may be nil.
+	annotations func(failure stuckPodFailure) map[string]string
+}
+
+// stuckPodFailure is one detected failure of a condition on a pod.
+type stuckPodFailure struct {
+	// container names the failing container, or is empty for a failure of the
+	// pod as a whole.
+	container string
+	// subject distinguishes failures of the same container (the image that
+	// cannot be pulled). It is part of the tracking key, so a change of subject
+	// starts a fresh grace period.
+	subject string
+	// message is informational only and is not part of the tracking key, so a
+	// message that changes between checks does not restart the grace period.
+	message string
+}
+
+// ImagePullCondition detects containers in ImagePullBackOff or ErrImagePull.
+func ImagePullCondition(gracePeriod time.Duration) StuckPodCondition {
+	return StuckPodCondition{
+		name:              "image pull failure",
+		terminationReason: util.TerminationReasonImagePullFailure,
+		gracePeriod:       gracePeriod,
+		detect: func(pod *corev1.Pod) []stuckPodFailure {
+			var failures []stuckPodFailure
+			for _, failure := range getImagePullFailures(pod) {
+				failures = append(failures, stuckPodFailure{container: failure.container, subject: failure.image})
+			}
+			return failures
+		},
+		annotations: func(failure stuckPodFailure) map[string]string {
+			return map[string]string{util.AnnotationKeyFailedImage: failure.subject}
+		},
+	}
+}
+
+// UnschedulableCondition detects pods the scheduler has reported as
+// unschedulable, for example because they request more CPU or memory than any
+// node has. Such a pod stays Pending forever. A pod that is merely waiting for
+// a node (the cluster autoscaler may still add one) is also reported, so use a
+// grace period long enough to cover node provisioning.
+func UnschedulableCondition(gracePeriod time.Duration) StuckPodCondition {
+	return StuckPodCondition{
+		name:              "unschedulable",
+		terminationReason: util.TerminationReasonUnschedulable,
+		gracePeriod:       gracePeriod,
+		detect:            getUnschedulableFailures,
+	}
+}
+
+// getUnschedulableFailures reports a Pending pod without a node whose
+// PodScheduled condition says the scheduler could not place it. Pods held back
+// by scheduling gates are not unschedulable, they are waiting on a controller.
+func getUnschedulableFailures(pod *corev1.Pod) []stuckPodFailure {
+	if pod.Status.Phase != corev1.PodPending || pod.Spec.NodeName != "" {
+		return nil
+	}
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == corev1.PodScheduled &&
+			condition.Status == corev1.ConditionFalse &&
+			condition.Reason == corev1.PodReasonUnschedulable {
+			return []stuckPodFailure{{message: condition.Message}}
+		}
+	}
+	return nil
+}
+
+// stuckPodChecker checks pods belonging to a workflow for the failures of its
+// conditions and terminates the workflow after each condition's grace period.
 // It reads pods from a shared informer's indexer, through the workflow index
 // registered by AddWorkflowPodIndex, to avoid direct API calls to the
 // Kubernetes API server and namespace-wide scans on every check.
 //
-// The grace period is measured from the moment the checker first observes the
-// image pull failure on a container, not from the pod's creation time, so time
-// spent pending or initializing does not count against the pull. A container
-// that recovers (or a pod that is replaced) has its failure clock reset.
-type imagePullFailureChecker struct {
+// A grace period is measured from the moment the checker first observes a
+// failure, not from the pod's creation time, so time spent pending or
+// initializing does not count against it. A failure that goes away (or a pod
+// that is replaced) has its clock reset.
+type stuckPodChecker struct {
 	podIndexer      cache.Indexer
 	getPod          PodGetter
 	executionClient util.ExecutionClient
-	gracePeriod     time.Duration
+	conditions      []StuckPodCondition
 	now             func() time.Time
 
 	mu sync.Mutex
-	// failureStart records when an image pull failure was first observed on
-	// each pod, keyed by workflow (namespace/name). The entry also records the
-	// workflow attempt it was observed for so a retry starts a fresh clock.
+	// failureStart records when each failure was first observed, keyed by
+	// workflow (namespace/name). The entry also records the workflow attempt it
+	// was observed for so a retry starts a fresh clock.
 	failureStart map[string]*trackedWorkflow
 }
 
@@ -129,20 +217,21 @@ type imagePullFailureChecker struct {
 type trackedWorkflow struct {
 	uid             types.UID
 	retryGeneration string
-	// failures maps each failing container image to when its failure was
-	// first observed.
-	failures map[imagePullFailureKey]time.Time
+	// failures maps each failure to when it was first observed.
+	failures map[stuckPodKey]time.Time
 }
 
-// imagePullFailureKey identifies one image pull failure: a specific image in
-// a specific container of a specific pod. Tracking at this granularity means
-// that when one container recovers and another starts failing between two
-// checks, the new failure starts its own grace period instead of inheriting
-// the recovered one's clock.
-type imagePullFailureKey struct {
+// stuckPodKey identifies one failure: a condition on a specific container (or
+// the pod as a whole) of a specific pod, plus the condition's subject, such as
+// the image that cannot be pulled. Tracking at this granularity means that
+// when one container recovers and another starts failing between two checks,
+// the new failure starts its own grace period instead of inheriting the
+// recovered one's clock.
+type stuckPodKey struct {
+	condition string
 	podUID    types.UID
 	container string
-	image     string
+	subject   string
 }
 
 // PodGetter reads a pod directly from the API server. The checker uses it to
@@ -156,35 +245,36 @@ func ClientsetPodGetter(client kubernetes.Interface) PodGetter {
 	}
 }
 
-// NewImagePullFailureChecker creates a new checker. podIndexer is the indexer
-// of a pod shared informer on which AddWorkflowPodIndex has been registered,
-// so routine pod lookups are served from the local cache by workflow. getPod
-// is only called when a failure has outlasted the grace period, to confirm it
-// against the API server before the workflow is terminated.
-func NewImagePullFailureChecker(
+// NewStuckPodChecker creates a new checker for the given conditions.
+// podIndexer is the indexer of a pod shared informer on which
+// AddWorkflowPodIndex has been registered, so routine pod lookups are served
+// from the local cache by workflow. getPod is only called when a failure has
+// outlasted its grace period, to confirm it against the API server before the
+// workflow is terminated.
+func NewStuckPodChecker(
 	podIndexer cache.Indexer,
 	getPod PodGetter,
 	executionClient util.ExecutionClient,
-	gracePeriod time.Duration,
-) ImagePullFailureChecker {
-	return &imagePullFailureChecker{
+	conditions ...StuckPodCondition,
+) StuckPodChecker {
+	return &stuckPodChecker{
 		podIndexer:      podIndexer,
 		getPod:          getPod,
 		executionClient: executionClient,
-		gracePeriod:     gracePeriod,
+		conditions:      conditions,
 		now:             time.Now,
 		failureStart:    make(map[string]*trackedWorkflow),
 	}
 }
 
-// expiredImagePullFailure describes a pod whose image pull failure has
-// outlasted the grace period.
-type expiredImagePullFailure struct {
-	podName     string
-	podUID      types.UID
-	container   string
-	failedImage string
-	elapsed     time.Duration
+// expiredStuckPod describes a pod whose failure has outlasted its condition's
+// grace period.
+type expiredStuckPod struct {
+	condition *StuckPodCondition
+	podName   string
+	podUID    types.UID
+	failure   stuckPodFailure
+	elapsed   time.Duration
 	// exitHandler is true when the pod belongs to an exit handler. Such pods
 	// are exempt from the workflow deadline, so terminating the workflow
 	// requires the Terminate shutdown strategy.
@@ -192,12 +282,12 @@ type expiredImagePullFailure struct {
 }
 
 // CheckAndTerminate looks up the pods of the given workflow and terminates the
-// workflow if any container has been stuck in ImagePullBackOff or ErrImagePull
-// longer than the grace period (measured from when the failure was first
+// workflow if any pod has been stuck in one of the checker's conditions longer
+// than that condition's grace period (measured from when the failure was first
 // observed).
-func (c *imagePullFailureChecker) CheckAndTerminate(ctx context.Context, workflow *metav1.ObjectMeta) error {
+func (c *stuckPodChecker) CheckAndTerminate(ctx context.Context, workflow *metav1.ObjectMeta) error {
 	if workflow == nil {
-		return fmt.Errorf("workflow metadata is required to check for image pull failures")
+		return fmt.Errorf("workflow metadata is required to check for stuck pods")
 	}
 	namespace, workflowName := workflow.Namespace, workflow.Name
 	pods, err := c.listWorkflowPods(namespace, workflowName)
@@ -218,9 +308,10 @@ func (c *imagePullFailureChecker) CheckAndTerminate(ctx context.Context, workflo
 		return nil
 	}
 
-	log.Infof("Terminating workflow %s/%s: container %s of pod %s has image pull failure for %q (failing for %v exceeds grace period %v)",
-		namespace, workflowName, expired.container, expired.podName, expired.failedImage, expired.elapsed.Round(time.Second), c.gracePeriod)
-	terminated, err := c.terminateWorkflow(ctx, workflow, expired.failedImage, expired.exitHandler)
+	log.Infof("Terminating workflow %s/%s: pod %s has been stuck on %s (container %q, subject %q) for %v, which exceeds the grace period %v",
+		namespace, workflowName, expired.podName, expired.condition.name, expired.failure.container, expired.failure.subject,
+		expired.elapsed.Round(time.Second), expired.condition.gracePeriod)
+	terminated, err := c.terminateWorkflow(ctx, workflow, expired)
 	if err != nil {
 		return err
 	}
@@ -247,45 +338,45 @@ func (c *imagePullFailureChecker) CheckAndTerminate(ctx context.Context, workflo
 // container that fails to pull the same image again (a restarted sidecar)
 // gets a fresh grace period even if the cache never showed it healthy. Only a
 // failed read, which proves nothing, keeps the entry.
-func (c *imagePullFailureChecker) confirmFailureLive(ctx context.Context, workflow *metav1.ObjectMeta, expired *expiredImagePullFailure) (bool, error) {
+func (c *stuckPodChecker) confirmFailureLive(ctx context.Context, workflow *metav1.ObjectMeta, expired *expiredStuckPod) (bool, error) {
 	namespace, workflowName, workflowUID := workflow.Namespace, workflow.Name, workflow.UID
 	if c.getPod == nil {
-		return false, fmt.Errorf("pod getter not configured, cannot confirm image pull failure of pod %s/%s", namespace, expired.podName)
+		return false, fmt.Errorf("pod getter not configured, cannot confirm %s of pod %s/%s", expired.condition.name, namespace, expired.podName)
 	}
 	livePod, err := c.getPod(ctx, namespace, expired.podName)
 	if apierrors.IsNotFound(err) {
-		log.Infof("Discarding image pull failure decision for pod %s/%s: the pod no longer exists", namespace, expired.podName)
+		log.Infof("Discarding %s decision for pod %s/%s: the pod no longer exists", expired.condition.name, namespace, expired.podName)
 		return false, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("failed to confirm image pull failure of pod %s/%s: %w", namespace, expired.podName, err)
+		return false, fmt.Errorf("failed to confirm %s of pod %s/%s: %w", expired.condition.name, namespace, expired.podName, err)
 	}
 	if livePod.UID != expired.podUID {
-		log.Infof("Discarding image pull failure decision for pod %s/%s: the cached pod (uid %s) was replaced (live uid %s)",
-			namespace, expired.podName, expired.podUID, livePod.UID)
+		log.Infof("Discarding %s decision for pod %s/%s: the cached pod (uid %s) was replaced (live uid %s)",
+			expired.condition.name, namespace, expired.podName, expired.podUID, livePod.UID)
 		return false, nil
 	}
 	if !isOwnedByWorkflow(livePod, workflowName, workflowUID) || isPodTerminal(livePod) {
-		log.Infof("Discarding image pull failure decision for pod %s/%s: the live pod is terminal or no longer owned by the workflow",
-			namespace, expired.podName)
+		log.Infof("Discarding %s decision for pod %s/%s: the live pod is terminal or no longer owned by the workflow",
+			expired.condition.name, namespace, expired.podName)
 		return false, nil
 	}
-	for _, failure := range getImagePullFailures(livePod) {
-		if failure.container == expired.container && failure.image == expired.failedImage {
+	for _, failure := range expired.condition.detect(livePod) {
+		if failure.container == expired.failure.container && failure.subject == expired.failure.subject {
 			return true, nil
 		}
 	}
-	log.Infof("Discarding image pull failure decision for pod %s/%s: container %s no longer fails to pull %q; resetting its failure clock",
-		namespace, expired.podName, expired.container, expired.failedImage)
+	log.Infof("Discarding %s decision for pod %s/%s: the live pod no longer reports it (container %q, subject %q); resetting its failure clock",
+		expired.condition.name, namespace, expired.podName, expired.failure.container, expired.failure.subject)
 	c.forgetFailure(workflow, expired)
 	return false, nil
 }
 
-// forgetFailure drops the tracking entry of one image pull failure, so a later
-// failure of the same image in the same container of the same pod starts a
-// fresh grace period. The entry is only dropped if it still belongs to the
+// forgetFailure drops the tracking entry of one failure, so a later failure
+// of the same kind on the same container of the same pod starts a fresh grace
+// period. The entry is only dropped if it still belongs to the
 // workflow attempt the decision was made for.
-func (c *imagePullFailureChecker) forgetFailure(workflow *metav1.ObjectMeta, expired *expiredImagePullFailure) {
+func (c *stuckPodChecker) forgetFailure(workflow *metav1.ObjectMeta, expired *expiredStuckPod) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	key := workflowKey(workflow.Namespace, workflow.Name)
@@ -293,7 +384,7 @@ func (c *imagePullFailureChecker) forgetFailure(workflow *metav1.ObjectMeta, exp
 	if tracked == nil || tracked.uid != workflow.UID || tracked.retryGeneration != workflow.Annotations[util.AnnotationKeyRetryGeneration] {
 		return
 	}
-	delete(tracked.failures, imagePullFailureKey{podUID: expired.podUID, container: expired.container, image: expired.failedImage})
+	delete(tracked.failures, failureKeyOf(expired.condition, expired.podUID, expired.failure))
 	if len(tracked.failures) == 0 {
 		delete(c.failureStart, key)
 	}
@@ -301,7 +392,7 @@ func (c *imagePullFailureChecker) forgetFailure(workflow *metav1.ObjectMeta, exp
 
 // listWorkflowPods returns the cached pods labeled for the workflow, using the
 // workflow index so the lookup does not scan the whole namespace.
-func (c *imagePullFailureChecker) listWorkflowPods(namespace, workflowName string) ([]*corev1.Pod, error) {
+func (c *stuckPodChecker) listWorkflowPods(namespace, workflowName string) ([]*corev1.Pod, error) {
 	objs, err := c.podIndexer.ByIndex(WorkflowPodIndexName, workflowKey(namespace, workflowName))
 	if err != nil {
 		return nil, fmt.Errorf("failed to look up pods for workflow %s/%s: %w", namespace, workflowName, err)
@@ -318,23 +409,23 @@ func (c *imagePullFailureChecker) listWorkflowPods(namespace, workflowName strin
 }
 
 // Forget drops the failure tracking state for the given workflow.
-func (c *imagePullFailureChecker) Forget(namespace string, workflowName string) {
+func (c *stuckPodChecker) Forget(namespace string, workflowName string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	delete(c.failureStart, workflowKey(namespace, workflowName))
 }
 
 // trackFailures updates the failure start times for the workflow's failing
-// containers and returns a failure that has outlasted the grace period, or
-// nil. When several have expired, one on an exit-handler pod is preferred
+// pods and returns a failure that has outlasted its condition's grace period,
+// or nil. When several have expired, one on an exit-handler pod is preferred
 // because it needs the stronger termination mechanism.
-// Containers that no longer report a failure, or pods that are no longer
-// listed, have their tracking dropped so a recovered container starts a fresh
-// grace period next time.
+// Failures that are no longer reported, or pods that are no longer listed,
+// have their tracking dropped so a recovered pod starts a fresh grace period
+// next time.
 // State recorded for a different attempt of the workflow (another UID or
 // retry generation) is discarded, so pods left over from the previous attempt
 // cannot fail the new one with an already expired clock.
-func (c *imagePullFailureChecker) trackFailures(workflow *metav1.ObjectMeta, pods []*corev1.Pod) *expiredImagePullFailure {
+func (c *stuckPodChecker) trackFailures(workflow *metav1.ObjectMeta, pods []*corev1.Pod) *expiredStuckPod {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -343,14 +434,14 @@ func (c *imagePullFailureChecker) trackFailures(workflow *metav1.ObjectMeta, pod
 	key := workflowKey(namespace, workflowName)
 	previous := c.failureStart[key]
 	if previous != nil && (previous.uid != workflowUID || previous.retryGeneration != retryGeneration) {
-		log.Infof("Workflow %s/%s is a new attempt (uid %q -> %q, retry generation %q -> %q); resetting image pull failure tracking",
+		log.Infof("Workflow %s/%s is a new attempt (uid %q -> %q, retry generation %q -> %q); resetting stuck pod tracking",
 			namespace, workflowName, previous.uid, workflowUID, previous.retryGeneration, retryGeneration)
 		previous = nil
 	}
-	current := &trackedWorkflow{uid: workflowUID, retryGeneration: retryGeneration, failures: make(map[imagePullFailureKey]time.Time)}
+	current := &trackedWorkflow{uid: workflowUID, retryGeneration: retryGeneration, failures: make(map[stuckPodKey]time.Time)}
 	now := c.now()
 
-	var expired *expiredImagePullFailure
+	var expired *expiredStuckPod
 	for _, pod := range pods {
 		if !isOwnedByWorkflow(pod, workflowName, workflowUID) {
 			// Labels are user-controlled; only act on pods the workflow actually owns.
@@ -365,24 +456,27 @@ func (c *imagePullFailureChecker) trackFailures(workflow *metav1.ObjectMeta, pod
 			continue
 		}
 		exitHandler := isExitHandlerPod(pod)
-		for _, failure := range getImagePullFailures(pod) {
-			key := imagePullFailureKey{podUID: pod.UID, container: failure.container, image: failure.image}
-			start := now
-			if previous != nil {
-				if seen, ok := previous.failures[key]; ok {
-					start = seen
+		for i := range c.conditions {
+			condition := &c.conditions[i]
+			for _, failure := range condition.detect(pod) {
+				failureKey := failureKeyOf(condition, pod.UID, failure)
+				start := now
+				if previous != nil {
+					if seen, ok := previous.failures[failureKey]; ok {
+						start = seen
+					}
 				}
-			}
-			current.failures[key] = start
+				current.failures[failureKey] = start
 
-			elapsed := now.Sub(start)
-			if elapsed < c.gracePeriod {
-				log.Debugf("Container %s of pod %s/%s has image pull failure for %q (failing for %v), waiting for grace period (%v)",
-					failure.container, pod.Namespace, pod.Name, failure.image, elapsed.Round(time.Second), c.gracePeriod)
-				continue
-			}
-			if expired == nil || (exitHandler && !expired.exitHandler) {
-				expired = &expiredImagePullFailure{podName: pod.Name, podUID: pod.UID, container: failure.container, failedImage: failure.image, elapsed: elapsed, exitHandler: exitHandler}
+				elapsed := now.Sub(start)
+				if elapsed < condition.gracePeriod {
+					log.Debugf("Pod %s/%s is stuck on %s (container %q, subject %q) for %v, waiting for grace period (%v)",
+						pod.Namespace, pod.Name, condition.name, failure.container, failure.subject, elapsed.Round(time.Second), condition.gracePeriod)
+					continue
+				}
+				if expired == nil || (exitHandler && !expired.exitHandler) {
+					expired = &expiredStuckPod{condition: condition, podName: pod.Name, podUID: pod.UID, failure: failure, elapsed: elapsed, exitHandler: exitHandler}
+				}
 			}
 		}
 	}
@@ -393,6 +487,11 @@ func (c *imagePullFailureChecker) trackFailures(workflow *metav1.ObjectMeta, pod
 		c.failureStart[key] = current
 	}
 	return expired
+}
+
+// failureKeyOf builds the tracking key of one failure of a condition on a pod.
+func failureKeyOf(condition *StuckPodCondition, podUID types.UID, failure stuckPodFailure) stuckPodKey {
+	return stuckPodKey{condition: condition.name, podUID: podUID, container: failure.container, subject: failure.subject}
 }
 
 func workflowKey(namespace, workflowName string) string {
@@ -469,7 +568,8 @@ func imagePullFailureFromStatus(status corev1.ContainerStatus) (imagePullFailure
 }
 
 // terminateWorkflow terminates an Argo workflow and annotates it with the
-// failing image so the reason is visible to users. It returns true when the
+// termination reason (and any detail the condition provides, such as the
+// failing image) so the reason is visible to users. It returns true when the
 // workflow was terminated and false when the decision was discarded because
 // the workflow changed since it was inspected.
 //
@@ -485,7 +585,7 @@ func imagePullFailureFromStatus(status corev1.ContainerStatus) (imagePullFailure
 // carries the inspected UID and resource version: the API server rejects a
 // resource version mismatch with a Conflict and a UID change with an Invalid
 // (immutable field) error, so a stale decision can never hit the new attempt.
-func (c *imagePullFailureChecker) terminateWorkflow(ctx context.Context, workflow *metav1.ObjectMeta, failedImage string, forceTerminate bool) (bool, error) {
+func (c *stuckPodChecker) terminateWorkflow(ctx context.Context, workflow *metav1.ObjectMeta, expired *expiredStuckPod) (bool, error) {
 	namespace, workflowName := workflow.Namespace, workflow.Name
 	if c.executionClient == nil {
 		return false, fmt.Errorf("execution client not configured, cannot terminate workflow %s/%s", namespace, workflowName)
@@ -500,22 +600,27 @@ func (c *imagePullFailureChecker) terminateWorkflow(ctx context.Context, workflo
 	}
 
 	// Build a merged patch that terminates the workflow and annotates it with the
-	// image pull failure reason so users can see it in the workflow manifest.
+	// failure reason so users can see it in the workflow manifest.
 	// The uid and resourceVersion act as preconditions, see above.
+	annotations := map[string]interface{}{
+		util.AnnotationKeyTerminationReason: expired.condition.terminationReason,
+	}
+	if expired.condition.annotations != nil {
+		for key, value := range expired.condition.annotations(expired.failure) {
+			annotations[key] = value
+		}
+	}
 	patch := map[string]interface{}{
 		"metadata": map[string]interface{}{
 			"uid":             string(workflow.UID),
 			"resourceVersion": workflow.ResourceVersion,
-			"annotations": map[string]interface{}{
-				util.AnnotationKeyTerminationReason: util.TerminationReasonImagePullFailure,
-				util.AnnotationKeyFailedImage:       failedImage,
-			},
+			"annotations":     annotations,
 		},
 	}
 	for k, v := range terminatePatch {
 		patch[k] = v
 	}
-	if forceTerminate {
+	if expired.exitHandler {
 		spec, ok := patch["spec"].(map[string]interface{})
 		if !ok {
 			spec = map[string]interface{}{}
@@ -543,7 +648,7 @@ func (c *imagePullFailureChecker) terminateWorkflow(ctx context.Context, workflo
 		return false, fmt.Errorf("failed to patch workflow %s/%s: %w", namespace, workflowName, err)
 	}
 
-	log.Infof("Successfully terminated workflow %s/%s due to image pull failure", namespace, workflowName)
+	log.Infof("Successfully terminated workflow %s/%s due to %s", namespace, workflowName, expired.condition.name)
 	return true, nil
 }
 

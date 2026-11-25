@@ -30,8 +30,8 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
-// fakeImagePullFailureChecker is a test double for ImagePullFailureChecker.
-type fakeImagePullFailureChecker struct {
+// fakeStuckPodChecker is a test double for StuckPodChecker.
+type fakeStuckPodChecker struct {
 	called        bool
 	forgotten     bool
 	namespace     string
@@ -44,7 +44,7 @@ type fakeImagePullFailureChecker struct {
 	blockUntilCanceled bool
 }
 
-func (f *fakeImagePullFailureChecker) CheckAndTerminate(ctx context.Context, workflow *metav1.ObjectMeta) error {
+func (f *fakeStuckPodChecker) CheckAndTerminate(ctx context.Context, workflow *metav1.ObjectMeta) error {
 	f.called = true
 	f.namespace = workflow.Namespace
 	f.workflowName = workflow.Name
@@ -57,7 +57,7 @@ func (f *fakeImagePullFailureChecker) CheckAndTerminate(ctx context.Context, wor
 	return f.errorToReturn
 }
 
-func (f *fakeImagePullFailureChecker) Forget(namespace string, workflowName string) {
+func (f *fakeStuckPodChecker) Forget(namespace string, workflowName string) {
 	f.forgotten = true
 	f.namespace = namespace
 	f.workflowName = workflowName
@@ -294,7 +294,7 @@ func TestWorkflow_Save_SkippedDDueToMissingRunID(t *testing.T) {
 func TestWorkflow_Save_CheckerCalledForRunningWorkflow(t *testing.T) {
 	workflowFake := client.NewWorkflowClientFake()
 	pipelineFake := client.NewPipelineClientFake()
-	checker := &fakeImagePullFailureChecker{}
+	checker := &fakeStuckPodChecker{}
 
 	// Workflow with Running phase (not in final state).
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
@@ -312,7 +312,7 @@ func TestWorkflow_Save_CheckerCalledForRunningWorkflow(t *testing.T) {
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
 	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
-	saver.SetImagePullFailureChecker(checker)
+	saver.SetStuckPodChecker(checker)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
@@ -327,7 +327,7 @@ func TestWorkflow_Save_CheckerCalledForRunningWorkflow(t *testing.T) {
 func TestWorkflow_Save_CheckerCalledForPendingWorkflow(t *testing.T) {
 	workflowFake := client.NewWorkflowClientFake()
 	pipelineFake := client.NewPipelineClientFake()
-	checker := &fakeImagePullFailureChecker{}
+	checker := &fakeStuckPodChecker{}
 
 	// Workflow with empty phase (Pending/unknown, not in final state).
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
@@ -341,7 +341,7 @@ func TestWorkflow_Save_CheckerCalledForPendingWorkflow(t *testing.T) {
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
 	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
-	saver.SetImagePullFailureChecker(checker)
+	saver.SetStuckPodChecker(checker)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
@@ -352,7 +352,7 @@ func TestWorkflow_Save_CheckerCalledForPendingWorkflow(t *testing.T) {
 func TestWorkflow_Save_CheckerSkippedForCompletedWorkflow(t *testing.T) {
 	workflowFake := client.NewWorkflowClientFake()
 	pipelineFake := client.NewPipelineClientFake()
-	checker := &fakeImagePullFailureChecker{}
+	checker := &fakeStuckPodChecker{}
 
 	// Workflow in Succeeded (final) state.
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
@@ -369,7 +369,7 @@ func TestWorkflow_Save_CheckerSkippedForCompletedWorkflow(t *testing.T) {
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
 	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
-	saver.SetImagePullFailureChecker(checker)
+	saver.SetStuckPodChecker(checker)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
@@ -380,7 +380,7 @@ func TestWorkflow_Save_CheckerSkippedForCompletedWorkflow(t *testing.T) {
 func TestWorkflow_Save_CheckerSkippedForFailedWorkflow(t *testing.T) {
 	workflowFake := client.NewWorkflowClientFake()
 	pipelineFake := client.NewPipelineClientFake()
-	checker := &fakeImagePullFailureChecker{}
+	checker := &fakeStuckPodChecker{}
 
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -396,7 +396,7 @@ func TestWorkflow_Save_CheckerSkippedForFailedWorkflow(t *testing.T) {
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
 	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
-	saver.SetImagePullFailureChecker(checker)
+	saver.SetStuckPodChecker(checker)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
@@ -410,7 +410,7 @@ func TestWorkflow_Save_CheckerSkippedForFailedWorkflow(t *testing.T) {
 func TestWorkflow_Save_CheckerErrorDoesNotBlockReporting(t *testing.T) {
 	workflowFake := client.NewWorkflowClientFake()
 	pipelineFake := client.NewPipelineClientFake()
-	checker := &fakeImagePullFailureChecker{
+	checker := &fakeStuckPodChecker{
 		errorToReturn: fmt.Errorf("failed to list pods"),
 	}
 
@@ -428,7 +428,7 @@ func TestWorkflow_Save_CheckerErrorDoesNotBlockReporting(t *testing.T) {
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
 	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
-	saver.SetImagePullFailureChecker(checker)
+	saver.SetStuckPodChecker(checker)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
@@ -468,7 +468,7 @@ func TestWorkflow_Save_NoCheckerSetDoesNotPanic(t *testing.T) {
 func TestWorkflow_Save_StalledCheckerDoesNotBlockReporting(t *testing.T) {
 	workflowFake := client.NewWorkflowClientFake()
 	pipelineFake := client.NewPipelineClientFake()
-	checker := &fakeImagePullFailureChecker{blockUntilCanceled: true}
+	checker := &fakeStuckPodChecker{blockUntilCanceled: true}
 
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -484,8 +484,8 @@ func TestWorkflow_Save_StalledCheckerDoesNotBlockReporting(t *testing.T) {
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
 	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
-	saver.SetImagePullFailureChecker(checker)
-	saver.imagePullFailureCheckTimeout = 50 * time.Millisecond
+	saver.SetStuckPodChecker(checker)
+	saver.stuckPodCheckTimeout = 50 * time.Millisecond
 
 	done := make(chan error, 1)
 	go func() { done <- saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20) }()
@@ -507,7 +507,7 @@ func TestWorkflow_Save_PersistedFinalWorkflowStillForgetsTracking(t *testing.T) 
 	// running would keep its consumed grace period until the run is retried.
 	workflowFake := client.NewWorkflowClientFake()
 	pipelineFake := client.NewPipelineClientFake()
-	checker := &fakeImagePullFailureChecker{}
+	checker := &fakeStuckPodChecker{}
 
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -526,7 +526,7 @@ func TestWorkflow_Save_PersistedFinalWorkflowStillForgetsTracking(t *testing.T) 
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
 	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
-	saver.SetImagePullFailureChecker(checker)
+	saver.SetStuckPodChecker(checker)
 
 	require.NoError(t, saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20))
 	assert.Nil(t, pipelineFake.GetWorkflow("MY_NAMESPACE", "MY_NAME"), "the persisted-final shortcut must still skip reporting")
@@ -552,7 +552,7 @@ func TestWorkflow_Save_RetryAfterPersistedCompletionStartsFreshGracePeriod(t *te
 	checker, clock := newTestChecker(podIndexer, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
 	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
-	saver.SetImagePullFailureChecker(checker)
+	saver.SetStuckPodChecker(checker)
 
 	newWorkflow := func(phase workflowapi.WorkflowPhase, resourceVersion string, extraLabels, annotations map[string]string) util.ExecutionSpec {
 		labels := map[string]string{util.LabelKeyWorkflowRunId: "MY_UUID"}

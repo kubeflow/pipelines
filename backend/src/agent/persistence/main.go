@@ -58,6 +58,8 @@ var (
 	caCertPath                       string
 	imagePullFailureHandlingEnabled  bool
 	imagePullFailureGracePeriodInSec int64
+	unschedulableHandlingEnabled     bool
+	unschedulableGracePeriodInSec    int64
 )
 
 const (
@@ -81,6 +83,8 @@ const (
 	caCertPathFlagName                       = "caCertPath"
 	imagePullFailureHandlingEnabledFlagName  = "imagePullFailureHandlingEnabled"
 	imagePullFailureGracePeriodInSecFlagName = "imagePullFailureGracePeriodInSec"
+	unschedulableHandlingEnabledFlagName     = "unschedulableHandlingEnabled"
+	unschedulableGracePeriodInSecFlagName    = "unschedulableGracePeriodInSec"
 )
 
 const (
@@ -160,14 +164,29 @@ func main() {
 		log.Fatalf("Error creating ML pipeline API Server client: %v", err)
 	}
 
-	var imagePullFailureChecker worker.ImagePullFailureChecker
+	// Each stuck pod condition is opt-in and has its own grace period. A negative
+	// grace period would make the first observed failure count as already
+	// expired and terminate workflows immediately.
+	var stuckPodConditions []worker.StuckPodCondition
 	if imagePullFailureHandlingEnabled {
-		// A negative grace period would make the first observed pull error
-		// count as already expired and terminate workflows immediately.
 		if imagePullFailureGracePeriodInSec < 0 {
 			log.Fatalf("Invalid --%s=%d: the grace period must not be negative",
 				imagePullFailureGracePeriodInSecFlagName, imagePullFailureGracePeriodInSec)
 		}
+		stuckPodConditions = append(stuckPodConditions,
+			worker.ImagePullCondition(time.Duration(imagePullFailureGracePeriodInSec)*time.Second))
+	}
+	if unschedulableHandlingEnabled {
+		if unschedulableGracePeriodInSec < 0 {
+			log.Fatalf("Invalid --%s=%d: the grace period must not be negative",
+				unschedulableGracePeriodInSecFlagName, unschedulableGracePeriodInSec)
+		}
+		stuckPodConditions = append(stuckPodConditions,
+			worker.UnschedulableCondition(time.Duration(unschedulableGracePeriodInSec)*time.Second))
+	}
+
+	var stuckPodChecker worker.StuckPodChecker
+	if len(stuckPodConditions) > 0 {
 		kubeClient, err := kubernetes.NewForConfig(cfg)
 		if err != nil {
 			log.Fatalf("Error building Kubernetes clientset: %s", err.Error())
@@ -175,10 +194,10 @@ func main() {
 		executionClient, err := util.NewExecutionClientFromConfig(
 			util.CurrentExecutionType(), cfg)
 		if err != nil {
-			log.Fatalf("Error building execution client for image pull failure handling: %v", err)
+			log.Fatalf("Error building execution client for stuck pod handling: %v", err)
 		}
 
-		// Create a shared informer for pods so that image pull failure checks
+		// Create a shared informer for pods so that stuck pod checks
 		// read from a local cache instead of making API calls on every check.
 		// Filter to only Argo workflow pods to avoid caching every pod in the
 		// cluster (or namespace) for this opt-in feature.
@@ -194,7 +213,7 @@ func main() {
 		// Index pods by workflow so each check only touches that workflow's
 		// pods. The index must be registered before the informer starts.
 		if err := worker.AddWorkflowPodIndex(podInformer); err != nil {
-			log.Fatalf("Failed to register workflow pod index for image pull failure handling: %v", err)
+			log.Fatalf("Failed to register workflow pod index for stuck pod handling: %v", err)
 		}
 		go podInformerFactory.Start(stopCh)
 		// Bound the initial sync. Without the opt-in RBAC the informer's list
@@ -208,15 +227,15 @@ func main() {
 				log.Info("Shutdown requested before the pod informer cache synced")
 				return
 			}
-			log.Fatalf("Timed out after %v waiting for the pod informer to sync for image pull failure handling. "+
+			log.Fatalf("Timed out after %v waiting for the pod informer to sync for stuck pod handling. "+
 				"Check that the persistence agent's service account may get, list and watch pods, "+
 				"which the image-pull-failure-handling kustomize components grant.", initializeTimeout)
 		}
 
-		gracePeriod := time.Duration(imagePullFailureGracePeriodInSec) * time.Second
-		imagePullFailureChecker = worker.NewImagePullFailureChecker(
-			podInformer.GetIndexer(), worker.ClientsetPodGetter(kubeClient), executionClient, gracePeriod)
-		log.Infof("Image pull failure handling enabled (grace period: %v)", gracePeriod)
+		stuckPodChecker = worker.NewStuckPodChecker(
+			podInformer.GetIndexer(), worker.ClientsetPodGetter(kubeClient), executionClient, stuckPodConditions...)
+		log.Infof("Stuck pod handling enabled (image pull: %v, unschedulable: %v)",
+			imagePullFailureHandlingEnabled, unschedulableHandlingEnabled)
 	}
 
 	controller, err := NewPersistenceAgent(
@@ -224,7 +243,7 @@ func main() {
 		execInformer,
 		pipelineClient,
 		util.NewRealTime(),
-		imagePullFailureChecker)
+		stuckPodChecker)
 	if err != nil {
 		log.Fatalf("Failed to instantiate the controller: %v", err)
 	}
@@ -266,4 +285,10 @@ func init() {
 			"When enabled, workflows with pods stuck in image pull failure will be terminated after the grace period.")
 	flag.Int64Var(&imagePullFailureGracePeriodInSec, imagePullFailureGracePeriodInSecFlagName, 300,
 		"Grace period in seconds before terminating a workflow due to image pull failure. Default: 300 (5 minutes).")
+	flag.BoolVar(&unschedulableHandlingEnabled, unschedulableHandlingEnabledFlagName, false,
+		"Enable detection of unschedulable workflow pods (for example a pod requesting more CPU or memory than any node has). "+
+			"When enabled, workflows with pods that stay unschedulable are terminated after the grace period. "+
+			"Disabled by default because a pod may legitimately wait for resources such as a GPU or an autoscaled node.")
+	flag.Int64Var(&unschedulableGracePeriodInSec, unschedulableGracePeriodInSecFlagName, 3600,
+		"Grace period in seconds before terminating a workflow due to an unschedulable pod. Default: 3600 (1 hour).")
 }
