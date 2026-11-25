@@ -475,6 +475,7 @@ def server_factory(
                         },
                     },
                     {
+                        # SeaweedFS before 4.55 omitted the root listing prefix.
                         'Sid': 'AllowTopLevelDelimitedBrowse',
                         'Effect': 'Allow',
                         'Principal': '*',
@@ -483,6 +484,19 @@ def server_factory(
                         'Condition': {
                             'Null': {'s3:prefix': 'true'},
                             'StringEquals': {'s3:delimiter': '/'},
+                        },
+                    },
+                    {
+                        'Sid': 'AllowEmptyPrefixDelimitedBrowse',
+                        'Effect': 'Allow',
+                        'Principal': '*',
+                        'Action': 's3:ListBucket',
+                        'Resource': bucket_arn,
+                        'Condition': {
+                            'StringEquals': {
+                                's3:prefix': '',
+                                's3:delimiter': '/',
+                            },
                         },
                     },
                     {

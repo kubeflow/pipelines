@@ -183,6 +183,8 @@ main() {
     # Top-level delimited browse MUST be allowed (folder names only).
     check "top-level delimited browse" allow \
         test-profile-2 list --prefix "" --delimiter "/"
+    check "top-level delimited browse without explicit prefix" allow \
+        test-profile-2 list --no-prefix --delimiter "/"
 
     # Negative: cross-namespace object read MUST be denied.
     check "cross-namespace download" deny \
@@ -206,6 +208,8 @@ main() {
     # Negative: deep cross-namespace prefix listing MUST be denied.
     check "cross-namespace deep prefix list" deny \
         test-profile-2 list --prefix "private-artifacts/test-profile-1/"
+    check "cross-namespace delimited prefix list" deny \
+        test-profile-2 list --prefix "private-artifacts/test-profile-1/" --delimiter "/"
 
     # Negative: flat (no-delimiter) bucket-wide listing MUST be denied,
     # since it would enumerate every namespace's object keys.
