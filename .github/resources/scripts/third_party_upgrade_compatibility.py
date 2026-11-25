@@ -19,6 +19,7 @@ import argparse
 import base64
 import hashlib
 import json
+import ssl
 import subprocess
 import sys
 import time
@@ -85,7 +86,7 @@ def wait_ready(name):
 
 
 @contextmanager
-def forward(deployment, local, remote, evidence):
+def forward(deployment, local, remote, evidence, tls_context=None):
     with (evidence / f'port-forward-{deployment}-{local}.log').open('a') as log:
         process = subprocess.Popen(
             [
@@ -102,7 +103,8 @@ def forward(deployment, local, remote, evidence):
             stderr=log,
         )
         try:
-            url = f'http://127.0.0.1:{local}'
+            scheme = 'https' if tls_context is not None else 'http'
+            url = f'{scheme}://127.0.0.1:{local}'
             health = '/healthz' if remote == PROFILE_PORT else '/status'
             for _ in range(60):
                 if process.poll() is not None:
@@ -110,7 +112,9 @@ def forward(deployment, local, remote, evidence):
                         f'Port-forward for {deployment} stopped; inspect its log'
                     )
                 try:
-                    with urllib.request.urlopen(url + health, timeout=2):
+                    with urllib.request.urlopen(
+                        url + health, timeout=2, context=tls_context
+                    ):
                         break
                 except OSError:
                     time.sleep(1)
@@ -160,7 +164,9 @@ def client(endpoint, access, secret):
     )
 
 
-def sync_profile(endpoint, namespace, secret=None):
+def sync_profile(endpoint, namespace, webhook_token, tls_context, secret=None):
+    if not endpoint.startswith('https://'):
+        raise ValueError('Profile webhook requires HTTPS')
     attachments = {
         kind: {}
         for kind in (
@@ -186,9 +192,14 @@ def sync_profile(endpoint, namespace, secret=None):
     request = urllib.request.Request(
         endpoint + '/sync',
         data=json.dumps(body).encode(),
-        headers={'Content-Type': 'application/json'},
+        headers={
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {webhook_token}',
+        },
     )
-    with urllib.request.urlopen(request, timeout=60) as response:
+    with urllib.request.urlopen(
+        request, timeout=60, context=tls_context
+    ) as response:
         result = json.load(response)
     credentials = [
         item
@@ -303,6 +314,23 @@ def exercise_profile(admin_credentials, evidence):
     ]
     apply(profile)
     wait_ready('kubeflow-pipelines-profile-controller')
+    webhook_secret = json.loads(
+        kubectl(
+            'get',
+            'secret',
+            'kubeflow-pipelines-profile-webhook-auth',
+            '-o',
+            'json',
+        )
+    )
+    webhook_token = base64.b64decode(webhook_secret['data']['token']).decode(
+        'ascii'
+    )
+    webhook_tls = ssl.create_default_context(
+        cadata=base64.b64decode(webhook_secret['data']['ca.crt']).decode(
+            'ascii'
+        )
+    )
     with forward('seaweedfs', S3_LOCAL_PORT, S3_PORT, evidence) as endpoint:
         s3 = client(endpoint, *admin_credentials)
         verify_state(s3)
@@ -311,9 +339,14 @@ def exercise_profile(admin_credentials, evidence):
             PROFILE_LOCAL_PORT,
             PROFILE_PORT,
             evidence,
+            tls_context=webhook_tls,
         ) as webhook:
-            secret = sync_profile(webhook, 'compat-user')
-            repeated = sync_profile(webhook, 'compat-user', secret)
+            secret = sync_profile(
+                webhook, 'compat-user', webhook_token, webhook_tls
+            )
+            repeated = sync_profile(
+                webhook, 'compat-user', webhook_token, webhook_tls, secret
+            )
             if repeated['data'] != secret['data']:
                 raise AssertionError(
                     'Profile reconciliation replaced existing credentials'

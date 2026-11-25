@@ -15,8 +15,10 @@
 import base64
 import copy
 import hashlib
+import hmac
 import json
 import os
+import ssl
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -161,7 +163,12 @@ iam = create_iam_client()
 
 def main():
     settings = get_settings_from_env()
-    server = server_factory(**settings)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    context.load_cert_chain(
+        '/var/run/kfp-webhook-tls/tls.crt', '/var/run/kfp-webhook-tls/tls.key'
+    )
+    server = server_factory(**settings, tls_context=context)
     server.serve_forever()
 
 
@@ -179,6 +186,7 @@ def get_settings_from_env(
     http_base_url=None,
     driver_agent_ca_cert_path=None,
     user_id_header: str | None = None,
+    webhook_auth_token: str | None = None,
 ):
     """Returns a dict of settings from environment variables relevant to the
     controller.
@@ -247,6 +255,12 @@ def get_settings_from_env(
         else os.environ.get('USERID_HEADER')
     )
 
+    settings['webhook_auth_token'] = (
+        webhook_auth_token
+        if webhook_auth_token is not None
+        else os.environ.get('WEBHOOK_AUTH_TOKEN')
+    )
+
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
     # compatibility
@@ -280,11 +294,44 @@ def server_factory(
     http_base_url='',
     driver_agent_ca_cert_path='',
     user_id_header: str | None = None,
+    webhook_auth_token: str | None = None,
+    tls_context: ssl.SSLContext | None = None,
 ):
     """Returns a ThreadingHTTPServer populated with Handler with customized
     settings."""
+    if webhook_auth_token is None:
+        webhook_auth_token = os.environ.get('WEBHOOK_AUTH_TOKEN')
+    if (
+        not webhook_auth_token
+        or len(webhook_auth_token) < 32
+        or not webhook_auth_token.isascii()
+        or any(character.isspace() for character in webhook_auth_token)
+    ):
+        raise ValueError(
+            'WEBHOOK_AUTH_TOKEN must be at least 32 ASCII characters without whitespace'
+        )
+
+    expected_authorization = f'Bearer {webhook_auth_token}'.encode('ascii')
 
     class Controller(BaseHTTPRequestHandler):
+        def setup(self):
+            if tls_context is not None:
+                # Handshake on this request's worker so a stalled peer cannot
+                # block the accept loop or the Kubernetes health probes.
+                self.request.settimeout(10)
+                self.request = tls_context.wrap_socket(
+                    self.request, server_side=True
+                )
+                self.request.settimeout(None)
+            super().setup()
+
+        def finish(self):
+            try:
+                super().finish()
+            finally:
+                if tls_context is not None:
+                    self.connection.close()
+
         def upsert_lifecycle_policy(self, bucket_name, artifact_retention_days):
             """Configures or deletes the lifecycle policy based on the
             artifact_retention_days string."""
@@ -853,6 +900,16 @@ def server_factory(
                 super().log_request(code, size)
 
         def do_POST(self):
+            if self.path != '/sync':
+                self.send_error(404)
+                return
+            authorization = self.headers.get('Authorization', '').encode(
+                'latin-1'
+            )
+            if not hmac.compare_digest(authorization, expected_authorization):
+                self.send_error(403)
+                return
+
             # Serve the sync() function as a JSON webhook.
             observed = json.loads(
                 self.rfile.read(int(self.headers.get('content-length')))

@@ -9,10 +9,38 @@ spec:
       labels:
         sidecar.istio.io/inject: "false"
     spec:
+      serviceAccountName: kubeflow-pipelines-profile-controller
       securityContext:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+      - name: initialize-webhook-auth
+        image: docker.io/library/python:3.12-slim-trixie@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704
+        command: ["python", "/hooks/init_webhook_auth.py"]
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - name: webhook-tls
+          mountPath: /var/run/kfp-webhook-tls
+        - name: hooks
+          mountPath: /hooks
+          readOnly: true
       containers:
       - name: profile-controller
         securityContext:
@@ -39,6 +67,11 @@ spec:
               key: appVersion
         - name: AWS_ENDPOINT_URL
           value: http://seaweedfs.kubeflow:8111
+        - name: WEBHOOK_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: kubeflow-pipelines-profile-webhook-auth
+              key: token
         - name: S3_ENDPOINT_URL
           value: http://seaweedfs.kubeflow:8333
         - name: AWS_REGION
@@ -101,6 +134,9 @@ spec:
         volumeMounts:
         - name: hooks
           mountPath: /hooks
+        - name: webhook-tls
+          mountPath: /var/run/kfp-webhook-tls
+          readOnly: true
         - name: driver-agent-ca
           mountPath: /etc/kfp/driver-agent-ca
           readOnly: true
@@ -108,6 +144,7 @@ spec:
         - containerPort: 8080
         readinessProbe:
           httpGet:
+            scheme: HTTPS
             path: /healthz
             port: 8080
           initialDelaySeconds: 3
@@ -115,12 +152,16 @@ spec:
           timeoutSeconds: 2
         livenessProbe:
           httpGet:
+            scheme: HTTPS
             path: /healthz
             port: 8080
           initialDelaySeconds: 3
           periodSeconds: 5
           timeoutSeconds: 2
       volumes:
+      - name: webhook-tls
+        emptyDir:
+          medium: Memory
       - name: hooks
         configMap:
           name: kubeflow-pipelines-profile-controller-code

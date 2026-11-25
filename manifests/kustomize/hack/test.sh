@@ -62,6 +62,9 @@ do
   } | python3 "${DIR}/profile_controller_networkpolicy_test.py"
 done
 
+kustomize build "${DIR}/testdata/profile-controller-custom-namespace" | \
+  yq eval -o=json '.' - | python3 "${DIR}/profile_controller_namespace_test.py"
+
 python3 "${DIR}/tensorboard_signing_key_test.py"
 python3 "${DIR}/driver_plugin_test.py"
 python3 "${DIR}/ci_mysql_image_test.py"
