@@ -64,6 +64,9 @@ do
     python3 "${DIR}/schedule_writer_rbac_test.py" multi-user
 done
 
+kustomize build "${DIR}/testdata/profile-controller-custom-namespace" | \
+  yq eval -o=json '.' - | python3 "${DIR}/profile_controller_namespace_test.py"
+
 python3 "${DIR}/tensorboard_signing_key_test.py"
 python3 "${DIR}/pipeline_url_credentials_test.py"
 python3 "${DIR}/yq_release_test.py"

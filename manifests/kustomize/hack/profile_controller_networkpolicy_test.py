@@ -77,6 +77,72 @@ class ProfileControllerNetworkPolicyTest(unittest.TestCase):
             }],
         }])
 
+    def test_webhook_uses_a_distinct_preserved_secret(self):
+        secret_name = 'kubeflow-pipelines-profile-webhook-auth'
+        controller_name = 'kubeflow-pipelines-profile-controller'
+        secret = self.resource('Secret', secret_name)
+        self.assertNotIn('data', secret)
+        self.assertNotIn('stringData', secret)
+
+        decorator = self.resource('DecoratorController', controller_name)
+        webhook = decorator['spec']['hooks']['sync']['webhook']
+        self.assertEqual(
+            webhook['service'], {
+                'name': controller_name,
+                'namespace': secret['metadata']['namespace'],
+                'protocol': 'https',
+                'port': 443,
+            })
+        self.assertEqual(
+            webhook['caBundle']['secretRef'], {
+                'name': secret_name,
+                'namespace': secret['metadata']['namespace'],
+                'key': 'ca.crt',
+            })
+        self.assertEqual(
+            self.resource('Service', controller_name)['spec']['ports'], [{
+                'name': 'https',
+                'port': 443,
+                'targetPort': 8080,
+                'protocol': 'TCP',
+            }])
+        self.assertEqual(webhook['path'], '/sync')
+        self.assertEqual(
+            webhook['authorization'], {
+                'type': 'Bearer',
+                'secretRef': {
+                    'name': secret_name,
+                    'namespace': secret['metadata']['namespace'],
+                    'key': 'token',
+                },
+            })
+        pod = self.resource('Deployment',
+                            controller_name)['spec']['template']['spec']
+        self.assertEqual(pod['serviceAccountName'], controller_name)
+        self.assertEqual(pod['initContainers'][0]['command'],
+                         ['python', '/hooks/init_webhook_auth.py'])
+        container = pod['containers'][0]
+        for name in ('readinessProbe', 'livenessProbe'):
+            self.assertEqual(container[name]['httpGet'], {
+                'scheme': 'HTTPS',
+                'port': 8080,
+                'path': '/healthz'
+            })
+        token = next(item for item in pod['containers'][0]['env']
+                     if item['name'] == 'WEBHOOK_AUTH_TOKEN')
+        self.assertEqual(token['valueFrom']['secretKeyRef'], {
+            'name': secret_name,
+            'key': 'token'
+        })
+        role = self.resource('Role',
+                             'kubeflow-pipelines-profile-webhook-auth-init')
+        self.assertEqual(role['rules'], [{
+            'apiGroups': [''],
+            'resources': ['secrets'],
+            'resourceNames': [secret_name],
+            'verbs': ['get', 'update'],
+        }])
+
 
 if __name__ == '__main__':
     unittest.main()
