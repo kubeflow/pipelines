@@ -180,7 +180,7 @@ def add_ephemeral_volume(
         mount_path:
             local path in the main container where the PVC should be mounted as a volume
         access_modes:
-            AccessModes to request for the provisioned PVC. May be one or more of ``'ReadWriteOnce'``,
+            List of AccessModes to request for the provisioned PVC (a list, not a plain string). May be one or more of ``'ReadWriteOnce'``,
             ``'ReadOnlyMany'``, ``'ReadWriteMany'``, or ``'ReadWriteOncePod'``. Corresponds to
             `Pod.spec.volumes[*].ephemeral.volumeClaimTemplate.spec.accessModes
             <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes>`_.
@@ -201,6 +201,12 @@ def add_ephemeral_volume(
     Returns:
         Task object with the ephemeral volume mounted.
     """
+
+    if isinstance(access_modes, str):
+        raise TypeError(
+            f"'access_modes' must be a list of strings, got str: "
+            f'{access_modes!r}.'
+        )
 
     msg = common.get_existing_kubernetes_config_as_message(task)
     msg.generic_ephemeral_volume.append(

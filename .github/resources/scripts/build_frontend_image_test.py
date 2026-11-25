@@ -78,6 +78,25 @@ class BuildTest(unittest.TestCase):
                     ]
                     self.assertEqual(tags, ['test:latest', 'test:ci'])
 
+    def test_external_cache_is_used_only_before_clean_retry(self):
+        cache_from = 'type=gha,version=2,scope=frontend-amd64,timeout=60s'
+        cache_to = cache_from + ',mode=max,ignore-error=true'
+        self.assertEqual(
+            self.execute([1, 0], cache_from=cache_from, cache_to=cache_to), 0
+        )
+        first, retry = self.builds
+        self.assertEqual(first[first.index('--cache-from') + 1], cache_from)
+        self.assertEqual(first[first.index('--cache-to') + 1], cache_to)
+        self.assertNotIn('--cache-from', retry)
+        self.assertNotIn('--cache-to', retry)
+        self.assertIn('--no-cache', retry)
+        self.assertEqual(self.output.read_bytes(), b'image')
+
+    def test_callers_without_cache_options_do_not_access_external_cache(self):
+        self.assertEqual(self.execute([0]), 0)
+        self.assertNotIn('--cache-from', self.builds[0])
+        self.assertNotIn('--cache-to', self.builds[0])
+
     def test_timeout_then_fresh_builder_success(self):
         self.output.write_bytes(b'stale')
         self.assertEqual(self.execute([builder.CommandTimeout('build'), 0]), 0)

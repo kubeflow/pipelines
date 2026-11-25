@@ -11,6 +11,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag/jsonutils"
 	"github.com/go-openapi/swag/typeutils"
+	"github.com/go-openapi/validate"
 )
 
 // V2ListRunsResponse v2 list runs response
@@ -49,8 +50,8 @@ func (m *V2ListRunsResponse) validateRuns(formats strfmt.Registry) error {
 	}
 
 	for i := 0; i < len(m.Runs); i++ {
-		if typeutils.IsZero(m.Runs[i]) { // not required
-			continue
+		if m.Runs[i] == nil {
+			return validate.Required("runs"+"."+strconv.Itoa(i), "body", m.Runs[i])
 		}
 
 		if m.Runs[i] != nil {
@@ -94,7 +95,7 @@ func (m *V2ListRunsResponse) contextValidateRuns(ctx context.Context, formats st
 		if m.Runs[i] != nil {
 
 			if typeutils.IsZero(m.Runs[i]) { // not required
-				return nil
+				continue
 			}
 
 			if err := m.Runs[i].ContextValidate(ctx, formats); err != nil {

@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Generates a CI health report for master-branch workflow runs.
+"""Generates a CI health report for default-branch workflow runs.
 
 Aggregates job-level failure rates and durations across the heavy test
 workflows, and per-test failure counts from `junit-xml - *` artifacts uploaded
@@ -56,7 +56,7 @@ from datetime import datetime, timedelta, timezone
 
 API_ROOT = 'https://api.github.com'
 
-# Heavy master-branch test workflows worth tracking for flake health.
+# Heavy default-branch test workflows worth tracking for flake health.
 # Missing entries are surfaced in the report notes rather than silently
 # skipped, so workflow renames/deletions get noticed instead of permanently
 # dropping a suite from the health data.
@@ -73,7 +73,7 @@ ISSUE_LABEL = 'ci-health'
 JUNIT_ARTIFACT_PREFIX = 'junit-xml - '
 RETRY_ARTIFACT_SUFFIX = re.compile(r'^(?P<base>.+) - retry-(?P<attempt>\d+)$')
 
-# Job conclusions that are not results at all: master-push workflows cancel
+# Job conclusions that are not results at all: default-branch push workflows cancel
 # in-progress runs, so counting cancellations as either success or failure
 # biases rates. Everything not listed here and not "success" is a failure
 # (failure, timed_out, stale, ...).
@@ -198,7 +198,7 @@ def run_attempt_job_urls(repo, run):
     ]
 
 
-def collect_lane_stats(token, repo, since, max_runs):
+def collect_lane_stats(token, repo, since, max_runs, branch='master'):
     """Aggregates per-lane job outcomes across every attempt of each run.
 
     Returns (lanes, failed_runs, reruns, notes) where failed_runs is a
@@ -220,7 +220,7 @@ def collect_lane_stats(token, repo, since, max_runs):
     for workflow in TARGET_WORKFLOWS:
         url = (
             f'{API_ROOT}/repos/{repo}/actions/workflows/{workflow}/runs'
-            f'?branch=master&created=>={since}&per_page=100'
+            f'?branch={branch}&created=>={since}&per_page=100'
         )
         try:
             runs, more_runs = paginate(token, url, 'workflow_runs', max_pages=1)
@@ -542,8 +542,11 @@ def main():
         '%Y-%m-%d'
     )
 
+    branch = api_request(token, f'{API_ROOT}/repos/{repo}')['default_branch']
+    if branch not in ('master', 'main'):
+        raise ValueError('Expected master or main as the default branch')
     lanes, failed_runs, reruns, notes = collect_lane_stats(
-        token, repo, since, max_runs
+        token, repo, since, max_runs, branch=branch
     )
     failed_tests, artifacts_parsed, ingestion_errors, junit_scanned = (
         collect_failed_tests(token, repo, failed_runs, max_junit_runs)

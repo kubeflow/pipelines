@@ -54,8 +54,8 @@ constraint-dependencies = [
 # Linting tools (pinned to avoid new lint failures)
 lint = [
   "docformatter==1.7.7",
-  "pylint==4.1.3",
-  "ruff==0.17.1",
+  "pylint==4.1.4",
+  "ruff==0.17.6",
 ]
 
 # Testing tools
@@ -64,17 +64,17 @@ test = [
   "docker",
   # Older 1.x releases import removed kfp.dsl internals. Do not let dependency
   # resolution backtrack to them when a newer protobuf is incompatible.
-  "google-cloud-pipeline-components>=2.22.0",
+  "google-cloud-pipeline-components>=2.23.0",
   "kfp[notebooks]",
   "kubernetes",
   "nbformat",
   "pip",
-  "pydantic>=2",
+  "pydantic>=2.14.3",
   # pytest 9.0.3 contains the tmpdir handling fix.
-  "pytest>=9.0.3",
+  "pytest>=9.2.0",
   "pytest-cov>=7.1.0",
   "pytest-mock",
-  "pytest-randomly>=5.0.0",
+  "pytest-randomly>=5.1.0",
   "pytest-xdist>=3.8.0",
   "setuptools",
   "wheel",
@@ -97,13 +97,13 @@ docs = [
   "m2r2",
   "sphinx>=7.2.0,<8.0.0",
   "sphinx-click",
-  "sphinx-immaterial>=0.13.9,<1",
+  "sphinx-immaterial>=0.13.12,<1",
   "sphinx-rtd-theme",
   "furo>=2024.8.6",
   "myst-parser>=3.0.0,<4.0.0",
   "sphinxcontrib-mermaid>=2.1.1,<3.0.0",
   "sphinx-copybutton>=0.5.2,<1.0.0",
-  "sphinx-design>=0.6.0,<1.0.0",
+  "sphinx-design>=0.8.0,<1.0.0",
   "sphinx-autobuild>=2024.10.3",
 ]
 

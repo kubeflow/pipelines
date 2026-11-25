@@ -335,12 +335,33 @@ def get_inputs_for_all_groups(
                 # PipelineChannel can be originated from the middle a DAG,
                 # which is not needed and visible to its parent DAG.
                 if (
+                    isinstance(channel, for_loop.LoopArgumentVariable)
+                    and channel.is_with_items_loop_argument
+                ):
+                    # A field of a dict loop item, such as item.a. Tasks and
+                    # groups below the loop select the field from the whole
+                    # item, so each group between the task and the loop needs
+                    # the item, and the field itself for conditions on it.
+                    # The item is only defined inside its own loop, so stop
+                    # there.
+                    loop_argument = channel.loop_argument
+                    parent_groups = task_name_to_parent_groups[task.name][::-1]
+                    inputs[parent_groups[0]].add((channel, None))
+                    for group_name in parent_groups[1:]:
+                        inputs[group_name].add((channel, None))
+                        loop_group = name_to_for_loop_group.get(group_name)
+                        if (
+                            loop_group is not None
+                            and loop_group.loop_argument is loop_argument
+                        ):
+                            break
+                        inputs[group_name].add((loop_argument, None))
+                elif (
                     isinstance(
                         channel,
                         (
                             for_loop.LoopParameterArgument,
                             for_loop.LoopArtifactArgument,
-                            for_loop.LoopArgumentVariable,
                         ),
                     )
                     and channel.is_with_items_loop_argument

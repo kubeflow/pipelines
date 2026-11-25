@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
@@ -45,6 +46,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -144,6 +146,15 @@ func normalizeAndValidateMetadataKey(key string) (string, error) {
 	return normalized, nil
 }
 
+var registerSchemeOnce sync.Once
+
+// registerScheme adds the controller types to the default Kubernetes scheme so
+// that Events can be logged for them. A scheme is only thread-safe after
+// registration, so main calls this before starting anything that uses it.
+func registerScheme() {
+	registerSchemeOnce.Do(func() { swfScheme.AddToScheme(scheme.Scheme) })
+}
+
 // NewController returns a new sample controller
 func NewController(
 	kubeClientSet kubernetes.Interface,
@@ -173,9 +184,7 @@ func NewController(
 	// obtain references to shared informers
 	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
 
-	// Add controller types to the default Kubernetes Scheme so Events can be
-	// logged for controller types.
-	swfScheme.AddToScheme(scheme.Scheme)
+	registerScheme()
 
 	// Create event broadcaster
 	log.Info("Creating event broadcaster")
@@ -500,6 +509,17 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 		processNextItemOperationDuration.WithLabelValues("swfget", "ok").Observe(time.Since(startTime).Seconds())
 	}
 
+	// The workflows of a ScheduledWorkflow are labeled with, and selected by, its name.
+	// Kubernetes accepts object names that are not valid label values (e.g. longer than
+	// 63 characters), and such an object can never have workflows.
+	if problems := validation.IsValidLabelValue(swf.Name); len(problems) > 0 {
+		// Permanent failure.
+		// Retrying cannot help: the name of an object does not change.
+		return false, false, swf,
+			fmt.Errorf("ScheduledWorkflow (%s) cannot be scheduled: its name is not a valid label value: %s",
+				key, strings.Join(problems, "; "))
+	}
+
 	// Get the current time
 	// NOTE: call time.Now() only once per event so that all the functions have a consistent
 	// number for the current time.
@@ -674,8 +694,9 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 
 	if swf.Spec.Workflow != nil {
 		runtimeConfig = &api.RuntimeConfig{
-			Parameters:   map[string]*structpb.Value{},
-			PipelineRoot: swf.Spec.Workflow.PipelineRoot,
+			Parameters:    map[string]*structpb.Value{},
+			PipelineRoot:  swf.Spec.Workflow.PipelineRoot,
+			EnableCaching: swf.Spec.Workflow.EnableCaching,
 		}
 
 		// Expand recurring-run macros such as [[ScheduledTime]], [[Index]] and

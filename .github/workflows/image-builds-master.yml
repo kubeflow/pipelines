@@ -3,10 +3,13 @@ on:
   push:
     branches:
       - master
+      - main
 permissions: {}
 
 jobs:
   build-images-for-master:
+    # Keep the :master image contract, with only the default branch publishing.
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     permissions:
       contents: read
       packages: write
@@ -30,6 +33,9 @@ jobs:
             context: .
           - name: kfp-viewer-crd-controller
             dockerfile: backend/Dockerfile.viewercontroller
+            context: .
+          - name: kfp-tensorboard
+            dockerfile: backend/Dockerfile.tensorboard
             context: .
           - name: kfp-launcher
             dockerfile: backend/Dockerfile.launcher
@@ -75,6 +81,7 @@ jobs:
           - image: kfp-persistence-agent
           - image: kfp-scheduled-workflow-controller
           - image: kfp-viewer-crd-controller
+          - image: kfp-tensorboard
           - image: kfp-launcher
           - image: kfp-driver
     uses: ./.github/workflows/create-manifest.yml

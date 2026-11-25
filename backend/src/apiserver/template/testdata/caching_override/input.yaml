@@ -1,0 +1,325 @@
+# PIPELINE DEFINITION
+# Name: nested-caching
+# Inputs:
+#    n: int [Default: 1.0]
+components:
+  comp-cleanup:
+    executorLabel: exec-cleanup
+  comp-condition-2:
+    dag:
+      tasks:
+        for-loop-4:
+          componentRef:
+            name: comp-for-loop-4
+          inputs:
+            parameters:
+              pipelinechannel--step-Output:
+                componentInputParameter: pipelinechannel--step-Output
+          parameterIterator:
+            itemInput: pipelinechannel--loop-item-param-3
+            items:
+              raw: '[1, 2, 3]'
+          taskInfo:
+            name: for-loop-4
+    inputDefinitions:
+      parameters:
+        pipelinechannel--step-Output:
+          parameterType: NUMBER_INTEGER
+  comp-exit-handler-1:
+    dag:
+      tasks:
+        condition-2:
+          componentRef:
+            name: comp-condition-2
+          dependentTasks:
+          - step
+          inputs:
+            parameters:
+              pipelinechannel--step-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: step
+          taskInfo:
+            name: condition-2
+          triggerPolicy:
+            condition: int(inputs.parameter_values['pipelinechannel--step-Output'])
+              > 0
+        inner-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-inner-2
+          inputs:
+            parameters:
+              x:
+                componentInputParameter: pipelinechannel--n
+          taskInfo:
+            name: inner-2
+        step:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-step
+          inputs:
+            parameters:
+              x:
+                componentInputParameter: pipelinechannel--n
+          taskInfo:
+            name: step
+    inputDefinitions:
+      parameters:
+        pipelinechannel--n:
+          parameterType: NUMBER_INTEGER
+  comp-for-loop-4:
+    dag:
+      tasks:
+        inner:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-inner
+          inputs:
+            parameters:
+              x:
+                componentInputParameter: pipelinechannel--loop-item-param-3
+          taskInfo:
+            name: inner
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-3:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--step-Output:
+          parameterType: NUMBER_INTEGER
+  comp-inner:
+    dag:
+      outputs:
+        parameters:
+          Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: step
+      tasks:
+        step:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-step-3
+          inputs:
+            parameters:
+              x:
+                componentInputParameter: x
+          taskInfo:
+            name: step
+    inputDefinitions:
+      parameters:
+        x:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-inner-2:
+    dag:
+      outputs:
+        parameters:
+          Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: step
+      tasks:
+        step:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-step-2
+          inputs:
+            parameters:
+              x:
+                componentInputParameter: x
+          taskInfo:
+            name: step
+    inputDefinitions:
+      parameters:
+        x:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-step:
+    executorLabel: exec-step
+    inputDefinitions:
+      parameters:
+        x:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-step-2:
+    executorLabel: exec-step-2
+    inputDefinitions:
+      parameters:
+        x:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-step-3:
+    executorLabel: exec-step-3
+    inputDefinitions:
+      parameters:
+        x:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+deploymentSpec:
+  executors:
+    exec-cleanup:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - cleanup
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.17.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef cleanup():\n    pass\n\n"
+        image: python:3.11-slim
+    exec-step:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - step
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.17.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef step(x: int) -> int:\n    return x\n\n"
+        image: python:3.11-slim
+    exec-step-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - step
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.17.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef step(x: int) -> int:\n    return x\n\n"
+        image: python:3.11-slim
+    exec-step-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - step
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.17.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef step(x: int) -> int:\n    return x\n\n"
+        image: python:3.11-slim
+pipelineInfo:
+  name: nested-caching
+root:
+  dag:
+    tasks:
+      cleanup:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-cleanup
+        dependentTasks:
+        - exit-handler-1
+        taskInfo:
+          name: cleanup
+        triggerPolicy:
+          strategy: ALL_UPSTREAM_TASKS_COMPLETED
+      exit-handler-1:
+        componentRef:
+          name: comp-exit-handler-1
+        inputs:
+          parameters:
+            pipelinechannel--n:
+              componentInputParameter: n
+        taskInfo:
+          name: exit-handler-1
+  inputDefinitions:
+    parameters:
+      n:
+        defaultValue: 1.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.17.0

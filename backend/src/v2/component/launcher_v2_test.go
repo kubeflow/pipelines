@@ -29,6 +29,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
@@ -58,6 +59,21 @@ type finalizationFailureAPI struct {
 	updateTaskErr      error
 	getRunErr          error
 	updateStatusesErr  error
+}
+
+// captureBulkUpdateAPI records the most recent UpdateTasksBulk request so a
+// test can assert exactly what the batch flush persisted.
+type captureBulkUpdateAPI struct {
+	kfpapi.API
+	lastBulkUpdate *apiv2.UpdateTasksBulkRequest
+}
+
+func (api *captureBulkUpdateAPI) UpdateTasksBulk(
+	ctx context.Context,
+	req *apiv2.UpdateTasksBulkRequest,
+) (*apiv2.UpdateTasksBulkResponse, error) {
+	api.lastBulkUpdate = req
+	return api.API.UpdateTasksBulk(ctx, req)
 }
 
 func (api *finalizationFailureAPI) UpdateTasksBulk(
@@ -226,6 +242,194 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestFinalizeExecutionClearsDebugPauseProperties reproduces the stale-barrier
+// bug: the launcher's in-memory task can still carry debug-pause custom
+// properties (published at a barrier whose best-effort ClearBarrier was lost
+// or overwritten), and the final batched update replaces StatusMetadata
+// wholesale. finalizeExecution writes the keys in their cleared state on the
+// final update, while leaving unrelated custom properties intact.
+func TestFinalizeExecutionClearsDebugPauseProperties(t *testing.T) {
+	t.Setenv(envKFPDebugPauseBefore, "true")
+	baseAPI := kfpapi.NewMockAPI()
+	run := &apiv2.Run{
+		RunId: "run",
+		PipelineSource: &apiv2.Run_PipelineSpec{
+			PipelineSpec: &structpb.Struct{},
+		},
+	}
+	baseAPI.AddRun(run)
+	task := &apiv2.PipelineTask{
+		TaskId: "task",
+		RunId:  run.GetRunId(),
+		StatusMetadata: &apiv2.PipelineTask_StatusMetadata{
+			CustomProperties: map[string]*structpb.Value{
+				customPropDebugPauseBarrier:         structpb.NewStringValue("before"),
+				customPropDebugPauseResumeRequested: structpb.NewStringValue("true"),
+				"unrelated_property":                structpb.NewStringValue("keep-me"),
+			},
+		},
+	}
+	_, err := baseAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
+		Task:  task,
+		RunId: run.GetRunId(),
+	})
+	require.NoError(t, err)
+
+	capturingAPI := &captureBulkUpdateAPI{API: baseAPI}
+	launcher := &LauncherV2{
+		options: LauncherV2Options{
+			Run:  run,
+			Task: task,
+		},
+		clientManager: client_manager.NewFakeClientManager(fake.NewSimpleClientset(), capturingAPI),
+		pipelineSpec:  &structpb.Struct{},
+		batchUpdater:  NewBatchUpdater(),
+	}
+
+	// finalizeExecution may return a downstream error (status propagation
+	// needs a full pipeline spec) - what matters is the batched task update
+	// it flushed first.
+	launcher.debugPauseCfg = NewDebugPauseConfigFromEnv()
+	_ = launcher.finalizeExecution(context.Background(), nil)
+
+	require.NotNil(t, capturingAPI.lastBulkUpdate, "finalization must flush a task update")
+	flushedTask := capturingAPI.lastBulkUpdate.GetTasks()[task.GetTaskId()]
+	require.NotNil(t, flushedTask)
+	props := flushedTask.GetStatusMetadata().GetCustomProperties()
+	assert.Equal(t, string(debugPauseBarrierNone), props[customPropDebugPauseBarrier].GetStringValue(),
+		"finished task's barrier must be explicitly cleared")
+	assert.Equal(t, "false", props[customPropDebugPauseResumeRequested].GetStringValue(),
+		"finished task's resume flag must be explicitly cleared")
+	assert.Equal(t, "keep-me", props["unrelated_property"].GetStringValue(), "unrelated custom properties must survive the clear")
+}
+
+// TestFinalizeExecutionClearsDebugPauseProperties_NilStatusMetadata covers the
+// hole in a purely in-memory strip: when the launcher's task snapshot has nil
+// StatusMetadata, deleting keys is a no-op and the final write's nil metadata
+// means "leave unchanged" to the task store - so a stale barrier persisted by
+// the API (e.g. via a lost ClearBarrier) would survive on a finished task.
+// The final update must carry the pause keys explicitly cleared instead.
+func TestFinalizeExecutionClearsDebugPauseProperties_NilStatusMetadata(t *testing.T) {
+	t.Setenv(envKFPDebugPauseBefore, "true")
+	baseAPI := kfpapi.NewMockAPI()
+	run := &apiv2.Run{
+		RunId: "run",
+		PipelineSource: &apiv2.Run_PipelineSpec{
+			PipelineSpec: &structpb.Struct{},
+		},
+	}
+	baseAPI.AddRun(run)
+	// The persisted record already carries a stale barrier; the launcher's
+	// in-memory task has no StatusMetadata at all.
+	task := &apiv2.PipelineTask{
+		TaskId: "task",
+		RunId:  run.GetRunId(),
+		StatusMetadata: &apiv2.PipelineTask_StatusMetadata{
+			CustomProperties: map[string]*structpb.Value{
+				customPropDebugPauseBarrier:         structpb.NewStringValue("before"),
+				customPropDebugPauseResumeRequested: structpb.NewStringValue("true"),
+			},
+		},
+	}
+	_, err := baseAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
+		Task:  task,
+		RunId: run.GetRunId(),
+	})
+	require.NoError(t, err)
+
+	inMemoryTask := &apiv2.PipelineTask{
+		TaskId: task.GetTaskId(),
+		RunId:  run.GetRunId(),
+		// StatusMetadata deliberately nil: the in-memory snapshot never saw
+		// the barrier state the record holds.
+	}
+	capturingAPI := &captureBulkUpdateAPI{API: baseAPI}
+	launcher := &LauncherV2{
+		options: LauncherV2Options{
+			Run:  run,
+			Task: inMemoryTask,
+		},
+		clientManager: client_manager.NewFakeClientManager(fake.NewSimpleClientset(), capturingAPI),
+		pipelineSpec:  &structpb.Struct{},
+		batchUpdater:  NewBatchUpdater(),
+	}
+
+	launcher.debugPauseCfg = NewDebugPauseConfigFromEnv()
+	_ = launcher.finalizeExecution(context.Background(), nil)
+
+	require.NotNil(t, capturingAPI.lastBulkUpdate, "finalization must flush a task update")
+	flushedTask := capturingAPI.lastBulkUpdate.GetTasks()[inMemoryTask.GetTaskId()]
+	require.NotNil(t, flushedTask)
+	props := flushedTask.GetStatusMetadata().GetCustomProperties()
+	assert.Equal(t, string(debugPauseBarrierNone), props[customPropDebugPauseBarrier].GetStringValue(),
+		"nil in-memory metadata must still write an explicitly cleared barrier")
+	assert.Equal(t, "false", props[customPropDebugPauseResumeRequested].GetStringValue(),
+		"nil in-memory metadata must still write an explicitly cleared resume flag")
+}
+
+// TestFinalizeExecutionClearsDebugPauseProperties_OnExecutorFailure covers the
+// interaction between the debug-pause clear and failure-path StatusMetadata
+// preservation: when a task fails while parked (e.g. resumed out of an
+// on_error barrier and finalized with the executor error), the final write
+// must set the failure Message AND clear the pause keys, while preserving
+// unrelated custom properties like driver_logs_uri. Now that the failure path
+// retains StatusMetadata instead of replacing it wholesale, the pause-key
+// clear is the only thing preventing a failed task from staying marked paused.
+func TestFinalizeExecutionClearsDebugPauseProperties_OnExecutorFailure(t *testing.T) {
+	t.Setenv(envKFPDebugPauseOnError, "true")
+	baseAPI := kfpapi.NewMockAPI()
+	run := &apiv2.Run{
+		RunId: "run",
+		PipelineSource: &apiv2.Run_PipelineSpec{
+			PipelineSpec: &structpb.Struct{},
+		},
+	}
+	baseAPI.AddRun(run)
+	task := &apiv2.PipelineTask{
+		TaskId: "task",
+		RunId:  run.GetRunId(),
+		StatusMetadata: &apiv2.PipelineTask_StatusMetadata{
+			CustomProperties: map[string]*structpb.Value{
+				customPropDebugPauseBarrier:         structpb.NewStringValue("on_error"),
+				customPropDebugPauseResumeRequested: structpb.NewStringValue("true"),
+				"driver_logs_uri":                   structpb.NewStringValue("s3://pipeline-root/driver-logs.txt"),
+			},
+		},
+	}
+	_, err := baseAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
+		Task:  task,
+		RunId: run.GetRunId(),
+	})
+	require.NoError(t, err)
+
+	capturingAPI := &captureBulkUpdateAPI{API: baseAPI}
+	launcher := &LauncherV2{
+		options: LauncherV2Options{
+			Run:  run,
+			Task: task,
+		},
+		clientManager: client_manager.NewFakeClientManager(fake.NewSimpleClientset(), capturingAPI),
+		pipelineSpec:  &structpb.Struct{},
+		batchUpdater:  NewBatchUpdater(),
+	}
+
+	launcher.debugPauseCfg = NewDebugPauseConfigFromEnv()
+	_ = launcher.finalizeExecution(context.Background(), errors.New("executor failed"))
+
+	require.NotNil(t, capturingAPI.lastBulkUpdate, "finalization must flush a task update")
+	flushedTask := capturingAPI.lastBulkUpdate.GetTasks()[task.GetTaskId()]
+	require.NotNil(t, flushedTask)
+	assert.Equal(t, apiv2.PipelineTask_FAILED, flushedTask.GetState())
+	assert.Equal(t, "executor failed", flushedTask.GetStatusMetadata().GetMessage())
+	props := flushedTask.GetStatusMetadata().GetCustomProperties()
+	assert.Equal(t, string(debugPauseBarrierNone), props[customPropDebugPauseBarrier].GetStringValue(),
+		"a failed task must not stay marked paused")
+	assert.Equal(t, "false", props[customPropDebugPauseResumeRequested].GetStringValue(),
+		"the resume flag must be explicitly cleared")
+	assert.Equal(t, "s3://pipeline-root/driver-logs.txt", props["driver_logs_uri"].GetStringValue(),
+		"unrelated custom properties must survive the failure path")
 }
 
 func TestPropagateOutputsUpDAGForTask_UsesExplicitDependencies(t *testing.T) {
@@ -2157,6 +2361,12 @@ func newLauncherForPluginLifecycleTestWithIO(
 	})
 	require.NoError(t, err)
 
+	// A separate copy for the launcher to mutate in memory, so a test asserting
+	// what the mock API store holds only sees it through an actual RPC call,
+	// not through this pointer being shared with m.tasks.
+	launcherTask, ok := proto.Clone(task).(*apiv2.PipelineTask)
+	require.True(t, ok)
+
 	opts := &LauncherV2Options{
 		Namespace:        "default",
 		PodName:          "plugin-pod",
@@ -2165,7 +2375,7 @@ func newLauncherForPluginLifecycleTestWithIO(
 		ComponentSpec:    &pipelinespec.ComponentSpec{},
 		TaskSpec:         &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "plugin-task"}},
 		Run:              run,
-		Task:             task,
+		Task:             launcherTask,
 		PipelineSpec:     pipelineSpecStructForLauncherPluginTest(t),
 		PluginDispatcher: recorder,
 	}
@@ -2350,4 +2560,65 @@ func TestParameterValuesToInterfaces_UsesInputMap(t *testing.T) {
 	gotOutputs := parameterValuesToInterfaces(outputs)
 	require.Equal(t, map[string]interface{}{"accuracy": 0.99}, gotOutputs)
 	assert.NotEqual(t, gotInputs, gotOutputs)
+}
+
+// A launcher that is killed before it reports (OOMKilled, evicted) never reaches the task update at
+// the end of Execute. The executor pod has to be on the stored task before user code starts, or the
+// API server cannot tie the dead pod to the task.
+func TestLauncherV2_Execute_RecordsExecutorPodBeforeRunningUserCode(t *testing.T) {
+	launcher := newLauncherForPluginLifecycleTest(t, &recordingPluginDispatcher{}, nil)
+	apiClient := launcher.clientManager.KFPAPIClient()
+
+	var podsWhenUserCodeRan []*apiv2.PipelineTask_TaskPod
+	mockCmd, ok := launcher.cmdExecutor.(*MockCommandExecutor)
+	require.True(t, ok)
+	mockCmd.RunFunc = func(ctx context.Context, _ string, _ []string, _ io.Reader, _, _ io.Writer) error {
+		stored, err := apiClient.GetTask(ctx, &apiv2.GetTaskRequest{TaskId: "plugin-task", RunId: "plugin-run"})
+		require.NoError(t, err)
+		podsWhenUserCodeRan = stored.GetPods()
+		return errors.New("signal: killed")
+	}
+
+	require.Error(t, launcher.Execute(context.Background()))
+
+	require.Len(t, podsWhenUserCodeRan, 1)
+	assert.Equal(t, "plugin-pod", podsWhenUserCodeRan[0].GetName())
+	assert.Equal(t, "plugin-pod-uid", podsWhenUserCodeRan[0].GetUid())
+	assert.Equal(t, apiv2.PipelineTask_EXECUTOR, podsWhenUserCodeRan[0].GetType())
+}
+
+// If the write that records the executor pod identity fails, the attempt must fail outright
+// instead of continuing: a best-effort write here would let the one gap this PR exists to close
+// reopen silently, just with a different trigger (a failed write instead of a killed launcher).
+func TestLauncherV2_Execute_FailsAttemptWhenExecutorPodWriteFails(t *testing.T) {
+	recorder := &recordingPluginDispatcher{}
+	launcher := newLauncherForPluginLifecycleTest(t, recorder, nil)
+
+	failingAPI := &finalizationFailureAPI{
+		API:           launcher.clientManager.KFPAPIClient(),
+		updateTaskErr: errors.New("apiserver unavailable"),
+	}
+	launcher.clientManager = client_manager.NewFakeClientManager(
+		launcher.clientManager.K8sClient(),
+		failingAPI,
+	)
+
+	var userCodeRan bool
+	mockCmd, ok := launcher.cmdExecutor.(*MockCommandExecutor)
+	require.True(t, ok)
+	mockCmd.RunFunc = func(ctx context.Context, _ string, _ []string, _ io.Reader, _, _ io.Writer) error {
+		userCodeRan = true
+		return nil
+	}
+
+	err := launcher.Execute(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "record executor pod")
+	assert.False(t, userCodeRan, "user code must not run once the executor pod write has failed")
+
+	assert.Equal(t, apiv2.PipelineTask_FAILED, launcher.options.Task.GetState())
+	assert.Equal(t, 1, recorder.endCount)
+	require.Len(t, recorder.endStates, 1)
+	assert.Equal(t, apiv2.PipelineTask_FAILED, recorder.endStates[0],
+		"OnTaskEnd must observe FAILED even though finalization itself succeeded")
 }

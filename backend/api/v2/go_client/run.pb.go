@@ -889,12 +889,18 @@ func (*Run_PipelineVersionReference) isRun_PipelineSource() {}
 // Reference to an existing pipeline version.
 type PipelineVersionReference struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Input. Required. Unique ID of the parent pipeline.
+	// Input. Unique ID of the parent pipeline. Required unless pipeline_name is set.
 	PipelineId string `protobuf:"bytes,1,opt,name=pipeline_id,json=pipelineId,proto3" json:"pipeline_id,omitempty"`
 	// Input. Optional. Unique ID of an existing pipeline version. If unset, the latest pipeline version is used.
 	PipelineVersionId string `protobuf:"bytes,2,opt,name=pipeline_version_id,json=pipelineVersionId,proto3" json:"pipeline_version_id,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Input. Optional. Name of the parent pipeline in the run's namespace, used
+	// instead of pipeline_id. Not returned in responses.
+	PipelineName string `protobuf:"bytes,3,opt,name=pipeline_name,json=pipelineName,proto3" json:"pipeline_name,omitempty"`
+	// Input. Optional. Name of a version of the pipeline named by pipeline_name,
+	// used instead of pipeline_version_id. Not returned in responses.
+	PipelineVersionName string `protobuf:"bytes,4,opt,name=pipeline_version_name,json=pipelineVersionName,proto3" json:"pipeline_version_name,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *PipelineVersionReference) Reset() {
@@ -937,6 +943,20 @@ func (x *PipelineVersionReference) GetPipelineId() string {
 func (x *PipelineVersionReference) GetPipelineVersionId() string {
 	if x != nil {
 		return x.PipelineVersionId
+	}
+	return ""
+}
+
+func (x *PipelineVersionReference) GetPipelineName() string {
+	if x != nil {
+		return x.PipelineName
+	}
+	return ""
+}
+
+func (x *PipelineVersionReference) GetPipelineVersionName() string {
+	if x != nil {
+		return x.PipelineVersionName
 	}
 	return ""
 }
@@ -3074,11 +3094,13 @@ const file_backend_api_v2_run_proto_rawDesc = "" +
 	"\x19STORAGE_STATE_UNSPECIFIED\x10\x00\x12\r\n" +
 	"\tAVAILABLE\x10\x01\x12\f\n" +
 	"\bARCHIVED\x10\x02B\x11\n" +
-	"\x0fpipeline_source\"k\n" +
+	"\x0fpipeline_source\"\xc4\x01\n" +
 	"\x18PipelineVersionReference\x12\x1f\n" +
 	"\vpipeline_id\x18\x01 \x01(\tR\n" +
 	"pipelineId\x12.\n" +
-	"\x13pipeline_version_id\x18\x02 \x01(\tR\x11pipelineVersionId\"\xbd\x01\n" +
+	"\x13pipeline_version_id\x18\x02 \x01(\tR\x11pipelineVersionId\x12#\n" +
+	"\rpipeline_name\x18\x03 \x01(\tR\fpipelineName\x122\n" +
+	"\x15pipeline_version_name\x18\x04 \x01(\tR\x13pipelineVersionName\"\xbd\x01\n" +
 	"\rRuntimeStatus\x12;\n" +
 	"\vupdate_time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"updateTime\x12E\n" +

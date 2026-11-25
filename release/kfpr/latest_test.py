@@ -13,6 +13,13 @@ from kfpr.ranges import ReleaseRange
 
 class LatestReleaseTest(unittest.TestCase):
     def setUp(self):
+        evidence = mock.patch.object(
+            steps,
+            '_editorial_evidence',
+            return_value='## Contributors\n\nFixture contributors.\n\n## Assets\n\nFixture source archives.\n',
+        )
+        evidence.start()
+        self.addCleanup(evidence.stop)
         directory = TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         root = Path(directory.name)
@@ -39,6 +46,7 @@ class LatestReleaseTest(unittest.TestCase):
             ('read_commits', []),
             ('_remote_release_sha', 'a' * 40),
             ('confirm', None),
+            ('review_release_notes', []),
         ):
             patcher = mock.patch('kfpr.steps.' + target, return_value=result)
             patcher.start()
@@ -46,6 +54,7 @@ class LatestReleaseTest(unittest.TestCase):
         self.releases('2.17.2')
         for target in (
             'qualification.require_qualification',
+            'rtd.publish_backend_docs',
             '_ensure_release_tag',
             'watch_latest_workflow_run',
         ):

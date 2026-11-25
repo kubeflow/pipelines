@@ -34,6 +34,11 @@ const NostyleTooltip = styled(({ className, ...props }: TooltipProps) => (
 interface CardTooltipProps {
   helpText?: ReactNode;
   children: React.ReactElement;
+  // Optional controlled state, for callers that also open the tooltip from somewhere other
+  // than the child (for example when a neighbouring control receives keyboard focus).
+  open?: boolean;
+  onOpen?: () => void;
+  onClose?: () => void;
 }
 export const CardTooltip: React.FC<CardTooltipProps> = (props) => {
   return (
@@ -47,6 +52,9 @@ export const CardTooltip: React.FC<CardTooltipProps> = (props) => {
       disableInteractive={false}
       leaveDelay={400}
       placement='top'
+      open={props.open}
+      onOpen={props.onOpen}
+      onClose={props.onClose}
     >
       {props.children}
     </NostyleTooltip>

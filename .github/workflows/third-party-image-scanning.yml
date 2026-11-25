@@ -33,6 +33,9 @@ jobs:
           tar -xzf "${RUNNER_TEMP}/${kustomize_archive}" -C "${RUNNER_TEMP}"
           chmod +x "${RUNNER_TEMP}/kustomize"
 
+      - name: Ensure GitHub CLI is available
+        run: bash .github/resources/scripts/setup-github-cli.sh
+
       - name: Resolve branch heads and render third-party inventory
         id: inventory
         env:
@@ -159,7 +162,7 @@ jobs:
   upload:
     needs: [inventory, scan, report]
     # Candidate runs validate evidence without changing production alert state.
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -221,7 +224,7 @@ jobs:
           path: source
           persist-credentials: false
       - name: Publish third-party findings to GitHub Security
-        uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
+        uses: github/codeql-action/upload-sarif@38112626f97ac1fd7acf3df7ebca51f4677c1b38 # v4
         with:
           sarif_file: findings.sarif
           category: ${{ matrix.category }}

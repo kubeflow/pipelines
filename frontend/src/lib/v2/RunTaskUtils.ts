@@ -56,6 +56,12 @@ export function getTaskLifecycleMessage(task?: V2PipelineTask): string | undefin
   return task.lifecycle_message;
 }
 
+// Returns the classified category of the task's lifecycle message, under the same rule as
+// getTaskLifecycleMessage: nothing is returned when there is no live message.
+export function getTaskLifecycleCategory(task?: V2PipelineTask): string | undefined {
+  return getTaskLifecycleMessage(task) ? task?.lifecycle_category || undefined : undefined;
+}
+
 export function getRunDisplayName(run: V2Run, fallback = 'Run'): string {
   return run.display_name || run.run_id || fallback;
 }

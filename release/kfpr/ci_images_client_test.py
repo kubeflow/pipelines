@@ -22,11 +22,30 @@ INVENTORY = [{'name': 'kfp-api-server', 'platform': 'linux/amd64'}]
 
 
 class CIImagesClientTest(unittest.TestCase):
+    def test_api_constructs_repository_and_nested_endpoints(self):
+        context = SimpleNamespace(root=Path('/tmp'), runner=Mock())
+        context.runner.capture.return_value = '{"default_branch": "master"}'
+        self.assertEqual(
+            client.default_branch(
+                lambda endpoint: client._api(context, endpoint)
+            ),
+            'master',
+        )
+        context.runner.capture.assert_called_once_with(
+            ['gh', 'api', 'repos/kubeflow/pipelines'], cwd=context.root
+        )
+        client._api(context, 'actions/runs/123')
+        context.runner.capture.assert_called_with(
+            ['gh', 'api', 'repos/kubeflow/pipelines/actions/runs/123'],
+            cwd=context.root,
+        )
+
     def identity(self):
         return {
             'repository': client.REPO,
             'workflow': client.WORKFLOW,
             'workflow_sha': WORKFLOW_SHA,
+            'workflow_ref': getattr(self, 'branch', 'master'),
             'source_sha': SHA,
             'version': '2.17.3',
             'request_id': REQUEST,
@@ -43,6 +62,7 @@ class CIImagesClientTest(unittest.TestCase):
             'path': client.WORKFLOW,
             'event': 'workflow_dispatch',
             'head_sha': WORKFLOW_SHA,
+            'head_branch': getattr(self, 'branch', 'master'),
             'display_title': identity['title'],
             'run_attempt': 1,
             'status': 'completed',
@@ -303,7 +323,13 @@ class CIImagesClientTest(unittest.TestCase):
         def capture(command, **kwargs):
             endpoint = command[-1]
             calls.append(endpoint)
-            if endpoint.endswith('commits/master'):
+            if endpoint == 'repos/kubeflow/pipelines':
+                return json.dumps(
+                    {'default_branch': getattr(self, 'branch', 'master')}
+                )
+            if endpoint.endswith(
+                'commits/' + getattr(self, 'branch', 'master')
+            ):
                 return json.dumps({'sha': WORKFLOW_SHA})
             if '/contents/' in endpoint:
                 return json.dumps({'type': 'file', 'path': client.WORKFLOW})
@@ -326,6 +352,10 @@ class CIImagesClientTest(unittest.TestCase):
         context.runner.run.side_effect = run
         return calls
 
+    def test_dispatch_uses_main_after_default_branch_rename(self):
+        self.branch = 'main'
+        self.test_dispatch_download_and_post_download_recheck()
+
     def test_dispatch_download_and_post_download_recheck(self):
         with (
             TemporaryDirectory() as temporary,
@@ -346,6 +376,10 @@ class CIImagesClientTest(unittest.TestCase):
                 2,
             )
             dispatch = context.runner.run.call_args_list[0].args[0]
+            self.assertEqual(
+                dispatch[dispatch.index('--ref') + 1],
+                getattr(self, 'branch', 'master'),
+            )
             self.assertIn(f'source_sha={SHA}', dispatch)
             self.assertIn(f'request_id={REQUEST}', dispatch)
             downloads = [
@@ -415,6 +449,7 @@ class CIImagesClientTest(unittest.TestCase):
         with TemporaryDirectory() as temporary:
             context = self.context(Path(temporary))
             context.runner.capture.side_effect = [
+                json.dumps({'default_branch': 'master'}),
                 json.dumps({'sha': WORKFLOW_SHA}),
                 subprocess.CalledProcessError(
                     1,
@@ -454,6 +489,7 @@ class CIImagesClientTest(unittest.TestCase):
             ):
                 context = self.context(Path(temporary))
                 context.runner.capture.side_effect = [
+                    json.dumps({'default_branch': 'master'}),
                     json.dumps({'sha': WORKFLOW_SHA}),
                     json.dumps({'type': 'file', 'path': client.WORKFLOW}),
                 ] + [json.dumps({'workflow_runs': runs})] * 24

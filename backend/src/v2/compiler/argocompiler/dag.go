@@ -456,6 +456,27 @@ func (c *workflowCompiler) propagateIterationIndexToNestedDAGTemplates(templateN
 				return err
 			}
 		}
+
+		// Exit lifecycle hooks are only reachable through task.Hooks, never through
+		// DAG.Tasks, so the loop above does not see them. A hook attached inside a
+		// loop body runs once per iteration and its driver resolves inputs relative
+		// to that iteration, so it needs the same iteration-index as its sibling
+		// tasks. Without it the driver falls back to its "-1" default and resolves
+		// against the wrong iteration.
+		for event, hook := range task.Hooks {
+			hookTemplate, hookExists := c.templates[hook.Template]
+			if !hookExists || hookTemplate == nil || hookTemplate.DAG == nil {
+				continue
+			}
+			hook.Arguments.Parameters = appendParameterIfMissing(hook.Arguments.Parameters, wfapi.Parameter{
+				Name:  paramIterationIndex,
+				Value: wfapi.AnyStringPtr(inputParameter(paramIterationIndex)),
+			})
+			task.Hooks[event] = hook
+			if err := c.propagateIterationIndexToNestedDAGTemplates(hook.Template, visited); err != nil {
+				return err
+			}
+		}
 	}
 
 	c.syncTemplate(templateName)

@@ -21,8 +21,10 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 )
@@ -310,6 +312,51 @@ func TestCreateRunDoesNotReleaseAnotherRecurringClaim(t *testing.T) {
 			}
 			_, err = NewRunStore(db, util.NewFakeTimeForEpoch(), d).CreateRun(run)
 			require.NoError(t, err)
+			state, err := store.GetRecurringRunState("1")
+			require.NoError(t, err)
+			require.Equal(t, claim, state)
+		})
+	}
+}
+
+func TestCreateRunDoesNotAdoptAnotherOwnersRun(t *testing.T) {
+	for _, owner := range []string{"same", "one-off", "job-id", "namespace", "standalone namespace"} {
+		t.Run(owner, func(t *testing.T) {
+			// Namespaces separate owners only in multi-user mode.
+			previous := viper.Get(common.MultiUserMode)
+			viper.Set(common.MultiUserMode, owner != "standalone namespace")
+			t.Cleanup(func() { viper.Set(common.MultiUserMode, previous) })
+			db, d, store := initializeDBAndStore()
+			t.Cleanup(func() { require.NoError(t, db.Close()) })
+			runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), d)
+			newTick := func() *model.Run {
+				return &model.Run{
+					UUID: util.NewDeterministicUUID("1/tick/1"), DisplayName: "tick", RecurringRunId: "1",
+					ExperimentId: defaultFakeExpId, Namespace: "n1", RunDetails: model.RunDetails{State: model.RuntimeStateSucceeded},
+				}
+			}
+			existing := newTick()
+			switch owner {
+			case "one-off":
+				existing.RecurringRunId = ""
+			case "job-id":
+				existing.RecurringRunId = "2"
+			case "namespace", "standalone namespace":
+				existing.Namespace = "n2"
+			}
+			_, err := runStore.CreateRun(existing)
+			require.NoError(t, err)
+			claim, err := store.ClaimRecurringRun("1", "tick", 0, 100, 110, "")
+			require.NoError(t, err)
+
+			created, err := runStore.CreateRun(newTick())
+			if owner == "same" || owner == "standalone namespace" {
+				require.NoError(t, err)
+				require.Equal(t, existing.UUID, created.UUID)
+				return
+			}
+			require.True(t, util.IsUserErrorCodeMatch(err, codes.AlreadyExists), "another owner's run must not be returned as this tick: %v", err)
+			require.Nil(t, created)
 			state, err := store.GetRecurringRunState("1")
 			require.NoError(t, err)
 			require.Equal(t, claim, state)

@@ -200,9 +200,21 @@ class ExpectedWorkflowsTest(unittest.TestCase):
             if workflow['pull_request'] is not None
         ]
         # The default-branch publisher also handles release-branch reruns.
-        legacy = 'KFP API Integration V2 (Legacy)'
-        if legacy not in expected:
-            expected.append(legacy)
+        release_names = {
+            'Artifact storage acceptance',
+            'KFP backend visualization tests',
+            'Build tools images merge group',
+            'Legacy cache rolling upgrade',
+            'KFP API Integration v1 tests',
+            'KFP API Integration V2 (Legacy)',
+            'PostgreSQL image retained-data upgrade',
+            'Runtime Base Images Merge Group',
+            'TensorBoard runtime acceptance',
+            'Upgrade readiness tool',
+            'KFP SDK Isort Test',
+            'KFP SDK YAPF Tests',
+        }
+        expected.extend(release_names - set(expected))
         workflow = (ROOT / '.github/workflows/ci-checks.yml').read_text()
         selector = workflow.split('  workflow_run:\n', 1)[1].split(
             '    workflows:\n', 1
@@ -799,6 +811,55 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
         self.assertEqual(len(result['recordCalls']), 1)
         self.assertEqual(result['fallbackCalls'], [])
 
+    def test_rename_requires_controlled_bootstrap_then_fresh_main_ci(self):
+        old_base = 'c' * 40
+        bootstrap_base = 'd' * 40
+        old_record = {
+            'number': 8,
+            'merged_at': '2026-09-07T11:00:00Z',
+            'base': {'ref': 'master', 'repo': {'full_name': 'owner/repo'}},
+        }
+        fresh_run = good_run(created_at='2026-09-07T12:00:00Z')
+        trigger = {'branches': ['master', 'main'], 'paths': ['frontend/**']}
+        before = verify(
+            base_sha=old_base,
+            associated_prs=[old_record],
+            runs=[fresh_run],
+            trigger=trigger,
+        )
+        renamed = verify(
+            base_sha=old_base,
+            base_ref='main',
+            associated_prs=[old_record],
+            runs=[fresh_run],
+            trigger=trigger,
+        )
+        self.assertEqual(before['state'], 'success')
+        self.assertEqual(renamed['state'], 'pending')
+        self.assertIn('no merged PR for base', renamed['reasons'][0])
+
+        # Only a separately authorized PR merge on main creates its own arrival
+        # provenance. Renaming the branch or rerunning old CI cannot supply it.
+        bootstrap_record = {
+            'number': 9,
+            'merged_at': '2026-09-07T13:00:00Z',
+            'base': {'ref': 'main', 'repo': {'full_name': 'owner/repo'}},
+        }
+        for created_at, expected in (
+            ('2026-09-07T12:00:00Z', 'pending'),
+            ('2026-09-07T13:00:00Z', 'pending'),
+            ('2026-09-07T13:00:01Z', 'success'),
+        ):
+            with self.subTest(created_at=created_at):
+                result = verify(
+                    base_sha=bootstrap_base,
+                    base_ref='main',
+                    associated_prs=[bootstrap_record],
+                    trigger=trigger,
+                    runs=[good_run(created_at=created_at)],
+                )
+                self.assertEqual(result['state'], expected)
+
     def test_missing_base_merge_record_requires_maintainer(self):
         # A direct push leaves no merged PR for the base revision, so its
         # arrival time cannot be established. Fresh CI cannot fix that; the
@@ -1116,19 +1177,90 @@ gate.verifyExpectedWorkflows({{github, owner: 'owner', repo: 'repo', ...inventor
                 self.assertEqual(result['state'], 'failure')
                 self.assertIn('replacement', ' '.join(result['reasons']))
 
+    def test_main_retirement_requires_fresh_successful_replacement(self):
+        legacy = '.github/workflows/legacy-v2-api-integration-tests.yml'
+        replacement = '.github/workflows/api-server-tests.yml'
+        for conclusion, fresh_after, passed in [
+            ('success', None, True),
+            ('failure', None, False),
+            ('success', '2026-09-07T13:00:00Z', False),
+        ]:
+            with self.subTest(conclusion=conclusion, fresh_after=fresh_after):
+                result = verify(
+                    base_ref='main',
+                    workflow_paths=[legacy, replacement],
+                    trigger={'paths': ['backend/**']},
+                    files=[
+                        {'filename': 'backend/test/v2/api/cache_api_test.go'}
+                    ],
+                    runs=[good_run(path=replacement, conclusion=conclusion)],
+                    fresh_after=fresh_after,
+                )
+                self.assertEqual(result['expected'], [replacement])
+                self.assertEqual(result['passed'], passed)
+                self.assertEqual(result['disabled'][0]['path'], legacy)
+
+    def test_main_retirement_rejects_missing_replacement(self):
+        legacy = '.github/workflows/legacy-v2-api-integration-tests.yml'
+        result = verify(
+            base_ref='main',
+            workflow_paths=[legacy],
+            trigger={'paths': ['backend/**']},
+            files=[{'filename': 'backend/test/v2/api/cache_api_test.go'}],
+            runs=[good_run(path=legacy)],
+        )
+        self.assertEqual(result['state'], 'failure')
+        self.assertIn('replacement', ' '.join(result['reasons']))
+
+    def test_release_pr_requires_pre_commit(self):
+        pre_commit = '.github/workflows/pre-commit.yml'
+        frontend = '.github/workflows/frontend.yml'
+        other = good_run(path=frontend)
+        for paths, runs, state in [
+            ([frontend], [other], 'failure'),
+            ([frontend, pre_commit], [other], 'pending'),
+            (
+                [frontend, pre_commit],
+                [
+                    other,
+                    good_run(id=101, path=pre_commit, conclusion='failure'),
+                ],
+                'failure',
+            ),
+            (
+                [frontend, pre_commit],
+                [other, good_run(id=101, path=pre_commit)],
+                'success',
+            ),
+        ]:
+            with self.subTest(paths=paths, state=state):
+                result = verify(
+                    base_ref='release-2.18',
+                    workflow_paths=paths,
+                    trigger={'branches': ['release-2.18']},
+                    runs=runs,
+                )
+                self.assertEqual(result['state'], state, result)
+
     def test_release_branches_still_require_legacy(self):
         legacy = '.github/workflows/legacy-v2-api-integration-tests.yml'
         replacement = '.github/workflows/api-server-tests.yml'
+        pre_commit = '.github/workflows/pre-commit.yml'
         result = verify(
             base_ref='release-2.18',
-            workflow_paths=[legacy, replacement],
+            workflow_paths=[legacy, replacement, pre_commit],
             trigger={'paths': ['backend/**']},
             files=[{'filename': 'backend/test/v2/api/cache_api_test.go'}],
-            runs=[good_run(path=replacement)],
+            runs=[
+                good_run(path=replacement),
+                good_run(id=101, path=pre_commit),
+            ],
         )
         self.assertEqual(result['state'], 'pending')
         self.assertEqual(result['missing'], [legacy])
-        self.assertCountEqual(result['expected'], [legacy, replacement])
+        self.assertCountEqual(
+            result['expected'], [legacy, replacement, pre_commit]
+        )
         self.assertEqual(result['disabled'], [])
 
     def test_real_api_trigger_covers_legacy_workflow_deletion(self):

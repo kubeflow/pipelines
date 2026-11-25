@@ -1,8 +1,28 @@
 name: KFP SDK Tests
 
 on:
+  workflow_dispatch:
+    inputs:
+      queue_head_sha:
+        description: Exact queue candidate SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_ref:
+        description: Queue target branch, master, main, or release-2.18 (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_sha:
+        description: Current target branch SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+  merge_group:
+    types: [checks_requested]
+    branches: [master, main, release-2.18]
   push:
-    branches: [master]
+    branches: [master, main]
   pull_request:
     paths:
       - '**/pyproject.toml'
@@ -25,6 +45,16 @@ permissions:
   contents: read
 
 jobs:
+  queue-dispatch-guard:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/queue-dispatch-guard.yml
+    with:
+      queue_head_sha: ${{ inputs.queue_head_sha }}
+      queue_base_ref: ${{ inputs.queue_base_ref }}
+      queue_base_sha: ${{ inputs.queue_base_sha }}
+
   sdk-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 50
@@ -53,6 +83,7 @@ jobs:
         SETUP_ENV: false
         REPO_NAME: ${{ github.repository }}
         PULL_NUMBER: ${{ github.event.pull_request.number }}
+        TEST_SOURCE_REF: ${{ github.event.merge_group.head_sha || (startsWith(github.ref, 'refs/heads/gh-readonly-queue/') && github.sha) || '' }}
         PYTEST_PARALLEL_WORKERS: 2
       run: |
         ./test/presubmit-tests-sdk.sh
@@ -61,3 +92,14 @@ jobs:
       run: |
         # Source-tree Google Cloud components are outside this migration's scope.
         python -m pytest -q test_data/component_migration_test.py
+
+    - name: Upload SDK timing reports
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+      with:
+        name: sdk-regression-timings-python-${{ matrix.python-version }}
+        path: |
+          sdk-regression*.xml
+          sdk-regression*.log
+        retention-days: 14
+        if-no-files-found: ignore

@@ -145,10 +145,42 @@ class SetupGitHubCliTest(unittest.TestCase):
         self.assertIn('setup-github-cli.sh', result.stderr)
         self.assertFalse((self.root / 'calls').exists())
 
-    def test_deploy_provisions_cli_before_polling(self):
+    def test_inventory_provisions_cli_before_branch_discovery(self):
+        workflow = yaml.safe_load(
+            (
+                SCRIPTS.parents[1]
+                / 'workflows'
+                / 'third-party-image-scanning.yml'
+            ).read_text()
+        )
+        steps = workflow['jobs']['inventory']['steps']
+        setup = [
+            i
+            for i, step in enumerate(steps)
+            if step.get('run')
+            == 'bash .github/resources/scripts/setup-github-cli.sh'
+        ]
+        self.assertEqual(len(setup), 1, 'Inventory must provision GitHub CLI')
+        discovery = next(
+            i
+            for i, step in enumerate(steps)
+            if 'third_party_image_scan.py discover' in step.get('run', '')
+        )
+        self.assertLess(setup[0], discovery)
+        self.assertNotIn('if', steps[setup[0]])
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        binary = Path((self.root / 'path').read_text().strip()) / 'gh'
+        self.assertTrue(binary.is_file())
+        self.assertIn('gh-test', subprocess.check_output([binary], text=True))
+
+    def test_shared_download_provisions_cli_before_image_operations(self):
         action = yaml.safe_load(
             (
-                SCRIPTS.parents[1] / 'actions' / 'deploy' / 'action.yml'
+                SCRIPTS.parents[1]
+                / 'actions'
+                / 'shared-ci-images'
+                / 'action.yml'
             ).read_text()
         )
         commands = [step.get('run', '') for step in action['runs']['steps']]
@@ -157,12 +189,14 @@ class SetupGitHubCliTest(unittest.TestCase):
             for i, command in enumerate(commands)
             if 'setup-github-cli.sh' in command
         )
-        polling = next(
+        image_operations = [
             i
             for i, command in enumerate(commands)
-            if 'wait-for-image-artifacts.sh' in command
-        )
-        self.assertLess(setup, polling)
+            if 'shared_ci_images.py' in command
+        ]
+        self.assertTrue(image_operations)
+        for operation in image_operations:
+            self.assertLess(setup, operation)
 
 
 if __name__ == '__main__':

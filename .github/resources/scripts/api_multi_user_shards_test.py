@@ -23,7 +23,9 @@ import unittest
 from itertools import product
 from pathlib import Path
 
+import verify_migrated_specs
 import yaml
+from artifact_workflow_test_support import evaluate, render
 
 ROOT = Path(__file__).resolve().parents[3]
 WORKFLOW = ROOT / '.github/workflows/api-server-tests.yml'
@@ -35,6 +37,7 @@ CONFIGURATIONS = {('mysql', 'true'), ('mysql', 'false'), ('pgx', 'true')}
 SHARD_FILTERS = {
     'A': '(ApiPipelineShardA || Pipeline)',
     'B': '!(ApiPipelineShardA || Pipeline)',
+    'C': '!(ApiPipelineShardA || Pipeline) && !LegacyMigration',
 }
 
 
@@ -44,7 +47,7 @@ def render_references(value, context):
     def substitute(match):
         expression = match.group(1).strip()
         if not re.fullmatch(r'[\w-]+(?:\.[\w-]+)+', expression):
-            raise AssertionError(f'Unsupported expression: {expression}')
+            return render(match.group(0), context)
         result = context
         for key in expression.split('.'):
             result = result.get(key, '') if isinstance(result, dict) else ''
@@ -66,24 +69,23 @@ class ApiMultiUserShardsTest(unittest.TestCase):
             'backend/test/constants/**', workflow['on']['pull_request']['paths']
         )
 
-    def matrix_rows(self, event):
+    def matrix_rows(self, event, ref='refs/heads/master'):
         matrix = self.job['strategy']['matrix']
         self.assertIn('test_shard', matrix)
-        # Match the two literal dispatch branches, without pretending to
-        # implement the GitHub Actions expression language.
-        branches = re.fullmatch(
-            r"\$\{\{ fromJSON\(github\.event_name == 'workflow_dispatch' && "
-            r"'([^']+)' \|\| '([^']+)'\) \}\}",
-            matrix['test_shard'],
+        expression = re.fullmatch(
+            r'\$\{\{ fromJSON\((.*)\) \}\}', matrix['test_shard']
         )
-        self.assertIsNotNone(branches)
+        self.assertIsNotNone(expression)
         shard_values = json.loads(
-            branches.group(1 if event == 'workflow_dispatch' else 2)
+            evaluate(
+                expression.group(1),
+                {'github': {'event_name': event, 'ref': ref}},
+            )
         )
-        self.assertEqual(
-            shard_values,
-            ['all'] if event == 'workflow_dispatch' else ['A', 'B'],
-        )
+        if event == 'workflow_dispatch' and not ref.startswith(
+            'refs/heads/gh-readonly-queue/'
+        ):
+            self.assertEqual(shard_values, ['all'])
         axes = {
             key: shard_values if key == 'test_shard' else value
             for key, value in matrix.items()
@@ -119,7 +121,7 @@ class ApiMultiUserShardsTest(unittest.TestCase):
 
     def test_automatic_and_manual_matrices_preserve_deployment_coverage(self):
         for event, shards in (
-            ('pull_request', ['A', 'B']),
+            ('pull_request', ['A', 'B', 'C']),
             ('workflow_dispatch', ['all']),
         ):
             with self.subTest(event=event):
@@ -137,6 +139,7 @@ class ApiMultiUserShardsTest(unittest.TestCase):
                         (*configuration, shard)
                         for configuration in CONFIGURATIONS
                         for shard in shards
+                        if not (configuration[1] == 'false' and shard == 'C')
                     ],
                 )
                 for row in rows:
@@ -160,13 +163,13 @@ class ApiMultiUserShardsTest(unittest.TestCase):
                     ]
                     self.assertEqual(len(names), len(set(names)), names)
 
-    def configure(self, row, event, inputs):
+    def configure(self, row, event, inputs, ref='refs/heads/master'):
         step = next(
             step for step in self.job['steps'] if step.get('id') == 'configure'
         )
         context = {
             'matrix': row,
-            'github': {'event_name': event},
+            'github': {'event_name': event, 'ref': ref},
             'env': self.workflow['env'],
             'inputs': inputs,
         }
@@ -263,6 +266,8 @@ class ApiMultiUserShardsTest(unittest.TestCase):
                     f'({BASE_FILTERS[row["cache_enabled"]]}) && '
                     f'{SHARD_FILTERS[row["test_shard"]]}'
                 )
+                if row['test_shard'] == 'B' and row['cache_enabled'] == 'true':
+                    expected_label += ' && LegacyMigration'
                 expected_label = f'({expected_label}) || LegacyAPICompatibility'
                 if row['cache_enabled'] == 'false':
                     expected_label = f'({expected_label}) && !LegacyCache'
@@ -289,6 +294,162 @@ class ApiMultiUserShardsTest(unittest.TestCase):
             test_inputs['default_namespace'],
             '${{ steps.configure.outputs.NAMESPACE }}',
         )
+
+    def test_queue_dispatch_retains_automatic_shards_and_filters(self):
+        inputs = {
+            'test_label': 'DO_NOT_APPLY',
+            'number_of_parallel_tests': '99',
+            'namespace': 'DO_NOT_APPLY',
+        }
+        for branch in ['master', 'main']:
+            ref = f'refs/heads/gh-readonly-queue/{branch}/pr-7-candidate'
+            self.assertEqual(
+                self.matrix_rows('workflow_dispatch', ref),
+                self.matrix_rows('pull_request'),
+            )
+            for row in self.matrix_rows('workflow_dispatch', ref):
+                self.assertEqual(
+                    self.configure(row, 'workflow_dispatch', inputs, ref),
+                    self.configure(row, 'pull_request', inputs),
+                )
+
+    def test_fixture_and_schedule_ownership_remain_on_cached_b(self):
+        steps = self.job['steps']
+        run = next(step for step in steps if step.get('id') == 'test-run')
+        schedule = next(
+            step for step in steps if step.get('id') == 'schedule-account'
+        )
+        for event, ref in [
+            ('pull_request', 'refs/pull/7/merge'),
+            ('workflow_dispatch', 'refs/heads/master'),
+            (
+                'workflow_dispatch',
+                'refs/heads/gh-readonly-queue/master/pr-7-candidate',
+            ),
+        ]:
+            manual = (
+                event == 'workflow_dispatch' and 'gh-readonly-queue/' not in ref
+            )
+            for cache, shard, deployed in product(
+                ['true', 'false'],
+                ['A', 'B', 'C', 'all'],
+                ['success', 'failure'],
+            ):
+                context = {
+                    'github': {'event_name': event, 'ref': ref},
+                    'matrix': {'cache_enabled': cache, 'test_shard': shard},
+                    'steps': {'deploy': {'outcome': deployed}},
+                }
+                self.assertEqual(
+                    evaluate(run['with']['prepare_cache_fixtures'], context),
+                    cache == 'true' and (manual or shard == 'B'),
+                )
+                self.assertEqual(
+                    evaluate(schedule['if'], context),
+                    deployed == 'success'
+                    and not manual
+                    and cache == 'true'
+                    and shard == 'B',
+                )
+        self.assertEqual(
+            run['with']['required_service_account_specs'],
+            "${{ steps.schedule-account.outcome == 'success' }}",
+        )
+
+    @unittest.skipUnless(
+        os.environ.get('MULTI_USER_API_DRY_RUN_REPORTS'),
+        'Set MULTI_USER_API_DRY_RUN_REPORTS to real Ginkgo dry-run reports',
+    )
+    def test_real_ginkgo_inventory_preserves_every_original_spec(self):
+        directory = Path(os.environ['MULTI_USER_API_DRY_RUN_REPORTS'])
+        required = json.loads(
+            (
+                ROOT / '.github/resources/legacy-v2-service-account-specs.json'
+            ).read_text()
+        )
+        for cache in ('true', 'false'):
+            with self.subTest(cache=cache):
+                names = ['baseline-A', 'baseline-B', 'A', 'B']
+                if cache == 'true':
+                    names.append('C')
+                selected, registered, reports = {}, {}, {}
+                compatibility, fixtures = set(), set()
+                for name in names:
+                    reports[name] = json.loads(
+                        (directory / cache / f'{name}.json').read_text()
+                    )
+                    specs = [
+                        spec
+                        for suite in reports[name]
+                        for spec in suite['SpecReports']
+                        if spec['LeafNodeType'] == 'It'
+                    ]
+                    identities = [
+                        tuple(
+                            spec['ContainerHierarchyTexts']
+                            + [spec['LeafNodeText']]
+                        )
+                        for spec in specs
+                    ]
+                    self.assertTrue(identities, f'Empty {name} inventory')
+                    self.assertEqual(len(identities), len(set(identities)))
+                    registered[name] = {}
+                    selected[name] = set()
+                    for key, spec in zip(identities, specs):
+                        labels = set(spec.get('LeafNodeLabels', [])) | {
+                            label
+                            for labels in spec.get(
+                                'ContainerHierarchyLabels', []
+                            )
+                            for label in labels
+                        }
+                        registered[name][key] = labels
+                        self.assertIn(
+                            spec['State'], ('passed', 'skipped', 'pending')
+                        )
+                        if spec['State'] != 'passed':
+                            continue
+                        selected[name].add(key)
+                        if 'LegacyAPICompatibility' in labels:
+                            compatibility.add(key)
+                        if 'LegacyCache' in labels:
+                            fixtures.add(key)
+                    self.assertTrue(selected[name], f'Empty {name} selection')
+                    self.assertEqual(registered['baseline-A'], registered[name])
+                self.assertTrue(compatibility)
+                self.assertEqual(selected['baseline-A'], selected['A'])
+                new_b = selected['B'] | selected.get('C', set())
+                self.assertEqual(selected['baseline-B'], new_b)
+                old = selected['baseline-A'] | selected['baseline-B']
+                current = selected['A'] | new_b
+                self.assertEqual(old, current)
+                candidate_names = ['A', 'B'] + (
+                    ['C'] if cache == 'true' else []
+                )
+                for index, name in enumerate(candidate_names):
+                    self.assertTrue(compatibility <= selected[name])
+                    for other in candidate_names[index + 1 :]:
+                        self.assertEqual(
+                            selected[name] & selected[other], compatibility
+                        )
+                if cache == 'true':
+                    self.assertTrue(fixtures)
+                    self.assertTrue(fixtures <= selected['B'])
+                    self.assertFalse(fixtures & (selected['A'] | selected['C']))
+                    self.assertEqual(
+                        verify_migrated_specs.verify(reports['B'], required), {}
+                    )
+                    for name in ('A', 'C'):
+                        self.assertEqual(
+                            set(
+                                verify_migrated_specs.verify(
+                                    reports[name], required
+                                )
+                            ),
+                            set(required),
+                        )
+                else:
+                    self.assertFalse(fixtures)
 
 
 if __name__ == '__main__':

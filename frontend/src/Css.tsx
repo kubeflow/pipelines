@@ -382,7 +382,7 @@ export const commonCss = stylesheet({
 });
 
 export const tailwindcss = {
-  sideNavItem: 'flex flex-row flex-shrink-0',
+  sideNavItem: 'flex flex-row shrink-0',
 };
 
 export function _paddingInternal(units?: number, directions?: string): NestedCSSProperties {

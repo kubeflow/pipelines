@@ -21,6 +21,7 @@
 package go_client
 
 import (
+	_ "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -46,7 +47,12 @@ type RuntimeConfig struct {
 	// output directory of the pipeline. It is used by the system to
 	// generate the paths of output artifacts.
 	// Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)
-	PipelineRoot  string `protobuf:"bytes,2,opt,name=pipeline_root,json=pipelineRoot,proto3" json:"pipeline_root,omitempty"`
+	PipelineRoot string `protobuf:"bytes,2,opt,name=pipeline_root,json=pipelineRoot,proto3" json:"pipeline_root,omitempty"`
+	// Overrides caching for every task in the run, including tasks in nested
+	// DAGs. When unset, each task keeps the caching setting it was compiled
+	// with. When true, caching is still disabled if the deployment disables it.
+	// For recurring runs, the setting applies to every triggered run.
+	EnableCaching *bool `protobuf:"varint,3,opt,name=enable_caching,json=enableCaching,proto3,oneof" json:"enable_caching,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -95,19 +101,30 @@ func (x *RuntimeConfig) GetPipelineRoot() string {
 	return ""
 }
 
+func (x *RuntimeConfig) GetEnableCaching() bool {
+	if x != nil && x.EnableCaching != nil {
+		return *x.EnableCaching
+	}
+	return false
+}
+
 var File_backend_api_v2_runtime_config_proto protoreflect.FileDescriptor
 
 const file_backend_api_v2_runtime_config_proto_rawDesc = "" +
 	"\n" +
-	"#backend/api/v2/runtime_config.proto\x12!kubeflow.pipelines.backend.api.v2\x1a\x1cgoogle/protobuf/struct.proto\"\xed\x01\n" +
+	"#backend/api/v2/runtime_config.proto\x12!kubeflow.pipelines.backend.api.v2\x1a\x1cgoogle/protobuf/struct.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xc4\x02\n" +
 	"\rRuntimeConfig\x12`\n" +
 	"\n" +
 	"parameters\x18\x01 \x03(\v2@.kubeflow.pipelines.backend.api.v2.RuntimeConfig.ParametersEntryR\n" +
 	"parameters\x12#\n" +
-	"\rpipeline_root\x18\x02 \x01(\tR\fpipelineRoot\x1aU\n" +
+	"\rpipeline_root\x18\x02 \x01(\tR\fpipelineRoot\x12B\n" +
+	"\x0eenable_caching\x18\x03 \x01(\bB\x16\x92A\x13\x82\x03\x10\n" +
+	"\n" +
+	"x-nullable\x12\x02 \x01H\x00R\renableCaching\x88\x01\x01\x1aU\n" +
 	"\x0fParametersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12,\n" +
-	"\x05value\x18\x02 \x01(\v2\x16.google.protobuf.ValueR\x05value:\x028\x01B8Z6github.com/kubeflow/pipelines/backend/api/v2/go_clientb\x06proto3"
+	"\x05value\x18\x02 \x01(\v2\x16.google.protobuf.ValueR\x05value:\x028\x01B\x11\n" +
+	"\x0f_enable_cachingB8Z6github.com/kubeflow/pipelines/backend/api/v2/go_clientb\x06proto3"
 
 var (
 	file_backend_api_v2_runtime_config_proto_rawDescOnce sync.Once
@@ -142,6 +159,7 @@ func file_backend_api_v2_runtime_config_proto_init() {
 	if File_backend_api_v2_runtime_config_proto != nil {
 		return
 	}
+	file_backend_api_v2_runtime_config_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

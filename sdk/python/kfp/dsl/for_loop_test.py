@@ -274,6 +274,51 @@ class ForLoopTest(parameterized.TestCase):
                     subvar_name=subvar_name,
                 )
 
+    def test_from_raw_items_empty_dict_raises(self):
+        """Tests that an empty dict in raw items raises a ValueError."""
+        with self.assertRaisesRegex(
+            ValueError, r'Dictionary items in ParallelFor cannot be empty\.'
+        ):
+            for_loop.LoopParameterArgument.from_raw_items([{}], name_code='1')
+
+    def test_from_raw_items_empty_first_dict_raises(self):
+        """Tests that an empty first dict raises a ValueError."""
+        items = [{}, {'a': 1}]
+        with self.assertRaisesRegex(
+            ValueError, r'Dictionary items in ParallelFor cannot be empty\.'
+        ):
+            for_loop.LoopParameterArgument.from_raw_items(items, name_code='1')
+
+    @parameterized.parameters(
+        'name',
+        'task_name',
+        'channel_type',
+        'full_name',
+        'pattern',
+        'task',
+        'items_or_pipeline_channel',
+    )
+    def test_from_raw_items_reserved_dict_key_raises(self, key):
+        with self.assertRaisesRegex(
+            ValueError,
+            rf"ParallelFor item key '{key}' is reserved.*Rename the key",
+        ):
+            for_loop.LoopParameterArgument.from_raw_items(
+                [{key: 'v', 'other': 'w'}], name_code='1'
+            )
+
+    @parameterized.parameters('value', 'pipeline', 'items', 'type')
+    def test_from_raw_items_keys_that_shadow_harmless_attributes_still_work(
+        self, key
+    ):
+        loop_argument = for_loop.LoopParameterArgument.from_raw_items(
+            [{key: 'v'}], name_code='1'
+        )
+        subvar = getattr(loop_argument, key)
+        self.assertIsInstance(subvar, for_loop.LoopArgumentVariable)
+        self.assertEqual(subvar.subvar_name, key)
+        self.assertEqual(loop_argument.name, 'loop-item-param-1')
+
 
 if __name__ == '__main__':
     unittest.main()

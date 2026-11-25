@@ -13,6 +13,18 @@ Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all op
 
 Infer the repo from `git remote -v` — `gh` does this automatically when run inside a clone.
 
+## Pull request descriptions
+
+Before creating or replacing a PR body, read the
+[description rules](../../AGENTS.md#pull-request-descriptions) and
+[bug-fix evidence requirements](../../AGENTS.md#bug-fixes-and-pr-evidence)
+in the PR's worktree, then fill out the
+[PR template](../../.github/pull_request_template.md). Use that checkout's
+instructions rather than relying on another checkout or the template alone.
+
+After publishing, read back the saved body with `gh pr view <number> --json body`
+and verify it meets the applicable requirements, including the template checklist.
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_

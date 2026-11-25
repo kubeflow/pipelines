@@ -11,6 +11,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag/jsonutils"
 	"github.com/go-openapi/swag/typeutils"
+	"github.com/go-openapi/validate"
 )
 
 // V2ListArtifactResponse v2 list artifact response
@@ -49,8 +50,8 @@ func (m *V2ListArtifactResponse) validateArtifacts(formats strfmt.Registry) erro
 	}
 
 	for i := 0; i < len(m.Artifacts); i++ {
-		if typeutils.IsZero(m.Artifacts[i]) { // not required
-			continue
+		if m.Artifacts[i] == nil {
+			return validate.Required("artifacts"+"."+strconv.Itoa(i), "body", m.Artifacts[i])
 		}
 
 		if m.Artifacts[i] != nil {
@@ -94,7 +95,7 @@ func (m *V2ListArtifactResponse) contextValidateArtifacts(ctx context.Context, f
 		if m.Artifacts[i] != nil {
 
 			if typeutils.IsZero(m.Artifacts[i]) { // not required
-				return nil
+				continue
 			}
 
 			if err := m.Artifacts[i].ContextValidate(ctx, formats); err != nil {

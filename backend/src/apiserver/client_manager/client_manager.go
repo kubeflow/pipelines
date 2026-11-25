@@ -48,6 +48,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/dbcreds"
+	"github.com/kubeflow/pipelines/backend/src/common/s3bucket"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	"gorm.io/driver/mysql"
@@ -60,7 +61,6 @@ import (
 
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob"
-	"gocloud.dev/blob/s3blob"
 )
 
 const (
@@ -107,6 +107,7 @@ var _ resource.ClientManagerInterface = &ClientManager{}
 // ClientManager Container for all service clients.
 type ClientManager struct {
 	db                        *sql.DB
+	backfillDB                *gorm.DB
 	dbDialect                 sqldrv.DBDialect
 	experimentStore           storage.ExperimentStoreInterface
 	pipelineStore             storage.PipelineStoreInterface
@@ -304,12 +305,13 @@ func (c *ClientManager) init(options *Options) error {
 	}
 	glog.Info("Initializing client manager")
 	glog.Info("Initializing DB client...")
-	db, dbDialect, gcIndexChecker := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
+	db, backfillDB, dbDialect, gcIndexChecker := initDBClient(common.GetDurationConfig(initConnectionTimeout))
 	db.SetConnMaxLifetime(common.GetDurationConfig(dbConMaxLifeTime))
 	c.dbDialect = dbDialect
 	glog.Info("DB client initialized successfully")
 
 	c.db = db
+	c.backfillDB = backfillDB
 	c.gcIndexChecker = gcIndexChecker
 	if !options.UsePipelineKubernetesStorage {
 		c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid, c.dbDialect)
@@ -510,6 +512,11 @@ func validateGarbageCollectorIndex(db *gorm.DB, dialect sqldrv.DBDialect, spec g
 }
 
 func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialect, func() bool) {
+	pool, _, dbDialect, gcIndexChecker := initDBClient(initConnectionTimeout)
+	return pool, dbDialect, gcIndexChecker
+}
+
+func initDBClient(initConnectionTimeout time.Duration) (*sql.DB, *gorm.DB, sqldrv.DBDialect, func() bool) {
 	// Allowed driverName values:
 	// 1) To use MySQL, use `mysql`
 	// 2) To use PostgreSQL, use `pgx`
@@ -564,11 +571,6 @@ func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialec
 		util.TerminateIfError(autoMigrate(db))
 	}
 
-	// Runs on both paths: a deployment that took the legacy upgrade before this
-	// backfill existed is no longer detected as legacy, but can still hold
-	// reference-only rows. Recorded in migration_statuses once complete, so
-	// later startups return before touching run_details.
-	util.TerminateIfError(backfillPipelineRefsToRunTable(db, dbDialect))
 	createExpressionIndexes(db, dbDialect)
 
 	// gcIndexChecker re-reads the catalog on demand; the gorm handle shares
@@ -592,7 +594,7 @@ func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialec
 	if err != nil {
 		glog.Fatalf("Failed to retrieve *sql.DB from gorm.DB. Error: %v", err)
 	}
-	return newdb, dbDialect, gcIndexChecker
+	return newdb, db, dbDialect, gcIndexChecker
 }
 
 // Initializes Database driver. Use `driverName` to indicate which type of DB to use:
@@ -896,7 +898,7 @@ func runLegacyUpgradeFlow(db *gorm.DB, dialect sqldrv.DBDialect) error {
 	if initializePipelineVersions {
 		initPipelineVersionsFromPipelines(db)
 	}
-	err := backfillExperimentIDToRunTable(db)
+	err := backfillExperimentIDToRunTable(db, dialect)
 	if err != nil {
 		return fmt.Errorf("failed to backfill experiment UUID in run_details table: %s", err)
 	}
@@ -1111,13 +1113,10 @@ func dropLegacyIndexesMySQL(db *gorm.DB) error {
 			if err != nil {
 				return fmt.Errorf("query pipeline_versions indices failed: %w", err)
 			}
-			has := false
+			has := rows.Next()
 			if err := rows.Err(); err != nil {
 				_ = rows.Close()
 				return fmt.Errorf("iterate pipeline_versions indices failed: %w", err)
-			}
-			if rows.Next() {
-				has = true
 			}
 			_ = rows.Close()
 			if has {
@@ -1606,7 +1605,7 @@ func openBucketWithRetry(ctx context.Context, config *blobStorageConfig, timeout
 			return err
 		}
 
-		bucket, err = s3blob.OpenBucketV2(ctx, s3Client, config.bucketName, nil)
+		bucket, err = s3bucket.Open(ctx, s3Client, config.bucketName, nil)
 		return err
 	}
 
@@ -1771,62 +1770,6 @@ func initPipelineVersionsFromPipelines(db *gorm.DB) {
 // migration_statuses.
 const backfillPipelineRefsMigration = "backfill_pipeline_refs"
 
-// backfillPipelineRefsToRunTable populates PipelineId and PipelineVersionId for
-// legacy runs and recurring jobs that recorded them only as resource references.
-// scanRowsToRuns and JobStore.scanRows reconstruct those values after the query
-// returns, so without this the stored columns and the reported values disagree.
-// Jobs are repaired too because ReportWorkflowResource copies a job's
-// PipelineSpec into every run it creates.
-//
-// migration_statuses guards the work: the UPDATEs scan whole tables, and even a
-// zero-row rerun takes locks that block concurrent writes.
-func backfillPipelineRefsToRunTable(db *gorm.DB, dialect sqldrv.DBDialect) error {
-	applied, err := migrationApplied(db, backfillPipelineRefsMigration)
-	if err != nil {
-		return err
-	}
-	if applied {
-		return nil
-	}
-
-	// The marker is claimed inside the same transaction as the UPDATEs, so
-	// replicas starting together during a rolling upgrade do not all run the
-	// scan: the first to claim proceeds, the rest block briefly, see the
-	// conflict and skip. A crash rolls back the marker with the work, leaving
-	// the migration pending rather than recorded but incomplete.
-	return db.Transaction(func(tx *gorm.DB) error {
-		claimed, err := claimMigration(tx, backfillPipelineRefsMigration)
-		if err != nil {
-			return err
-		}
-		if !claimed {
-			return nil
-		}
-		// Statements go through tx, not tx.DB(): the latter hands back the
-		// shared pool, which would run them on another connection and outside
-		// this transaction.
-		for _, table := range []string{"run_details", "jobs"} {
-			// Direct references first: the last statement reads the column the
-			// second one writes, and only fills rows the first left empty.
-			for _, c := range []struct {
-				column  string
-				refType model.ResourceType
-			}{
-				{"PipelineId", model.PipelineResourceType},
-				{"PipelineVersionId", model.PipelineVersionResourceType},
-			} {
-				if err := tx.Exec(backfillRefColumnSQL(dialect, table, c.column, c.refType)).Error; err != nil {
-					return fmt.Errorf("backfill %s.%s: %w", table, c.column, err)
-				}
-			}
-			if err := tx.Exec(backfillPipelineIDFromVersionSQL(dialect, table)).Error; err != nil {
-				return fmt.Errorf("backfill %s.PipelineId from pipeline version: %w", table, err)
-			}
-		}
-		return nil
-	})
-}
-
 // migrationApplied reports whether a one-time data migration has already run.
 // A missing table means AutoMigrate has not created it yet, which can only
 // happen before the first run, so the migration is treated as pending.
@@ -1864,85 +1807,27 @@ func claimMigration(tx *gorm.DB, name string) (bool, error) {
 	return stored.ClaimToken == token, nil
 }
 
-// backfillRefColumnSQL updates only the target table while its subqueries read
-// resource_references, so MySQL's restriction on selecting from the table being
-// updated does not apply. The (ResourceUUID, ResourceType, ReferenceType) key
-// means at most one row matches per record, keeping the subquery scalar.
-func backfillRefColumnSQL(dialect sqldrv.DBDialect, table, column string, refType model.ResourceType) string {
-	// Bare mixed-case identifiers fold to lower case on PostgreSQL.
-	q := dialect.QuoteIdentifier
-	resourceType := model.RunResourceType
-	if table == "jobs" {
-		resourceType = model.JobResourceType
-	}
-	refPredicate := fmt.Sprintf(
-		`rr.%s = %s.%s AND rr.%s = '%s' AND rr.%s = '%s' AND rr.%s <> ''`,
-		q("ResourceUUID"), table, q("UUID"),
-		q("ResourceType"), resourceType,
-		q("ReferenceType"), refType,
-		q("ReferenceUUID"),
-	)
-	return fmt.Sprintf(`
-		UPDATE %s
-		SET %s = (
-			SELECT rr.%s FROM resource_references rr WHERE %s
-		)
-		WHERE (%s.%s = '' OR %s.%s IS NULL)
-			AND EXISTS (
-				SELECT 1 FROM resource_references rr WHERE %s
-			)`,
-		table,
-		q(column),
-		q("ReferenceUUID"), refPredicate,
-		table, q(column), table, q(column),
-		refPredicate,
-	)
-}
-
-// backfillPipelineIDFromVersionSQL resolves the parent through
-// pipeline_versions.PipelineId, reading the PipelineVersionId column rather than
-// the resource reference so it also covers rows that only ever stored a version.
-func backfillPipelineIDFromVersionSQL(dialect sqldrv.DBDialect, table string) string {
-	q := dialect.QuoteIdentifier
-	source := fmt.Sprintf(
-		`SELECT pv.%s FROM pipeline_versions pv
-			WHERE pv.%s = %s.%s AND pv.%s <> ''`,
-		q("PipelineId"),
-		q("UUID"), table, q("PipelineVersionId"), q("PipelineId"),
-	)
-	return fmt.Sprintf(`
-		UPDATE %s
-		SET %s = (%s)
-		WHERE (%s.%s = '' OR %s.%s IS NULL)
-			AND %s.%s IS NOT NULL
-			AND %s.%s <> ''
-			AND EXISTS (%s)`,
-		table,
-		q("PipelineId"), source,
-		table, q("PipelineId"), table, q("PipelineId"),
-		table, q("PipelineVersionId"),
-		table, q("PipelineVersionId"),
-		source,
-	)
-}
-
-func backfillExperimentIDToRunTable(db *gorm.DB) error {
+func backfillExperimentIDToRunTable(db *gorm.DB, dialect sqldrv.DBDialect) error {
 	// check if there is any row in the run table has experiment ID being empty
 	sqlDB, err := db.DB()
 	if err != nil {
 		return err
 	}
-	rows, err := sqlDB.Query("SELECT \"ExperimentUUID\" FROM run_details WHERE \"ExperimentUUID\" = '' LIMIT 1")
+	// Double quotes would be a string literal on MySQL, and the check would
+	// never find a row.
+	quote := dialect.QuoteIdentifier
+	rows, err := sqlDB.Query(fmt.Sprintf(
+		"SELECT %s FROM run_details WHERE %s = '' LIMIT 1", quote("ExperimentUUID"), quote("ExperimentUUID")))
 	if err != nil {
-		return err
-	}
-	if err := rows.Err(); err != nil {
 		return err
 	}
 	defer rows.Close()
 
 	// no row in run_details table has empty ExperimentUUID
 	if !rows.Next() {
+		if err := rows.Err(); err != nil {
+			return err
+		}
 		return nil
 	}
 

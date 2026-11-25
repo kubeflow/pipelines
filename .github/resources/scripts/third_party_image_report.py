@@ -46,12 +46,15 @@ def validate_inventory(document):
     if not isinstance(document, dict) or document.get('schema') != 1:
         raise ValueError('Invalid inventory schema')
     sources = document.get('sources')
-    if not isinstance(sources, dict) or set(sources) != {
-        'master',
-        'release-2.18',
-    }:
+    # Schema 1 inventories written before the rename have no branch marker.
+    default_branch = document.get('default_branch', 'master')
+    if (
+        default_branch not in ('master', 'main')
+        or not isinstance(sources, dict)
+        or set(sources) != {default_branch, 'release-2.18'}
+    ):
         raise ValueError(
-            'Inventory must identify master and release-2.18 sources'
+            'Inventory must identify its default branch and release-2.18 sources'
         )
     if any(
         not isinstance(sha, str) or not re.fullmatch(r'[0-9a-f]{40}', sha)
@@ -117,17 +120,17 @@ def validate_inventory(document):
                     'Candidate must identify a different image in the same repository'
                 )
             used.add(candidate)
-    master_keys = {
-        image['key'] for image in images if 'master' in image['branches']
+    development_keys = {
+        image['key'] for image in images if default_branch in image['branches']
     }
     for image in images:
         candidate = image.get('candidate_key')
         if candidate and (
             'release-2.18' not in image['branches']
-            or candidate not in master_keys
+            or candidate not in development_keys
         ):
             raise ValueError(
-                'Candidate must be a deployed master image for a release image'
+                'Candidate must be a deployed default-branch image for a release image'
             )
     if used != set(by_key):
         raise ValueError('Inventory contains unused scans')
