@@ -1,7 +1,7 @@
 kubernetes<=37.0.3,>=37.0.3
 ml-metadata==1.21.0
 lru-dict>=1.1.7,<2.0.0
-PyYAML>=6.0.3,<7
+PyYAML>=6.0.4,<7
 requests>=2.33.0,<3
 protobuf>=6.33.6,<7
 oauthlib>=4.0.1,<5

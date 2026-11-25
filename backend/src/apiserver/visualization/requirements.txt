@@ -306,7 +306,7 @@ python-dateutil==2.9.0.post0
     #   pandas
 pytz==2025.2
     # via pandas
-pyyaml==6.0.3
+pyyaml==6.0.4
     # via bokeh
 pyzmq==27.1.0
     # via
@@ -413,6 +413,3 @@ xyzservices==2026.3.0
     # via bokeh
 yarl==1.25.1
     # via aiohttp
-
-# The following packages were excluded from the output:
-# setuptools
