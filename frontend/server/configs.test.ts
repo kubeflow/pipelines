@@ -262,8 +262,7 @@ describe('loadConfigs', () => {
 
   it('requires exact HTTP origins for cross-origin artifact redirects', () => {
     const configs = loadConfigs(['node', 'dist/server.js', os.tmpdir()], {
-      ALLOWED_ARTIFACT_REDIRECT_ORIGINS:
-        'https://cdn.example.com, http://mirror.example.com:8080',
+      ALLOWED_ARTIFACT_REDIRECT_ORIGINS: 'https://cdn.example.com, http://mirror.example.com:8080',
     });
     expect(configs.artifacts.allowedRedirectOrigins).toEqual([
       'https://cdn.example.com',

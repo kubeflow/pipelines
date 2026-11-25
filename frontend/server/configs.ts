@@ -95,9 +95,7 @@ function parseAllowedHttpOrigins(value: string, settingName: string): string[] {
         }
         return endpoint.origin;
       } catch {
-        throw new Error(
-          `${settingName} entry must be an absolute HTTP(S) origin: ${configured}`,
-        );
+        throw new Error(`${settingName} entry must be an absolute HTTP(S) origin: ${configured}`);
       }
     });
 }
