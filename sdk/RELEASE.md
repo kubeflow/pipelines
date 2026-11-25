@@ -104,6 +104,10 @@
   instead of passing it through to Kubernetes. `Gt` and `Lt` are accepted as
   operators, and `None` or an empty string still means the field is omitted.
 
+* Compiling a component whose `NamedTuple` return annotation contains a custom
+  artifact type or a `pydantic.BaseModel` no longer fails on Python 3.14 with
+  `AttributeError: 'Constant' object has no attribute 's'`.
+
 # 2.15.2
 
 ## Bug fixes and other changes
