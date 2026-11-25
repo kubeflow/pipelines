@@ -53,6 +53,13 @@ spec:
         service:
           name: kubeflow-pipelines-profile-controller
           namespace: kubeflow
+          protocol: https
+          port: 443
+        caBundle:
+          secretRef:
+            name: kubeflow-pipelines-profile-webhook-auth
+            namespace: kubeflow
+            key: ca.crt
         path: /sync
         authorization:
           type: Bearer

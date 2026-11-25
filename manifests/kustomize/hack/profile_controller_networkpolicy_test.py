@@ -95,8 +95,20 @@ class ProfileControllerNetworkPolicyTest(unittest.TestCase):
             {
                 'name': controller_name,
                 'namespace': secret['metadata']['namespace'],
+                'protocol': 'https',
+                'port': 443,
             },
         )
+        self.assertEqual(
+            webhook['caBundle']['secretRef'],
+            {
+                'name': secret_name,
+                'namespace': secret['metadata']['namespace'],
+                'key': 'ca.crt',
+            },
+        )
+        port = self.resource('Service', controller_name)['spec']['ports'][0]
+        self.assertEqual((port['port'], port['targetPort']), (443, 8080))
         self.assertEqual(webhook['path'], '/sync')
         self.assertEqual(
             webhook['authorization'],

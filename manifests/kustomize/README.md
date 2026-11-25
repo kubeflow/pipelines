@@ -10,7 +10,7 @@ profile controller. Its ingress rule permits pods labeled `app=metacontroller`
 in the controller's namespace to reach TCP port 8080. The sync webhook also
 requires a Bearer token stored in the preserved
 `kubeflow-pipelines-profile-webhook-auth` Secret. The profile-controller init
-container creates this token if it is absent; Metacontroller reads the same
+container generates the token and TLS credentials on first use. Metacontroller reads the same
 Secret through its `DecoratorController` webhook configuration. The public
 `/healthz` probe does not require the token. Normal profile reconciliation
 continues after the Secret is initialized.
@@ -40,9 +40,25 @@ to `/sync` must obtain the Secret through operator-controlled access and send
 This does not establish that a tenant-controlled Viewer Service is a trusted proxy
 destination; review other reachable services separately.
 
-The bundled webhook still uses in-cluster HTTP. The bearer check does not
-protect against an actor who can capture that traffic; installations with that
-threat require encrypted webhook transport.
+The Service accepts HTTPS on port 443. Metacontroller verifies the serving
+certificate against the PEM bundle in the Secret's `ca.crt` before sending
+the token. Use the Service hostname
+`kubeflow-pipelines-profile-controller.<installation-namespace>` and that
+bundle for direct calls. The generated certificate also covers the Service's
+`.svc` name and `127.0.0.1` for local kubectl port forwards.
+
+The initializer preserves an existing token and TLS credentials. The default
+self-signed certificate is valid for one year. Operators can supply their own
+certificate and key in `tls.crt` and `tls.key`, with the issuing CA in
+`ca.crt`. Monitor expiration and renew before expiry. To rotate trust without
+interrupting reconciliation:
+
+1. Add the new trusted certificate or CA to `ca.crt` alongside the old one.
+   Restart the Metacontroller StatefulSet to reload the trust bundle.
+2. Replace `tls.crt` and `tls.key` in the Secret, retaining the bearer token.
+   Roll out the profile-controller Deployment and verify profile reconciliation.
+3. Remove the retired certificate from `ca.crt` and restart
+   Metacontroller again. Direct clients must also reload trust.
 
 The manifest test suite checks the rendered selectors, namespace placement and
 port across the four multi-user entrypoints. Rendering is not enforcement

@@ -288,7 +288,11 @@ class CompatibilityTest(unittest.TestCase):
         ) as request:
             self.assertEqual(
                 compatibility.sync_profile(
-                    'http://localhost', 'user', 'test-webhook-token', secret
+                    'https://localhost',
+                    'user',
+                    'test-webhook-token',
+                    object(),
+                    secret,
                 ),
                 secret,
             )
@@ -325,7 +329,10 @@ class CompatibilityTest(unittest.TestCase):
                         ValueError, 'Expected one artifact'
                     ):
                         compatibility.sync_profile(
-                            'http://localhost', 'user', 'test-webhook-token'
+                            'https://localhost',
+                            'user',
+                            'test-webhook-token',
+                            object(),
                         )
 
 

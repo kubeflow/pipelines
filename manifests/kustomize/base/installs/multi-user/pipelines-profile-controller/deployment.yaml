@@ -16,7 +16,7 @@ spec:
           type: RuntimeDefault
       initContainers:
       - name: initialize-webhook-auth
-        image: docker.io/alpine/k8s:1.37.2
+        image: docker.io/library/python:3.12-slim-trixie@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704
         command: ["python", "/hooks/init_webhook_auth.py"]
         resources:
           requests:
@@ -36,6 +36,8 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         volumeMounts:
+        - name: webhook-tls
+          mountPath: /var/run/kfp-webhook-tls
         - name: hooks
           mountPath: /hooks
           readOnly: true
@@ -132,6 +134,9 @@ spec:
         volumeMounts:
         - name: hooks
           mountPath: /hooks
+        - name: webhook-tls
+          mountPath: /var/run/kfp-webhook-tls
+          readOnly: true
         - name: driver-agent-ca
           mountPath: /etc/kfp/driver-agent-ca
           readOnly: true
@@ -139,6 +144,7 @@ spec:
         - containerPort: 8080
         readinessProbe:
           httpGet:
+            scheme: HTTPS
             path: /healthz
             port: 8080
           initialDelaySeconds: 3
@@ -146,12 +152,16 @@ spec:
           timeoutSeconds: 2
         livenessProbe:
           httpGet:
+            scheme: HTTPS
             path: /healthz
             port: 8080
           initialDelaySeconds: 3
           periodSeconds: 5
           timeoutSeconds: 2
       volumes:
+      - name: webhook-tls
+        emptyDir:
+          medium: Memory
       - name: hooks
         configMap:
           name: kubeflow-pipelines-profile-controller-code

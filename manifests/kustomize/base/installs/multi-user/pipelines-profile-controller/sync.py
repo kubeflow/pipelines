@@ -18,6 +18,7 @@ import hashlib
 import hmac
 import json
 import os
+import ssl
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -162,7 +163,12 @@ iam = create_iam_client()
 
 def main():
     settings = get_settings_from_env()
-    server = server_factory(**settings)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    context.load_cert_chain(
+        '/var/run/kfp-webhook-tls/tls.crt', '/var/run/kfp-webhook-tls/tls.key'
+    )
+    server = server_factory(**settings, tls_context=context)
     server.serve_forever()
 
 
@@ -289,6 +295,7 @@ def server_factory(
     driver_agent_ca_cert_path='',
     user_id_header: str | None = None,
     webhook_auth_token: str | None = None,
+    tls_context: ssl.SSLContext | None = None,
 ):
     """Returns a ThreadingHTTPServer populated with Handler with customized
     settings."""
@@ -307,6 +314,24 @@ def server_factory(
     expected_authorization = f'Bearer {webhook_auth_token}'.encode('ascii')
 
     class Controller(BaseHTTPRequestHandler):
+        def setup(self):
+            if tls_context is not None:
+                # Handshake on this request's worker so a stalled peer cannot
+                # block the accept loop or the Kubernetes health probes.
+                self.request.settimeout(10)
+                self.request = tls_context.wrap_socket(
+                    self.request, server_side=True
+                )
+                self.request.settimeout(None)
+            super().setup()
+
+        def finish(self):
+            try:
+                super().finish()
+            finally:
+                if tls_context is not None:
+                    self.connection.close()
+
         def upsert_lifecycle_policy(self, bucket_name, artifact_retention_days):
             """Configures or deletes the lifecycle policy based on the
             artifact_retention_days string."""

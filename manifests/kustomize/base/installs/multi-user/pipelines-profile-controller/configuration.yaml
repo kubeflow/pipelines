@@ -9,3 +9,8 @@ namespace:
   kind: DecoratorController
   path: spec/hooks/sync/webhook/authorization/secretRef/namespace
   create: false
+- group: metacontroller.k8s.io
+  version: v1alpha1
+  kind: DecoratorController
+  path: spec/hooks/sync/webhook/caBundle/secretRef/namespace
+  create: false
