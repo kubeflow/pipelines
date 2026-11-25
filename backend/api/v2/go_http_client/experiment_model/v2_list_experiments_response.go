@@ -11,6 +11,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag/jsonutils"
 	"github.com/go-openapi/swag/typeutils"
+	"github.com/go-openapi/validate"
 )
 
 // V2ListExperimentsResponse v2 list experiments response
@@ -48,8 +49,8 @@ func (m *V2ListExperimentsResponse) validateExperiments(formats strfmt.Registry)
 	}
 
 	for i := 0; i < len(m.Experiments); i++ {
-		if typeutils.IsZero(m.Experiments[i]) { // not required
-			continue
+		if m.Experiments[i] == nil {
+			return validate.Required("experiments"+"."+strconv.Itoa(i), "body", m.Experiments[i])
 		}
 
 		if m.Experiments[i] != nil {
@@ -93,7 +94,7 @@ func (m *V2ListExperimentsResponse) contextValidateExperiments(ctx context.Conte
 		if m.Experiments[i] != nil {
 
 			if typeutils.IsZero(m.Experiments[i]) { // not required
-				return nil
+				continue
 			}
 
 			if err := m.Experiments[i].ContextValidate(ctx, formats); err != nil {

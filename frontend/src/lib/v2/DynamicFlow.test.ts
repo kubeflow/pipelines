@@ -67,7 +67,7 @@ describe('DynamicFlow', () => {
       expect(graph[0].data?.label).toBe('parallel-loop (Loop)');
     });
 
-    it('sets the lifecycle message on a sub-DAG node and clears it on recovery', () => {
+    it('sets the lifecycle message and category on a sub-DAG node and clears both on recovery', () => {
       const subDagElement = {
         id: 'task.inner-dag',
         type: NodeTypeNames.SUB_DAG,
@@ -81,6 +81,7 @@ describe('DynamicFlow', () => {
         type: PipelineTaskTaskType.DAG,
         state: PipelineTaskTaskState.RUNNING,
         lifecycle_message: 'OOMKilled',
+        lifecycle_category: 'runtime',
       };
 
       const withWarning = updateFlowElementsState(
@@ -91,6 +92,7 @@ describe('DynamicFlow', () => {
       expect(withWarning[0].data).toMatchObject({
         state: PipelineTaskTaskState.RUNNING,
         lifecycleMessage: 'OOMKilled',
+        lifecycleCategory: 'runtime',
       });
 
       const recovered = updateFlowElementsState(['root'], withWarning, [
@@ -98,6 +100,7 @@ describe('DynamicFlow', () => {
         { ...subDagTask, lifecycle_message: undefined },
       ]);
       expect((recovered[0].data as any).lifecycleMessage).toBeUndefined();
+      expect((recovered[0].data as any).lifecycleCategory).toBeUndefined();
     });
 
     it('updates task and artifact nodes from hydrated task data', () => {
@@ -187,6 +190,7 @@ describe('DynamicFlow', () => {
         name: 'preprocess',
         state: PipelineTaskTaskState.RUNNING,
         lifecycle_message: 'Back-off pulling image "ghcr.io/example/does-not-exist:v1"',
+        lifecycle_category: 'image-pull',
       };
 
       const runtimeGraph = updateFlowElementsState(['root'], graph, [rootTask, stuckTask]);
@@ -194,6 +198,7 @@ describe('DynamicFlow', () => {
       expect(runtimeGraph.find((element) => element.id === 'task.preprocess')?.data).toMatchObject({
         state: PipelineTaskTaskState.RUNNING,
         lifecycleMessage: 'Back-off pulling image "ghcr.io/example/does-not-exist:v1"',
+        lifecycleCategory: 'image-pull',
       });
     });
 
@@ -205,16 +210,21 @@ describe('DynamicFlow', () => {
         name: 'preprocess',
         state: PipelineTaskTaskState.RUNNING,
         lifecycle_message: 'ImagePullBackOff',
+        lifecycle_category: 'image-pull',
       };
       const withWarning = updateFlowElementsState(['root'], graph, [rootTask, stuckTask]);
+      expect(
+        (withWarning.find((element) => element.id === 'task.preprocess')?.data as any)
+          .lifecycleCategory,
+      ).toBe('image-pull');
       const recoveredTask = { ...stuckTask, lifecycle_message: undefined };
 
       const recovered = updateFlowElementsState(['root'], withWarning, [rootTask, recoveredTask]);
 
-      expect(
-        (recovered.find((element) => element.id === 'task.preprocess')?.data as any)
-          .lifecycleMessage,
-      ).toBeUndefined();
+      const recoveredData = recovered.find((element) => element.id === 'task.preprocess')
+        ?.data as any;
+      expect(recoveredData.lifecycleMessage).toBeUndefined();
+      expect(recoveredData.lifecycleCategory).toBeUndefined();
     });
 
     it('drops the lifecycle message when a stale running task is shown as unresolved in a finished run', () => {

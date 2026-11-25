@@ -81,6 +81,9 @@
 
 ## Bug fixes and other changes
 
+* `kubernetes.set_timeout` rejects boolean values for `seconds` instead of
+  interpreting them as 0 or 1.
+
 * Local execution passes whole numbers inside `List` and `Dict` parameters
   and outputs as ints, as the remote backend does, instead of floats.
 

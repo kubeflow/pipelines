@@ -6,7 +6,7 @@ toolchain go1.27.4
 
 require (
 	cloud.google.com/go/compute v1.75.0
-	google.golang.org/api v0.315.0
+	google.golang.org/api v0.316.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -30,7 +30,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.47.0 // indirect
 	go.opentelemetry.io/otel/trace v1.47.0 // indirect
 	golang.org/x/crypto v0.59.0 // indirect
-	golang.org/x/net v0.62.0 // indirect
+	golang.org/x/net v0.63.0 // indirect
 	golang.org/x/oauth2 v0.38.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/text v0.44.0 // indirect

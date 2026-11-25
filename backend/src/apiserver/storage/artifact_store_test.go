@@ -98,6 +98,321 @@ func TestGetArtifact_NotFound(t *testing.T) {
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
 
+func TestGetArtifactsByIDs_Success(t *testing.T) {
+	db, store := initializeArtifactStore()
+	defer db.Close()
+
+	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil)
+	art1, err := store.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:       strPTR("s3://bucket/path/art1"),
+		Name:      "art1",
+	})
+	assert.NoError(t, err)
+
+	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID2, nil)
+	art2, err := store.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:       strPTR("s3://bucket/path/art2"),
+		Name:      "art2",
+	})
+	assert.NoError(t, err)
+
+	// Fetch batch by IDs including duplicates, empty strings, and non-existent IDs
+	batch, err := store.GetArtifactsByIDs([]string{art1.UUID, art2.UUID, art1.UUID, "", "non-existent-id"})
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(batch))
+	assert.Equal(t, art1.UUID, batch[art1.UUID].UUID)
+	assert.Equal(t, "art1", batch[art1.UUID].Name)
+	assert.Equal(t, art2.UUID, batch[art2.UUID].UUID)
+	assert.Equal(t, "art2", batch[art2.UUID].Name)
+
+	// Empty input returns empty map
+	emptyBatch, err := store.GetArtifactsByIDs(nil)
+	assert.NoError(t, err)
+	assert.Empty(t, emptyBatch)
+}
+
+func TestGetArtifactsByIDs_CaseSensitivityAndNOCASE(t *testing.T) {
+	// 1. Standard SQLite: case-sensitive matching by default
+	dbStandard, storeStandard := initializeArtifactStore()
+	defer dbStandard.Close()
+
+	art, err := storeStandard.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:       strPTR("s3://bucket/test"),
+		Name:      "test-artifact",
+	})
+	require.NoError(t, err)
+
+	// Exact match succeeds
+	exactBatch, err := storeStandard.GetArtifactsByIDs([]string{art.UUID})
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(exactBatch))
+
+	// Mixed-case ID fails on exact-matching database
+	upperID := "A23E4567-E89B-12D3-A456-426655441011"
+	upperBatch, err := storeStandard.GetArtifactsByIDs([]string{upperID})
+	require.NoError(t, err)
+	assert.Empty(t, upperBatch, "expected no match for mixed-case ID on case-sensitive database")
+
+	// Trailing whitespace fails on exact-matching database
+	spaceBatch, err := storeStandard.GetArtifactsByIDs([]string{art.UUID + "   "})
+	require.NoError(t, err)
+	assert.Empty(t, spaceBatch, "expected no match for trailing-space ID on exact-matching database")
+
+	// 2. Case-insensitive database: SQLite table defined with COLLATE NOCASE
+	dbNocase, testDialect := NewFakeDBOrFatal()
+	defer dbNocase.Close()
+	_, err = dbNocase.Exec("DROP TABLE IF EXISTS " + artifactTableName)
+	require.NoError(t, err)
+	_, err = dbNocase.Exec(`CREATE TABLE ` + artifactTableName + ` (
+		UUID VARCHAR(255) COLLATE NOCASE NOT NULL PRIMARY KEY,
+		Namespace VARCHAR(255),
+		Name VARCHAR(255),
+		Type INTEGER,
+		URI VARCHAR(255),
+		URIHash VARCHAR(64),
+		Description TEXT,
+		CreatedAtInSec BIGINT,
+		LastUpdateInSec BIGINT,
+		Metadata TEXT,
+		IdentityKey VARCHAR(255),
+		NumberValue DOUBLE PRECISION
+	)`)
+	require.NoError(t, err)
+
+	storeNocase := NewArtifactStore(dbNocase, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil), testDialect)
+	artNocase, err := storeNocase.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:       strPTR("s3://bucket/test-nocase"),
+		Name:      "test-artifact-nocase",
+	})
+	require.NoError(t, err)
+
+	// On case-insensitive database, mixed-case ID matches
+	upperNocaseID := "A23E4567-E89B-12D3-A456-426655441011"
+	nocaseBatch, err := storeNocase.GetArtifactsByIDs([]string{upperNocaseID})
+	require.NoError(t, err)
+	assert.NotEmpty(t, nocaseBatch, "expected mixed-case ID to match on case-insensitive database")
+	assert.NotNil(t, nocaseBatch[upperNocaseID])
+	assert.Equal(t, artNocase.UUID, nocaseBatch[upperNocaseID].UUID)
+
+	// 3. Mixed-column table: UUID is case-sensitive (BINARY), but Name uses COLLATE NOCASE.
+	// UUID comparison is governed by UUID column collation, unaffected by NOCASE on Name.
+	dbMixed, testDialectMixed := NewFakeDBOrFatal()
+	defer dbMixed.Close()
+	_, err = dbMixed.Exec("DROP TABLE IF EXISTS " + artifactTableName)
+	require.NoError(t, err)
+	_, err = dbMixed.Exec(`CREATE TABLE ` + artifactTableName + ` (
+		UUID VARCHAR(255) NOT NULL PRIMARY KEY,
+		Namespace VARCHAR(255),
+		Name VARCHAR(255) COLLATE NOCASE,
+		Type INTEGER,
+		URI VARCHAR(255),
+		URIHash VARCHAR(64),
+		Description TEXT,
+		CreatedAtInSec BIGINT,
+		LastUpdateInSec BIGINT,
+		Metadata TEXT,
+		IdentityKey VARCHAR(255),
+		NumberValue DOUBLE PRECISION
+	)`)
+	require.NoError(t, err)
+
+	storeMixed := NewArtifactStore(dbMixed, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil), testDialectMixed)
+	artMixed, err := storeMixed.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:       strPTR("s3://bucket/test-mixed"),
+		Name:      "test-artifact-mixed",
+	})
+	require.NoError(t, err)
+
+	// In mixed-column table, batch containing existing lowercase ID and nonexistent uppercase ID:
+	// exact match succeeds, uppercase ID does NOT match.
+	mixedBatch, err := storeMixed.GetArtifactsByIDs([]string{artMixed.UUID, upperID})
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(mixedBatch))
+	assert.NotNil(t, mixedBatch[artMixed.UUID])
+	assert.Nil(t, mixedBatch[upperID], "expected nonexistent uppercase ID not to resolve when only Name has NOCASE")
+
+	// 4. Multiline SQLite column definition with COLLATE NOCASE.
+	// SQLite allows newlines in column definitions, e.g. between VARCHAR(255) and COLLATE NOCASE.
+	dbMultiline, testDialectMultiline := NewFakeDBOrFatal()
+	defer dbMultiline.Close()
+	_, err = dbMultiline.Exec("DROP TABLE IF EXISTS " + artifactTableName)
+	require.NoError(t, err)
+	_, err = dbMultiline.Exec(`CREATE TABLE ` + artifactTableName + ` (
+		UUID VARCHAR(255)
+			COLLATE NOCASE NOT NULL PRIMARY KEY,
+		Namespace VARCHAR(255),
+		Name VARCHAR(255),
+		Type INTEGER,
+		URI VARCHAR(255),
+		URIHash VARCHAR(64),
+		Description TEXT,
+		CreatedAtInSec BIGINT,
+		LastUpdateInSec BIGINT,
+		Metadata TEXT,
+		IdentityKey VARCHAR(255),
+		NumberValue DOUBLE PRECISION
+	)`)
+	require.NoError(t, err)
+
+	storeMultiline := NewArtifactStore(dbMultiline, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil), testDialectMultiline)
+	artMultiline, err := storeMultiline.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:       strPTR("s3://bucket/test-multiline"),
+		Name:      "test-artifact-multiline",
+	})
+	require.NoError(t, err)
+
+	upperMultilineID := "A23E4567-E89B-12D3-A456-426655441011"
+	multilineBatch, err := storeMultiline.GetArtifactsByIDs([]string{upperMultilineID})
+	require.NoError(t, err)
+	assert.NotEmpty(t, multilineBatch, "expected mixed-case ID to match on multiline NOCASE column definition")
+	assert.NotNil(t, multilineBatch[upperMultilineID])
+	assert.Equal(t, artMultiline.UUID, multilineBatch[upperMultilineID].UUID)
+
+	// 5. Quoted SQLite column definition with COLLATE "NOCASE".
+	dbQuoted, testDialectQuoted := NewFakeDBOrFatal()
+	defer dbQuoted.Close()
+	_, err = dbQuoted.Exec("DROP TABLE IF EXISTS " + artifactTableName)
+	require.NoError(t, err)
+	_, err = dbQuoted.Exec(`CREATE TABLE ` + artifactTableName + ` (
+		UUID VARCHAR(255) COLLATE "NOCASE" NOT NULL PRIMARY KEY,
+		Namespace VARCHAR(255),
+		Name VARCHAR(255),
+		Type INTEGER,
+		URI VARCHAR(255),
+		URIHash VARCHAR(64),
+		Description TEXT,
+		CreatedAtInSec BIGINT,
+		LastUpdateInSec BIGINT,
+		Metadata TEXT,
+		IdentityKey VARCHAR(255),
+		NumberValue DOUBLE PRECISION
+	)`)
+	require.NoError(t, err)
+
+	storeQuoted := NewArtifactStore(dbQuoted, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil), testDialectQuoted)
+	artQuoted, err := storeQuoted.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:       strPTR("s3://bucket/test-quoted"),
+		Name:      "test-artifact-quoted",
+	})
+	require.NoError(t, err)
+
+	upperQuotedID := "A23E4567-E89B-12D3-A456-426655441011"
+	quotedBatch, err := storeQuoted.GetArtifactsByIDs([]string{upperQuotedID})
+	require.NoError(t, err)
+	assert.NotEmpty(t, quotedBatch, "expected mixed-case ID to match on quoted NOCASE column definition")
+	assert.NotNil(t, quotedBatch[upperQuotedID])
+	assert.Equal(t, artQuoted.UUID, quotedBatch[upperQuotedID].UUID)
+
+	// 6. Collation comparison semantics (e.g. SQLite COLLATE RTRIM):
+	// When table column has COLLATE RTRIM, trailing whitespace in request ID matches the stored UUID.
+	// Both single-row lookup and batch lookup must succeed and return the map keyed by the requested spelling.
+	dbRtrim, testDialectRtrim := NewFakeDBOrFatal()
+	defer dbRtrim.Close()
+	_, err = dbRtrim.Exec("DROP TABLE IF EXISTS " + artifactTableName)
+	require.NoError(t, err)
+	_, err = dbRtrim.Exec(`CREATE TABLE ` + artifactTableName + ` (
+		UUID VARCHAR(255) COLLATE RTRIM NOT NULL PRIMARY KEY,
+		Namespace VARCHAR(255),
+		Name VARCHAR(255),
+		Type INTEGER,
+		URI VARCHAR(255),
+		URIHash VARCHAR(64),
+		Description TEXT,
+		CreatedAtInSec BIGINT,
+		LastUpdateInSec BIGINT,
+		Metadata TEXT,
+		IdentityKey VARCHAR(255),
+		NumberValue DOUBLE PRECISION
+	)`)
+	require.NoError(t, err)
+
+	storeRtrim := NewArtifactStore(dbRtrim, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil), testDialectRtrim)
+	artRtrim, err := storeRtrim.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:       strPTR("s3://bucket/test-rtrim"),
+		Name:      "test-artifact-rtrim",
+	})
+	require.NoError(t, err)
+
+	// Single lookup with trailing spaces matches under RTRIM
+	var singleUUID string
+	err = dbRtrim.QueryRow("SELECT UUID FROM "+artifactTableName+" WHERE UUID = ?", artRtrim.UUID+"   ").Scan(&singleUUID)
+	require.NoError(t, err)
+	assert.Equal(t, artRtrim.UUID, singleUUID)
+
+	// Batch lookup with trailing spaces matches under RTRIM and keys result by requested spelling
+	rtrimReqID := artRtrim.UUID + "   "
+	rtrimBatch, err := storeRtrim.GetArtifactsByIDs([]string{rtrimReqID})
+	require.NoError(t, err)
+	assert.NotEmpty(t, rtrimBatch, "expected trailing-space ID to match under COLLATE RTRIM")
+	assert.NotNil(t, rtrimBatch[rtrimReqID])
+	assert.Equal(t, artRtrim.UUID, rtrimBatch[rtrimReqID].UUID)
+}
+
+func TestGetArtifactsByIDs_MoreThan500IDs(t *testing.T) {
+	dbRtrim, testDialectRtrim := NewFakeDBOrFatal()
+	defer dbRtrim.Close()
+	_, err := dbRtrim.Exec("DROP TABLE IF EXISTS " + artifactTableName)
+	require.NoError(t, err)
+	_, err = dbRtrim.Exec(`CREATE TABLE ` + artifactTableName + ` (
+		UUID VARCHAR(255) COLLATE RTRIM NOT NULL PRIMARY KEY,
+		Namespace VARCHAR(255),
+		Name VARCHAR(255),
+		Type INTEGER,
+		URI VARCHAR(255),
+		URIHash VARCHAR(64),
+		Description TEXT,
+		CreatedAtInSec BIGINT,
+		LastUpdateInSec BIGINT,
+		Metadata TEXT,
+		IdentityKey VARCHAR(255),
+		NumberValue DOUBLE PRECISION
+	)`)
+	require.NoError(t, err)
+
+	storeRtrim := NewArtifactStore(dbRtrim, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil), testDialectRtrim)
+	artRtrim, err := storeRtrim.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+		URI:       strPTR("s3://bucket/test-rtrim-501"),
+		Name:      "test-artifact-rtrim-501",
+	})
+	require.NoError(t, err)
+
+	// Construct at least 501 distinct IDs: 500 non-existent IDs, followed by the requested spelling past the 500th ID.
+	// On SQLite, compound SELECT without batching fails at 501 terms with "too many terms in compound SELECT".
+	requestedSpelling := artRtrim.UUID + "   "
+	ids := make([]string, 505)
+	for i := 0; i < 500; i++ {
+		ids[i] = fmt.Sprintf("non-existent-artifact-%d", i)
+	}
+	ids[500] = requestedSpelling
+	for i := 501; i < 505; i++ {
+		ids[i] = fmt.Sprintf("non-existent-artifact-%d", i)
+	}
+
+	batch, err := storeRtrim.GetArtifactsByIDs(ids)
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(batch))
+	assert.NotNil(t, batch[requestedSpelling])
+	assert.Equal(t, artRtrim.UUID, batch[requestedSpelling].UUID)
+}
+
 func TestGetArtifactsByURI_ExactNamespaceAndURIMatch(t *testing.T) {
 	db, store := initializeArtifactStore()
 	defer db.Close()

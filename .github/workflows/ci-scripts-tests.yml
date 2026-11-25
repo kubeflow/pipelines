@@ -56,6 +56,7 @@ on:
       - '.github/resources/ci-workflow-inventory.json'
       - '.github/resources/legacy-v2-migration-specs.json'
       - '.github/resources/legacy-v2-service-account-specs.json'
+      - 'test/artifact-proxy/test-artifact-proxy.sh'
       - 'test/presubmit-backend-test.sh'
       - 'hack/update-all-requirements.sh'
       # Any trigger change must update the expected-workflow inventory.
@@ -81,6 +82,8 @@ on:
       - '.github/workflows/build-tools-images.yml'
       - '.github/workflows/runtime-base-images.yml'
       - '.github/workflows/ci-scripts-tests.yml'
+      - '.github/workflows/postgresql-main-upgrade.yml'
+      - '.github/resources/postgresql-upgrade/**'
       - '.github/workflows/tensorboard-acceptance.yml'
       - 'backend/Dockerfile.tensorboard'
       - 'backend/src/tensorboard/**'
@@ -117,6 +120,7 @@ on:
       - 'backend/test/v2/resources/hello-world-with-returning-component.yaml'
       - 'test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py'
       - 'backend/Dockerfile'
+      - 'backend/src/apiserver/config/sample_config.json'
       - 'backend/api/build_kfp_server_api_python_package.sh'
       - 'api/v2alpha1/python/generate_proto.py'
       - 'kubernetes_platform/python/generate_proto.py'
@@ -201,6 +205,7 @@ jobs:
           kfpr.candidate_test kfpr.ci_qualification_client_test kfpr.qualification_test
           kfpr.qualification_exceptions_test kfpr.security_test
           kfpr.security_exceptions_test kfpr.third_party_test
+          kfpr.landed_ci_test kfpr.landed_attestation_test
       - name: Run release automation tests
         env:
           PYTHONPATH: release

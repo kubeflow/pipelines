@@ -46,6 +46,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -506,6 +507,17 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 			wraperror.Wrapf(err, "ScheduledWorkflow (%s) in work queue no longer exists: %v", key, err)
 	} else {
 		processNextItemOperationDuration.WithLabelValues("swfget", "ok").Observe(time.Since(startTime).Seconds())
+	}
+
+	// The workflows of a ScheduledWorkflow are labeled with, and selected by, its name.
+	// Kubernetes accepts object names that are not valid label values (e.g. longer than
+	// 63 characters), and such an object can never have workflows.
+	if problems := validation.IsValidLabelValue(swf.Name); len(problems) > 0 {
+		// Permanent failure.
+		// Retrying cannot help: the name of an object does not change.
+		return false, false, swf,
+			fmt.Errorf("ScheduledWorkflow (%s) cannot be scheduled: its name is not a valid label value: %s",
+				key, strings.Join(problems, "; "))
 	}
 
 	// Get the current time

@@ -933,6 +933,14 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		if err != nil {
 			return nil, util.NewUnavailableServerError(err, "Retry after the scheduled run creator or persistence agent finishes persistence")
 		}
+		// The execution is this recurring run's, but the run ID alone does not
+		// prove that the record persisted under it is. Namespaces are a tenant
+		// boundary only in multi-user mode.
+		if existing.RecurringRunId != run.RecurringRunId ||
+			(common.IsMultiUserMode() && existing.Namespace != k8sNamespace) {
+			return nil, util.NewAlreadyExistError(
+				"Failed to create a new run. Run %v already exists and does not belong to recurring run %v", run.UUID, run.RecurringRunId)
+		}
 		return existing, nil
 	}
 	// Update the run with the new scheduled workflow
@@ -2418,6 +2426,9 @@ func (r *ResourceManager) reportWorkflowResource(
 	if jobId != "" && updateError != nil {
 		experimentID := recurringExperimentID
 		namespace := recurringNamespace
+		if err := r.validateRecurringRunReportID(jobId, runId, objMeta.Annotations[util.AnnotationKeyRunName]); err != nil {
+			return nil, err
+		}
 		pipelineSpec, err := r.recurringRunReportPipelineSpec(recurringJob, execSpec, runId)
 		if err != nil {
 			return nil, err
@@ -4219,6 +4230,15 @@ func (r *ResourceManager) GetArtifact(artifactID string) (*model.Artifact, error
 		return nil, util.Wrapf(err, "Failed to fetch artifact %v", artifactID)
 	}
 	return artifact, nil
+}
+
+// GetArtifactsByIDs fetches a batch of artifacts keyed by artifact UUID.
+func (r *ResourceManager) GetArtifactsByIDs(artifactIDs []string) (map[string]*model.Artifact, error) {
+	artifactsByID, err := r.artifactStore.GetArtifactsByIDs(artifactIDs)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to fetch artifact batch")
+	}
+	return artifactsByID, nil
 }
 
 // CreateArtifact Creates an artifact entry.

@@ -126,6 +126,37 @@ class V2DeploymentContractTest(unittest.TestCase):
                 )
                 self.assertTrue(source.is_file(), source)
 
+    def test_native_backfill_rollout_uses_one_standalone_mysql_lane(self):
+        workflow = yaml.safe_load(
+            (ROOT / '.github/workflows/api-server-tests.yml').read_text()
+        )
+        job = workflow['jobs']['api-test-standalone']
+        steps = job['steps']
+        script = '.github/resources/scripts/native-backfill-rollout.sh'
+        index, step = next(
+            (index, step)
+            for index, step in enumerate(steps)
+            if step.get('run') == f'bash {script}'
+        )
+        self.assertEqual(
+            steps[index - 1].get('uses'), './.github/actions/test-and-report'
+        )
+        # Every dimension that varies across the matrix must be pinned to
+        # one supported value, so other API suites keep their cluster intact.
+        selectors = dict(re.findall(r"matrix\.(\w+) == '([^']+)'", step['if']))
+        matrix = job['strategy']['matrix']
+        for key, options in matrix.items():
+            if key not in ('include', 'exclude') and len(options) > 1:
+                self.assertIn(selectors.get(key), options)
+        self.assertEqual(selectors['db_type'], 'mysql')
+        self.assertEqual(selectors['proxy'], 'false')
+        self.assertEqual(selectors['pod_to_pod_tls_enabled'], 'false')
+        self.assertNotIn(selectors, matrix['exclude'])
+        for extra in matrix['include']:
+            self.assertFalse(
+                all(extra.get(key) == value for key, value in selectors.items())
+            )
+
     def test_upgrade_preparation_uses_legacy_prefix_and_gates_verification(
         self,
     ):

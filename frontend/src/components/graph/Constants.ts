@@ -30,6 +30,7 @@ export type SubDagTaskData = FlowElementDataBase & {
   state?: PipelineTaskTaskState;
   // Pod lifecycle diagnostic from the driver pod, same semantics as on execution nodes.
   lifecycleMessage?: string;
+  lifecycleCategory?: string;
 };
 
 export type SubDagFlowElementData = SubDagTaskData & {
@@ -42,6 +43,8 @@ export type ExecutionFlowElementData = FlowElementDataBase & {
   // Pod lifecycle diagnostic from the execution engine. Set only while the task has an
   // unresolved problem such as ImagePullBackOff, and cleared when the task recovers.
   lifecycleMessage?: string;
+  // Classified category of lifecycleMessage (image-pull, scheduling, runtime, admission, unknown).
+  lifecycleCategory?: string;
   // Set when the task is currently parked at a debug-pause barrier, as
   // reported live by the launcher (see DebugPauseUtils.ts). This is a
   // separate overlay on top of `state`, not a replacement for it - the task
