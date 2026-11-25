@@ -22,7 +22,7 @@ from unittest import mock
 from absl.testing import parameterized
 
 from kfp import dsl, local
-from kfp.dsl import Artifact, Dataset, Output
+from kfp.dsl import Artifact, Dataset, Output, component_factory
 from kfp.local import subprocess_task_handler, testing_utilities
 
 # LocalRunnerEnvironmentTestCase isolates installs from the pytest worker,
@@ -106,9 +106,7 @@ class TestRunLocalSubproces(unittest.TestCase):
         self.assertEqual(output, 'foo!')
 
 
-class TestUseCurrentPythonExecutable(
-    testing_utilities.LocalRunnerEnvironmentTestCase
-):
+class TestUseCurrentPythonExecutable(unittest.TestCase):
     def test(self):
         full_command = ['python3 -c "from kfp import dsl"']
         actual = subprocess_task_handler.replace_python_executable(
@@ -117,6 +115,82 @@ class TestUseCurrentPythonExecutable(
         )
         expected = ['/foo/bar/python3 -c "from kfp import dsl"']
         self.assertEqual(actual, expected)
+
+
+class TestReplacePythonExecutable(unittest.TestCase):
+    def test_does_not_replace_python3_in_arguments(self):
+        script = """program_path=$(mktemp -d)
+printf "%s" "$0" > "$program_path/ephemeral_component.py"
+_KFP_RUNTIME=true python3 -m kfp.executor_main \
+    --component_module_path \
+    "$program_path/ephemeral_component.py" \
+    "$@"
+"""
+        source = 'print("python3")'
+        executor_input = '{"input": "python3", "name": "test"}'
+        artifact_uri = 'gs://bucket/python3/output'
+
+        full_command = [
+            'sh',
+            '-ec',
+            script,
+            source,
+            '--executor_input',
+            executor_input,
+            '--artifact_uri',
+            artifact_uri,
+        ]
+
+        actual = subprocess_task_handler.replace_python_executable(
+            full_command=full_command,
+            new_executable='/foo/bar/python.exe',
+        )
+
+        expected_script = script.replace('python3', '/foo/bar/python.exe', 1)
+        expected = [
+            'sh',
+            '-ec',
+            expected_script,
+            source,
+            '--executor_input',
+            executor_input,
+            '--artifact_uri',
+            artifact_uri,
+        ]
+
+        self.assertEqual(actual, expected)
+
+    def test_does_not_replace_python3_in_shell_positional_arguments(self):
+        full_command = [
+            'sh',
+            '-c',
+            'printf "%s" "$1"',
+            '_',
+            'python3 -m pip',
+        ]
+
+        actual = subprocess_task_handler.replace_python_executable(
+            full_command=full_command,
+            new_executable='/foo/bar/python',
+        )
+
+        self.assertEqual(actual, full_command)
+
+    def test_replaces_all_python_executables_in_installation_command(self):
+        command = component_factory._get_packages_to_install_command(
+            packages_to_install=['cloudpickle'],
+            use_venv=True,
+        )
+        actual = subprocess_task_handler.replace_python_executable(
+            full_command=command,
+            new_executable='/foo/bar/python',
+        )
+
+        self.assertEqual(
+            actual[2],
+            command[2].replace('python3 -m ', '/foo/bar/python -m '),
+        )
+        self.assertNotIn('python3 -m ', actual[2])
 
 
 class TestUseVenv(testing_utilities.LocalRunnerEnvironmentTestCase):
