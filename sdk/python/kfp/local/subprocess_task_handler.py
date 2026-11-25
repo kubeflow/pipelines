@@ -176,15 +176,12 @@ def replace_python_executable(
             user_code_index = i + 1
 
         is_command_string = (
-            (
-                i == 0
-                and (
-                    el.startswith('python3 ')
-                    or el.startswith(('bash -c ', 'bash -ec ', 'sh -c ', 'sh -ec '))
-                )
+            i == 0
+            and (
+                el.startswith('python3 ')
+                or el.startswith(('bash -c ', 'bash -ec ', 'sh -c ', 'sh -ec '))
             )
-            or (i > 0 and full_command[i - 1] in ('-c', '-ec'))
-        )
+        ) or (i > 0 and full_command[i - 1] in ('-c', '-ec'))
 
         if i != user_code_index and is_command_string:
             if el.startswith('python3 '):
