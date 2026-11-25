@@ -9,10 +9,36 @@ spec:
       labels:
         sidecar.istio.io/inject: "false"
     spec:
+      serviceAccountName: kubeflow-pipelines-profile-controller
       securityContext:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+      - name: initialize-webhook-auth
+        image: docker.io/alpine/k8s:1.37.2
+        command: ["python", "/hooks/init_webhook_auth.py"]
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 0
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - name: hooks
+          mountPath: /hooks
+          readOnly: true
       containers:
       - name: profile-controller
         securityContext:
@@ -39,6 +65,11 @@ spec:
               key: appVersion
         - name: AWS_ENDPOINT_URL
           value: http://seaweedfs.kubeflow:8111
+        - name: WEBHOOK_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: kubeflow-pipelines-profile-webhook-auth
+              key: token
         - name: S3_ENDPOINT_URL
           value: http://seaweedfs.kubeflow:8333
         - name: AWS_REGION

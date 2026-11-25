@@ -7,8 +7,13 @@ Kubeflow Pipelines can be installed standalone and as part of the [community dis
 
 KFP's multi-user manifests include a component-scoped NetworkPolicy for the
 profile controller. Its ingress rule permits pods labeled `app=metacontroller`
-in the controller's namespace to reach TCP port 8080. The controller and its
-normal profile reconciliation behavior are unchanged.
+in the controller's namespace to reach TCP port 8080. The sync webhook also
+requires a Bearer token stored in the preserved
+`kubeflow-pipelines-profile-webhook-auth` Secret. The profile-controller init
+container creates this token if it is absent; Metacontroller reads the same
+Secret through its `DecoratorController` webhook configuration. The public
+`/healthz` probe does not require the token. Normal profile reconciliation
+continues after the Secret is initialized.
 
 The CNI must enforce Kubernetes NetworkPolicy. If a custom installation changes
 metacontroller's labels or namespace, adjust the policy's peer selectors to match;
@@ -20,8 +25,14 @@ by another policy. Full Kubeflow Community Distribution already supplies a
 default same-namespace allowance; dev-kind's broad same-namespace allowance also
 includes port 8080.
 Account for the complete policy set before relying on this component-local rule.
-It restricts network callers, does not add webhook authentication, and does not
-provide every security control of the full distribution.
+The policy restricts network callers, while the token authenticates webhook
+requests even when another policy allows more sources. Keep the Secret, init
+container, scoped RBAC, and `DecoratorController` authorization together in
+custom overlays. Existing token data is preserved on upgrades; if an operator
+intentionally rotates it, restart the profile-controller pod and update the
+`DecoratorController` spec so Metacontroller reloads the credential. This does
+not establish that a tenant-controlled Viewer Service is a trusted proxy
+destination; review other reachable services separately.
 
 The manifest test suite checks the rendered selectors, namespace placement and
 port across the four multi-user entrypoints. Rendering is not enforcement

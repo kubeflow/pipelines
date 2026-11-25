@@ -7,14 +7,18 @@ import runpy
 import threading
 from pathlib import Path
 from unittest import mock
+from urllib.error import HTTPError
 
 import pytest
 import requests
-import sync
 import yaml
+
+import init_webhook_auth
+import sync
 from sync import get_settings_from_env, server_factory
 
 KFP_VERSION = 'x.y.z'
+WEBHOOK_AUTH_TOKEN = 'test-webhook-token-with-at-least-32-characters'
 NAMESPACE = 'myName'
 PARENT = {
     'metadata': {
@@ -125,7 +129,8 @@ def start_sync_server():
     servers = []
 
     def start(**settings):
-        server = server_factory(url='127.0.0.1', **settings)
+        with mock.patch.dict(os.environ, {'WEBHOOK_AUTH_TOKEN': WEBHOOK_AUTH_TOKEN}):
+            server = server_factory(url='127.0.0.1', **settings)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         servers.append((server, thread))
@@ -147,8 +152,9 @@ def sync_server(request, start_sync_server):
 def post_sync(server, parent, attachments):
     host, port = server.server_address
     response = requests.post(
-        f'http://{host}:{port}',
+        f'http://{host}:{port}/sync',
         json={'object': parent, 'attachments': attachments},
+        headers={'Authorization': f'Bearer {WEBHOOK_AUTH_TOKEN}'},
         timeout=5,
     )
     response.raise_for_status()
@@ -759,17 +765,104 @@ def test_healthz_is_not_logged(start_sync_server, capsys):
 def test_post_to_healthz_path_is_logged(start_sync_server, capsys):
     server = start_minimal_server(start_sync_server)
     host, port = server.server_address
-    with mock.patch.object(
-        server.RequestHandlerClass,
-        'sync',
-        lambda handler, parent, attachments: {'status': {}, 'attachments': []},
-    ):
-        requests.post(
-            f'http://{host}:{port}/healthz',
-            json={'object': PARENT, 'attachments': {}},
-            timeout=5,
-        ).raise_for_status()
+    response = requests.post(
+        f'http://{host}:{port}/healthz',
+        json={'object': PARENT, 'attachments': {}},
+        headers={'Authorization': f'Bearer {WEBHOOK_AUTH_TOKEN}'},
+        timeout=5,
+    )
+    assert response.status_code == 404
     assert '"POST /healthz' in capsys.readouterr().err
+
+
+def test_webhook_rejects_forged_requests_before_sync(start_sync_server):
+    server = start_minimal_server(start_sync_server)
+    host, port = server.server_address
+    body = {'object': PARENT, 'attachments': observed_attachments()}
+    with mock.patch.object(server.RequestHandlerClass, 'sync') as sync_call:
+        for headers in ({}, {'Authorization': 'Bearer wrong-token'}):
+            response = requests.post(
+                f'http://{host}:{port}/sync',
+                json=body,
+                headers=headers,
+                timeout=5,
+            )
+            assert response.status_code == 403
+        assert sync_call.call_count == 0
+
+
+def test_webhook_rejects_missing_auth_configuration(monkeypatch):
+    monkeypatch.delenv('WEBHOOK_AUTH_TOKEN', raising=False)
+    with pytest.raises(ValueError, match='WEBHOOK_AUTH_TOKEN'):
+        server_factory(
+            frontend_image='image',
+            frontend_tag='tag',
+            disable_istio_sidecar=False,
+            artifacts_proxy_enabled='false',
+            artifact_retention_days=-1,
+            controller_port=0,
+        )
+
+
+def test_webhook_secret_initializer_preserves_existing_key():
+    encoded = base64.b64encode(WEBHOOK_AUTH_TOKEN.encode('ascii')).decode('ascii')
+    secret = {'metadata': {'resourceVersion': '5'}, 'data': {'token': encoded}}
+    request = mock.Mock(return_value=secret)
+
+    init_webhook_auth.initialize_webhook_secret(request)
+
+    request.assert_called_once_with('GET', None)
+    assert secret['data']['token'] == encoded
+
+
+def test_webhook_secret_initializer_fills_stub_without_erasing_data():
+    secret = {
+        'metadata': {'resourceVersion': '5', 'labels': {'preserve': 'yes'}},
+        'data': {'other': 'value'},
+    }
+    writes = []
+
+    def request(method, body):
+        if method == 'GET':
+            return secret
+        writes.append(copy.deepcopy(body))
+
+    init_webhook_auth.initialize_webhook_secret(request)
+
+    assert len(writes) == 1
+    assert writes[0]['metadata'] == secret['metadata']
+    assert writes[0]['data']['other'] == 'value'
+    token = base64.b64decode(writes[0]['data']['token']).decode('ascii')
+    assert len(token) >= 32
+
+
+def test_webhook_secret_initializer_rejects_invalid_existing_key():
+    request = mock.Mock(
+        return_value={
+            'metadata': {'resourceVersion': '5'},
+            'data': {'token': base64.b64encode(b'short').decode('ascii')},
+        }
+    )
+    with pytest.raises(ValueError, match='invalid existing webhook token'):
+        init_webhook_auth.initialize_webhook_secret(request)
+    request.assert_called_once_with('GET', None)
+
+
+def test_webhook_secret_initializer_uses_winner_after_conflict():
+    encoded = base64.b64encode(WEBHOOK_AUTH_TOKEN.encode('ascii')).decode('ascii')
+    calls = []
+
+    def request(method, body):
+        calls.append(method)
+        if calls == ['GET']:
+            return {'metadata': {'resourceVersion': '5'}}
+        if calls == ['GET', 'PUT']:
+            raise HTTPError(None, 409, 'conflict', None, None)
+        return {'metadata': {'resourceVersion': '6'}, 'data': {'token': encoded}}
+
+    init_webhook_auth.initialize_webhook_secret(request, wait=lambda _: None)
+
+    assert calls == ['GET', 'PUT', 'GET']
 
 
 def test_healthz_responds_during_slow_sync(start_sync_server):

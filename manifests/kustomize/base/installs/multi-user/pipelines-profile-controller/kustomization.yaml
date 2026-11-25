@@ -6,9 +6,12 @@ resources:
 - deployment.yaml
 - decorator-controller.yaml
 - networkpolicy.yaml
+- webhook-auth-secret.yaml
+- webhook-auth-rbac.yaml
 configMapGenerator:
 - files:
   - sync.py
+  - init_webhook_auth.py
   name: kubeflow-pipelines-profile-controller-code
 - envs:
   - params.env
