@@ -368,3 +368,23 @@ func TestListWithTagFilter_TokenRejectsDroppedTagPredicate(t *testing.T) {
 		})
 	}
 }
+
+func TestListWithTagFilter_TokenRejectsDroppedNamePredicate(t *testing.T) {
+	for name, get := range pagers(t) {
+		t.Run(name, func(t *testing.T) {
+			// Page one filters on a name predicate and a tag predicate.
+			pg, err := get("", 2, filterSpec(nameNotEquals("nope"), tagEquals("team", "ml")))
+			require.NoError(t, err)
+			require.NotEmpty(t, pg.next)
+
+			// Resending only the tag predicate drops the name predicate. Stripping
+			// the tag predicate leaves an empty cleaned filter, so the page-token
+			// comparison in validatedListOptions does not run. The incomplete
+			// predicate set must still be rejected rather than silently inheriting
+			// the omitted name predicate from the token.
+			_, err = get(pg.next, 2, filterSpec(tagEquals("team", "ml")))
+			require.Error(t, err, "a filter that drops the page token's name predicate must be rejected")
+			assert.Contains(t, err.Error(), "page token does not match")
+		})
+	}
+}
