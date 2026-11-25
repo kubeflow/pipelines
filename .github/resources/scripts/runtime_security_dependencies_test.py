@@ -47,6 +47,31 @@ class RuntimeSecurityDependenciesTest(unittest.TestCase):
                 runtime,
             )
 
+    def test_api_and_frontend_runtime_security_floors(self):
+        api = (ROOT / 'backend/Dockerfile').read_text()
+        self.assertRegex(
+            api, r'(?m)^FROM debian:stable-slim@sha256:[0-9a-f]{64}$'
+        )
+        for package in ('libc6', 'libc-bin'):
+            self.assertIn(
+                f"""dpkg --compare-versions "$(dpkg-query -W -f='${{Version}}' {package})" ge '2.41-12+deb13u5'""",
+                api,
+            )
+
+        frontend = (ROOT / 'frontend/Dockerfile').read_text()
+        version = (
+            (ROOT / 'frontend/.nvmrc').read_text().strip().removeprefix('v')
+        )
+        self.assertRegex(
+            frontend,
+            rf'(?m)^FROM node:{re.escape(version)}-alpine@sha256:[0-9a-f]{{64}} AS pinned-runtime$',
+        )
+        self.assertIn(
+            f'ARG CUSTOM_TAG=${{RUNTIME_TAG#{version}-alpine}}', frontend
+        )
+        for package in ('libcrypto3', 'libssl3'):
+            self.assertIn(f"'{package}>=3.5.9-r1'", frontend)
+
     def test_cert_manager_install_paths_use_qualified_release(self):
         makefile = (ROOT / 'backend/Makefile').read_text()
         self.assertIn('CERT_MANAGER_VERSION ?= v1.21.3', makefile)

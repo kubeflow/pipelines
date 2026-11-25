@@ -40,7 +40,11 @@ import {
   NodeTypeNames,
   TaskType,
 } from 'src/lib/v2/StaticFlow';
-import { getTaskDisplayName, getTaskLifecycleMessage } from 'src/lib/v2/RunTaskUtils';
+import {
+  getTaskDisplayName,
+  getTaskLifecycleCategory,
+  getTaskLifecycleMessage,
+} from 'src/lib/v2/RunTaskUtils';
 import { getDebugPauseBarrier } from 'src/lib/v2/DebugPauseUtils';
 import {
   formatRuntimeIterationLayer,
@@ -217,8 +221,8 @@ export function updateFlowElementsState(
       );
       data.taskId = runtimeInfo.task.task_id;
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
-      // Always assign so the warning clears when the message is cleared on recovery.
-      data.lifecycleMessage = getNodeLifecycleMessage(runtimeInfo.task, data.state);
+      // Always assign both so the status clears when the message is cleared on recovery.
+      Object.assign(data, getNodeLifecycle(runtimeInfo.task, data.state));
       // Never render the pause overlay on a terminal run: stale pause keys
       // can outlive a dead task's pod.
       data.debugPauseBarrier = flowContext.runIsTerminal
@@ -233,7 +237,7 @@ export function updateFlowElementsState(
       );
       data.taskId = runtimeInfo.task.task_id;
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
-      data.lifecycleMessage = getNodeLifecycleMessage(runtimeInfo.task, data.state);
+      Object.assign(data, getNodeLifecycle(runtimeInfo.task, data.state));
     } else if (updatedElement.type === NodeTypeNames.ARTIFACT && runtimeInfo.artifactGroup) {
       const data = updatedElement.data as ArtifactFlowElementData;
       data.hasArtifact = !!runtimeInfo.artifactGroup.artifacts?.some(
@@ -730,17 +734,20 @@ function getIterationState(
   return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
 }
 
-// The amber warning has to agree with the state the node is drawn in. When the state was
+// The lifecycle status has to agree with the state the node is drawn in. When the state was
 // reset because the run or a parent scope already finished, the old diagnostic no longer
-// describes an unresolved problem, so the node stays neutral instead of turning amber.
-function getNodeLifecycleMessage(
+// describes an unresolved problem, so the node stays neutral instead of showing it. The
+// message and its category are returned together so both are always set or cleared as one.
+function getNodeLifecycle(
   task: V2PipelineTask,
   displayedState: PipelineTaskTaskState | undefined,
-): string | undefined {
-  if (displayedState !== task.state) {
-    return undefined;
-  }
-  return getTaskLifecycleMessage(task);
+): { lifecycleMessage?: string; lifecycleCategory?: string } {
+  const lifecycleMessage =
+    displayedState === task.state ? getTaskLifecycleMessage(task) : undefined;
+  return {
+    lifecycleMessage,
+    lifecycleCategory: lifecycleMessage ? getTaskLifecycleCategory(task) : undefined,
+  };
 }
 
 function getRuntimeTaskState(

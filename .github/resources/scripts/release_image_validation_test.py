@@ -359,9 +359,15 @@ class NativeImagesTests(unittest.TestCase):
 class WorkflowTests(unittest.TestCase):
     def setUp(self):
         root = Path(__file__).resolve().parents[3]
-        self.jobs = yaml.safe_load(
+        self.workflow = yaml.safe_load(
             (root / '.github/workflows/image-builds-release.yml').read_text()
-        )['jobs']
+        )
+        self.jobs = self.workflow['jobs']
+
+    def test_selected_release_source_cannot_access_repository_caches(self):
+        self.assertEqual(self.workflow['cache-mode'], 'none')
+        for job in self.jobs.values():
+            self.assertNotIn('cache-mode', job)
 
     def test_validation_runs_natively_after_publication_and_skips_dry_runs(
         self,

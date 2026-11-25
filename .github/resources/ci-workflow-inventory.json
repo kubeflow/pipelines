@@ -320,7 +320,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "3a9284f969b0b4df839297c1305089044246fa6c35b927e4ae0aa0e41a44c235",
+      "header_sha256": "bd9c95720ac01f73c22e96995d0dac2e80489f6dfc96bd289d6e3c3456b2796e",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -408,6 +408,7 @@
           "backend/test/v2/resources/hello-world-with-returning-component.yaml",
           "test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py",
           "backend/Dockerfile",
+          "backend/src/apiserver/config/sample_config.json",
           "backend/api/build_kfp_server_api_python_package.sh",
           "api/v2alpha1/python/generate_proto.py",
           "kubernetes_platform/python/generate_proto.py",
@@ -1403,7 +1404,7 @@
     {
       "path": ".github/workflows/upgrade-test.yml",
       "name": "KFP upgrade tests",
-      "header_sha256": "5fa3e53d3ff36ba15b3b80152d8c097733a8c91f96d0ec6545d20faa04ed86b3",
+      "header_sha256": "cfe1081941a20ecc641929fda838ce0d7ff1c54682f4d739fb23b135f8a686e1",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -1422,7 +1423,9 @@
           "backend/api/v2beta1/**",
           "backend/src/**",
           "backend/test/v2/api/**",
+          "frontend/**",
           "manifests/kustomize/**",
+          "test/frontend-integration-test/**",
           "test_data/sdk_compiled_pipelines/**",
           "!**/*.md",
           "!**/OWNERS"

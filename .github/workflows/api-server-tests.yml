@@ -299,6 +299,14 @@ jobs:
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
+      - name: Verify retained native API writes during the pipeline-reference backfill
+        if: >-
+          matrix.k8s_version == 'v1.36.1' && matrix.argo_version == 'v4.0.13' &&
+          matrix.cache_enabled == 'true' && matrix.proxy == 'false' &&
+          matrix.pod_to_pod_tls_enabled == 'false' && matrix.db_type == 'mysql'
+        timeout-minutes: 12
+        run: bash .github/resources/scripts/native-backfill-rollout.sh
+
 
   api-test-k8s-native:
     needs: image-artifacts-ready
