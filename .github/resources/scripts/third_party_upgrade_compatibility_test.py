@@ -287,13 +287,19 @@ class CompatibilityTest(unittest.TestCase):
             compatibility.urllib.request, 'urlopen', return_value=response
         ) as request:
             self.assertEqual(
-                compatibility.sync_profile('http://localhost', 'user', secret),
+                compatibility.sync_profile(
+                    'http://localhost', 'user', 'test-webhook-token', secret
+                ),
                 secret,
             )
         observed = json.loads(request.call_args.args[0].data)
         self.assertEqual(
             observed['attachments']['Secret.v1'],
             {'user/mlpipeline-minio-artifact': secret},
+        )
+        self.assertEqual(
+            request.call_args.args[0].get_header('Authorization'),
+            'Bearer test-webhook-token',
         )
 
     def test_reconciliation_rejects_missing_or_ambiguous_artifact_secret(self):
@@ -318,7 +324,9 @@ class CompatibilityTest(unittest.TestCase):
                     with self.assertRaisesRegex(
                         ValueError, 'Expected one artifact'
                     ):
-                        compatibility.sync_profile('http://localhost', 'user')
+                        compatibility.sync_profile(
+                            'http://localhost', 'user', 'test-webhook-token'
+                        )
 
 
 if __name__ == '__main__':
