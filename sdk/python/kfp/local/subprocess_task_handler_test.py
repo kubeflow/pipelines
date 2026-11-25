@@ -160,6 +160,22 @@ _KFP_RUNTIME=true python3 -m kfp.executor_main \
 
         self.assertEqual(actual, expected)
 
+    def test_does_not_replace_python3_in_shell_positional_arguments(self):
+        full_command = [
+            'sh',
+            '-c',
+            'printf "%s" "$1"',
+            '_',
+            'python3 -m pip',
+        ]
+
+        actual = subprocess_task_handler.replace_python_executable(
+            full_command=full_command,
+            new_executable='/foo/bar/python',
+        )
+
+        self.assertEqual(actual, full_command)
+
     def test_replaces_all_python_executables_in_installation_command(self):
         command = component_factory._get_packages_to_install_command(
             packages_to_install=['cloudpickle'],
