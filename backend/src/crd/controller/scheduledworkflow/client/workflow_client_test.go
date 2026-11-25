@@ -15,6 +15,7 @@
 package client
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -169,10 +170,11 @@ func TestRetrieveIndex(t *testing.T) {
 func TestLabelSelectorToGetWorkflows(t *testing.T) {
 
 	// Completed
-	result := getLabelSelectorToGetWorkflows(
+	result, err := getLabelSelectorToGetWorkflows(
 		"PIPELINE_NAME",
 		true, /* completed */
 		50 /* min index */)
+	assert.Nil(t, err)
 
 	expected := labels.NewSelector()
 
@@ -194,10 +196,11 @@ func TestLabelSelectorToGetWorkflows(t *testing.T) {
 	assert.Equal(t, expected, *result)
 
 	// Not completed
-	result = getLabelSelectorToGetWorkflows(
+	result, err = getLabelSelectorToGetWorkflows(
 		"PIPELINE_NAME",
 		false, /* completed */
 		50 /* min index */)
+	assert.Nil(t, err)
 
 	expected = labels.NewSelector()
 
@@ -217,4 +220,22 @@ func TestLabelSelectorToGetWorkflows(t *testing.T) {
 	expected = expected.Add(*req)
 
 	assert.Equal(t, expected, *result)
+}
+
+func TestLabelSelectorToGetWorkflows_NameIsNotALabelValue(t *testing.T) {
+	// Kubernetes object names can be up to 253 characters, label values 63.
+	result, err := getLabelSelectorToGetWorkflows(
+		strings.Repeat("a", 64),
+		true, /* completed */
+		50 /* min index */)
+	assert.NotNil(t, err)
+	assert.Nil(t, result)
+}
+
+func TestList_NameIsNotALabelValue(t *testing.T) {
+	workflowClient := NewWorkflowClient(nil, nil)
+	result, err := workflowClient.List("NAMESPACE", strings.Repeat("a", 64), false /* completed */, 0 /* min index */)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Could not build the label selector")
+	assert.Nil(t, result)
 }

@@ -34,6 +34,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -834,6 +835,54 @@ func TestBuildHTTPRouter_AllRoutesRegistered(t *testing.T) {
 	}
 }
 
+func TestHealthzServedWhilePipelineRefBackfillIsRunning(t *testing.T) {
+	viper.Set(common.MultiUserMode, "false")
+	t.Cleanup(viper.Reset)
+	tlsFixture := httptest.NewTLSServer(http.NotFoundHandler())
+	t.Cleanup(tlsFixture.Close)
+	for _, tc := range []struct {
+		scheme string
+		config *tls.Config
+		client *http.Client
+	}{
+		{"http", nil, &http.Client{}},
+		{"https", tlsFixture.TLS.Clone(), tlsFixture.Client()},
+	} {
+		t.Run(tc.scheme, func(t *testing.T) {
+			proxy := &http.Server{Addr: "127.0.0.1:0", Handler: buildHTTPRouter(newNoOpHTTPRouterDeps(), http.HandlerFunc(noOpHandler), "database")}
+			started, release := make(chan string, 1), make(chan struct{})
+			var workers sync.WaitGroup
+			stopped := make(chan error, 1)
+			go func() {
+				stopped <- serveHTTPProxy(proxy, tc.config, "", "", func(listener net.Listener) {
+					started <- listener.Addr().String()
+					<-release
+				}, &workers)
+			}()
+			t.Cleanup(func() {
+				close(release)
+				proxy.Close()
+				assert.NoError(t, <-stopped)
+				workers.Wait()
+			})
+			var addr string
+			select {
+			case addr = <-started:
+			case <-time.After(3 * time.Second):
+				t.Fatal("backfill did not start")
+			}
+			tc.client.Timeout = 3 * time.Second
+			resp, err := tc.client.Get(tc.scheme + "://" + addr + "/apis/v2/healthz")
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+			var health healthzResponse
+			require.NoError(t, json.NewDecoder(resp.Body).Decode(&health))
+			require.Equal(t, "database", health.PipelineStore)
+		})
+	}
+}
+
 func TestBuildHTTPRouter_HealthzResponses(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -986,6 +1035,8 @@ func TestBuildHTTPRouter_RunLogRequiresGET(t *testing.T) {
 }
 
 func TestServeHTTPProxy_ReportsListenFailure(t *testing.T) {
+	var workers sync.WaitGroup
+	t.Cleanup(workers.Wait)
 	// Occupy a port so the proxy's listener cannot bind to it, as happens when
 	// --httpPortFlag collides with another listener in the pod.
 	occupied, err := net.Listen("tcp", "127.0.0.1:0")
@@ -993,23 +1044,27 @@ func TestServeHTTPProxy_ReportsListenFailure(t *testing.T) {
 	defer occupied.Close()
 
 	httpServer := &http.Server{Addr: occupied.Addr().String(), Handler: http.NotFoundHandler()}
-	err = serveHTTPProxy(httpServer, nil, "", "")
+	err = serveHTTPProxy(httpServer, nil, "", "", func(net.Listener) { t.Error("backfill started without a ready listener") }, &workers)
 	require.Error(t, err, "a listener that failed to start must be reported so main can exit non-zero")
 	assert.NotErrorIs(t, err, http.ErrServerClosed)
 }
 
 func TestServeHTTPProxy_ReportsTLSListenFailure(t *testing.T) {
+	var workers sync.WaitGroup
+	t.Cleanup(workers.Wait)
 	httpServer := &http.Server{Addr: "127.0.0.1:0", Handler: http.NotFoundHandler()}
 	missing := filepath.Join(t.TempDir(), "missing")
-	err := serveHTTPProxy(httpServer, &tls.Config{MinVersion: tls.VersionTLS12}, missing+".crt", missing+".key")
+	err := serveHTTPProxy(httpServer, &tls.Config{MinVersion: tls.VersionTLS12}, missing+".crt", missing+".key", func(net.Listener) { t.Error("backfill started without TLS") }, &workers)
 	require.Error(t, err)
 	assert.NotErrorIs(t, err, http.ErrServerClosed)
 }
 
 func TestServeHTTPProxy_CleanShutdownIsNotAnError(t *testing.T) {
+	var workers sync.WaitGroup
+	t.Cleanup(workers.Wait)
 	httpServer := &http.Server{Addr: "127.0.0.1:0", Handler: http.NotFoundHandler()}
 	// Shutting down first makes ListenAndServe return ErrServerClosed at once,
 	// which is the only stop reason that must not be treated as a failure.
 	require.NoError(t, httpServer.Shutdown(context.Background()))
-	assert.NoError(t, serveHTTPProxy(httpServer, nil, "", ""))
+	assert.NoError(t, serveHTTPProxy(httpServer, nil, "", "", func(net.Listener) { t.Error("backfill started without a ready listener") }, &workers))
 }
