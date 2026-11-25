@@ -40,7 +40,8 @@ TLS_KEYS = {'tls.crt', 'tls.key', 'ca.crt'}
 
 
 def generate_tls_data(namespace, directory):
-    """Pin a per-install certificate for the Service and local port forwards."""
+    """Pin a per-install certificate for the Service and local port
+    forwards."""
     dns = f'kubeflow-pipelines-profile-controller.{namespace}'
     with tempfile.TemporaryDirectory(dir=directory) as temporary:
         key = Path(temporary) / 'tls.key'
