@@ -99,4 +99,12 @@ describe('Banner', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
     expect(spy).toHaveBeenCalled();
   });
+
+  it('renders with role="status" and aria-live="polite" so screen readers announce the message (WCAG 4.1.3)', () => {
+    render(<Banner message='Something went wrong' />);
+    const banner = screen.getByRole('status');
+    expect(banner).toBeInTheDocument();
+    expect(banner).toHaveAttribute('aria-live', 'polite');
+    expect(banner).toHaveAttribute('aria-atomic', 'true');
+  });
 });
