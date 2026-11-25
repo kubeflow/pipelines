@@ -155,6 +155,7 @@ def _context(
     security_policy: Optional[str] = None,
     security_exceptions: Optional[Path] = None,
     image_qualification: Optional[str] = None,
+    landed_ci_run: Optional[int] = None,
 ) -> ReleaseContext:
     state = _load_state_for_update(state_file)
     _set_answer(state, 'release_type', release_type)
@@ -172,6 +173,11 @@ def _context(
     _set_answer(state, 'previous_release', previous_release)
     _set_answer(state, 'previous_sdk_release', previous_sdk_release)
     _set_answer(state, 'release_target', release_target)
+    if landed_ci_run is not None and landed_ci_run != state.answers.get(
+        'landed_ci_run'
+    ):
+        state.answers['landed_ci_run'] = landed_ci_run
+        state.answers.pop('landed_ci_attempt', None)
     if qualification_pythons:
         raise typer.BadParameter(
             'CI selects Python versions from the release source',
@@ -317,7 +323,7 @@ update-version-tags -> merge-version-pr
                       -> confirm-rtd -> create-sdk-release
   |
 
-create-backend-release -> sync-master -> confirm-website-and-slack"""
+publish-backend-docs -> create-backend-release -> sync-master -> confirm-website-and-slack"""
 
 
 @run_app.callback(invoke_without_command=True)
@@ -385,6 +391,11 @@ def run(
         None,
         help='JSON exception file with exact findings, justifications and UTC expiries or an exact release bound; selects approved-exceptions.',
     ),
+    landed_ci_run: Optional[int] = typer.Option(
+        None,
+        min=1,
+        help='Upstream landed CI attestation run for the merged version PR.',
+    ),
     image_qualification: Optional[ImageQualification] = typer.Option(
         None,
         help='Qualification scans run in upstream CI; local scanning is unsupported.',
@@ -419,6 +430,7 @@ def run(
         qualification_pythons=qualification_pythons,
         security_policy=security_policy,
         security_exceptions=security_exceptions,
+        landed_ci_run=landed_ci_run,
         image_qualification=image_qualification,
     )
     run_steps(context)
@@ -533,6 +545,43 @@ def validate_notes_command(
             typer.echo(f'Warning: {warning}')
     else:
         typer.echo('No editorial warnings found.')
+
+
+@app.command(
+    'review-notes', context_settings={'help_option_names': HELP_OPTION_NAMES}
+)
+def review_notes_command(
+    state_file: Path = typer.Option(
+        Path(STATE_FILE),
+        exists=True,
+        dir_okay=False,
+        help='Existing release checkpoint.',
+    ),
+) -> None:
+    """Preview all selected release pages and check public advisory
+    coverage."""
+    from .steps import review_release_notes
+
+    try:
+        context = _context(
+            state_file,
+            dry_run=False,
+            release_type=None,
+            version=None,
+            fork_remote=None,
+            patch_prs=None,
+            include_backend=None,
+            include_sdk=None,
+            save_state=False,
+        )
+        issues = review_release_notes(context)
+    except (ValueError, OSError, subprocess.CalledProcessError) as error:
+        typer.echo(f'Unable to review release notes: {error}', err=True)
+        raise typer.Exit(1) from error
+    if issues:
+        for issue in issues:
+            typer.echo(issue, err=True)
+        raise typer.Exit(1)
 
 
 @app.command(
@@ -910,6 +959,11 @@ def _make_step_command(step_id: str):
             None,
             help='JSON exception file with exact findings, justifications and UTC expiries or an exact release bound; selects approved-exceptions.',
         ),
+        landed_ci_run: Optional[int] = typer.Option(
+            None,
+            min=1,
+            help='Upstream landed CI attestation run for the merged version PR.',
+        ),
         image_qualification: Optional[ImageQualification] = typer.Option(
             None,
             help='Qualification scans run in upstream CI; local scanning is unsupported.',
@@ -937,6 +991,7 @@ def _make_step_command(step_id: str):
             qualification_pythons=qualification_pythons,
             security_policy=security_policy,
             security_exceptions=security_exceptions,
+            landed_ci_run=landed_ci_run,
             image_qualification=image_qualification,
             save_state=done,
             require_previous_release=step_id

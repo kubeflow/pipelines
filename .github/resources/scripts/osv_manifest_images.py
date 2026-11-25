@@ -34,6 +34,7 @@ RELEASE_IMAGES = {
     'kfp-metadata-envoy': 'metadata-envoy',
     'kfp-metadata-writer': 'metadata-writer',
     'kfp-inverse-proxy-agent': 'inverse-proxy-agent',
+    'kfp-profile-controller': 'profile-controller',
 }
 
 

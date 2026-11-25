@@ -212,6 +212,21 @@ class SharedImageTests(unittest.TestCase):
             shared.checksum(self.directory / 'apiserver.tar'),
         )
 
+    def test_bundle_accepts_exact_images_and_rejects_extra_evidence(self):
+        self.api.images('amd64', self.directory)
+        shared.validate_bundle(self.producer, 'amd64', self.directory)
+        for name in ('unrelated.txt', 'apiserver.go-provenance'):
+            with self.subTest(name=name):
+                extra = self.directory / name
+                extra.write_text('unexpected')
+                with self.assertRaisesRegex(
+                    shared.InvalidEvidence, 'unexpected bundle'
+                ):
+                    shared.validate_bundle(
+                        self.producer, 'amd64', self.directory
+                    )
+                extra.unlink()
+
     def test_bundled_provenance_tampering_fails_closed(self):
         for field, value in [
             ('version', 1),
@@ -442,10 +457,115 @@ class SharedImageTests(unittest.TestCase):
     def test_actual_merge_sha_not_head_sha_controls_reuse(self):
         self.api.images('amd64', self.directory)
         self.consumer['source_sha'] = 'd' * 40
-        with self.assertRaisesRegex(
-            shared.InvalidEvidence, 'source_sha mismatch'
+        self.api.current_run.update(status='completed', conclusion='success')
+        now = [0]
+
+        def wait(seconds):
+            self.assertFalse(self.state_path.exists())
+            now[0] += seconds
+
+        with (
+            mock.patch.object(
+                self.api, 'document', wraps=self.api.document
+            ) as read,
+            self.assertRaisesRegex(
+                shared.InvalidEvidence, 'Timed out.*producer'
+            ),
         ):
-            self.resolve()
+            shared.resolve(
+                self.api,
+                self.consumer,
+                'amd64',
+                'images',
+                self.state_path,
+                timeout=90,
+                poll=30,
+                clock=lambda: now[0],
+                sleep=wait,
+            )
+        self.assertEqual(now[0], 90)
+        self.assertFalse(self.state_path.exists())
+        self.assertEqual(read.call_count, 1)
+
+    def test_waits_for_newly_visible_producer_with_matching_merge_sha(self):
+        self.consumer['source_sha'] = 'd' * 40
+        self.api.images('amd64', self.directory)
+        self.api.current_run.update(status='completed', conclusion='success')
+        stale_source = self.api.items.pop(1)
+        matching = self.newer_candidate(dict(self.consumer, run_id=30))
+        matching.items.clear()
+        self.api.run = matching.run
+        now = [0]
+        self.api.runs = lambda sha: (
+            [self.api.current_run]
+            if now[0] < 90
+            else [matching.current_run, self.api.current_run]
+        )
+
+        def wait(seconds):
+            self.assertFalse(self.state_path.exists())
+            now[0] += seconds
+            if now[0] == 30:
+                # Its late source identifies the completed run as unrelated.
+                # Its publication grace must not shorten discovery.
+                self.api.items[1] = stale_source
+            elif now[0] == 120:
+                matching.add('ci-image-source-attempt-1', matching.source)
+                matching.images('amd64', self.directory)
+
+        state = shared.resolve(
+            self.api,
+            self.consumer,
+            'amd64',
+            'images',
+            self.state_path,
+            timeout=150,
+            poll=30,
+            clock=lambda: now[0],
+            sleep=wait,
+        )
+        self.assertEqual(now[0], 120)
+        self.assertEqual(state['identity'], matching.source)
+        self.assertEqual(json.loads(self.state_path.read_text()), state)
+
+    def test_new_candidate_uses_discovery_deadline_for_first_request(self):
+        self.api.current_run.update(status='completed', conclusion='success')
+        self.api.items.clear()
+        matching = self.newer_candidate(dict(self.consumer, run_id=30))
+        matching.images('amd64', self.directory)
+        now = [0]
+        self.api.runs = lambda sha: (
+            [self.api.current_run] if now[0] < 50 else [matching.current_run]
+        )
+        self.api.run = matching.run
+        artifacts = self.api.artifacts
+
+        def slow_artifacts(run_id):
+            if run_id == matching.current_run['id'] and now[0] == 50:
+                # A transient error after the old cutoff must also retry
+                # under the discovery budget.
+                self.assertEqual(self.api.deadline, 150)
+                now[0] += 11
+                raise shared.APIError('temporary artifact service error')
+            return artifacts(run_id)
+
+        def wait(seconds):
+            now[0] += seconds
+
+        self.api.artifacts = slow_artifacts
+        state = shared.resolve(
+            self.api,
+            self.consumer,
+            'amd64',
+            'images',
+            self.state_path,
+            timeout=150,
+            poll=50,
+            clock=lambda: now[0],
+            sleep=wait,
+        )
+        self.assertEqual(now[0], 111)
+        self.assertEqual(state['identity'], matching.source)
 
     def newer_candidate(self, source):
         newer = FakeAPI(source)
@@ -542,6 +662,47 @@ class SharedImageTests(unittest.TestCase):
         shared.verify(self.api, state, self.consumer, self.directory, 'nested')
         self.assertTrue((self.directory / 'frontend/frontend.tar').is_file())
         self.assertFalse((self.directory / 'frontend.tar').exists())
+
+    def test_optional_tensorboard_set_uses_same_producer_and_checksums(self):
+        for architecture in ('amd64', 'arm64'):
+            with self.subTest(architecture=architecture):
+                self.state_path.unlink(missing_ok=True)
+                self.api = FakeAPI(self.producer)
+                self.api.images(architecture, self.directory)
+                # Ordinary branch images must resolve before TensorBoard exists.
+                ordinary = self.resolve(architecture=architecture)
+                self.assertNotIn(
+                    'tensorboard',
+                    [r['image'] for r in ordinary['sets']['images']],
+                )
+                self.api.bundle('tensorboard', architecture, self.directory)
+                state = self.resolve('tensorboard', architecture)
+                self.assertEqual(state['identity'], ordinary['identity'])
+                self.assertEqual(
+                    [r['image'] for r in state['sets']['tensorboard']],
+                    ['tensorboard'],
+                )
+                shared.verify(
+                    self.api,
+                    state,
+                    self.consumer,
+                    self.directory,
+                    'flat',
+                    'tensorboard',
+                )
+                name = shared.filenames('tensorboard', architecture)[0]
+                (self.directory / name).write_bytes(b'tampered')
+                with self.assertRaisesRegex(
+                    shared.InvalidEvidence, 'Checksum mismatch'
+                ):
+                    shared.verify(
+                        self.api,
+                        state,
+                        self.consumer,
+                        self.directory,
+                        'flat',
+                        'tensorboard',
+                    )
 
     def test_arm_checksums_include_existing_identity_record(self):
         self.api.images('arm64', self.directory)

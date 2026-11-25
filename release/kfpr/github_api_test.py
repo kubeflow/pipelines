@@ -45,7 +45,7 @@ class GithubPollingTest(unittest.TestCase):
 
             def capture(self, command, cwd=None):
                 self.commands.append(command)
-                return '[{"name":"unit-tests","status":"COMPLETED","conclusion":"FAILURE"}]'
+                return '{"state":"OPEN","statusCheckRollup":[{"name":"unit-tests","status":"COMPLETED","conclusion":"FAILURE"}]}'
 
         runner = FailingCiRunner()
 
@@ -67,10 +67,10 @@ class GithubPollingTest(unittest.TestCase):
             def capture(self, command, cwd=None):
                 self.commands.append(command)
                 return (
-                    '[{"name":"check_ci_status","status":"COMPLETED","conclusion":"CANCELLED",'
+                    '{"state":"OPEN","statusCheckRollup":[{"name":"check_ci_status","status":"COMPLETED","conclusion":"CANCELLED",'
                     '"startedAt":"2026-07-09T17:16:58Z"},'
                     '{"name":"check_ci_status","status":"COMPLETED","conclusion":"SUCCESS",'
-                    '"startedAt":"2026-07-09T17:17:09Z"}]'
+                    '"startedAt":"2026-07-09T17:17:09Z"}]}'
                 )
 
         core.watch_pr_ci(
@@ -88,8 +88,8 @@ class GithubPollingTest(unittest.TestCase):
             def capture(self, command, cwd=None):
                 self.commands.append(command)
                 return (
-                    '[{"name":"unit-tests","status":"COMPLETED","conclusion":"SUCCESS"},'
-                    '{"name":"lint","status":"COMPLETED","conclusion":"SUCCESS"}]'
+                    '{"state":"OPEN","statusCheckRollup":[{"name":"unit-tests","status":"COMPLETED","conclusion":"SUCCESS"},'
+                    '{"name":"lint","status":"COMPLETED","conclusion":"SUCCESS"}]}'
                 )
 
         runner = PassingCiRunner()
@@ -104,9 +104,7 @@ class GithubPollingTest(unittest.TestCase):
                 'view',
                 'https://github.com/kubeflow/pipelines/pull/1',
                 '--json',
-                'statusCheckRollup',
-                '--jq',
-                '.statusCheckRollup',
+                'state,url,statusCheckRollup',
             ],
         )
 
@@ -124,12 +122,12 @@ class GithubPollingTest(unittest.TestCase):
                 self.calls += 1
                 if self.calls == 1:
                     return (
-                        '[{"name":"slow-job","status":"IN_PROGRESS","detailsUrl":"https://github.com/kubeflow/pipelines/actions/runs/1/job/2"},'
-                        '{"name":"done-job","status":"COMPLETED","conclusion":"SUCCESS","detailsUrl":"https://github.com/kubeflow/pipelines/actions/runs/1/job/3"}]'
+                        '{"state":"OPEN","statusCheckRollup":[{"name":"slow-job","status":"IN_PROGRESS","detailsUrl":"https://github.com/kubeflow/pipelines/actions/runs/1/job/2"},'
+                        '{"name":"done-job","status":"COMPLETED","conclusion":"SUCCESS","detailsUrl":"https://github.com/kubeflow/pipelines/actions/runs/1/job/3"}]}'
                     )
                 return (
-                    '[{"name":"slow-job","status":"COMPLETED","conclusion":"SUCCESS","detailsUrl":"https://github.com/kubeflow/pipelines/actions/runs/1/job/2"},'
-                    '{"name":"done-job","status":"COMPLETED","conclusion":"SUCCESS","detailsUrl":"https://github.com/kubeflow/pipelines/actions/runs/1/job/3"}]'
+                    '{"state":"OPEN","statusCheckRollup":[{"name":"slow-job","status":"COMPLETED","conclusion":"SUCCESS","detailsUrl":"https://github.com/kubeflow/pipelines/actions/runs/1/job/2"},'
+                    '{"name":"done-job","status":"COMPLETED","conclusion":"SUCCESS","detailsUrl":"https://github.com/kubeflow/pipelines/actions/runs/1/job/3"}]}'
                 )
 
         with (
@@ -154,14 +152,17 @@ class GithubPollingTest(unittest.TestCase):
         runner = mock.Mock(spec=core.CommandRunner)
         runner.dry_run = False
         runner.capture.return_value = json.dumps(
-            [
-                {
-                    '__typename': 'StatusContext',
-                    'context': 'tide',
-                    'targetUrl': 'https://oss.gprow.dev/tide',
-                    'state': 'PENDING',
-                }
-            ]
+            {
+                'state': 'OPEN',
+                'statusCheckRollup': [
+                    {
+                        '__typename': 'StatusContext',
+                        'context': 'tide',
+                        'targetUrl': 'https://oss.gprow.dev/tide',
+                        'state': 'PENDING',
+                    }
+                ],
+            }
         )
         with mock.patch.object(
             time, 'sleep', side_effect=RuntimeError('still waiting')
@@ -174,12 +175,12 @@ class GithubPollingTest(unittest.TestCase):
     def test_watch_pr_ci_waits_for_pending_ci_passed_status(self):
         runner = mock.Mock(dry_run=False)
         runner.capture.side_effect = [
-            '[{"context":"ci-passed","state":"PENDING"},'
-            '{"name":"unit-tests","status":"IN_PROGRESS"}]',
-            '[{"context":"ci-passed","state":"PENDING"},'
-            '{"name":"unit-tests","status":"COMPLETED","conclusion":"SUCCESS"}]',
-            '[{"context":"ci-passed","state":"SUCCESS"},'
-            '{"name":"unit-tests","status":"COMPLETED","conclusion":"SUCCESS"}]',
+            '{"state":"OPEN","statusCheckRollup":[{"context":"ci-passed","state":"PENDING"},'
+            '{"name":"unit-tests","status":"IN_PROGRESS"}]}',
+            '{"state":"OPEN","statusCheckRollup":[{"context":"ci-passed","state":"PENDING"},'
+            '{"name":"unit-tests","status":"COMPLETED","conclusion":"SUCCESS"}]}',
+            '{"state":"OPEN","statusCheckRollup":[{"context":"ci-passed","state":"SUCCESS"},'
+            '{"name":"unit-tests","status":"COMPLETED","conclusion":"SUCCESS"}]}',
         ]
 
         with (
@@ -202,7 +203,7 @@ class GithubPollingTest(unittest.TestCase):
             dry_run = False
 
             def capture(self, command, cwd=None):
-                return '[{"context":"license/cla","state":"FAILURE"}]'
+                return '{"state":"OPEN","statusCheckRollup":[{"context":"license/cla","state":"FAILURE"}]}'
 
         with mock.patch(
             'time.sleep', side_effect=AssertionError('slept instead of failing')
@@ -221,7 +222,7 @@ class GithubPollingTest(unittest.TestCase):
             dry_run = False
 
             def capture(self, command, cwd=None):
-                return '[{"context":"license/cla","state":"SUCCESS"}]'
+                return '{"state":"OPEN","statusCheckRollup":[{"context":"license/cla","state":"SUCCESS"}]}'
 
         with mock.patch(
             'time.sleep',
@@ -231,6 +232,72 @@ class GithubPollingTest(unittest.TestCase):
                 PassingStatusRunner(),
                 'https://github.com/kubeflow/pipelines/pull/1',
             )
+
+    def test_merged_admission_requires_real_ci_passed(self):
+        url = 'https://github.com/kubeflow/pipelines/pull/15746'
+        admission = {
+            '__typename': 'StatusContext',
+            'context': 'merge-queue-admission',
+            'state': 'PENDING',
+            'targetUrl': url,
+        }
+        green = {
+            '__typename': 'StatusContext',
+            'context': 'ci-passed',
+            'state': 'SUCCESS',
+        }
+        runner = mock.Mock(dry_run=False)
+
+        def snapshot(state, *checks):
+            return json.dumps(
+                {'state': state, 'url': url, 'statusCheckRollup': list(checks)}
+            )
+
+        runner.capture.side_effect = [
+            snapshot('OPEN', admission, green),
+            snapshot('MERGED', {**admission, 'targetUrl': url + '0'}, green),
+            snapshot(
+                'MERGED',
+                admission,
+                {
+                    '__typename': 'CheckRun',
+                    'name': 'ci-passed',
+                    'status': 'COMPLETED',
+                    'conclusion': 'SUCCESS',
+                },
+            ),
+            snapshot('MERGED', admission, {**green, 'state': 'PENDING'}),
+            snapshot('MERGED', admission, green),
+        ]
+        with mock.patch('time.sleep') as sleep:
+            core.watch_pr_ci(runner, url.replace('/15746', '/015746'))
+        self.assertEqual(sleep.call_count, 4)
+
+        successful_run = {
+            '__typename': 'CheckRun',
+            'name': 'ci-passed',
+            'status': 'COMPLETED',
+            'conclusion': 'SUCCESS',
+            'startedAt': '2026-11-18T00:00:00Z',
+        }
+        for state in ('FAILURE', 'ERROR'):
+            with self.subTest(state=state):
+                runner.capture.side_effect = [
+                    snapshot(
+                        'MERGED',
+                        admission,
+                        {**green, 'state': state},
+                        successful_run,
+                    )
+                ]
+                with (
+                    mock.patch(
+                        'time.sleep',
+                        side_effect=AssertionError('unexpected wait'),
+                    ),
+                    self.assertRaisesRegex(RuntimeError, 'ci-passed failed'),
+                ):
+                    core.watch_pr_ci(runner, url)
 
     def test_watch_latest_workflow_run_dry_run_returns_immediately(self):
         runner = core.CommandRunner(dry_run=True)

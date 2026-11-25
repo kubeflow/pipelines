@@ -135,8 +135,14 @@ class QualifiedPublicationTest(unittest.TestCase):
     """Isolate existing layout/notes tests from the separately tested gates."""
 
     def setUp(self):
+        review = mock.patch.object(
+            steps, 'review_release_notes', return_value=[]
+        )
+        review.start()
+        self.addCleanup(review.stop)
         for target in (
             'qualification.require_qualification',
+            'rtd.publish_backend_docs',
             '_ensure_release_tag',
             '_should_set_backend_latest',
         ):
@@ -982,6 +988,41 @@ class CreateBackendReleaseStepTest(QualifiedPublicationTest):
                     steps.step_create_backend_release(context)
             runner.run.assert_not_called()
 
+    def test_standalone_backend_release_requires_public_tag_docs(self):
+        with TemporaryDirectory() as tmpdir:
+            context = core.ReleaseContext(
+                root=Path(tmpdir),
+                state=core.ReleaseState(Path(tmpdir) / 'state.json'),
+                runner=mock.Mock(dry_run=False),
+                metadata=core.ReleaseMetadata.from_version('patch', '2.18.2'),
+                fork_remote='origin',
+                include_backend=True,
+                include_sdk=False,
+                previous_release='2.18.1',
+            )
+            context.state.answers['release_sha'] = 'b' * 40
+            with (
+                mock.patch('builtins.input', return_value='y'),
+                mock.patch.object(
+                    steps,
+                    '_generate_backend_release_notes',
+                    return_value='Fixes',
+                ),
+                mock.patch.object(
+                    steps.rtd,
+                    'publish_backend_docs',
+                    side_effect=steps.rtd.ReadTheDocsError(
+                        'Tagged docs unavailable'
+                    ),
+                ) as verify,
+                self.assertRaisesRegex(
+                    steps.rtd.ReadTheDocsError, 'unavailable'
+                ),
+            ):
+                steps.step_create_backend_release(context)
+            verify.assert_called_once_with('2.18.2', 'b' * 40, token='')
+            context.runner.run.assert_not_called()
+
     def test_2_x_release_has_no_architecture_claim_or_confirmation(self):
         with TemporaryDirectory() as tmpdir:
             runner = mock.Mock(dry_run=False)
@@ -1524,10 +1565,15 @@ class OrchestrationTest(unittest.TestCase):
                         step_ids = [step.step_id for step in steps_list]
 
                         if include_backend:
+                            self.assertLess(
+                                step_ids.index('publish-backend-docs'),
+                                step_ids.index('create-backend-release'),
+                            )
                             self.assertIn('create-backend-release', step_ids)
                             self.assertIn('sync-master', step_ids)
                             self.assertIn('confirm-website-and-slack', step_ids)
                         else:
+                            self.assertNotIn('publish-backend-docs', step_ids)
                             self.assertNotIn('create-backend-release', step_ids)
                             self.assertNotIn('sync-master', step_ids)
                             self.assertNotIn(
@@ -1603,6 +1649,15 @@ class OrchestrationTest(unittest.TestCase):
 
 
 class StepPRCreationTest(unittest.TestCase):
+    OPEN_PR_GREEN_CI = json.dumps(
+        {
+            'state': 'OPEN',
+            'statusCheckRollup': [
+                {'name': 'ci', 'status': 'COMPLETED', 'conclusion': 'SUCCESS'}
+            ],
+        }
+    )
+
     def setUp(self):
         patch = mock.patch(
             'kfpr.steps.validate_release_pr', return_value='a' * 40
@@ -1646,7 +1701,7 @@ class StepPRCreationTest(unittest.TestCase):
                     if 'view' in command and any(
                         'statusCheckRollup' in part for part in command
                     ):
-                        return '[{"name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]'
+                        return StepPRCreationTest.OPEN_PR_GREEN_CI
                     if 'view' in command and any(
                         'mergeStateStatus' in part for part in command
                     ):
@@ -1712,7 +1767,7 @@ class StepPRCreationTest(unittest.TestCase):
                     if 'view' in command and any(
                         'statusCheckRollup' in part for part in command
                     ):
-                        return '[{"name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]'
+                        return StepPRCreationTest.OPEN_PR_GREEN_CI
                     if 'view' in command and any(
                         'mergeStateStatus' in part for part in command
                     ):
@@ -1787,7 +1842,7 @@ class StepPRCreationTest(unittest.TestCase):
                     if 'view' in command and any(
                         'statusCheckRollup' in part for part in command
                     ):
-                        return '[{"name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]'
+                        return StepPRCreationTest.OPEN_PR_GREEN_CI
                     if 'view' in command and any(
                         'mergeStateStatus' in part for part in command
                     ):
@@ -1853,7 +1908,7 @@ class StepPRCreationTest(unittest.TestCase):
                     if 'view' in command and any(
                         'statusCheckRollup' in part for part in command
                     ):
-                        return '[{"name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]'
+                        return StepPRCreationTest.OPEN_PR_GREEN_CI
                     if 'view' in command and any(
                         'mergeStateStatus' in part for part in command
                     ):
@@ -1940,7 +1995,7 @@ class StepPRCreationTest(unittest.TestCase):
                     if 'view' in command and any(
                         'statusCheckRollup' in part for part in command
                     ):
-                        return '[{"name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]'
+                        return StepPRCreationTest.OPEN_PR_GREEN_CI
                     if 'view' in command and any(
                         'mergeStateStatus' in part for part in command
                     ):

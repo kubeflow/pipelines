@@ -244,7 +244,6 @@ class QueueDispatchWorkflowsTest(unittest.TestCase):
             'legacy-v2-api-integration-tests.yml': 'KFP API Integration V2 (Legacy)',
             'postgresql-image-upgrade.yml': 'PostgreSQL image retained-data upgrade',
             'runtime-base-images-merge-group.yml': 'Runtime Base Images Merge Group',
-            'tensorboard-acceptance.yml': 'TensorBoard runtime acceptance',
             'upgrade-readiness.yml': 'Upgrade readiness tool',
         }
         publisher = workflow('ci-checks.yml')['on']['workflow_run']['workflows']

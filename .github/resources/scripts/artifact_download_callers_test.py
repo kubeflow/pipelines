@@ -33,6 +33,7 @@ ROOT = Path(__file__).resolve().parents[3]
 WRAPPER = './.github/actions/download-artifact-with-retry'
 WRAPPERS = {WRAPPER, './tooling/.github/actions/download-artifact-with-retry'}
 CALLERS = [
+    ('.github/actions/deploy/action.yml', 'composite'),
     ('.github/actions/shared-ci-images/action.yml', 'composite'),
     ('.github/workflows/build-tools-images.yml', 'compare-generated'),
     ('.github/workflows/build-tools-images.yml', 'publish-tools'),
@@ -243,11 +244,7 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                 self.assertNotIn('if', verify)
 
     def shared_outputs(self, architecture, kind):
-        images = (
-            ['runtime-base-images']
-            if kind == 'runtime'
-            else sorted(shared_ci_images.IMAGES)
-        )
+        images = sorted(shared_ci_images.IMAGE_SETS[kind])
         records = [
             {
                 'artifact_id': index + 100,
@@ -268,6 +265,7 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                 {
                     'identity': {
                         'run_id': 1234,
+                        'run_attempt': 1,
                         'repository': 'upstream/pipelines',
                     },
                     'sets': {kind: records},
@@ -286,7 +284,9 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                 'strategy'
             ]['matrix']['include']
         }
-        self.assertEqual(set(shared_ci_images.IMAGES), built_images)
+        self.assertEqual(
+            set(shared_ci_images.IMAGES) | {'tensorboard'}, built_images
+        )
         _, runtime, _ = self.shared_outputs('amd64', 'runtime')
         _, branch, _ = self.shared_outputs('amd64', 'images')
         # Runtime archives are verified together; deploy still loads Modelcar only
@@ -303,7 +303,7 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
             branch,
             {
                 f'{name}.{extension}'
-                for name in built_images
+                for name in built_images - {'tensorboard'}
                 for extension in ('tar', 'provenance.json')
             },
         )
@@ -387,6 +387,17 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
         self.assertEqual(download['with']['architecture'], 'arm64')
         self.assertEqual(download['with']['layout'], 'flat')
         _, actual, _ = self.shared_outputs('arm64', 'images')
+        _, optional, _ = self.shared_outputs('arm64', 'tensorboard')
+        actual |= optional
+        tensorboard_download = next(
+            step
+            for step in smoke['steps']
+            if step.get('with', {}).get('kind') == 'tensorboard'
+        )
+        self.assertEqual(tensorboard_download['with']['architecture'], 'arm64')
+        self.assertEqual(
+            tensorboard_download['with']['path'], download['with']['path']
+        )
         self.assertEqual(
             actual,
             {

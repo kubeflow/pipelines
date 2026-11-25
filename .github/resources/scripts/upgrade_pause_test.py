@@ -11,7 +11,10 @@ class UpgradePauseTest(unittest.TestCase):
         root = Path(__file__).resolve().parents[3]
         workflow = (root / '.github/workflows/upgrade-test.yml').read_text()
         jobs = yaml.safe_load(workflow)['jobs']
-        self.assertEqual(set(jobs), {'image-artifacts-ready', 'upgrade-test'})
+        self.assertEqual(
+            set(jobs),
+            {'image-artifacts-ready', 'upgrade-test', 'profile-upgrade-test'},
+        )
         for job in jobs.values():
             self.assertEqual(job['if'], '${{ false }}')
         self.assertIn('TODO(#14029)', workflow)

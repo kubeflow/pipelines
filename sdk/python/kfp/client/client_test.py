@@ -87,6 +87,24 @@ class TestValidatePipelineName(parameterized.TestCase):
             client.validate_pipeline_display_name(name)
 
 
+class TestRuntimeConfigEnableCaching(parameterized.TestCase):
+    """The server treats an unset enable_caching differently from false."""
+
+    @parameterized.parameters(
+        (None, {}),
+        (False, {'enable_caching': False}),
+        (True, {'enable_caching': True}),
+    )
+    def test_serialization_keeps_false_and_omits_unset(
+        self, enable_caching, expected
+    ):
+        config = kfp.server_api.V2RuntimeConfig(enable_caching=enable_caching)
+        self.assertEqual(
+            kfp.server_api.ApiClient().sanitize_for_serialization(config),
+            expected,
+        )
+
+
 class TestOverrideCachingOptions(parameterized.TestCase):
     def test_override_caching_of_multiple_components(self):
 

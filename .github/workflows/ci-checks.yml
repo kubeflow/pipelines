@@ -48,6 +48,7 @@ on:
       - 'Runtime Base Images'
       - 'Shared CI Images'
       - 'Third-party Image Upgrade Checks'
+      - 'Main PostgreSQL image retained-data upgrade'
       - 'KFP SDK Docformatter Test'
       - 'Python Ruff Lint'
       - 'KFP SDK Upgrade Test'
@@ -306,18 +307,19 @@ jobs:
               async () => await reconcile({github, context, core}));
 
   queue_admission:
-    # Every survivor checks queue members, affected PRs, and other ready PRs.
-    # Full scheduled recovery also revisits failing PR Gate aggregates.
-    # Each verified green publisher wakes admission independently of the matrix.
+    # Events reconcile their PR or candidate. The scheduled sweep covers
+    # missed events, rebuilt candidates and failing PR Gate aggregates.
     if: >-
       always() && !cancelled() && (
       github.event_name == 'schedule' ||
       github.event_name == 'pull_request_target' ||
       (github.event_name == 'workflow_run' && github.event.action == 'completed' &&
        (github.event.workflow_run.event == 'pull_request' ||
-        github.event.workflow_run.event == 'merge_group' ||
-        (github.event.workflow_run.event == 'workflow_dispatch' &&
-         startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/')))))
+        ((github.event.workflow_run.event == 'merge_group' || github.event.workflow_run.event == 'workflow_dispatch') &&
+         github.event.workflow_run.head_repository.full_name == github.repository &&
+         (startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/master/') ||
+          startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/main/') ||
+          startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/release-2.18/'))))))
     concurrency:
       group: merge-queue-admission
       cancel-in-progress: false

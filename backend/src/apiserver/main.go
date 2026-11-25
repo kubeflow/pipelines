@@ -341,7 +341,9 @@ func main() {
 
 	go startRPCServer(resourceManager, tlsCfg)
 	// This is blocking
-	startHTTPProxy(resourceManager, *usePipelinesKubernetesStorage, tlsCfg)
+	startHTTPProxy(resourceManager, *usePipelinesKubernetesStorage, tlsCfg, func(net.Listener) {
+		clientManager.RunPipelineRefBackfill(backgroundCtx)
+	}, &wg)
 	backgroundCancel()
 	wg.Wait()
 }
@@ -480,7 +482,7 @@ func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Confi
 	glog.Info("RPC server started")
 }
 
-func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKubernetesStorage bool, tlsCfg *tls.Config) {
+func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKubernetesStorage bool, tlsCfg *tls.Config, runBackfill func(net.Listener), wg *sync.WaitGroup) {
 	glog.Info("Starting Http Proxy")
 
 	ctx := context.Background()
@@ -534,7 +536,7 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	// non-zero status, like startRPCServer does. Returning here instead would
 	// let main finish its normal shutdown and exit 0, hiding the failure from
 	// pod status and restart-based alerting.
-	if err := serveHTTPProxy(httpServer, tlsCfg, *tlsCertPath, *tlsCertKeyPath); err != nil {
+	if err := serveHTTPProxy(httpServer, tlsCfg, *tlsCertPath, *tlsCertKeyPath, runBackfill, wg); err != nil {
 		glog.Fatalf("Failed to serve HTTP proxy on %s: %v", *httpPortFlag, err)
 	}
 	glog.Info("Http Proxy stopped")
@@ -543,7 +545,13 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 // serveHTTPProxy serves httpServer, over TLS when tlsCfg is set, until it
 // stops. A deliberate shutdown is reported as nil; any other reason the
 // server stopped, including a listener that never started, is returned.
-func serveHTTPProxy(httpServer *http.Server, tlsCfg *tls.Config, certPath, keyPath string) error {
+func serveHTTPProxy(httpServer *http.Server, tlsCfg *tls.Config, certPath, keyPath string, runBackfill func(net.Listener), wg *sync.WaitGroup) error {
+	// net/http calls BaseContext after registering the bound listener and
+	// preparing TLS. A bind or certificate failure must not start database work.
+	httpServer.BaseContext = func(listener net.Listener) context.Context {
+		wg.Go(func() { runBackfill(listener) })
+		return context.Background()
+	}
 	var err error
 	if tlsCfg != nil {
 		httpServer.TLSConfig = tlsCfg

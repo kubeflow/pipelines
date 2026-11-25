@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ReactFlowProvider } from '@xyflow/react';
 import { PipelineTaskTaskState } from 'src/apisv2/run';
 import type { SubDagKind } from './Constants';
@@ -111,7 +112,27 @@ it('shows a warning icon for a running sub-DAG with a lifecycle message', () => 
   expect(screen.queryByTestId('RefreshIcon')).not.toBeInTheDocument();
 });
 
-it('announces the warning in the sub-DAG node name', () => {
+it('shows an unclassified lifecycle message on a sub-DAG as a blue status', () => {
+  render(
+    <ReactFlowProvider>
+      <SubDagGroupNode
+        id='group'
+        selected={false}
+        data={{
+          label: 'Training',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'ContainerCreating',
+          lifecycleCategory: 'unknown',
+          expand: vi.fn(),
+        }}
+      />
+    </ReactFlowProvider>,
+  );
+  expect(screen.getByTestId('InfoOutlinedIcon')).toBeInTheDocument();
+  expect(screen.queryByTestId('WarningAmberIcon')).not.toBeInTheDocument();
+});
+
+it('announces the lifecycle status in the sub-DAG node name', () => {
   render(
     <ReactFlowProvider>
       <SubDagGroupNode
@@ -148,4 +169,95 @@ it('shows the failed icon, not the warning, once the sub-DAG has failed', () => 
   );
   expect(screen.getByTestId('ErrorIcon')).toBeInTheDocument();
   expect(screen.queryByTestId('WarningAmberIcon')).not.toBeInTheDocument();
+});
+
+it('opens the lifecycle tooltip when the sub-DAG title receives keyboard focus', async () => {
+  render(
+    <ReactFlowProvider>
+      <SubDagGroupNode
+        id='group'
+        selected={false}
+        data={{
+          label: 'Training',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'Insufficient cpu',
+          lifecycleCategory: 'scheduling',
+          expand: vi.fn(),
+        }}
+      />
+    </ReactFlowProvider>,
+  );
+  await userEvent.tab();
+  expect(screen.getByRole('button', { name: 'Training, pod lifecycle warning' })).toHaveFocus();
+  const tooltip = await screen.findByTestId('lifecycle-tooltip');
+  expect(tooltip).toHaveTextContent('Scheduling problem');
+  expect(tooltip).toHaveTextContent('Insufficient cpu');
+});
+
+it('opens the lifecycle tooltip on keyboard focus of a failed sub-DAG too', async () => {
+  render(
+    <ReactFlowProvider>
+      <SubDagGroupNode
+        id='group'
+        selected={false}
+        data={{
+          label: 'Training',
+          state: PipelineTaskTaskState.FAILED,
+          lifecycleMessage: 'main: OOMKilled (exit code 137)',
+          lifecycleCategory: 'runtime',
+          expand: vi.fn(),
+        }}
+      />
+    </ReactFlowProvider>,
+  );
+  await userEvent.tab();
+  expect(await screen.findByTestId('lifecycle-tooltip')).toHaveTextContent('OOMKilled');
+});
+
+it('associates the sub-DAG title button with the tooltip content via aria-describedby', async () => {
+  render(
+    <ReactFlowProvider>
+      <SubDagGroupNode
+        id='group'
+        selected={false}
+        data={{
+          label: 'Training',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'Insufficient cpu',
+          lifecycleCategory: 'scheduling',
+          expand: vi.fn(),
+        }}
+      />
+    </ReactFlowProvider>,
+  );
+  const button = screen.getByRole('button', { name: 'Training, pod lifecycle warning' });
+  expect(button).not.toHaveAttribute('aria-describedby');
+  await userEvent.tab();
+  const tooltip = await screen.findByTestId('lifecycle-tooltip');
+  const describedBy = button.getAttribute('aria-describedby');
+  expect(describedBy).toBeTruthy();
+  expect(tooltip.id).toBe(describedBy);
+  expect(tooltip).toHaveTextContent('Scheduling problem');
+  expect(tooltip).toHaveTextContent('Insufficient cpu');
+});
+
+it('does not describe the focused sub-DAG title when there is no lifecycle diagnostic', async () => {
+  render(
+    <ReactFlowProvider>
+      <SubDagGroupNode
+        id='group'
+        selected={false}
+        data={{
+          label: 'Training',
+          state: PipelineTaskTaskState.RUNNING,
+          expand: vi.fn(),
+        }}
+      />
+    </ReactFlowProvider>,
+  );
+  await userEvent.tab();
+  const button = screen.getByRole('button', { name: 'Training' });
+  expect(button).toHaveFocus();
+  expect(button).not.toHaveAttribute('aria-describedby');
+  expect(screen.queryByTestId('lifecycle-tooltip')).not.toBeInTheDocument();
 });
