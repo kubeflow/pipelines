@@ -20,6 +20,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -364,6 +366,99 @@ func TestCreateRun_IdempotentRecoversAfterTransientFailure(t *testing.T) {
 	runID, err := c.CreateRun(context.Background(), "exp-1", "parent", tags)
 	require.NoError(t, err)
 	assert.Equal(t, "existing-run", runID, "should reuse the run found by idempotency tag")
+}
+
+var tagCondition = regexp.MustCompile("tags.`([^`]+)` = '([^']*)'")
+
+// Two requests for the same recurring tick share a KFP run ID and therefore an
+// idempotency key. A transient create failure in one request must not adopt the
+// parent run created by the other, or cleanup of a rejected request could close
+// a parent that a running Workflow still uses.
+func TestCreateRun_IdempotentRecoveryIgnoresConcurrentRequestRun(t *testing.T) {
+	restore := idempotentRetryInitialBackoff
+	idempotentRetryInitialBackoff = time.Millisecond
+	defer func() { idempotentRetryInitialBackoff = restore }()
+
+	var createCalls int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case pathRunsCreate:
+			if atomic.AddInt32(&createCalls, 1) == 1 {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				return
+			}
+			_, _ = w.Write([]byte(`{"run":{"info":{"run_id":"own-run"}}}`))
+		case pathRunsSearch:
+			var body struct {
+				Filter string `json:"filter"`
+			}
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+			// Only the concurrent request's run exists. Like MLflow, return it when
+			// every tag condition in the filter matches its tags.
+			otherRunTags := map[string]string{IdempotencyTagKey: "kfp-run-shared", CreateRequestTagKey: "other-request"}
+			for _, cond := range tagCondition.FindAllStringSubmatch(body.Filter, -1) {
+				if otherRunTags[cond[1]] != cond[2] {
+					_, _ = w.Write([]byte(`{"runs":[]}`))
+					return
+				}
+			}
+			_, _ = w.Write([]byte(`{"runs":[{"info":{"run_id":"other-request-run"}}]}`))
+		default:
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server.URL)
+	tags := []Tag{{Key: IdempotencyTagKey, Value: "kfp-run-shared"}}
+	runID, err := c.CreateRun(context.Background(), "exp-1", "parent", tags)
+	require.NoError(t, err)
+	assert.Equal(t, "own-run", runID, "recovery must not reuse a run created by a concurrent request")
+	assert.Equal(t, int32(2), atomic.LoadInt32(&createCalls))
+	assert.Len(t, tags, 1, "CreateRun must not modify the caller's tags")
+}
+
+// A retry must still find the run committed by its own lost-response attempt.
+func TestCreateRun_IdempotentRecoveryMatchesOwnRequestID(t *testing.T) {
+	restore := idempotentRetryInitialBackoff
+	idempotentRetryInitialBackoff = time.Millisecond
+	defer func() { idempotentRetryInitialBackoff = restore }()
+
+	var committedRequestID atomic.Value
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case pathRunsCreate:
+			var body struct {
+				Tags []map[string]string `json:"tags"`
+			}
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+			for _, tag := range body.Tags {
+				if tag["key"] == CreateRequestTagKey {
+					committedRequestID.Store(tag["value"])
+				}
+			}
+			w.WriteHeader(http.StatusServiceUnavailable)
+		case pathRunsSearch:
+			var body struct {
+				Filter string `json:"filter"`
+			}
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+			id, _ := committedRequestID.Load().(string)
+			if id != "" && strings.Contains(body.Filter, "'"+id+"'") {
+				_, _ = w.Write([]byte(`{"runs":[{"info":{"run_id":"committed-run"}}]}`))
+				return
+			}
+			_, _ = w.Write([]byte(`{"runs":[]}`))
+		default:
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server.URL)
+	runID, err := c.CreateRun(context.Background(), "exp-1", "parent", []Tag{{Key: IdempotencyTagKey, Value: "kfp-run-7"}})
+	require.NoError(t, err)
+	assert.Equal(t, "committed-run", runID)
 }
 
 func TestCreateRun_DoesNotRecreateWhenSearchCannotConfirm(t *testing.T) {

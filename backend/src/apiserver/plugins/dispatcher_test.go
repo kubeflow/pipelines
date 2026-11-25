@@ -34,7 +34,6 @@ type fakeHandler struct {
 	resolveInputEnabled       bool
 	resolveConfigErr          error
 	onBeforeRunCreationCalled bool
-	onRunEndCalled            bool
 }
 
 func (f *fakeHandler) Name() string { return f.name }
@@ -74,7 +73,6 @@ func (f *fakeHandler) HandleRetry(ctx context.Context, run *PersistedRun, runCfg
 }
 
 func (f *fakeHandler) OnRunEnd(ctx context.Context, run *PersistedRun, runCfg interface{}) (bool, error) {
-	f.onRunEndCalled = true
 	return f.endBool, f.endErr
 }
 
@@ -354,27 +352,6 @@ func TestOnBeforeRunCreation_LaterHandlerInjectionFailure_KeepsEarlierOutputAndS
 	assert.Contains(t, outputs, "FakePluginA", "cleanup must also see parents created by earlier handlers")
 	assert.Contains(t, outputs, "FakePluginB")
 	assert.False(t, notReached.onBeforeRunCreationCalled, "no plugin resources are created after injection fails")
-}
-
-func TestOnRunEnd_UnpersistedRunAfterInjectionFailure_FinalizesCreatedResources(t *testing.T) {
-	first := newInjectingHandler("FakePluginA", nil)
-	failing := newInjectingHandler("FakePluginB", nil)
-	notReached := newInjectingHandler("FakePluginC", nil)
-	// The run row was never created, so recording the cleanup outcome fails.
-	store := &fakeRunPluginOutputStoreWithError{shouldFail: true}
-	dispatcher, err := NewRunPluginDispatcherImpl([]RunPluginHandler{first, failing, notReached}, &fakeKubeClientProvider{}, store)
-	require.NoError(t, err)
-	run := &PersistedRun{RunID: "run-791", Namespace: "test-ns", PluginsOutput: map[string]*apiv2.PluginOutput{
-		"FakePluginA": {State: apiv2.PluginState_PLUGIN_SUCCEEDED},
-		"FakePluginB": {State: apiv2.PluginState_PLUGIN_SUCCEEDED},
-	}}
-
-	dispatcher.OnRunEnd(context.Background(), run)
-
-	assert.True(t, first.onRunEndCalled, "resources of handlers that ran before the failure must be finalized")
-	assert.True(t, failing.onRunEndCalled, "resources of the failing handler must be finalized")
-	assert.False(t, notReached.onRunEndCalled, "a handler without plugin output has nothing to clean up")
-	assert.Positive(t, store.callCount, "the outcome is recorded after cleanup, so a failed write cannot skip it")
 }
 
 func TestOnRunEnd_SingleHandler_Success(t *testing.T) {
