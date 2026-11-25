@@ -30,8 +30,12 @@ requests even when another policy allows more sources. Keep the Secret, init
 container, scoped RBAC, and `DecoratorController` authorization together in
 custom overlays. Existing token data is preserved on upgrades; if an operator
 intentionally rotates it, restart the profile-controller pod and update the
-`DecoratorController` spec so Metacontroller reloads the credential. This does
-not establish that a tenant-controlled Viewer Service is a trusted proxy
+`DecoratorController` spec so Metacontroller reloads the credential.
+
+This changes direct webhook integrations: callers other than Metacontroller that POST
+to `/sync` must obtain the Secret through operator-controlled access and send
+`Authorization: Bearer <token>`. Do not grant tenants access to this Secret.
+This does not establish that a tenant-controlled Viewer Service is a trusted proxy
 destination; review other reachable services separately.
 
 The manifest test suite checks the rendered selectors, namespace placement and
