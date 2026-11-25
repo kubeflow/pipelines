@@ -364,3 +364,85 @@ func TestTransferCatalogBudgetStopsKubernetesPagination(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "c", pipelines[0].DefaultVersionId, "an unpinned pipeline uses its newest owned version")
 }
+
+// transferSharedPipelineManager is a multi-user installation where namespace
+// "team" has used a shared pipeline, which has no namespace.
+func transferSharedPipelineManager(t *testing.T, values ...any) *ResourceManager {
+	t.Helper()
+	old := viper.Get("MULTIUSER")
+	viper.Set("MULTIUSER", true)
+	t.Cleanup(func() { viper.Set("MULTIUSER", old) })
+	r, _ := transferTestManager(t)
+	db, err := r.transferDB()
+	require.NoError(t, err)
+	base := []any{
+		&model.Experiment{UUID: "exp", Name: "exp", Namespace: "team"},
+		&model.Pipeline{UUID: "shared-pipeline", Name: "tutorial", Namespace: "", Status: model.PipelineReady},
+		&model.PipelineVersion{UUID: "shared-version", Name: "v1", PipelineId: "shared-pipeline", PipelineSpec: model.LargeText(v2SpecHelloWorld), Status: model.PipelineVersionReady, CreatedAtInSec: 1},
+	}
+	for _, v := range append(base, values...) {
+		require.NoError(t, db.Omit(clause.Associations).Create(v).Error)
+	}
+	return r
+}
+
+func TestTransferSharedPipelineRunKeepsInlineHistory(t *testing.T) {
+	r := transferSharedPipelineManager(t, &model.Run{UUID: "run", DisplayName: "tutorial run", Namespace: "team", ExperimentId: "exp",
+		PipelineSpec: model.PipelineSpec{PipelineId: "shared-pipeline", PipelineVersionId: "shared-version", PipelineSpecManifest: model.LargeText(v2SpecHelloWorld)},
+		RunDetails:   model.RunDetails{FinishedAtInSec: 10, State: model.RuntimeStateSucceeded}})
+	data, err := r.ExportTransfer(context.Background(), "team", transfer.ExportOptions{})
+	require.NoError(t, err)
+	var b history.NamespaceBundle
+	require.NoError(t, json.Unmarshal(data, &b))
+	require.Empty(t, b.Pipelines, "the shared pipeline is not copied into the namespace")
+	require.Len(t, b.Entries, 1)
+	require.Empty(t, b.Entries[0].Run.PipelineId)
+	require.Empty(t, b.Entries[0].Run.PipelineVersionId)
+	require.Equal(t, model.LargeText(v2SpecHelloWorld), b.Entries[0].Run.PipelineSpecManifest)
+}
+
+func TestTransferSharedPipelinePinnedScheduleImportsInline(t *testing.T) {
+	interval := int64(3600)
+	r := transferSharedPipelineManager(t, &model.Job{UUID: "job", DisplayName: "nightly", Namespace: "team", ExperimentId: "exp", Enabled: true, MaxConcurrency: 1,
+		Trigger:      model.Trigger{PeriodicSchedule: model.PeriodicSchedule{IntervalSecond: &interval}},
+		PipelineSpec: model.PipelineSpec{PipelineId: "shared-pipeline", PipelineVersionId: "shared-version", PipelineSpecManifest: model.LargeText(v2SpecHelloWorld)}})
+	data, err := r.ExportTransfer(context.Background(), "team", transfer.ExportOptions{})
+	require.NoError(t, err)
+	var b history.NamespaceBundle
+	require.NoError(t, json.Unmarshal(data, &b))
+	require.Len(t, b.Schedules, 1)
+	require.Empty(t, b.Schedules[0].PipelineId)
+	require.Empty(t, b.Schedules[0].PipelineVersionId)
+
+	destination, cs := transferTestManager(t)
+	_, err = destination.ImportTransfer(context.Background(), "team", data, transfer.ImportOptions{})
+	require.NoError(t, err)
+	db, err := destination.transferDB()
+	require.NoError(t, err)
+	var job model.Job
+	require.NoError(t, db.Take(&job).Error)
+	require.Equal(t, model.LargeText(v2SpecHelloWorld), job.PipelineSpecManifest)
+	swf, err := cs.ScheduledworkflowV1beta1().ScheduledWorkflows("team").Get(context.Background(), job.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	require.False(t, swf.Spec.Enabled)
+}
+
+func TestTransferSharedPipelineLatestScheduleNamesTheSchedule(t *testing.T) {
+	interval := int64(3600)
+	r := transferSharedPipelineManager(t, &model.Job{UUID: "job", DisplayName: "nightly", Namespace: "team", ExperimentId: "exp", MaxConcurrency: 1,
+		Trigger:      model.Trigger{PeriodicSchedule: model.PeriodicSchedule{IntervalSecond: &interval}},
+		PipelineSpec: model.PipelineSpec{PipelineId: "shared-pipeline"}})
+	_, err := r.ExportTransfer(context.Background(), "team", transfer.ExportOptions{})
+	require.ErrorContains(t, err, `Recurring run "nightly" (job) follows the latest version of shared pipeline "tutorial"`)
+}
+
+func TestTransferMultiUserRejectsOtherNamespacePipeline(t *testing.T) {
+	r := transferSharedPipelineManager(t,
+		&model.Pipeline{UUID: "private", Name: "private", Namespace: "other", Status: model.PipelineReady},
+		&model.Run{UUID: "run", DisplayName: "borrowed", Namespace: "team", ExperimentId: "exp",
+			PipelineSpec: model.PipelineSpec{PipelineId: "private", PipelineSpecManifest: model.LargeText(v2SpecHelloWorld)},
+			RunDetails:   model.RunDetails{FinishedAtInSec: 10, State: model.RuntimeStateSucceeded}})
+	_, err := r.ExportTransfer(context.Background(), "team", transfer.ExportOptions{})
+	require.ErrorContains(t, err, "outside the selected catalog")
+	require.ErrorContains(t, err, `Run "borrowed" (run)`)
+}
