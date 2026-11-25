@@ -11,6 +11,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag/jsonutils"
 	"github.com/go-openapi/swag/typeutils"
+	"github.com/go-openapi/validate"
 )
 
 // V2ListPipelineVersionsResponse v2 list pipeline versions response
@@ -48,8 +49,8 @@ func (m *V2ListPipelineVersionsResponse) validatePipelineVersions(formats strfmt
 	}
 
 	for i := 0; i < len(m.PipelineVersions); i++ {
-		if typeutils.IsZero(m.PipelineVersions[i]) { // not required
-			continue
+		if m.PipelineVersions[i] == nil {
+			return validate.Required("pipeline_versions"+"."+strconv.Itoa(i), "body", m.PipelineVersions[i])
 		}
 
 		if m.PipelineVersions[i] != nil {
@@ -93,7 +94,7 @@ func (m *V2ListPipelineVersionsResponse) contextValidatePipelineVersions(ctx con
 		if m.PipelineVersions[i] != nil {
 
 			if typeutils.IsZero(m.PipelineVersions[i]) { // not required
-				return nil
+				continue
 			}
 
 			if err := m.PipelineVersions[i].ContextValidate(ctx, formats); err != nil {
