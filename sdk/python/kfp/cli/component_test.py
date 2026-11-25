@@ -676,6 +676,7 @@ class Test(unittest.TestCase):
             'example.invalid:0',
             'example.invalid:65536',
             'example.invalid:invalid',
+            'example.invalid..:443',
             'example.invalid; echo dummy-password',
             'example.invalid\\\nRUN echo dummy-password',
         ]
@@ -708,6 +709,23 @@ class Test(unittest.TestCase):
                 )
                 self.assertFalse((self._working_dir / 'train.yaml').exists())
                 self._docker_client.api.build.assert_not_called()
+
+    def test_accepts_trusted_hosts_with_a_dns_root_dot(self):
+        component_source = _make_component(
+            func_name='train',
+            target_image='custom-image',
+            pip_trusted_hosts=['mirror.example.', 'mirror.example.:443'],
+        )
+        _write_components('components.py', component_source)
+
+        result = self.runner.invoke(
+            self.cli, ['build', str(self._working_dir), '--no-build-image']
+        )
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        dockerfile = (self._working_dir / 'Dockerfile').read_text()
+        self.assertIn('--trusted-host mirror.example. ', dockerfile)
+        self.assertIn('--trusted-host mirror.example.:443 ', dockerfile)
 
     def test_rejects_kfp_package_url_before_path_conversion(self):
         # Call the callback directly because Click currently requires this

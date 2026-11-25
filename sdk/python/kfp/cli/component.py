@@ -84,9 +84,10 @@ def _is_valid_trusted_host(value: str) -> bool:
     if not match:
         return False
     hostname, port = match.groups()
+    labels = hostname.removesuffix('.').split('.')
     if any(
         not label or len(label) > 63 or label[0] == '-' or label[-1] == '-'
-        for label in hostname.split('.')
+        for label in labels
     ):
         return False
     return port is None or 1 <= int(port) <= 65535
