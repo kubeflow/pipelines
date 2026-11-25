@@ -12,6 +12,7 @@ import pytest
 import requests
 import sync
 import yaml
+from botocore.exceptions import ClientError
 from sync import get_settings_from_env, server_factory
 
 KFP_VERSION = 'x.y.z'
@@ -121,7 +122,15 @@ def observed_attachments(proxy_enabled=False, ready=False, ca=False):
 
 
 @pytest.fixture
-def start_sync_server():
+def bucket_client(monkeypatch):
+    client = mock.Mock()
+    client.get_bucket_policy.return_value = {'Policy': '{"Statement": []}'}
+    monkeypatch.setattr(sync, 's3', client)
+    return client
+
+
+@pytest.fixture
+def start_sync_server(bucket_client):
     servers = []
 
     def start(**settings):
@@ -153,6 +162,40 @@ def post_sync(server, parent, attachments):
     )
     response.raise_for_status()
     return response.json()
+
+
+@pytest.mark.parametrize('sync_server', [ENV_BASE], indirect=True)
+def test_existing_profile_reconciles_bucket_policy(sync_server, bucket_client):
+    with mock.patch.object(sync, 'iam') as iam:
+        post_sync(sync_server, PARENT, observed_attachments())
+        bucket_client.put_bucket_policy.assert_called_once()
+        written = bucket_client.put_bucket_policy.call_args.kwargs
+        assert written['Bucket'] == sync.S3_BUCKET_NAME
+        statements = json.loads(written['Policy'])['Statement']
+        assert any(
+            statement.get('Condition')
+            == {'StringEquals': {'s3:prefix': '', 's3:delimiter': '/'}}
+            for statement in statements
+        )
+        bucket_client.get_bucket_policy.return_value = {
+            'Policy': written['Policy']
+        }
+        post_sync(sync_server, PARENT, observed_attachments())
+        bucket_client.put_bucket_policy.assert_called_once()
+        iam.create_access_key.assert_not_called()
+
+
+@pytest.mark.parametrize('sync_server', [ENV_BASE], indirect=True)
+@pytest.mark.parametrize('code', ['NoSuchBucketPolicy', 'AccessDenied'])
+def test_bucket_policy_read_error(sync_server, bucket_client, code):
+    bucket_client.get_bucket_policy.side_effect = ClientError(
+        {'Error': {'Code': code}}, 'GetBucketPolicy'
+    )
+    post_sync(sync_server, PARENT, observed_attachments())
+    if code == 'NoSuchBucketPolicy':
+        bucket_client.put_bucket_policy.assert_called_once()
+    else:
+        bucket_client.put_bucket_policy.assert_not_called()
 
 
 def assert_profile_resources(result, expected_image, ca_cert=None):

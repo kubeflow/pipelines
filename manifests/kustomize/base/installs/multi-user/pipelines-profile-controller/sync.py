@@ -534,8 +534,15 @@ def server_factory(
                     == desired_json
                 ):
                     return
-            except Exception:
-                pass
+            except Exception as exception:
+                code = (
+                    getattr(exception, 'response', {})
+                    .get('Error', {})
+                    .get('Code')
+                )
+                if code != 'NoSuchBucketPolicy':
+                    print(f'ERROR: Failed to read bucket policy: {exception}')
+                    return
 
             try:
                 s3.put_bucket_policy(
@@ -799,8 +806,6 @@ def server_factory(
                     ),
                 )
 
-                self.ensure_bucket_list_policy(S3_BUCKET_NAME)
-
                 self.upsert_lifecycle_policy(
                     S3_BUCKET_NAME, artifact_retention_days
                 )
@@ -828,6 +833,8 @@ def server_factory(
                         },
                     },
                 )
+
+            self.ensure_bucket_list_policy(S3_BUCKET_NAME)
 
             # Only the CA rotates in place; retain observed credentials and
             # service-account tokens, including controller-populated fields,
