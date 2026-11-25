@@ -25,7 +25,7 @@ def my_pipeline():
 You can also load a component directly from a URL, such as a GitHub URL:
 
 ```python
-loaded_comp = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/test_data/sdk_compiled_pipelines/valid/critical/add_numbers.yaml')
+loaded_comp = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/main/test_data/sdk_compiled_pipelines/valid/critical/add_numbers.yaml')
 ```
 
 Lastly, you can load a component from a string using [`components.load_component_from_text`][components-load-component-from-text]:
@@ -42,7 +42,7 @@ As components and pipelines are persisted in the same format (IR YAML), you can 
 ```python
 from kfp import components, dsl
 
-loaded_pipeline = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/test_data/sdk_compiled_pipelines/valid/parallel_and_nested/pipeline_in_pipeline_complex.yaml')
+loaded_pipeline = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/main/test_data/sdk_compiled_pipelines/valid/parallel_and_nested/pipeline_in_pipeline_complex.yaml')
 
 @dsl.pipeline
 def my_pipeline():

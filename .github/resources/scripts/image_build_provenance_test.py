@@ -2,6 +2,7 @@
 
 import importlib.util
 import json
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -76,14 +77,54 @@ class ImageBuildProvenanceTest(unittest.TestCase):
             )
 
     def test_non_go_context_retains_normal_ignore_rules(self) -> None:
-        result = MODULE.prepare(
-            self.source, self.sha, 'frontend/Dockerfile', self.root / 'prepared'
-        )
-        self.assertEqual(result['context'], str(self.source))
-        self.assertEqual(
-            result['dockerfile'], str(self.source / 'frontend/Dockerfile')
-        )
-        self.assertFalse((self.root / 'prepared').exists())
+        for context, dockerfile in (
+            ('.', 'frontend/Dockerfile'),
+            ('backend/tensorboard', 'backend/tensorboard/Dockerfile'),
+        ):
+            with self.subTest(context=context):
+                recipe = self.source / dockerfile
+                recipe.parent.mkdir(parents=True, exist_ok=True)
+                recipe.write_text('FROM scratch\nCOPY . .\n')
+                ignores = recipe.with_name(recipe.name + '.dockerignore')
+                ignores.write_text('ignored-secret\n')
+                self.git('add', '.')
+                self.git('commit', '--quiet', '-m', 'non-Go fixture')
+                sha = self.git('rev-parse', 'HEAD')
+                tooling = (
+                    self.source
+                    / '.publication-tooling/.github/actions/setup-go/action.yml'
+                )
+                tooling.parent.mkdir(parents=True, exist_ok=True)
+                tooling.write_text('local action must survive until cleanup')
+                result = MODULE.prepare(
+                    self.source,
+                    sha,
+                    dockerfile,
+                    self.root / ('prepared-' + recipe.parent.name),
+                    context,
+                )
+                prepared = Path(result['context'])
+                self.assertEqual(
+                    prepared,
+                    self.root
+                    / ('prepared-' + recipe.parent.name)
+                    / 'source'
+                    / context,
+                )
+                self.assertNotEqual(prepared, self.source / context)
+                self.assertFalse((prepared / '.publication-tooling').exists())
+                self.assertTrue(tooling.is_file())
+                self.assertEqual(
+                    Path(
+                        str(result['dockerfile']) + '.dockerignore'
+                    ).read_text(),
+                    'ignored-secret\n',
+                )
+                self.assertEqual(
+                    Path(result['dockerfile']).read_text(), recipe.read_text()
+                )
+                # Do not accidentally commit the tooling fixture in the next case.
+                shutil.rmtree(self.source / '.publication-tooling')
 
     def test_relative_dot_prefix_cannot_skip_go_validation(self) -> None:
         with mock.patch.object(

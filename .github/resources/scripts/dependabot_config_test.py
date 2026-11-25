@@ -476,7 +476,7 @@ class DependabotConfigTest(unittest.TestCase):
                         for rule in gomod.get('ignore', [])
                     )
                 )
-        self.assertNotIn('allow', gomod)
+        self.assertEqual(gomod.get('allow'), [{'dependency-type': 'all'}])
         self.assertTrue(grouped('github.com/stretchr/testify'))
 
     def test_all_go_modules_are_covered(self):
@@ -564,7 +564,7 @@ class DependabotConfigTest(unittest.TestCase):
             if update['package-ecosystem'] == 'uv'
         )
         self.assertNotIn('exclude-paths', uv)
-        self.assertNotIn('allow', uv)
+        self.assertEqual(uv.get('allow'), [{'dependency-type': 'all'}])
 
     def test_react_runtime_and_types_share_version_and_security_groups(self):
         config = yaml.safe_load(self.config)

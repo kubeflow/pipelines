@@ -269,6 +269,10 @@ go test ./backend/src/apiserver/storage -run '^TestRecurringRunProductionDatabas
 The tests create and remove only their uniquely named databases/schemas. The test
 roles need database/schema and trigger DDL privileges, plus access to MySQL
 `performance_schema.data_lock_waits`/`threads` or PostgreSQL session lock metadata.
+When reusing the MySQL DSN for the client-manager binlog tests, enable binary
+logging and grant the test account `SESSION_VARIABLES_ADMIN` on MySQL 8.0.14
+and later so it can set the session log format and row image. The client-manager
+metadata-lock test also needs `LOCK TABLES` on its disposable database.
 Without a DSN, that database's cases are skipped. These storage tests do not replace
 live schedule firing, coordinated rollout, or populated-cluster upgrade acceptance.
 

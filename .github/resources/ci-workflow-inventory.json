@@ -112,6 +112,13 @@
       "merge_group": null
     },
     {
+      "path": ".github/workflows/bot-branch-cleanup.yml",
+      "name": "Bot Branch Cleanup",
+      "header_sha256": "160fd440a6b86061612aeaef009311234e58068b37026b71d387068a36a0d2ed",
+      "pull_request": null,
+      "merge_group": null
+    },
+    {
       "path": ".github/workflows/build-and-push.yml",
       "name": "Build and Push images",
       "header_sha256": "69c2fd667ef7aed48863a2273eb0ff65c101642a38f734aace901bf79aea32fb",
@@ -207,7 +214,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "4eccd1f3a8bbb634d1e5ac0060d581eeb3dae5989ffcf68d2f89b1cc1b252285",
+      "header_sha256": "242a51ecef9497916aa12a6f770c7435437711e0823e31e3a256d216199e9826",
       "pull_request": null,
       "merge_group": null
     },
@@ -320,7 +327,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "624e629093717fb1922e789c83adf7d7e5d637351a5b1a3b9338e655434fdd1b",
+      "header_sha256": "bd9c95720ac01f73c22e96995d0dac2e80489f6dfc96bd289d6e3c3456b2796e",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -348,6 +355,7 @@
           ".github/resources/ci-workflow-inventory.json",
           ".github/resources/legacy-v2-migration-specs.json",
           ".github/resources/legacy-v2-service-account-specs.json",
+          "test/artifact-proxy/test-artifact-proxy.sh",
           "test/presubmit-backend-test.sh",
           "hack/update-all-requirements.sh",
           ".github/workflows/**",
@@ -370,6 +378,8 @@
           ".github/workflows/build-tools-images.yml",
           ".github/workflows/runtime-base-images.yml",
           ".github/workflows/ci-scripts-tests.yml",
+          ".github/workflows/postgresql-main-upgrade.yml",
+          ".github/resources/postgresql-upgrade/**",
           ".github/workflows/tensorboard-acceptance.yml",
           "backend/Dockerfile.tensorboard",
           "backend/src/tensorboard/**",
@@ -405,6 +415,7 @@
           "backend/test/v2/resources/hello-world-with-returning-component.yaml",
           "test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py",
           "backend/Dockerfile",
+          "backend/src/apiserver/config/sample_config.json",
           "backend/api/build_kfp_server_api_python_package.sh",
           "api/v2alpha1/python/generate_proto.py",
           "kubernetes_platform/python/generate_proto.py",
@@ -969,6 +980,42 @@
       "merge_group": null
     },
     {
+      "path": ".github/workflows/postgresql-main-upgrade.yml",
+      "name": "Main PostgreSQL image retained-data upgrade",
+      "header_sha256": "c8d5428aafe5f4ea68b14d41b0f4b549a928689051039cdac4518abd9a5a752a",
+      "pull_request": {
+        "branches": [
+          "master",
+          "main"
+        ],
+        "paths": [
+          "manifests/kustomize/third-party/postgresql/**",
+          "backend/src/apiserver/client_manager/**",
+          "backend/src/apiserver/common/**",
+          "backend/src/apiserver/model/**",
+          "backend/src/apiserver/storage/**",
+          "go.mod",
+          "go.sum",
+          ".github/resources/postgresql-upgrade/**",
+          ".github/resources/scripts/postgresql_image_upgrade*",
+          ".github/workflows/postgresql-main-upgrade.yml",
+          ".github/actions/create-cluster/**",
+          ".github/actions/setup-go/**",
+          ".github/actions/setup-python-pip-cache/**"
+        ]
+      },
+      "merge_group": {
+        "types": [
+          "checks_requested"
+        ],
+        "branches": [
+          "master",
+          "main",
+          "release-2.18"
+        ]
+      }
+    },
+    {
       "path": ".github/workflows/pr-gate.yml",
       "name": "PR Gate",
       "header_sha256": "0d392e071f5a72b0840838c4bed410902be8d91ae6211172246f9752eb660c8f",
@@ -1097,6 +1144,13 @@
       "path": ".github/workflows/release-branch-image-scanning.yml",
       "name": "Release Branch Image Scanning",
       "header_sha256": "5cdc42c545f1ed08927c1acb3d84a1fcd3aae02c8e6d8283b6e6ed79e6164c84",
+      "pull_request": null,
+      "merge_group": null
+    },
+    {
+      "path": ".github/workflows/release-landed-ci.yml",
+      "name": "Release landed CI",
+      "header_sha256": "cfe2896a860b0d89e8e180d81a53cee77ebbef2dc631ef191d533ed3d5f9f98a",
       "pull_request": null,
       "merge_group": null
     },
@@ -1357,7 +1411,7 @@
     {
       "path": ".github/workflows/upgrade-test.yml",
       "name": "KFP upgrade tests",
-      "header_sha256": "5fa3e53d3ff36ba15b3b80152d8c097733a8c91f96d0ec6545d20faa04ed86b3",
+      "header_sha256": "cfe1081941a20ecc641929fda838ce0d7ff1c54682f4d739fb23b135f8a686e1",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -1376,7 +1430,9 @@
           "backend/api/v2beta1/**",
           "backend/src/**",
           "backend/test/v2/api/**",
+          "frontend/**",
           "manifests/kustomize/**",
+          "test/frontend-integration-test/**",
           "test_data/sdk_compiled_pipelines/**",
           "!**/*.md",
           "!**/OWNERS"

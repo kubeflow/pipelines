@@ -15,6 +15,7 @@
 package resolver
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -588,4 +589,126 @@ func iteratorParameter(
 			Iteration: util.Int64Pointer(iteration),
 		},
 	}
+}
+
+// A task inside a ParallelFor body, including one compiled into an exit
+// lifecycle hook, resolves the loop item from the loop task's inputs. Those
+// inputs hold one entry per iteration under the same parameter key, so the
+// iteration index is what disambiguates them. Resolving without it would return
+// the first iteration's value for every iteration.
+func TestResolveParameterComponentInputParameter_SelectsMatchingIteration(t *testing.T) {
+	const itemKey = "pipelinechannel--loop-item-param-1"
+	loopTask := &apiv2.PipelineTask{
+		TaskId: "loop-dag-1",
+		Name:   "for-loop-1",
+		Type:   apiv2.PipelineTask_LOOP,
+		Inputs: &apiv2.PipelineTask_InputOutputs{
+			Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{
+				{
+					ParameterKey: itemKey,
+					Type:         apiv2.IOType_ITERATOR_INPUT,
+					Value:        structpb.NewStringValue("A"),
+					Producer: &apiv2.IOProducer{
+						TaskName:  "for-loop-1",
+						Iteration: util.Int64Pointer(0),
+					},
+				},
+				{
+					ParameterKey: itemKey,
+					Type:         apiv2.IOType_ITERATOR_INPUT,
+					Value:        structpb.NewStringValue("B"),
+					Producer: &apiv2.IOProducer{
+						TaskName:  "for-loop-1",
+						Iteration: util.Int64Pointer(1),
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range []struct {
+		iterationIndex int
+		want           string
+	}{
+		{iterationIndex: 0, want: "A"},
+		{iterationIndex: 1, want: "B"},
+	} {
+		opts := common.Options{
+			ParentTask:     loopTask,
+			Run:            &apiv2.Run{RunId: "run-1"},
+			IterationIndex: test.iterationIndex,
+		}
+		resolved, err := resolveParameterComponentInputParameter(
+			opts,
+			common.InputParamComponent(itemKey),
+			loopTask.GetInputs().GetParameters(),
+		)
+		require.NoError(t, err)
+		require.NotNil(t, resolved)
+		assert.Equal(t, test.want, resolved.GetValue().GetStringValue(),
+			"iteration %d resolved the wrong loop item", test.iterationIndex)
+		require.NotNil(t, resolved.GetProducer().Iteration)
+		assert.Equal(t, int64(test.iterationIndex), *resolved.GetProducer().Iteration)
+	}
+}
+
+// Loop children are keyed by task name, parent DAG task id and iteration
+// index, so a consumer in the same loop body must carry the iteration index to
+// find its sibling producer.
+func TestResolveTaskOutputParameter_RequiresIterationIndexForLoopSibling(t *testing.T) {
+	parentTaskID := "loop-dag-1"
+	loopTask := &apiv2.PipelineTask{
+		TaskId: parentTaskID,
+		Name:   "for-loop-1",
+		Type:   apiv2.PipelineTask_LOOP,
+	}
+	var producers []*apiv2.PipelineTask
+	for index, value := range []string{"A-out", "B-out"} {
+		producers = append(producers, &apiv2.PipelineTask{
+			TaskId:       fmt.Sprintf("produce-%d", index),
+			Name:         "produce",
+			ParentTaskId: util.StringPointer(parentTaskID),
+			Type:         apiv2.PipelineTask_RUNTIME,
+			TypeAttributes: &apiv2.PipelineTask_TypeAttributes{
+				IterationIndex: util.Int64Pointer(int64(index)),
+			},
+			Outputs: &apiv2.PipelineTask_InputOutputs{
+				Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{{
+					ParameterKey: "Output",
+					Value:        structpb.NewStringValue(value),
+					Producer:     &apiv2.IOProducer{TaskName: "produce"},
+				}},
+			},
+		})
+	}
+	paramSpec := common.InputParamTaskOutput("produce", "Output")
+
+	for _, test := range []struct {
+		iterationIndex int
+		want           string
+	}{
+		{iterationIndex: 0, want: "A-out"},
+		{iterationIndex: 1, want: "B-out"},
+	} {
+		opts := common.Options{
+			ParentTask:     loopTask,
+			Run:            &apiv2.Run{RunId: "run-1", Tasks: producers},
+			IterationIndex: test.iterationIndex,
+		}
+		resolved, err := resolveTaskOutputParameter(opts, paramSpec)
+		require.NoError(t, err)
+		require.NotNil(t, resolved)
+		assert.Equal(t, test.want, resolved.GetValue().GetStringValue())
+	}
+
+	// Without an iteration index the lookup key loses its iteration suffix and
+	// no sibling producer matches, even though both producers succeeded.
+	opts := common.Options{
+		ParentTask:     loopTask,
+		Run:            &apiv2.Run{RunId: "run-1", Tasks: producers},
+		IterationIndex: -1,
+	}
+	_, err := resolveTaskOutputParameter(opts, paramSpec)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "produce_"+parentTaskID+" not found")
 }

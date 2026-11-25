@@ -54,6 +54,7 @@ class LatestReleaseTest(unittest.TestCase):
         self.releases('2.17.2')
         for target in (
             'qualification.require_qualification',
+            'rtd.publish_backend_docs',
             '_ensure_release_tag',
             'watch_latest_workflow_run',
         ):

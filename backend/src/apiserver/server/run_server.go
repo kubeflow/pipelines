@@ -310,6 +310,10 @@ func (s *RunServer) CreateRun(ctx context.Context, request *apiv2.CreateRunReque
 	if err != nil {
 		return nil, util.Wrap(err, "CreateJob(job.ToV2())Failed to create a run due to conversion error")
 	}
+	// run_id is output only. The API server generates run IDs, and those of
+	// scheduled ticks are derived from public values, so a caller must not be
+	// able to choose one.
+	modelRun.UUID = ""
 	// The run body wins; fall back to the request-level namespace.
 	if modelRun.Namespace == "" {
 		modelRun.Namespace = request.GetNamespace()
@@ -803,7 +807,7 @@ func (s *RunServer) FindCachedTask(ctx context.Context, request *apiv2.FindCache
 		}
 		if effectiveNamespace != "" && effectiveNamespace != namespace {
 			return nil, util.NewPermissionDeniedError(
-				nil,
+				fmt.Errorf("bound run namespace %q does not match requested namespace %q", effectiveNamespace, namespace),
 				"bound run %s is not in namespace %s",
 				boundRunID,
 				namespace,

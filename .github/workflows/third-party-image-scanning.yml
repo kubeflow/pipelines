@@ -224,7 +224,7 @@ jobs:
           path: source
           persist-credentials: false
       - name: Publish third-party findings to GitHub Security
-        uses: github/codeql-action/upload-sarif@e9c4b4b153701845b921f167180044d14fe89b94 # v4
+        uses: github/codeql-action/upload-sarif@38112626f97ac1fd7acf3df7ebca51f4677c1b38 # v4
         with:
           sarif_file: findings.sarif
           category: ${{ matrix.category }}

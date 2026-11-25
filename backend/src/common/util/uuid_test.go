@@ -16,6 +16,7 @@ package util
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -68,4 +69,17 @@ func TestNewDeterministicUUID(t *testing.T) {
 	parsed, err := uuid.Parse(first)
 	assert.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, parsed)
+}
+
+func TestIsDeterministicUUID(t *testing.T) {
+	deterministic := NewDeterministicUUID("job-1/tick/1")
+	assert.True(t, IsDeterministicUUID(deterministic))
+	// Textual variants of the same UUID are recognized too.
+	assert.True(t, IsDeterministicUUID(strings.ToUpper(deterministic)))
+
+	random, err := NewUUIDGenerator().NewRandom()
+	assert.NoError(t, err)
+	assert.False(t, IsDeterministicUUID(random.String()))
+	assert.False(t, IsDeterministicUUID("not-a-uuid"))
+	assert.False(t, IsDeterministicUUID(""))
 }

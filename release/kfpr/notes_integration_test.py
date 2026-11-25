@@ -21,6 +21,7 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
     def setUp(self):
         for name, value in (
             ('qualification.require_qualification', None),
+            ('rtd.publish_backend_docs', None),
             ('_ensure_release_tag', None),
             ('_should_set_backend_latest', True),
             ('_sdk_release_is_consolidated', False),

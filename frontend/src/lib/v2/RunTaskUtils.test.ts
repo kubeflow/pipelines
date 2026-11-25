@@ -17,6 +17,7 @@ import { PipelineTaskTaskState, PipelineTaskTaskType } from 'src/apisv2/run';
 import {
   getRunDisplayName,
   getTaskDisplayName,
+  getTaskLifecycleCategory,
   getTaskLifecycleMessage,
   listAllRunTasks,
 } from './RunTaskUtils';
@@ -134,5 +135,28 @@ describe('getTaskLifecycleMessage', () => {
     expect(
       getTaskLifecycleMessage({ state, lifecycle_message: 'ImagePullBackOff' }),
     ).toBeUndefined();
+  });
+});
+
+describe('getTaskLifecycleCategory', () => {
+  it('returns the category while the message is live', () => {
+    expect(
+      getTaskLifecycleCategory({
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'Insufficient cpu',
+        lifecycle_category: 'scheduling',
+      }),
+    ).toBe('scheduling');
+  });
+
+  it('returns undefined when the message is stale or absent', () => {
+    expect(
+      getTaskLifecycleCategory({
+        state: PipelineTaskTaskState.SUCCEEDED,
+        lifecycle_message: 'ImagePullBackOff',
+        lifecycle_category: 'image-pull',
+      }),
+    ).toBeUndefined();
+    expect(getTaskLifecycleCategory(undefined)).toBeUndefined();
   });
 });

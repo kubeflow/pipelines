@@ -128,3 +128,60 @@ func TestPipelineSpecStructToYamlString_NestedPipelineSpec(t *testing.T) {
 	j2, _ := actualPipeline.MarshalJSON()
 	assert.Equal(t, j1, j2)
 }
+
+// Tests both YamlStringToPipelineSpecStruct and pipelineSpecStructToYamlString.
+// A null platform spec is stored as a null yaml document, which template.NewV2SpecTemplate
+// skips when validating the manifest, so reading the manifest back has to skip it as well.
+func TestPipelineSpecStructToYamlString_NullPlatformSpec(t *testing.T) {
+	template := loadYaml(t, "test/pipeline_with_volume.yaml")
+
+	var pipelineSpec structpb.Struct
+
+	splitTemplate := strings.Split(template, "\n---\n")
+	pipelineSpecJSON, _ := yaml.YAMLToJSON([]byte(splitTemplate[0]))
+	err := protojson.Unmarshal(pipelineSpecJSON, &pipelineSpec)
+	assert.Nil(t, err)
+
+	pipeline := structpb.Struct{
+		Fields: map[string]*structpb.Value{
+			"pipeline_spec": structpb.NewStructValue(&pipelineSpec),
+			"platform_spec": structpb.NewNullValue(),
+		},
+	}
+	actualTemplate, err := pipelineSpecStructToYamlString(&pipeline)
+	assert.Nil(t, err)
+
+	actualPipeline, err := YamlStringToPipelineSpecStruct(actualTemplate)
+	assert.Nil(t, err)
+
+	// Compare the marshaled JSON due to flakiness of structpb values
+	// See https://github.com/stretchr/testify/issues/758
+	j1, _ := pipelineSpec.MarshalJSON()
+	j2, _ := actualPipeline.MarshalJSON()
+	assert.Equal(t, j1, j2)
+}
+
+func TestYamlStringToPipelineSpecStruct_SkipsEmptyDocuments(t *testing.T) {
+	template := loadYaml(t, "test/pipeline_with_volume.yaml")
+
+	expectedPipeline, err := YamlStringToPipelineSpecStruct(template)
+	assert.Nil(t, err)
+
+	for _, manifest := range []string{
+		"null\n---\n" + template,
+		template + "\n---\nnull\n",
+		template + "\n---\n",
+		"# no content\n---\n" + template,
+	} {
+		actualPipeline, err := YamlStringToPipelineSpecStruct(manifest)
+		assert.Nil(t, err)
+
+		j1, _ := expectedPipeline.MarshalJSON()
+		j2, _ := actualPipeline.MarshalJSON()
+		assert.Equal(t, j1, j2)
+	}
+
+	_, err = YamlStringToPipelineSpecStruct("null\n---\nnull\n")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "No pipeline spec provided in yaml doc")
+}
