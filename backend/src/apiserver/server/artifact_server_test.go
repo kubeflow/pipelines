@@ -2653,3 +2653,86 @@ func TestArtifactServer_RejectsOverlongOperationID(t *testing.T) {
 	require.IsType(t, &util.UserError{}, err)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 }
+
+// The producer task name is filled in from the current task row, so renaming the
+// task between the original write and its replay must not turn an identical
+// replay into a payload conflict.
+func TestArtifactServer_ReplayAfterTaskRenameReturnsOriginal(t *testing.T) {
+	for name, bulk := range map[string]bool{"single": false, "bulk": true} {
+		t.Run(name, func(t *testing.T) {
+			viper.Set(common.MultiUserMode, "false")
+			t.Cleanup(func() {
+				viper.Set(common.MultiUserMode, "false")
+			})
+
+			clientManager := resource.NewFakeClientManagerOrFatalV2()
+			resourceManager := resource.NewResourceManager(
+				clientManager,
+				&resource.ResourceManagerOptions{CollectMetrics: false},
+			)
+			s := createArtifactServer(resourceManager)
+
+			runID := "rename-replay-run"
+			_, err := clientManager.RunStore().CreateRun(&model.Run{
+				UUID:         runID,
+				K8SName:      runID,
+				DisplayName:  runID,
+				StorageState: model.StorageStateAvailable,
+				Namespace:    "ns1",
+				RunDetails: model.RunDetails{
+					CreatedAtInSec:   1,
+					ScheduledAtInSec: 1,
+					State:            model.RuntimeStateRunning,
+				},
+			})
+			require.NoError(t, err)
+
+			task, err := clientManager.TaskStore().CreateTask(&model.Task{
+				Namespace: "ns1",
+				RunUUID:   runID,
+				Name:      "train",
+				State:     1,
+			})
+			require.NoError(t, err)
+
+			request := &apiv2.CreateArtifactRequest{
+				RunId:       runID,
+				TaskId:      task.UUID,
+				ProducerKey: "output",
+				OperationId: "rename-replay-1",
+				Artifact: &apiv2.Artifact{
+					Namespace: "ns1",
+					Type:      apiv2.Artifact_Model,
+					Uri:       strPTR("gs://bucket/rename-output"),
+					Name:      "rename-output",
+				},
+			}
+			write := func() (string, error) {
+				if bulk {
+					resp, err := s.CreateArtifactsBulk(context.Background(), &apiv2.CreateArtifactsBulkRequest{
+						Artifacts: []*apiv2.CreateArtifactRequest{request},
+					})
+					if err != nil {
+						return "", err
+					}
+					return resp.GetArtifacts()[0].GetArtifactId(), nil
+				}
+				resp, err := s.CreateArtifact(context.Background(), request)
+				if err != nil {
+					return "", err
+				}
+				return resp.GetArtifactId(), nil
+			}
+
+			firstID, err := write()
+			require.NoError(t, err)
+
+			_, err = clientManager.TaskStore().UpdateTask(&model.Task{UUID: task.UUID, Name: "train-renamed"})
+			require.NoError(t, err)
+
+			replayID, err := write()
+			require.NoError(t, err, "an identical replay after a task rename must not be a payload conflict")
+			assert.Equal(t, firstID, replayID)
+		})
+	}
+}

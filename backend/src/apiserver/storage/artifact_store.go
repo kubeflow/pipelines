@@ -141,6 +141,8 @@ func computeArtifactWritePayloadHash(
 	}
 
 	// Include the logical artifact-task payload, but not generated identifiers.
+	// Producer is left out: its task name is read from the current task row, and
+	// its iteration is already covered by Iteration.
 	if err := binary.Write(&payload, binary.BigEndian, int32(artifactTask.Type)); err != nil {
 		return "", err
 	}
@@ -150,14 +152,6 @@ func computeArtifactWritePayloadHash(
 	}
 
 	if err := writeLengthPrefixedString(&payload, artifactTask.ArtifactKey); err != nil {
-		return "", err
-	}
-
-	producerBytes, err := canonicalArtifactMetadataBytes(artifactTask.Producer)
-	if err != nil {
-		return "", err
-	}
-	if err := writeLengthPrefixedString(&payload, string(producerBytes)); err != nil {
 		return "", err
 	}
 

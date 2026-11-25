@@ -976,6 +976,10 @@ func TestFindOrCreateArtifactWithTask_RecoversAfterIdentityKeyConflict(t *testin
 	require.NoError(t, err)
 	assert.Equal(t, existing.UUID, reused.UUID, "reused artifact should have the same UUID as the existing artifact")
 	assert.Equal(t, existing.UUID, reusedLink.ArtifactID, "reused link should have the same artifact ID as the existing artifact")
+
+	var artifactCount int
+	require.NoError(t, db.QueryRow("SELECT count(*) FROM artifacts").Scan(&artifactCount))
+	assert.Equal(t, 1, artifactCount, "reuse must not insert a second artifact row")
 }
 
 func TestComputeArtifactWritePayloadHash(t *testing.T) {
