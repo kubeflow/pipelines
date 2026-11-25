@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-"""Create the profile webhook credential once and preserve it across upgrades."""
+"""Create the profile webhook credential once and preserve it across
+upgrades."""
 
 import base64
 import json
@@ -38,7 +38,9 @@ def initialize_webhook_secret(request, wait=time.sleep):
             secret = request('GET', None)
             existing = (secret.get('data') or {}).get(SECRET_KEY)
             if existing is not None:
-                token = base64.b64decode(existing, validate=True).decode('ascii')
+                token = base64.b64decode(existing, validate=True).decode(
+                    'ascii'
+                )
                 if (
                     len(token) < 32
                     or not token.isascii()
@@ -60,7 +62,9 @@ def initialize_webhook_secret(request, wait=time.sleep):
             if error.code in RETRYABLE_STATUS and attempt < 59:
                 wait(1)
                 continue
-            raise RuntimeError('profile webhook Secret initialization failed') from None
+            raise RuntimeError(
+                'profile webhook Secret initialization failed'
+            ) from None
 
 
 def main():

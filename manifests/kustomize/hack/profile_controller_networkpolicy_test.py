@@ -110,13 +110,17 @@ class ProfileControllerNetworkPolicyTest(unittest.TestCase):
             ['python', '/hooks/init_webhook_auth.py'],
         )
         env = pod['containers'][0]['env']
-        token = next(item for item in env if item['name'] == 'WEBHOOK_AUTH_TOKEN')
+        token = next(
+            item for item in env if item['name'] == 'WEBHOOK_AUTH_TOKEN'
+        )
         self.assertEqual(
             token['valueFrom']['secretKeyRef'],
             {'name': secret_name, 'key': 'token'},
         )
 
-        role = self.resource('Role', 'kubeflow-pipelines-profile-webhook-auth-init')
+        role = self.resource(
+            'Role', 'kubeflow-pipelines-profile-webhook-auth-init'
+        )
         self.assertEqual(
             role['rules'],
             [

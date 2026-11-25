@@ -9,12 +9,11 @@ from pathlib import Path
 from unittest import mock
 from urllib.error import HTTPError
 
+import init_webhook_auth
 import pytest
 import requests
-import yaml
-
-import init_webhook_auth
 import sync
+import yaml
 from sync import get_settings_from_env, server_factory
 
 KFP_VERSION = 'x.y.z'
@@ -129,7 +128,9 @@ def start_sync_server():
     servers = []
 
     def start(**settings):
-        with mock.patch.dict(os.environ, {'WEBHOOK_AUTH_TOKEN': WEBHOOK_AUTH_TOKEN}):
+        with mock.patch.dict(
+            os.environ, {'WEBHOOK_AUTH_TOKEN': WEBHOOK_AUTH_TOKEN}
+        ):
             server = server_factory(url='127.0.0.1', **settings)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
@@ -805,7 +806,9 @@ def test_webhook_rejects_missing_auth_configuration(monkeypatch):
 
 
 def test_webhook_secret_initializer_preserves_existing_key():
-    encoded = base64.b64encode(WEBHOOK_AUTH_TOKEN.encode('ascii')).decode('ascii')
+    encoded = base64.b64encode(WEBHOOK_AUTH_TOKEN.encode('ascii')).decode(
+        'ascii'
+    )
     secret = {'metadata': {'resourceVersion': '5'}, 'data': {'token': encoded}}
     request = mock.Mock(return_value=secret)
 
@@ -849,7 +852,9 @@ def test_webhook_secret_initializer_rejects_invalid_existing_key():
 
 
 def test_webhook_secret_initializer_uses_winner_after_conflict():
-    encoded = base64.b64encode(WEBHOOK_AUTH_TOKEN.encode('ascii')).decode('ascii')
+    encoded = base64.b64encode(WEBHOOK_AUTH_TOKEN.encode('ascii')).decode(
+        'ascii'
+    )
     calls = []
 
     def request(method, body):
@@ -858,7 +863,10 @@ def test_webhook_secret_initializer_uses_winner_after_conflict():
             return {'metadata': {'resourceVersion': '5'}}
         if calls == ['GET', 'PUT']:
             raise HTTPError(None, 409, 'conflict', None, None)
-        return {'metadata': {'resourceVersion': '6'}, 'data': {'token': encoded}}
+        return {
+            'metadata': {'resourceVersion': '6'},
+            'data': {'token': encoded},
+        }
 
     init_webhook_auth.initialize_webhook_secret(request, wait=lambda _: None)
 

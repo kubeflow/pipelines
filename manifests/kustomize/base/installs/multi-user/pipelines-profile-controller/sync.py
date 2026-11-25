@@ -878,7 +878,9 @@ def server_factory(
             if self.path != '/sync':
                 self.send_error(404)
                 return
-            authorization = self.headers.get('Authorization', '').encode('latin-1')
+            authorization = self.headers.get('Authorization', '').encode(
+                'latin-1'
+            )
             if not hmac.compare_digest(authorization, expected_authorization):
                 self.send_error(403)
                 return
