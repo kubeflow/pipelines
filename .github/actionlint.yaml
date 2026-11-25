@@ -12,3 +12,8 @@ paths:
       - '^property "workflow_sha" is not defined in object type \{check_run_id: number; container: \{id: string; network: string\}; services: \{string => \{id: string; network: string; ports: \{string => string\}\}\}; status: string\}$'
       # gh-aw v1.2 isolates the agent from cache writes; actionlint lacks this field.
       - '^unexpected key "cache\-mode" for "job" section\. expected one of "concurrency", "container", "continue\-on\-error", "defaults", "env", "environment", "if", "name", "needs", "outputs", "permissions", "runs\-on", "secrets", "services", "snapshot", "steps", "strategy", "timeout\-minutes", "uses", "with"$'
+  .github/workflows/image-builds-release.yml:
+    ignore:
+      # GitHub enforces cache-mode, but actionlint v1.7.12 does not parse it yet.
+      # Remove this file-scoped exception when actionlint supports the key.
+      - '^unexpected key "cache-mode" for "workflow" section\. expected one of "concurrency", "defaults", "env", "jobs", "name", "on", "permissions", "run-name"$'
