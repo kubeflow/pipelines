@@ -19,6 +19,7 @@ from http.server import BaseHTTPRequestHandler
 from http.server import ThreadingHTTPServer
 import json
 import os
+import ssl
 
 try:
     import botocore.session
@@ -114,7 +115,11 @@ iam = create_iam_client()
 
 def main():
     settings = get_settings_from_env()
-    server = server_factory(**settings)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    context.load_cert_chain('/var/run/kfp-webhook-tls/tls.crt',
+                            '/var/run/kfp-webhook-tls/tls.key')
+    server = server_factory(**settings, tls_context=context)
     server.serve_forever()
 
 
@@ -128,7 +133,8 @@ def get_settings_from_env(controller_port=None,
                           cluster_domain=None,
                           object_store_host=None,
                           http_base_url=None,
-                          webhook_auth_token=None):
+                          webhook_auth_token=None,
+                          tls_context=None):
     """Returns a dict of settings from environment variables relevant to the
     controller.
 
@@ -204,7 +210,8 @@ def server_factory(frontend_image,
                    url="",
                    controller_port=8080,
                    http_base_url="",
-                   webhook_auth_token=None):
+                   webhook_auth_token=None,
+                   tls_context=None):
     """Returns a ThreadingHTTPServer populated with Handler with customized
     settings."""
 
@@ -219,6 +226,23 @@ def server_factory(frontend_image,
     expected_authorization = f"Bearer {webhook_auth_token}".encode("ascii")
 
     class Controller(BaseHTTPRequestHandler):
+
+        def setup(self):
+            if tls_context is not None:
+                # Handshake on this request's worker so a stalled peer cannot
+                # block the accept loop or the Kubernetes health probes.
+                self.request.settimeout(10)
+                self.request = tls_context.wrap_socket(
+                    self.request, server_side=True)
+                self.request.settimeout(None)
+            super().setup()
+
+        def finish(self):
+            try:
+                super().finish()
+            finally:
+                if tls_context is not None:
+                    self.connection.close()
 
         def upsert_lifecycle_policy(self, bucket_name, artifact_retention_days):
             """Configures or deletes the lifecycle policy based on the

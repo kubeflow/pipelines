@@ -86,10 +86,26 @@ class ProfileControllerNetworkPolicyTest(unittest.TestCase):
 
         decorator = self.resource('DecoratorController', controller_name)
         webhook = decorator['spec']['hooks']['sync']['webhook']
-        self.assertEqual(webhook['service'], {
-            'name': controller_name,
-            'namespace': secret['metadata']['namespace'],
-        })
+        self.assertEqual(
+            webhook['service'], {
+                'name': controller_name,
+                'namespace': secret['metadata']['namespace'],
+                'protocol': 'https',
+                'port': 443,
+            })
+        self.assertEqual(
+            webhook['caBundle']['secretRef'], {
+                'name': secret_name,
+                'namespace': secret['metadata']['namespace'],
+                'key': 'ca.crt',
+            })
+        self.assertEqual(
+            self.resource('Service', controller_name)['spec']['ports'], [{
+                'name': 'https',
+                'port': 443,
+                'targetPort': 8080,
+                'protocol': 'TCP',
+            }])
         self.assertEqual(webhook['path'], '/sync')
         self.assertEqual(
             webhook['authorization'], {
@@ -105,6 +121,13 @@ class ProfileControllerNetworkPolicyTest(unittest.TestCase):
         self.assertEqual(pod['serviceAccountName'], controller_name)
         self.assertEqual(pod['initContainers'][0]['command'],
                          ['python', '/hooks/init_webhook_auth.py'])
+        container = pod['containers'][0]
+        for name in ('readinessProbe', 'livenessProbe'):
+            self.assertEqual(container[name]['httpGet'], {
+                'scheme': 'HTTPS',
+                'port': 8080,
+                'path': '/healthz'
+            })
         token = next(item for item in pod['containers'][0]['env']
                      if item['name'] == 'WEBHOOK_AUTH_TOKEN')
         self.assertEqual(token['valueFrom']['secretKeyRef'], {

@@ -20,15 +20,16 @@ by another policy. Full Kubeflow Community Distribution already supplies a
 default same-namespace allowance; the 2.18 dev-kind overlays additionally allow
 TCP port 8080 from `0.0.0.0/0`.
 Account for the complete policy set before relying on this component-local rule.
-The profile-controller webhook also requires a bearer token. The initializer
-generates it in the `kubeflow-pipelines-profile-webhook-auth` Secret on first
-startup and preserves it on upgrades. Metacontroller sends the token on `/sync`;
-`/healthz` remains unauthenticated. Stock installations need no manual token
-setup. Custom overlays must retain the Secret, initializer, ServiceAccount and
-scoped RBAC, and Metacontroller's `authorization.secretRef`. Deleting the Secret
-causes a new token to be generated; restart the profile controller and reapply
-the DecoratorController so both sides reload it.
-Kustomize namespace overrides also update the webhook's Secret reference.
+The profile-controller webhook requires a bearer token. On first startup its
+initializer generates the token and TLS credentials in the pre-created
+`kubeflow-pipelines-profile-webhook-auth` Secret. Upgrades preserve these
+credentials. Metacontroller sends the token on HTTPS requests to `/sync`.
+The HTTPS health check at `/healthz` remains unauthenticated.
+
+Custom overlays must retain the Secret, initializer, scoped ServiceAccount
+permissions, and Metacontroller's `authorization.secretRef` and
+`caBundle.secretRef`. Kustomize namespace overrides update both Secret
+references and the webhook Service namespace.
 
 Custom direct callers of `/sync` must obtain the Secret through
 operator-controlled access and send `Authorization: Bearer <token>` after this
@@ -38,9 +39,26 @@ The token blocks unauthorized profile reconciliation and the demonstrated
 credential-minting chain. It does not constrain every network destination the
 UI TensorBoard proxy can reach; assess that proxy separately when customizing
 tenant-controlled Viewer Services.
-The bundled webhook still uses in-cluster HTTP. The bearer check does not
-protect against an actor who can capture that traffic; installations with that
-threat require encrypted webhook transport.
+
+The Service accepts HTTPS on port 443. Metacontroller verifies the serving
+certificate against the PEM bundle in the Secret's `ca.crt` before sending
+the token. Use the Service hostname
+`kubeflow-pipelines-profile-controller.<installation-namespace>` and that
+bundle for direct calls. The generated certificate also covers the Service's
+`.svc` name and `127.0.0.1` for local kubectl port forwards.
+
+The initializer preserves an existing token and TLS credentials. The default
+self-signed certificate is valid for one year. Operators can supply their own
+certificate and key in `tls.crt` and `tls.key`, with the issuing CA in
+`ca.crt`. Monitor expiration and renew before expiry. To rotate trust:
+
+1. Add the new trusted certificate or CA to `ca.crt` alongside the old one.
+   Restart the Metacontroller StatefulSet and wait for it to reload the trust
+   bundle.
+2. Replace `tls.crt` and `tls.key` in the Secret, retaining the bearer token.
+   Roll out the profile-controller Deployment and verify profile reconciliation.
+3. Remove the retired certificate from `ca.crt` and restart the
+   Metacontroller StatefulSet again. Direct clients must also reload trust.
 
 The manifest test suite checks the rendered selectors, namespace placement and
 port across the four multi-user entrypoints. Rendering is not enforcement

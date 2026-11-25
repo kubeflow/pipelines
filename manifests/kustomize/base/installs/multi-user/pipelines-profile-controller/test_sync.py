@@ -1,6 +1,9 @@
 import base64
+import copy
 import json
 import os
+import socket
+import ssl
 import threading
 from unittest import mock
 from urllib.error import HTTPError
@@ -263,7 +266,7 @@ def start_sync_server():
         server.server_close()
 
 
-def start_minimal_server(start_sync_server):
+def start_minimal_server(start_sync_server, **extra_settings):
     return start_sync_server(
         frontend_image="image",
         frontend_tag="tag",
@@ -271,6 +274,7 @@ def start_minimal_server(start_sync_server):
         artifacts_proxy_enabled="false",
         artifact_retention_days=-1,
         controller_port=0,
+        **extra_settings,
     )
 
 
@@ -347,42 +351,155 @@ def test_webhook_rejects_missing_auth_configuration(monkeypatch):
             controller_port=0)
 
 
-def test_webhook_secret_initializer_preserves_existing_key():
+def test_webhook_secret_initializer_preserves_existing_key(tmp_path):
     encoded = base64.b64encode(
         WEBHOOK_AUTH_TOKEN.encode('ascii')).decode('ascii')
-    secret = {'metadata': {'resourceVersion': '5'}, 'data': {'token': encoded}}
+    secret = {
+        'metadata': {
+            'resourceVersion': '5'
+        },
+        'data': {
+            'token': encoded,
+            'tls.crt': 'cert',
+            'tls.key': 'key',
+            'ca.crt': 'cert'
+        }
+    }
     request = mock.Mock(return_value=secret)
 
-    init_webhook_auth.initialize_webhook_secret(request)
+    init_webhook_auth.initialize_webhook_secret(request, 'test-install',
+                                                tmp_path)
 
     request.assert_called_once_with('GET', None)
     assert secret['data']['token'] == encoded
 
 
-def test_webhook_secret_initializer_fills_stub_without_erasing_data():
-    secret = {'metadata': {'resourceVersion': '5'}, 'data': {'other': 'abc'}}
-    request = mock.Mock(side_effect=[secret, None])
+def test_token_only_upgrade_adds_verified_tls(tmp_path, start_sync_server):
+    encoded = base64.b64encode(WEBHOOK_AUTH_TOKEN.encode()).decode()
+    secret = {'metadata': {'resourceVersion': '7'}, 'data': {'token': encoded}}
+    request = mock.Mock(return_value=secret)
+    data = init_webhook_auth.initialize_webhook_secret(request, 'my-install',
+                                                       tmp_path)
+    assert request.call_args.args[0] == 'PUT'
+    assert data['token'] == encoded
+    for name in ('tls.crt', 'tls.key', 'ca.crt'):
+        (tmp_path / name).write_bytes(
+            base64.b64decode(data[name], validate=True))
+    server_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    server_context.load_cert_chain(tmp_path / 'tls.crt', tmp_path / 'tls.key')
+    server = start_minimal_server(start_sync_server, tls_context=server_context)
+    _, port = server.server_address
+    url = f'https://127.0.0.1:{port}'
+    pinned = str(tmp_path / 'ca.crt')
+    client_context = ssl.create_default_context(cafile=pinned)
+    for hostname in ('kubeflow-pipelines-profile-controller.my-install',
+                     'wrong.invalid'):
+        with socket.create_connection(('127.0.0.1', port), timeout=5) as raw:
+            if hostname == 'wrong.invalid':
+                with pytest.raises(ssl.SSLCertVerificationError):
+                    client_context.wrap_socket(raw, server_hostname=hostname)
+            else:
+                with client_context.wrap_socket(raw, server_hostname=hostname):
+                    pass
+    with socket.create_connection(('127.0.0.1', port), timeout=5):
+        # An idle peer must not hold up other TLS handshakes or probes.
+        assert requests.get(
+            url + '/healthz', verify=pinned, timeout=2).text == 'ok'
+    with pytest.raises(requests.exceptions.SSLError):
+        requests.get(url + '/healthz', timeout=5)
+    with mock.patch.object(
+            server.RequestHandlerClass, 'sync', return_value={}) as sync_call:
+        with pytest.raises(requests.exceptions.ConnectionError):
+            requests.get(f'http://127.0.0.1:{port}/healthz', timeout=5)
+        assert requests.post(
+            url + '/sync', verify=pinned, timeout=5).status_code == 403
+        sync_call.assert_not_called()
+        response = requests.post(
+            url + '/sync',
+            json={
+                'object': PARENT,
+                'attachments': {}
+            },
+            headers={'Authorization': f'Bearer {WEBHOOK_AUTH_TOKEN}'},
+            verify=pinned,
+            timeout=5,
+        )
+        assert response.status_code == 200
+        sync_call.assert_called_once()
 
-    init_webhook_auth.initialize_webhook_secret(request)
 
-    assert request.call_args_list[0] == mock.call('GET', None)
-    assert request.call_args_list[1].args[0] == 'PUT'
-    assert request.call_args_list[1].args[1]['data']['other'] == 'abc'
-    assert len(base64.b64decode(secret['data']['token']).decode('ascii')) >= 32
+def test_webhook_secret_initializer_fills_stub_without_erasing_data(tmp_path):
+    secret = {
+        'metadata': {
+            'resourceVersion': '5',
+            'labels': {
+                'preserve': 'yes'
+            }
+        },
+        'data': {
+            'other': 'value'
+        },
+    }
+    writes = []
+
+    def request(method, body):
+        if method == 'GET':
+            return secret
+        writes.append(copy.deepcopy(body))
+
+    init_webhook_auth.initialize_webhook_secret(request, 'test-install',
+                                                tmp_path)
+
+    assert len(writes) == 1
+    assert writes[0]['metadata'] == secret['metadata']
+    assert writes[0]['data']['other'] == 'value'
+    token = base64.b64decode(writes[0]['data']['token']).decode('ascii')
+    assert len(token) >= 32
 
 
-def test_webhook_secret_initializer_retries_conflict():
-    conflict = HTTPError('url', 409, 'conflict', {}, None)
-    first = {'metadata': {'resourceVersion': '5'}}
-    second = {'metadata': {'resourceVersion': '6'}}
-    request = mock.Mock(side_effect=[first, conflict, second, None])
-    wait = mock.Mock()
+def test_webhook_secret_initializer_rejects_invalid_existing_key(tmp_path):
+    request = mock.Mock(
+        return_value={
+            'metadata': {
+                'resourceVersion': '5'
+            },
+            'data': {
+                'token': base64.b64encode(b'short').decode('ascii')
+            },
+        })
+    with pytest.raises(ValueError, match='invalid existing webhook token'):
+        init_webhook_auth.initialize_webhook_secret(request, 'test-install',
+                                                    tmp_path)
+    request.assert_called_once_with('GET', None)
 
-    init_webhook_auth.initialize_webhook_secret(request, wait=wait)
 
-    assert request.call_args_list[2] == mock.call('GET', None)
-    assert request.call_args_list[3].args[0] == 'PUT'
-    wait.assert_called_once_with(1)
+def test_webhook_secret_initializer_uses_winner_after_conflict(tmp_path):
+    encoded = base64.b64encode(
+        WEBHOOK_AUTH_TOKEN.encode('ascii')).decode('ascii')
+    calls = []
+
+    def request(method, body):
+        calls.append(method)
+        if calls == ['GET']:
+            return {'metadata': {'resourceVersion': '5'}}
+        if calls == ['GET', 'PUT']:
+            raise HTTPError(None, 409, 'conflict', None, None)
+        return {
+            'metadata': {
+                'resourceVersion': '6'
+            },
+            'data': {
+                'token': encoded,
+                'tls.crt': 'cert',
+                'tls.key': 'key',
+                'ca.crt': 'cert'
+            },
+        }
+
+    init_webhook_auth.initialize_webhook_secret(
+        request, 'test-install', tmp_path, wait=lambda _: None)
+
+    assert calls == ['GET', 'PUT', 'GET']
 
 
 def test_healthz_responds_during_slow_sync(start_sync_server):

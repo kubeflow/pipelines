@@ -20,6 +20,8 @@ import os
 from pathlib import Path
 import secrets
 import ssl
+import subprocess
+import tempfile
 import time
 from urllib.error import HTTPError
 from urllib.parse import quote
@@ -33,30 +35,81 @@ SECRET_KEY = 'token'
 SERVICE_ACCOUNT = Path('/var/run/secrets/kubernetes.io/serviceaccount')
 RETRYABLE_STATUS = {404, 409, 429, 500, 502, 503, 504}
 
+TLS_DIR = Path('/var/run/kfp-webhook-tls')
+TLS_KEYS = {'tls.crt', 'tls.key', 'ca.crt'}
 
-def initialize_webhook_secret(request, wait=time.sleep):
+
+def generate_tls_data(namespace, directory):
+    """Pin a per-install certificate for the Service and local port forwards."""
+    dns = f'kubeflow-pipelines-profile-controller.{namespace}'
+    with tempfile.TemporaryDirectory(dir=directory) as temporary:
+        key = Path(temporary) / 'tls.key'
+        cert = Path(temporary) / 'tls.crt'
+        subprocess.run(
+            [
+                'openssl',
+                'req',
+                '-x509',
+                '-newkey',
+                'rsa:3072',
+                '-nodes',
+                '-days',
+                '365',
+                '-subj',
+                '/CN=KFP profile webhook',
+                '-addext',
+                f'subjectAltName=DNS:{dns},DNS:{dns}.svc,IP:127.0.0.1',
+                '-addext',
+                'basicConstraints=critical,CA:FALSE',
+                '-addext',
+                'keyUsage=critical,digitalSignature,keyEncipherment',
+                '-addext',
+                'extendedKeyUsage=serverAuth',
+                '-keyout',
+                str(key),
+                '-out',
+                str(cert),
+            ],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        encoded_cert = base64.b64encode(cert.read_bytes()).decode('ascii')
+        return {
+            'tls.crt': encoded_cert,
+            'tls.key': base64.b64encode(key.read_bytes()).decode('ascii'),
+            'ca.crt': encoded_cert,
+        }
+
+
+def initialize_webhook_secret(request, namespace, directory, wait=time.sleep):
     """Fill a pre-created Secret using a resource-version guarded update."""
     for attempt in range(60):
         try:
             secret = request('GET', None)
-            existing = (secret.get('data') or {}).get(SECRET_KEY)
+            data = dict(secret.get('data') or {})
+            existing = data.get(SECRET_KEY)
             if existing is not None:
                 token = base64.b64decode(
                     existing, validate=True).decode('ascii')
                 if (len(token) < 32 or not token.isascii() or
                         any(character.isspace() for character in token)):
                     raise ValueError('invalid existing webhook token')
-                return
+            else:
+                data[SECRET_KEY] = base64.b64encode(
+                    secrets.token_urlsafe(32).encode('ascii')).decode('ascii')
+            existing_tls = TLS_KEYS.intersection(data)
+            if existing_tls and existing_tls != TLS_KEYS:
+                raise ValueError('incomplete existing webhook TLS credentials')
+            if not existing_tls:
+                data.update(generate_tls_data(namespace, directory))
+            if data == secret.get('data'):
+                return data
             if not secret.get('metadata', {}).get('resourceVersion'):
                 raise ValueError('missing Secret resource version')
-            secret['data'] = {
-                **(secret.get('data') or {}),
-                SECRET_KEY:
-                    base64.b64encode(secrets.token_urlsafe(32).encode('ascii')
-                                    ).decode('ascii'),
-            }
+            secret['data'] = data
             request('PUT', secret)
-            return
+            return data
         except HTTPError as error:
             if error.code in RETRYABLE_STATUS and attempt < 59:
                 wait(1)
@@ -86,7 +139,11 @@ def main():
         with opener.open(request, timeout=5) as response:
             return json.load(response)
 
-    initialize_webhook_secret(request)
+    os.umask(0o077)
+    data = initialize_webhook_secret(request, namespace, TLS_DIR)
+    for name in ('tls.crt', 'tls.key'):
+        (TLS_DIR / name).write_bytes(
+            base64.b64decode(data[name], validate=True))
 
 
 if __name__ == '__main__':

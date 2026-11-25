@@ -21,6 +21,7 @@ from contextlib import contextmanager
 import hashlib
 import json
 from pathlib import Path
+import ssl
 import subprocess
 import sys
 import time
@@ -85,7 +86,7 @@ def wait_ready(name):
 
 
 @contextmanager
-def forward(deployment, local, remote, evidence):
+def forward(deployment, local, remote, evidence, tls_context=None):
     with (evidence / f'port-forward-{deployment}-{local}.log').open('a') as log:
         process = subprocess.Popen(
             [
@@ -102,7 +103,8 @@ def forward(deployment, local, remote, evidence):
             stderr=log,
         )
         try:
-            url = f'http://127.0.0.1:{local}'
+            scheme = 'https' if tls_context is not None else 'http'
+            url = f'{scheme}://127.0.0.1:{local}'
             health = '/healthz' if remote == PROFILE_PORT else '/status'
             for _ in range(60):
                 if process.poll() is not None:
@@ -110,7 +112,8 @@ def forward(deployment, local, remote, evidence):
                         f'Port-forward for {deployment} stopped; inspect its log'
                     )
                 try:
-                    with urllib.request.urlopen(url + health, timeout=2):
+                    with urllib.request.urlopen(
+                            url + health, timeout=2, context=tls_context):
                         break
                 except OSError:
                     time.sleep(1)
@@ -159,7 +162,9 @@ def client(endpoint, access, secret):
     )
 
 
-def sync_profile(endpoint, namespace, webhook_token, secret=None):
+def sync_profile(endpoint, namespace, webhook_token, tls_context, secret=None):
+    if not endpoint.startswith('https://') or tls_context is None:
+        raise ValueError('The profile webhook requires verified HTTPS')
     attachments = {
         kind: {} for kind in (
             'Secret.v1',
@@ -190,7 +195,8 @@ def sync_profile(endpoint, namespace, webhook_token, secret=None):
             'Authorization': f'Bearer {webhook_token}',
         },
     )
-    with urllib.request.urlopen(request, timeout=60) as response:
+    with urllib.request.urlopen(
+            request, timeout=60, context=tls_context) as response:
         result = json.load(response)
     credentials = [
         item for item in result['attachments']
@@ -324,6 +330,9 @@ def exercise_profile(admin_credentials, evidence):
                 '-o', 'json'))
     webhook_token = base64.b64decode(
         webhook_secret['data']['token']).decode('ascii')
+    tls_context = ssl.create_default_context(
+        cadata=base64.b64decode(webhook_secret['data']['ca.crt']).decode(
+            'ascii'))
     with forward('seaweedfs', S3_LOCAL_PORT, S3_PORT, evidence) as endpoint:
         s3 = client(endpoint, *admin_credentials)
         verify_state(s3)
@@ -332,10 +341,12 @@ def exercise_profile(admin_credentials, evidence):
                 PROFILE_LOCAL_PORT,
                 PROFILE_PORT,
                 evidence,
+                tls_context,
         ) as webhook:
-            secret = sync_profile(webhook, 'compat-user', webhook_token)
+            secret = sync_profile(webhook, 'compat-user', webhook_token,
+                                  tls_context)
             repeated = sync_profile(webhook, 'compat-user', webhook_token,
-                                    secret)
+                                    tls_context, secret)
             if repeated['data'] != secret['data']:
                 raise AssertionError(
                     'Profile reconciliation replaced existing credentials')
@@ -358,9 +369,10 @@ def exercise_profile(admin_credentials, evidence):
             PROFILE_LOCAL_PORT,
             PROFILE_PORT,
             evidence,
+            tls_context,
     ) as webhook:
-        if (sync_profile(webhook, 'compat-user', webhook_token, secret)['data']
-                != secret['data']):
+        if (sync_profile(webhook, 'compat-user', webhook_token, tls_context,
+                         secret)['data'] != secret['data']):
             raise AssertionError(
                 'Profile restart replaced existing credentials')
     return secret

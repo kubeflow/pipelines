@@ -49,6 +49,13 @@ def main():
     assert webhook['service'] == {
         'name': 'kubeflow-pipelines-profile-controller',
         'namespace': namespace,
+        'protocol': 'https',
+        'port': 443,
+    }
+    assert webhook['caBundle']['secretRef'] == {
+        'name': name,
+        'key': 'ca.crt',
+        'namespace': namespace
     }
     assert webhook['path'] == '/sync'
     assert webhook['authorization']['secretRef']['namespace'] == namespace
