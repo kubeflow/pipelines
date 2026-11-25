@@ -1063,6 +1063,16 @@ to activate release versions, trigger builds, wait for successful builds, and up
 defaults for major and minor releases. Patch releases build and activate their documentation
 without changing project defaults; the manual fallback preserves defaults too. If the API call fails, `kfpr` asks whether to fall back to the manual checklist.
 
+Before publishing the backend GitHub release, `publish-backend-docs` verifies that
+the bare version tag has a successful build at the qualified release commit and that
+its public version-specific URL serves the documentation. With `RTD_TOKEN` set, the
+command syncs, activates, and builds the tag first. Without a token, activate and
+build the tag in the kubeflow-pipelines Read the Docs dashboard, then rerun the
+command to verify the public build. This step applies to backend-only and combined
+releases and leaves the project defaults unchanged. The standalone
+`create-backend-release` command also verifies the public build and tagged URL
+immediately before publishing the release. This verification does not trigger a build.
+
 ## Commands
 
 ```text
@@ -1087,6 +1097,7 @@ run publish-sdks
 run create-kfp-kubernetes-docs-branch
 run confirm-rtd
 run create-sdk-release
+run publish-backend-docs
 run create-backend-release
 run sync-master
 run confirm-website-and-slack
@@ -1106,8 +1117,9 @@ Malformed or unavailable discovery stops publication; dry runs perform no query.
 SDK GitHub releases always use `--latest=false` to preserve the shared backend designation.
 
 Maintenance patches still leave development-branch version files, changelog and Read the Docs
-defaults unchanged. The final website checklist preserves its existing latest-version
-pointer; these separate maintenance safeguards are not part of latest selection.
+defaults unchanged. At the final website checkpoint, update the installation shortcode to the published
+backend release when GitHub marks it Latest. A patch on an older maintenance line
+leaves the installation version at the newer release.
 
 SDK publication checks PyPI before each upload. Split SDK releases publish missing
 packages in dependency order: pipeline spec, server API, KFP, then Kubernetes.
