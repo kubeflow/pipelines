@@ -504,6 +504,46 @@ class ExecutorTest(parameterized.TestCase):
 
         self.assertDictEqual(output_metadata, expected_output_metadata)
 
+    @parameterized.named_parameters(
+        ('float', float),
+        ('optional_float', Optional[float]),
+    )
+    def test_whole_number_float_input_is_passed_as_float(self, annotation):
+        # The backend writes the executor input with Go's protojson, which
+        # encodes a whole-number double such as 2.0 as 2, so json.loads
+        # returns an int for a float-typed input.
+        executor_input = """\
+    {
+      "inputs": {
+        "parameterValues": {
+          "factor": 2,
+          "count": 3,
+          "flag": true
+        }
+      },
+      "outputs": {
+        "parameters": {
+          "Output": {
+            "outputFile": "gs://some-bucket/output"
+          }
+        },
+        "outputFile": "%(test_dir)s/output_metadata.json"
+      }
+    }
+    """
+        received = {}
+
+        def test_func(factor: annotation, count: int, flag: bool) -> str:
+            received.update(factor=factor, count=count, flag=flag)
+            return ''
+
+        self.execute(test_func, executor_input)
+
+        self.assertIs(type(received['factor']), float)
+        self.assertEqual(received['factor'], 2.0)
+        self.assertIs(type(received['count']), int)
+        self.assertIs(received['flag'], True)
+
     def test_function_with_list_output(self):
         executor_input = """\
     {

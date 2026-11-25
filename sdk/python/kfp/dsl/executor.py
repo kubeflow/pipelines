@@ -500,6 +500,14 @@ class Executor:
                             stripped_v
                         )
                         value = stripped_v.model_validate(value)
+                    elif (
+                        stripped_v is float
+                        and isinstance(value, int)
+                        and not isinstance(value, bool)
+                    ):
+                        # The backend encodes whole-number doubles such as
+                        # 2.0 as 2, which json.loads returns as an int.
+                        value = float(value)
                     func_kwargs[k] = value
 
             elif type_annotations.is_Input_Output_artifact_annotation(v):
