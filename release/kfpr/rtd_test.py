@@ -37,6 +37,90 @@ class ReadTheDocsClientTest(unittest.TestCase):
         )
         self.assertEqual(captured['body'], b'{"default_version": "sdk-3.2.1"}')
 
+    def test_backend_tag_build_uses_qualified_commit_and_public_url(self):
+        tag = '2.18.2'
+        project = 'kubeflow-pipelines'
+        url = f'https://{project}.readthedocs.io/en/{tag}/'
+        sha = 'a' * 40
+        build = {
+            'id': 12,
+            'state': {'code': 'finished'},
+            'success': True,
+            'version': tag,
+            'commit': sha,
+        }
+        for token in ('', 'rtd-token'):
+            with (
+                self.subTest(authenticated=bool(token)),
+                mock.patch.object(rtd, 'ReadTheDocsClient') as client_type,
+                mock.patch('urllib.request.urlopen') as get_public_docs,
+            ):
+                client = client_type.return_value
+                client.trigger_build.return_value = 12
+                client.get_build.return_value = build
+                client.request.return_value = {'results': [build]}
+                response = get_public_docs.return_value.__enter__.return_value
+                response.status = 200
+                response.geturl.return_value = url
+                rtd.publish_backend_docs(tag, sha, token)
+                client_type.assert_called_once_with(token)
+                if token:
+                    client.sync_versions.assert_called_once_with(project)
+                    client.activate_version.assert_called_once_with(
+                        project, tag
+                    )
+                    client.trigger_build.assert_called_once_with(project, tag)
+                    client.get_build.assert_called_once_with(project, 12)
+                else:
+                    client.request.assert_called_once_with(
+                        'GET',
+                        f'/projects/{project}/versions/{tag}/builds/?limit=1',
+                    )
+                    client.activate_version.assert_not_called()
+                    client.trigger_build.assert_not_called()
+                client.patch_project.assert_not_called()
+                request = get_public_docs.call_args.args[0]
+                self.assertEqual(request.full_url, url)
+                self.assertEqual(request.get_method(), 'HEAD')
+                self.assertTrue(
+                    request.get_header('User-agent').startswith('kfpr')
+                )
+                self.assertFalse(request.has_header('Authorization'))
+                response.geturl.return_value = url.replace(tag, 'latest')
+                with self.assertRaisesRegex(
+                    rtd.ReadTheDocsError, 'tagged docs'
+                ):
+                    rtd.publish_backend_docs(tag, sha, token)
+
+    def test_backend_tag_rejects_missing_or_mismatched_build(self):
+        sha = 'a' * 40
+        build = {
+            'state': {'code': 'finished'},
+            'success': True,
+            'version': '2.18.2',
+            'commit': sha,
+        }
+        for results in (
+            [],
+            [dict(build, version='sdk-2.18.2')],
+            [dict(build, commit='b' * 40)],
+            [dict(build, success=False)],
+            [dict(build, state={'code': 'building'})],
+        ):
+            with (
+                self.subTest(results=results),
+                mock.patch.object(rtd, 'ReadTheDocsClient') as client_type,
+                mock.patch('urllib.request.urlopen') as get_public_docs,
+            ):
+                client_type.return_value.request.return_value = {
+                    'results': results
+                }
+                with self.assertRaisesRegex(
+                    rtd.ReadTheDocsError, 'No successful'
+                ):
+                    rtd.publish_backend_docs('2.18.2', sha, '')
+                get_public_docs.assert_not_called()
+
     def test_update_release_docs_syncs_activates_builds_and_sets_defaults(self):
         client = mock.Mock()
         client.get_version.side_effect = [
