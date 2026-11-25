@@ -17,13 +17,16 @@ upgrades."""
 import base64
 import json
 import os
+from pathlib import Path
 import secrets
 import ssl
 import time
-from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import quote
-from urllib.request import HTTPSHandler, ProxyHandler, Request, build_opener
+from urllib.request import build_opener
+from urllib.request import HTTPSHandler
+from urllib.request import ProxyHandler
+from urllib.request import Request
 
 SECRET_NAME = 'kubeflow-pipelines-profile-webhook-auth'
 SECRET_KEY = 'token'
