@@ -18,7 +18,7 @@ attrs==23.2.0
     # via
     #   aiohttp
     #   ml-metadata
-certifi==2026.10.23
+certifi==2026.11.20
     # via
     #   -r metadata_writer/requirements.in
     #   kubernetes
