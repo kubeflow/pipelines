@@ -132,6 +132,7 @@ class Pipeline:
         """
         self.name = name
         self.tasks = {}
+        self.group_names = set()
         # Add the root group.
         self.groups = [
             tasks_group.TasksGroup(
@@ -189,13 +190,14 @@ class Pipeline:
         # Technically this could be delayed to the compilation stage, but string
         # serialization of PipelineChannels make unsanitized names problematic.
         task_name = utils.maybe_rename_for_k8s(task.component_spec.name)
-        # If there is an existing task with this name then generate a new name.
+        used_names = list(self.tasks.keys()) + list(self.group_names)
+        # If there is an existing task or group with this name then generate a new name.
         task_name = utils.make_name_unique_by_adding_index(
-            task_name, list(self.tasks.keys()), '-'
+            task_name, used_names, '-'
         )
         if task_name == '':
             task_name = utils.make_name_unique_by_adding_index(
-                'task', list(self.tasks.keys()), '-'
+                'task', used_names, '-'
             )
 
         self.tasks[task_name] = task
