@@ -28,6 +28,7 @@ setup. Custom overlays must retain the Secret, initializer, ServiceAccount and
 scoped RBAC, and Metacontroller's `authorization.secretRef`. Deleting the Secret
 causes a new token to be generated; restart the profile controller and reapply
 the DecoratorController so both sides reload it.
+Kustomize namespace overrides also update the webhook's Secret reference.
 
 Custom direct callers of `/sync` must obtain the Secret through
 operator-controlled access and send `Authorization: Bearer <token>` after this
@@ -37,6 +38,9 @@ The token blocks unauthorized profile reconciliation and the demonstrated
 credential-minting chain. It does not constrain every network destination the
 UI TensorBoard proxy can reach; assess that proxy separately when customizing
 tenant-controlled Viewer Services.
+The bundled webhook still uses in-cluster HTTP. The bearer check does not
+protect against an actor who can capture that traffic; installations with that
+threat require encrypted webhook transport.
 
 The manifest test suite checks the rendered selectors, namespace placement and
 port across the four multi-user entrypoints. Rendering is not enforcement
