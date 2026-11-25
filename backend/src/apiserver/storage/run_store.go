@@ -367,14 +367,41 @@ func (s *RunStore) ListRuns(
 	return page, totalSize, npt, nil
 }
 
-func getRunListColumns(opts *list.Options) []string {
+// Use the same pipeline ID for display, filtering and pagination while the
+// worker repairs legacy rows. Old reporters can also insert version-only runs
+// after completion. Explicit stored IDs take precedence over legacy references.
+func effectiveRunPipelineID(q dialect.QuoteFunction, table string) string {
+	run := dialect.QualifiedColumn(q, table)
+	ref := dialect.QualifiedColumn(q, "resource_references")
+	referenceID := func(kind model.ResourceType) string {
+		return fmt.Sprintf("(SELECT %s FROM %s WHERE %s = %s AND %s = '%s' AND %s = '%s' AND %s <> '')",
+			ref("ReferenceUUID"), q("resource_references"), ref("ResourceUUID"), run("UUID"),
+			ref("ResourceType"), model.RunResourceType, ref("ReferenceType"), kind, ref("ReferenceUUID"))
+	}
+	version := fmt.Sprintf("COALESCE(NULLIF(%s, ''), %s)", run("PipelineVersionId"), referenceID(model.PipelineVersionResourceType))
+	pv := dialect.QualifiedColumn(q, "pipeline_versions")
+	versionParent := fmt.Sprintf("(SELECT %s FROM %s WHERE %s = %s AND %s <> '')",
+		pv("PipelineId"), q("pipeline_versions"), pv("UUID"), version, pv("PipelineId"))
+	// A deleted version's repaired source job is usable only if the job still
+	// identifies the same version as the run.
+	job := dialect.QualifiedColumn(q, "jobs")
+	jobParent := fmt.Sprintf("(SELECT %s FROM %s WHERE %s = %s AND %s = %s)",
+		job("PipelineId"), q("jobs"), job("UUID"), run("JobUUID"), job("PipelineVersionId"), version)
+	return fmt.Sprintf("COALESCE(NULLIF(%s, ''), %s, %s, %s, '')",
+		run("PipelineId"), referenceID(model.PipelineResourceType), versionParent, jobParent)
+}
+
+func getRunListColumns(opts *list.Options, q dialect.QuoteFunction) []string {
 	columns := make([]string, len(runListColumns))
 	copy(columns, runListColumns)
 
-	if opts != nil && opts.SortByFieldName == "PipelineRuntimeManifest" {
+	if opts != nil {
 		for i, col := range columns {
-			if col == "'' AS PipelineRuntimeManifest" {
+			switch {
+			case col == "'' AS PipelineRuntimeManifest" && opts.SortByFieldName == "PipelineRuntimeManifest":
 				columns[i] = "PipelineRuntimeManifest"
+			case col == "PipelineId" && opts.SortBySQLColumn == "PipelineId":
+				columns[i] = effectiveRunPipelineID(q, "run_details") + " AS " + q(col)
 			}
 		}
 	}
@@ -394,19 +421,24 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	if refKey != nil && refKey.Type == model.ExperimentResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
 		// for performance reasons need to special treat experiment ID filter on runs
 		// currently only the run table have experiment UUID column
-		filteredSelectBuilder, err = FilterByExperiment(qb, q, "run_details", getRunListColumns(opts), selectCount, refKey.ID)
+		filteredSelectBuilder, err = FilterByExperiment(qb, q, "run_details", getRunListColumns(opts, q), selectCount, refKey.ID)
 	} else if refKey != nil && refKey.Type == model.NamespaceResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
-		filteredSelectBuilder, err = FilterByNamespace(qb, q, "run_details", getRunListColumns(opts),
+		filteredSelectBuilder, err = FilterByNamespace(qb, q, "run_details", getRunListColumns(opts, q),
 			selectCount, refKey.ID)
 	} else {
-		filteredSelectBuilder, err = FilterByResourceReference(qb, q, "run_details", getRunListColumns(opts),
+		filteredSelectBuilder, err = FilterByResourceReference(qb, q, "run_details", getRunListColumns(opts, q),
 			model.RunResourceType, selectCount, filterContext)
 	}
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
 
-	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder, q)
+	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder, func(column string) string {
+		if column == "PipelineId" {
+			return effectiveRunPipelineID(q, "run_details")
+		}
+		return q(column)
+	})
 
 	if !selectCount {
 		// Paginate-then-aggregate: build a lightweight subquery that pages by UUID
@@ -622,7 +654,12 @@ func (s *RunStore) addResourceReferences(filteredSelectBuilder sq.SelectBuilder)
 	// Final layer: JOIN back to run_details to get all runColumns
 	// We wrap this in a subquery to avoid column ambiguity issues with ORDER BY
 	joinedColumns := append(
-		dialect.QuoteAll(func(column string) string { return fmt.Sprintf("rd.%s", q(column)) }, runColumns),
+		dialect.QuoteAll(func(column string) string {
+			if column == "PipelineId" {
+				return effectiveRunPipelineID(q, "rd") + " AS " + q(column)
+			}
+			return "rd." + q(column)
+		}, runColumns),
 		"withrefs."+q("refs"))
 
 	joinedSubQ := qb.
@@ -890,6 +927,15 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			existingRun, getErr := s.GetRun(r.UUID, true)
 			if getErr != nil {
 				return nil, util.NewInternalServerError(err, "Failed to fetch existing run %v after duplicate key conflict", r.UUID)
+			}
+			// Only the same recurring run can be the concurrent creator. A record
+			// that another owner holds under this ID is a conflict, not a replay.
+			// Namespaces are a tenant boundary only in multi-user mode; a
+			// standalone replay is identified by its recurring run alone.
+			if existingRun.RecurringRunId != r.RecurringRunId ||
+				(common.IsMultiUserMode() && existingRun.Namespace != r.Namespace) {
+				return nil, util.NewAlreadyExistError(
+					"Failed to create a new run. Run %v already exists and does not belong to recurring run %v", r.UUID, r.RecurringRunId)
 			}
 			return existingRun, nil
 		}

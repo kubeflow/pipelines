@@ -23,6 +23,7 @@ import unittest
 from typing import List, Optional, Union
 from unittest import mock
 
+import click
 import docker
 from click import testing
 
@@ -618,6 +619,209 @@ class Test(unittest.TestCase):
                 RUN pip install --index-url https://pypi.org/simple --extra-index-url https://example.com/pypi/simple --no-cache-dir kfp==1.2.3
                 COPY . .
                 """),
+        )
+
+    def test_rejects_index_url_credentials_before_generating_files(self):
+        component = _make_component(
+            func_name='train',
+            target_image='custom-image',
+            pip_index_urls=[
+                'https://user:dummy-password@example.invalid/simple'
+            ],
+        )
+        _write_components('components.py', component)
+
+        with mock.patch('kfp.cli.component.logging.info') as log_info:
+            result = self.runner.invoke(
+                self.cli, ['build', str(self._working_dir)]
+            )
+
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertIn('credentials', result.output)
+        self.assertNotIn('dummy-password', result.output)
+        self.assertNotIn('dummy-password', str(log_info.call_args_list))
+        self.assertFalse((self._working_dir / 'Dockerfile').exists())
+        self.assertFalse(
+            (self._working_dir / 'runtime-requirements.txt').exists()
+        )
+        self._docker_client.api.build.assert_not_called()
+
+    def test_rejects_package_url_query_before_generating_files(self):
+        component = _make_component(
+            func_name='train',
+            target_image='custom-image',
+            packages_to_install=[
+                'package @ https://example.invalid/package.whl?token=dummy-token'
+            ],
+        )
+        _write_components('components.py', component)
+
+        result = self.runner.invoke(self.cli, ['build', str(self._working_dir)])
+
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertIn('credentials', result.output)
+        self.assertNotIn('dummy-token', result.output)
+        self.assertFalse((self._working_dir / 'Dockerfile').exists())
+        self.assertFalse(
+            (self._working_dir / 'runtime-requirements.txt').exists()
+        )
+        self._docker_client.api.build.assert_not_called()
+
+    def test_rejects_kfp_package_url_before_path_conversion(self):
+        # Call the callback directly because Click currently requires this
+        # option to be an existing local path.
+        with mock.patch('kfp.cli.component.ComponentBuilder') as builder:
+            with self.assertRaisesRegex(click.ClickException, 'credentials'):
+                component.build.callback(
+                    components_directory=str(self._working_dir),
+                    component_filepattern='**/*.py',
+                    engine='docker',
+                    kfp_package_path=(
+                        'git+https://user:dummy-password@example.invalid/'
+                        'repo.git'
+                    ),
+                    additional_package_paths=(),
+                    overwrite_dockerfile=False,
+                    build_image=False,
+                    platform='linux/amd64',
+                    push_image=False,
+                )
+        builder.assert_not_called()
+
+    def test_rejects_credential_urls_hidden_by_url_syntax(self):
+        cases = [
+            (
+                'index_angle',
+                {
+                    'pip_index_urls': [
+                        'https://user:dummy<password@example.invalid/simple'
+                    ]
+                },
+            ),
+            (
+                'package_angle',
+                {
+                    'packages_to_install': [
+                        'package @ https://example.invalid/a>b.whl?token=dummy-token'
+                    ]
+                },
+            ),
+            (
+                'index_malformed',
+                {
+                    'pip_index_urls': [
+                        'https://user:dummy-password@[not-an-ip]/simple'
+                    ]
+                },
+            ),
+            (
+                'package_empty_host',
+                {
+                    'packages_to_install': [
+                        'package @ https:///user:dummy-password@host/x'
+                    ]
+                },
+            ),
+            (
+                'index_invalid_port',
+                {'pip_index_urls': ['https://example.invalid:invalid/simple']},
+            ),
+            (
+                'package_split_authority',
+                {
+                    'packages_to_install': [
+                        'package @ https://user:pa ss@example.invalid/pkg.whl'
+                    ]
+                },
+            ),
+            (
+                'package_continued',
+                {
+                    'packages_to_install': [
+                        'package @ https://example.invalid/package.whl\\\n'
+                        '?token=dummy-token'
+                    ]
+                },
+            ),
+        ]
+        for name, dependency in cases:
+            with self.subTest(name=name):
+                context_dir = self._working_dir / name
+                context_dir.mkdir()
+                (context_dir / f'{name}.py').write_text(
+                    _make_component(
+                        func_name='train',
+                        target_image='custom-image',
+                        **dependency,
+                    )
+                )
+
+                result = self.runner.invoke(
+                    self.cli, ['build', str(context_dir), '--no-build-image']
+                )
+
+                self.assertNotEqual(result.exit_code, 0)
+                self.assertIn('credentials', result.output)
+                self.assertFalse((context_dir / 'Dockerfile').exists())
+                self.assertFalse(
+                    (context_dir / 'runtime-requirements.txt').exists()
+                )
+
+    def test_rejects_credentials_before_explicit_yaml_or_wheel_staging(self):
+        source_wheel = (
+            self._working_dir / 'source' / 'package-1.0-py3-none-any.whl'
+        )
+        source_wheel.parent.mkdir()
+        source_wheel.write_bytes(b'placeholder')
+        context_dir = self._working_dir / 'build'
+        context_dir.mkdir()
+        (context_dir / 'components.py').write_text(
+            _make_component(
+                func_name='train',
+                target_image='custom-image',
+                output_component_file='train.yaml',
+                pip_index_urls=[
+                    'https://user:dummy-password@example.invalid/simple'
+                ],
+            )
+        )
+
+        result = self.runner.invoke(
+            self.cli,
+            [
+                'build',
+                str(context_dir),
+                f'--additional-package-path={source_wheel}',
+                '--no-build-image',
+            ],
+        )
+
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertIn('credentials', result.output)
+        self.assertFalse((self._working_dir / 'train.yaml').exists())
+        self.assertFalse(
+            (context_dir / 'component_metadata' / 'train.yaml').exists()
+        )
+        self.assertFalse((context_dir / source_wheel.name).exists())
+        self.assertFalse((context_dir / 'Dockerfile').exists())
+
+    def test_explicit_component_file_is_written_after_validation(self):
+        component = _make_component(
+            func_name='train',
+            target_image='custom-image',
+            output_component_file='train.yaml',
+            pip_index_urls=['https://pypi.org/simple'],
+        )
+        _write_components('components.py', component)
+
+        result = self.runner.invoke(
+            self.cli, ['build', str(self._working_dir), '--no-build-image']
+        )
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertTrue((self._working_dir / 'train.yaml').exists())
+        self.assertTrue(
+            (self._working_dir / 'component_metadata' / 'train.yaml').exists()
         )
 
     def test_existing_dockerfile_is_unchanged_by_default(self):

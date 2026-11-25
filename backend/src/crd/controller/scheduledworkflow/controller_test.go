@@ -17,6 +17,7 @@ package main
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,6 +26,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/client"
 	util "github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	swffake "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/fake"
+	swfinformers "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -36,7 +39,9 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	ktesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -564,6 +569,55 @@ func TestExistingWorkflowRequiresMultiUserAPIReconciliation(t *testing.T) {
 				require.Equal(t, swf.NextResourceName(), name)
 				require.Equal(t, int64(100), scheduledAt)
 			}
+		})
+	}
+}
+
+// A ScheduledWorkflow created directly against Kubernetes can have a name that is
+// not a valid label value. Syncing it must fail that object only, permanently.
+func TestSyncHandlerFailsPermanentlyWhenNameIsNotALabelValue(t *testing.T) {
+	tests := []struct {
+		name        string
+		swfName     string
+		expectError bool
+	}{
+		{name: "longest label value", swfName: strings.Repeat("a", 63)},
+		{name: "longer than a label value", swfName: strings.Repeat("a", 64), expectError: true},
+		{name: "longest object name", swfName: strings.Repeat("a", 253), expectError: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			swf := &swfapi.ScheduledWorkflow{
+				ObjectMeta: metav1.ObjectMeta{Name: tc.swfName, Namespace: "tenant-a"},
+			}
+			fakeSWF := swffake.NewSimpleClientset()
+			fakeSWF.PrependReactor("update", "scheduledworkflows", func(action ktesting.Action) (bool, runtime.Object, error) {
+				return true, action.(ktesting.UpdateAction).GetObject(), nil
+			})
+			informer := swfinformers.NewSharedInformerFactory(fakeSWF, 0).Scheduledworkflow().V1beta1().ScheduledWorkflows()
+			require.NoError(t, informer.Informer().GetStore().Add(swf))
+			controller := &Controller{
+				swfClient:      client.NewScheduledWorkflowClient(fakeSWF, informer),
+				workflowClient: client.NewWorkflowClient(&fakeExecutionClient{}, &fakeExecutionInformer{}),
+				runClient:      &fakeRunClient{},
+				multiUser:      true,
+				location:       time.UTC,
+				time:           commonutil.NewFakeTimeForEpoch(),
+			}
+
+			syncAgain, retryOnError, synced, err := controller.syncHandler(context.Background(), "tenant-a/"+tc.swfName)
+
+			assert.False(t, syncAgain)
+			assert.False(t, retryOnError)
+			require.NotNil(t, synced)
+			if !tc.expectError {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "tenant-a/"+tc.swfName)
+			assert.Contains(t, err.Error(), "not a valid label value")
 		})
 	}
 }

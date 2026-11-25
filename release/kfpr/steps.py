@@ -36,6 +36,10 @@ from .github_api import (
     watch_pr_ci,
 )
 from .inventory import build_inventory, release_scaffolding
+from .landed_attestation import (
+    superseded_ci_bookkeeping,
+    verify_landed_attestation,
+)
 from .metadata import ReleaseMetadata
 from .notes import render_notes
 from .packages import clean_legacy_distributions, validate_legacy_wheels
@@ -75,6 +79,13 @@ def manual_checklist(
 3. Review the architecture support policy before publishing the backend GitHub release:
    https://github.com/kubeflow/pipelines/blob/{metadata.release_branch}/docs/operator-guides/supported-platforms.md"""
         )
+    if step_id == 'publish-backend-docs':
+        return underline_links(f"""Backend documentation checkpoint:
+1. Activate the bare {metadata.tag} tag and build it in the kubeflow-pipelines project:
+   https://app.readthedocs.org/projects/kubeflow-pipelines/
+2. Run kfpr run publish-backend-docs to verify the successful build at the qualified
+   release commit and https://kubeflow-pipelines.readthedocs.io/en/{metadata.tag}/.
+   With RTD_TOKEN set, kfpr activates and builds the tag before verifying it.""")
     if step_id == 'confirm-rtd':
         checklist = f"""ReadTheDocs manual checkpoint:
 1. Open https://app.readthedocs.org/projects/kubeflow-pipelines/
@@ -117,14 +128,12 @@ sdk/python/kfp/server_api):"""
    pipeline component images.
    https://github.com/kubeflow/pipelines/blob/{metadata.tag}/docs/operator-guides/supported-platforms.md"""
             slack_step += 1
-        website_steps = f"""1. Open https://github.com/kubeflow/website/edit/master/layouts/shortcodes/pipelines/latest-version.html
-2. Write the version without a trailing newline:
-   echo -n {metadata.tag} > layouts/shortcodes/pipelines/latest-version.html
-3. Open a PR titled: pipelines: release kfp {metadata.tag}"""
-        if metadata.release_type == 'patch':
-            website_steps = f"""1. Preserve layouts/shortcodes/pipelines/latest-version.html; do not change the latest release pointer.
-2. Review any documentation updates needed for KFP {metadata.tag}.
-3. If documentation changes are needed, open a PR titled: pipelines: release kfp {metadata.tag}"""
+        website_steps = f"""1. Check the published Latest backend release in kubeflow/pipelines.
+2. In the website checkout, update the installation version only if {metadata.tag} is Latest:
+   latest_tag=$(gh api repos/kubeflow/pipelines/releases/latest --jq .tag_name) && if [ "$latest_tag" = "{metadata.tag}" ]; then printf '%s' '{metadata.tag}' > layouts/shortcodes/pipelines/latest-version.html; fi
+   https://github.com/kubeflow/website/edit/master/layouts/shortcodes/pipelines/latest-version.html
+3. Review the website diff. For the Latest release, verify the shortcode contains {metadata.tag}.
+   Include the version bump and any guide changes in a PR titled: pipelines: release kfp {metadata.tag}"""
         return underline_links(f"""Manual final checkpoint:
 {website_steps}{compatibility_steps}
 {slack_step}. After the website PR merges, announce in #kubeflow-pipelines:
@@ -435,6 +444,10 @@ def step_merge_version_pr(context: ReleaseContext) -> None:
     if recorded_pr:
         _wait_for_version_pr(context, recorded_pr)
         return
+    if context.state.answers.get('landed_ci_run') is not None:
+        raise ValueError(
+            'Record the merged version PR before selecting landed CI'
+        )
     metadata = context.metadata
     version_branch = f'{metadata.tag}-update-version-tags'
     upstream_remote = f'https://github.com/{REPO}.git'
@@ -593,8 +606,9 @@ def _wait_for_version_pr(context: ReleaseContext, pr_url: str) -> None:
         )
         return
     print(underline_links(f'Version PR: {pr_url}'))
-    watch_pr_ci(context.runner, pr_url)
-    wait_for_pr_merge(context.runner, pr_url)
+    if context.state.answers.get('landed_ci_run') is None:
+        watch_pr_ci(context.runner, pr_url)
+        wait_for_pr_merge(context.runner, pr_url)
     validate_release_pr(context)
     context.state.save()
 
@@ -640,11 +654,29 @@ def validate_release_pr(context: ReleaseContext) -> str:
         raise RuntimeError(
             'Version PR has no valid merged commit or tested head.'
         )
+    landed_run = context.state.answers.get('landed_ci_run')
+    if landed_run is not None:
+        verify_landed_attestation(
+            context,
+            landed_run,
+            int(url.rsplit('/', 1)[1]),
+            context.metadata.release_branch,
+            sha,
+        )
     checks = pr.get('statusCheckRollup') or []
     for check in checks:
         # Tide reports merge-queue eligibility, not a CI result. Its pending
         # status can remain on the tested head after the PR has been merged.
         if is_pending_merge_queue_check(check, merged_pr_url=pr.get('url')):
+            continue
+        if landed_run is not None and (
+            (
+                check.get('__typename') == 'StatusContext'
+                and check.get('context') == 'ci-passed'
+                and check.get('state') == 'PENDING'
+            )
+            or superseded_ci_bookkeeping(context, check, checks, head)
+        ):
             continue
         status = check.get('status') or check.get('state')
         result = check.get('conclusion') if status == 'COMPLETED' else status
@@ -652,7 +684,7 @@ def validate_release_pr(context: ReleaseContext) -> str:
             raise RuntimeError(
                 f'Latest version PR CI is not green: {check.get("name") or check.get("context")}'
             )
-    if not has_successful_ci_passed(checks):
+    if landed_run is None and not has_successful_ci_passed(checks):
         raise RuntimeError(
             'Version PR requires successful ci-passed status on its latest head.'
         )
@@ -1943,6 +1975,24 @@ def step_confirm_rtd(context: ReleaseContext) -> None:
         )
 
 
+def step_publish_backend_docs(context: ReleaseContext) -> None:
+    """Publish and verify the version-pinned backend documentation."""
+    checklist = manual_checklist('publish-backend-docs', context.metadata)
+    if context.runner.dry_run:
+        print(checklist)
+        return
+    sha = str(context.state.answers.get('release_sha', ''))
+    if not re.fullmatch(r'[0-9a-f]{40}', sha):
+        raise RuntimeError('No qualified merged release commit is recorded.')
+    try:
+        rtd.publish_backend_docs(
+            context.metadata.tag, sha, os.environ.get('RTD_TOKEN', '').strip()
+        )
+    except rtd.ReadTheDocsError:
+        print(checklist)
+        raise
+
+
 def _backend_release_body(
     context: ReleaseContext, selected: ReleaseRange
 ) -> str:
@@ -2007,6 +2057,8 @@ def step_create_backend_release(context: ReleaseContext) -> None:
 
     _verify_release_target(context, metadata.tag, selected)
     _require_release_notes_review(context, 'backend', display=False)
+    # An empty token selects read-only verification, including for standalone runs.
+    rtd.publish_backend_docs(metadata.tag, selected.target_sha, token='')
     context.runner.run(
         [
             'gh',
@@ -2226,6 +2278,11 @@ def build_steps(
     if include_backend:
         steps.extend(
             [
+                Step(
+                    'publish-backend-docs',
+                    'Publish and verify the backend tag documentation',
+                    'step_publish_backend_docs',
+                ),
                 Step(
                     'create-backend-release',
                     'Create backend GitHub release',

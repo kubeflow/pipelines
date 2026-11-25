@@ -11,6 +11,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag/jsonutils"
 	"github.com/go-openapi/swag/typeutils"
+	"github.com/go-openapi/validate"
 )
 
 // GoogleRPCStatus The `Status` type defines a logical error model that is suitable for
@@ -57,8 +58,8 @@ func (m *GoogleRPCStatus) validateDetails(formats strfmt.Registry) error {
 	}
 
 	for i := 0; i < len(m.Details); i++ {
-		if typeutils.IsZero(m.Details[i]) { // not required
-			continue
+		if m.Details[i] == nil {
+			return validate.Required("details"+"."+strconv.Itoa(i), "body", m.Details[i])
 		}
 
 		if m.Details[i] != nil {
@@ -102,7 +103,7 @@ func (m *GoogleRPCStatus) contextValidateDetails(ctx context.Context, formats st
 		if m.Details[i] != nil {
 
 			if typeutils.IsZero(m.Details[i]) { // not required
-				return nil
+				continue
 			}
 
 			if err := m.Details[i].ContextValidate(ctx, formats); err != nil {
