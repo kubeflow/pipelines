@@ -928,6 +928,15 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			if getErr != nil {
 				return nil, util.NewInternalServerError(err, "Failed to fetch existing run %v after duplicate key conflict", r.UUID)
 			}
+			// Only the same recurring run can be the concurrent creator. A record
+			// that another owner holds under this ID is a conflict, not a replay.
+			// Namespaces are a tenant boundary only in multi-user mode; a
+			// standalone replay is identified by its recurring run alone.
+			if existingRun.RecurringRunId != r.RecurringRunId ||
+				(common.IsMultiUserMode() && existingRun.Namespace != r.Namespace) {
+				return nil, util.NewAlreadyExistError(
+					"Failed to create a new run. Run %v already exists and does not belong to recurring run %v", r.UUID, r.RecurringRunId)
+			}
 			return existingRun, nil
 		}
 		return nil, util.NewInternalServerError(err, "Failed to store run %v to table", r.DisplayName)

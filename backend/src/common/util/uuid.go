@@ -35,6 +35,13 @@ func NewDeterministicUUID(name string) string {
 	return uuid.NewSHA1(deterministicUUIDNamespace, []byte(name)).String()
 }
 
+// IsDeterministicUUID reports whether id is a name-based (version 5) UUID, the
+// kind NewDeterministicUUID returns. Randomly generated UUIDs are version 4.
+func IsDeterministicUUID(id string) bool {
+	parsed, err := uuid.Parse(id)
+	return err == nil && parsed.Version() == 5
+}
+
 // UUIDGenerator is the concrete implementation of the UUIDGeneratorInterface used to
 // generate UUIDs in production deployments.
 type UUIDGenerator struct{}
