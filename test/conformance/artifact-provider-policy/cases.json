@@ -1,0 +1,145 @@
+[
+  {
+    "name": "matching override wins over hostile query",
+    "provider": "s3",
+    "adminConfig": {
+      "default": { "endpoint": "s3.company.example", "credentials": { "fromEnv": true } },
+      "Overrides": [
+        {
+          "bucketName": "team-bucket",
+          "keyPrefix": "team-a",
+          "endpoint": "minio.team-a:9000",
+          "region": "us-west-2",
+          "credentials": { "fromEnv": true }
+        }
+      ]
+    },
+    "bucket": "team-bucket",
+    "keyPrefix": "team-a/model",
+    "query": { "fromEnv": "true", "endpoint": "attacker.example", "region": "custom", "disableSSL": "false" },
+    "expect": { "allowed": true, "endpoint": "minio.team-a:9000" }
+  },
+  {
+    "name": "bare default wins over hostile query when no override matches",
+    "provider": "s3",
+    "adminConfig": {
+      "default": { "endpoint": "s3.company.example", "credentials": { "fromEnv": true } }
+    },
+    "bucket": "some-other-bucket",
+    "keyPrefix": "path/model",
+    "query": { "fromEnv": "true", "endpoint": "attacker.example", "region": "custom", "disableSSL": "false" },
+    "expect": { "allowed": true, "endpoint": "s3.company.example" }
+  },
+  {
+    "name": "unmanaged query is allowed by default when the gate is unset",
+    "provider": "s3",
+    "adminConfig": null,
+    "bucket": "unconfigured-bucket",
+    "keyPrefix": "path",
+    "query": { "fromEnv": "true", "endpoint": "attacker.example", "region": "custom", "disableSSL": "false" },
+    "expect": { "allowed": true, "endpoint": "attacker.example" }
+  },
+  {
+    "name": "unmanaged query is rejected when the gate is explicitly disabled",
+    "provider": "s3",
+    "adminConfig": { "allowUnmanagedProviderQueries": false },
+    "bucket": "unconfigured-bucket",
+    "keyPrefix": "path",
+    "query": { "fromEnv": "true", "endpoint": "attacker.example", "region": "custom", "disableSSL": "false" },
+    "expect": { "allowed": false, "rejectionContains": "allowUnmanagedProviderQueries" }
+  },
+  {
+    "name": "no query at all is unaffected by the gate even when disabled",
+    "provider": "s3",
+    "adminConfig": { "allowUnmanagedProviderQueries": false },
+    "bucket": "unconfigured-bucket",
+    "keyPrefix": "path",
+    "query": null,
+    "expect": { "allowed": true, "effectiveIsNull": true }
+  },
+  {
+    "name": "unmanaged path allows a public endpoint",
+    "provider": "s3",
+    "adminConfig": null,
+    "bucket": "unconfigured-bucket",
+    "keyPrefix": "path",
+    "query": { "fromEnv": "true", "endpoint": "s3.us-west-2.amazonaws.com" },
+    "expect": { "allowed": true, "endpoint": "s3.us-west-2.amazonaws.com" }
+  },
+  {
+    "name": "unmanaged path rejects a loopback IP endpoint",
+    "provider": "s3",
+    "adminConfig": null,
+    "bucket": "unconfigured-bucket",
+    "keyPrefix": "path",
+    "query": { "fromEnv": "true", "endpoint": "127.0.0.1:9999" },
+    "expect": { "allowed": false, "rejectionContains": "loopback/link-local/private" }
+  },
+  {
+    "name": "unmanaged path rejects a link-local IP endpoint",
+    "provider": "s3",
+    "adminConfig": null,
+    "bucket": "unconfigured-bucket",
+    "keyPrefix": "path",
+    "query": { "fromEnv": "true", "endpoint": "169.254.169.254" },
+    "expect": { "allowed": false, "rejectionContains": "loopback/link-local/private" }
+  },
+  {
+    "name": "unmanaged path rejects an RFC1918 private IP endpoint",
+    "provider": "s3",
+    "adminConfig": null,
+    "bucket": "unconfigured-bucket",
+    "keyPrefix": "path",
+    "query": { "fromEnv": "true", "endpoint": "10.0.0.5:9000" },
+    "expect": { "allowed": false, "rejectionContains": "loopback/link-local/private" }
+  },
+  {
+    "name": "unmanaged path rejects disableSSL=true",
+    "provider": "s3",
+    "adminConfig": null,
+    "bucket": "unconfigured-bucket",
+    "keyPrefix": "path",
+    "query": { "fromEnv": "true", "endpoint": "s3.us-west-2.amazonaws.com", "disableSSL": "true" },
+    "expect": { "allowed": false, "rejectionContains": "disableSSL" }
+  },
+  {
+    "name": "unmanaged path allows disableSSL=false",
+    "provider": "s3",
+    "adminConfig": null,
+    "bucket": "unconfigured-bucket",
+    "keyPrefix": "path",
+    "query": { "fromEnv": "true", "endpoint": "s3.us-west-2.amazonaws.com", "disableSSL": "false" },
+    "expect": { "allowed": true }
+  },
+  {
+    "name": "unmanaged path allows a hostname endpoint without resolving it via DNS",
+    "provider": "s3",
+    "adminConfig": null,
+    "bucket": "unconfigured-bucket",
+    "keyPrefix": "path",
+    "query": { "fromEnv": "true", "endpoint": "internal.svc.cluster.local" },
+    "expect": { "allowed": true }
+  },
+  {
+    "name": "admin config bypasses the unmanaged guardrails even with its own unsafe-looking settings",
+    "provider": "s3",
+    "adminConfig": {
+      "default": { "endpoint": "seaweedfs.kubeflow:9000", "credentials": { "fromEnv": true }, "disableSSL": true }
+    },
+    "bucket": "team-bucket",
+    "keyPrefix": "path",
+    "query": null,
+    "expect": { "allowed": true, "endpoint": "seaweedfs.kubeflow:9000", "disableSSL": "true" }
+  },
+  {
+    "name": "minio provider config is resolved independently of s3",
+    "provider": "minio",
+    "adminConfig": {
+      "default": { "endpoint": "minio.internal:9000", "credentials": { "fromEnv": true } }
+    },
+    "bucket": "some-bucket",
+    "keyPrefix": "path",
+    "query": { "fromEnv": "true", "endpoint": "attacker.example" },
+    "expect": { "allowed": true, "endpoint": "minio.internal:9000" }
+  }
+]

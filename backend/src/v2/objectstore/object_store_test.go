@@ -365,6 +365,28 @@ func TestOpenBucketUsesExplicitS3ClientForEnvCredentials(t *testing.T) {
 			expectedPathStyle:    false,
 			expectedDisableHTTPS: false,
 		},
+		{
+			name: "Query string is stripped when structured SessionInfo exists",
+			config: &Config{
+				Scheme:      "minio://",
+				BucketName:  "test-bucket",
+				Prefix:      "artifacts/",
+				QueryString: "?endpoint=attacker.example&disableSSL=true", // Hostile query
+			},
+			sessionInfo: &SessionInfo{
+				Provider: "minio",
+				Params: map[string]string{
+					"endpoint":   "minio.example:9000",
+					"region":     "minio",
+					"disableSSL": "true",
+					"fromEnv":    "true",
+				},
+			},
+			expectedRegion:       "minio",
+			expectedBaseEndpoint: aws.String("http://minio.example:9000"), // Admin setting takes precedence
+			expectedPathStyle:    true,
+			expectedDisableHTTPS: true,
+		},
 	}
 
 	for _, tt := range tests {

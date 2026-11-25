@@ -173,7 +173,7 @@ func (c *ObjectStoreClient) getBucket(
 		return nil, "", fmt.Errorf("failed to get base URI path for artifact %q: %w", artifactKey, err)
 	}
 	launcherConfig := c.deps.GetLauncherConfig()
-	bucketConfig, sessionLookupPath, err := resolveArtifactBucketConfig(launcherConfig, prefix)
+	bucketConfig, sessionLookupPath, isTrustedQuery, err := resolveArtifactBucketConfig(launcherConfig, prefix)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to resolve bucket config for artifact %q: %w", artifactKey, err)
 	}
@@ -184,7 +184,7 @@ func (c *ObjectStoreClient) getBucket(
 	}
 
 	// Create new opened bucket and store in cache
-	storeSessionInfo, err := launcherConfig.GetStoreSessionInfo(sessionLookupPath)
+	storeSessionInfo, err := launcherConfig.GetStoreSessionInfo(sessionLookupPath, isTrustedQuery)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to get store session info for bucket %q: %w", sessionLookupPath, err)
 	}
@@ -212,10 +212,10 @@ func (c *ObjectStoreClient) getBucket(
 func resolveArtifactBucketConfig(
 	launcherConfig *config.Config,
 	prefix string,
-) (*objectstore.Config, string, error) {
+) (*objectstore.Config, string, bool, error) {
 	bucketConfig, err := objectstore.ParseBucketPathToConfig(prefix)
 	if err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 	// Missing launcher ConfigMap is optional, but under-root / reject checks must
 	// still run against the default pipeline root rather than fail-open.
@@ -225,30 +225,30 @@ func resolveArtifactBucketConfig(
 
 	underPipelineRoot, err := launcherConfig.IsPathUnderDefaultPipelineRoot(prefix)
 	if err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 	if underPipelineRoot {
 		pipelineRootConfig, err := objectstore.ParseBucketPathToConfig(launcherConfig.DefaultPipelineRoot())
 		if err != nil {
-			return nil, "", err
+			return nil, "", false, err
 		}
 		bucketConfig.QueryString = pipelineRootConfig.QueryString
-		return bucketConfig, bucketConfig.SessionInfoPath(), nil
+		return bucketConfig, bucketConfig.SessionInfoPath(), true, nil
 	}
 
 	if bucketConfig.QueryString != "" {
-		return bucketConfig, bucketConfig.SessionInfoPath(), nil
+		return bucketConfig, bucketConfig.SessionInfoPath(), false, nil
 	}
 
 	hasExplicitOverride, err := launcherConfig.HasExplicitBucketOverride(prefix)
 	if err != nil {
-		return nil, "", err
+		return nil, "", false, err
 	}
 	if hasExplicitOverride {
-		return bucketConfig, bucketConfig.SessionInfoPath(), nil
+		return bucketConfig, bucketConfig.SessionInfoPath(), true, nil
 	}
 
-	return nil, "", fmt.Errorf(
+	return nil, "", false, fmt.Errorf(
 		"artifact URI %q is outside the configured pipeline root and has no explicit provider override",
 		prefix,
 	)

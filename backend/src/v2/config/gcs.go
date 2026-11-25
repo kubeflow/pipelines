@@ -49,7 +49,7 @@ type GCSSecretRef struct {
 	TokenKey   string `json:"tokenKey"`
 }
 
-func (p GCSProviderConfig) ProvideSessionInfo(path string) (objectstore.SessionInfo, error) {
+func (p GCSProviderConfig) ProvideSessionInfo(path string, isTrustedQuery bool) (objectstore.SessionInfo, error) {
 	bucketConfig, err := objectstore.ParseBucketPathToConfig(path)
 	if err != nil {
 		return objectstore.SessionInfo{}, err

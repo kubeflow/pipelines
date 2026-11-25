@@ -25,6 +25,7 @@ import {
   buildArtifactUri,
   LauncherArtifactSource,
 } from './artifact-sources.js';
+import { resolveS3ProviderInfo } from './provider-policy.js';
 
 const LAUNCHER_CONFIG_MAP = 'kfp-launcher';
 const DEFAULT_PIPELINE_ROOT = 'minio://mlpipeline/v2/artifacts';
@@ -263,13 +264,39 @@ export async function getLauncherProviderInfo(
   const effectiveQuery = underPipelineRoot
     ? getUriQuery(defaultPipelineRoot)
     : storageCoordinates.artifactUriQuery;
+  if (provider === 's3' || provider === 'minio') {
+    const queryProviderInfo = effectiveQuery
+      ? buildQuerySessionInfo(provider, effectiveQuery)
+      : null;
+    const decision = resolveS3ProviderInfo(
+      // @ts-ignore - The launcher and policy engines share the same ConfigMap shape.
+      providers,
+      provider,
+      storageCoordinates.bucket,
+      storageCoordinates.key,
+      // @ts-ignore
+      queryProviderInfo,
+    );
+    if (!decision.allowed) {
+      throw new LauncherConfigValidationError(decision.rejectionReason!);
+    }
+
+    const hasAdminConfig = !!config;
+    if (!hasAdminConfig) {
+      if (!decision.effectiveProviderInfo) {
+        return undefined;
+      }
+      return JSON.stringify(decision.effectiveProviderInfo);
+    }
+  }
+
   // GCS provider credential policy is authoritative whenever it exists. Unlike the S3 runtime,
   // the GCS runtime does not let an artifact URI query replace configured namespace credentials.
   const gcsProviderIsAuthoritative =
     provider === 'gs' &&
     !!config &&
     (config.default != null || config.Overrides != null || config.overrides != null);
-  if (effectiveQuery && !gcsProviderIsAuthoritative) {
+  if (effectiveQuery && !gcsProviderIsAuthoritative && provider === 'gs') {
     return JSON.stringify(buildQuerySessionInfo(provider, effectiveQuery));
   }
   if (!config) {
