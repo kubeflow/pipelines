@@ -1485,6 +1485,22 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	if err := r.resetRetriedTaskState(run); err != nil {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error resetting task attempt state", runId)
 	}
+	// Renew the claim lease right before touching the workflow. A report that sees the claim age
+	// out accepts it as abandoned and records the old attempt's failure on the tasks the reset above
+	// touched; that is only correct if this worker never goes on to resubmit the workflow. The
+	// renewal and that acceptance are compare-and-sets on the same row, so exactly one of them
+	// commits: if the claim was already accepted, stop here and leave the workflow alone. A worker
+	// that stalls again for longer than the grace period after this point can still lose the claim,
+	// which is why the renewal sits as close to the workflow write as it can.
+	renewed, renewError := r.runStore.RenewRetryClaim(runId, claimGeneration)
+	if renewError != nil {
+		return util.NewInternalServerError(renewError, "Failed to retry run %s due to error renewing its retry claim", runId)
+	}
+	if !renewed {
+		return util.NewUnavailableServerError(
+			fmt.Errorf("retry claim generation %d of run %s is no longer held", claimGeneration, runId),
+			"Failed to retry run %s because its retry claim expired and was resolved by a workflow report - try again later", runId)
+	}
 	newExecSpec, err = r.updateOrCreateRetryWorkflow(ctx, namespace, runId, newExecSpec)
 	if err != nil {
 		// Workflow reconciliation failed. Kubernetes timeouts and 5xx responses
@@ -2565,7 +2581,16 @@ func (r *ResourceManager) reportWorkflowResource(
 		run.FinishedAtInSec = execStatus.FinishedAt()
 		run.WorkflowRuntimeManifest = model.LargeText(execSpec.ToStringForStore())
 		var updated bool
-		if execStatus.IsInFinalState() {
+		if execStatus.IsInFinalState() && acceptedAbandonedClaim {
+			// Compare-and-set on the claim lease: a retry worker that renewed it after the age
+			// check above still holds the claim, and this report must not take it over.
+			updated, updateError = r.runStore.UpdateRunIfAbandonedClaimUnchanged(
+				run,
+				expectedWorkflowRuntimeManifest,
+				expectedPipelineRuntimeManifest,
+				run.RetryClaimedAtInSec,
+			)
+		} else if execStatus.IsInFinalState() {
 			updated, updateError = r.runStore.UpdateRunIfRuntimeManifestsUnchanged(
 				run,
 				expectedWorkflowRuntimeManifest,
@@ -4578,10 +4603,34 @@ func matchesScopeName(displayName, scopeName string) bool {
 	return displayName == scopeName
 }
 
+// The compiler's generated boundaries are named by argocompiler: the entrypoint DAG is "entrypoint"
+// and each exit handler is run as a lifecycle hook whose DAG template is "exit-hook-<dag>-<task>".
+const (
+	compilerEntrypointTemplate = "entrypoint"
+	compilerExitHookPrefix     = "exit-hook-"
+)
+
+// isExitHookBoundaryNode reports whether the node is the Retry wrapper of an exit handler's hook
+// DAG. The driver records the exit task's parent as the KFP task around the hook, but in the
+// workflow the exit task sits one Retry deeper, inside this wrapper, which has no task of its own.
+func isExitHookBoundaryNode(node util.NodeStatus) bool {
+	return node.Type == "Retry" && strings.HasPrefix(node.TemplateName, compilerExitHookPrefix)
+}
+
+// isWorkflowEntrypointNode reports whether the node is the Retry wrapper the workflow's own root
+// runs through, the one invoking the compiler's entrypoint DAG. It is not a task, even when its
+// display name (the run name) happens to equal a task's name.
+func isWorkflowEntrypointNode(node util.NodeStatus) bool {
+	return node.Type == "Retry" && node.TemplateName == compilerEntrypointTemplate
+}
+
 // isCompilerWrapperNode reports whether the Retry node is one of the compiler's two reserved
 // wrappers, by position as nodeInScope does: the outermost Retry with no parent, or the one exactly
 // two hops below it. Neither is ever a real task.
 func isCompilerWrapperNode(id string, g *nodeGraph, tasksByUUID map[string]*model.Task) bool {
+	if isWorkflowEntrypointNode(g.nodes[id]) {
+		return true
+	}
 	// The inner compiler wrapper ("root") sits exactly two hops below the outermost
 	// parentless Retry. Structure alone is not enough: a real task nested one level
 	// inside a top-level task has the same hop count. The tiebreaker is the parentless
@@ -4645,6 +4694,10 @@ func nodeInScope(id string, scope []string, g *nodeGraph) bool {
 			if isLoopIterationNode(node.DisplayName) {
 				continue
 			}
+			// An exit handler's hook wrapper has no task of its own either.
+			if isExitHookBoundaryNode(node) {
+				continue
+			}
 			if !matchesScopeName(node.DisplayName, scope[next]) {
 				return false
 			}
@@ -4663,7 +4716,7 @@ func nodeInScope(id string, scope []string, g *nodeGraph) bool {
 		current = parentID
 		if g.nodes[parentID].Type == "Retry" {
 			// Loop iteration wrappers are invisible (no task in DB).
-			if isLoopIterationNode(g.nodes[parentID].DisplayName) {
+			if isLoopIterationNode(g.nodes[parentID].DisplayName) || isExitHookBoundaryNode(g.nodes[parentID]) {
 				continue
 			}
 			hop1, hasHop1 := g.parent(parentID)

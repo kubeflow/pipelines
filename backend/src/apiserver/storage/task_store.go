@@ -1167,6 +1167,10 @@ type TaskAttemptGuard struct {
 	// rejected if the run's live generation is newer: a retry has since reset this task, and a
 	// reset task has no pod, so the pod checks alone cannot tell old evidence from the new attempt.
 	RetryGeneration int64
+	// MergeStatusMetadata, when set, computes the task's new status metadata from the metadata
+	// stored on the locked row, so a property another writer recorded after the caller loaded its
+	// snapshot is kept. It replaces new.StatusMetadata for the write.
+	MergeStatusMetadata func(existing model.JSONData) (model.JSONData, error)
 	// generationOnly skips the state and pod checks so only RetryGeneration is enforced. It is set
 	// by UpdateTaskIfRetryGeneration, never by callers building a guard themselves.
 	generationOnly bool
@@ -1301,6 +1305,22 @@ func (s *TaskStore) updateTask(new *model.Task, guard *TaskAttemptGuard) (*model
 		if stale {
 			return nil, errTaskAttemptMismatch
 		}
+		// Work on a copy so the caller's task is left as it was passed in.
+		adjusted := *new
+		if guard.MergeStatusMetadata != nil {
+			merged, err := guard.MergeStatusMetadata(lockedOld.StatusMetadata)
+			if err != nil {
+				return nil, util.NewInternalServerError(err, "Failed to merge the status metadata of task %s", new.UUID)
+			}
+			adjusted.StatusMetadata = merged
+		}
+		// A reset starts the attempt at StartedInSec. Evidence read from an older attempt can carry
+		// an earlier finish time, which would leave a negative duration, so never finish before the
+		// start recorded on the locked row.
+		if adjusted.FinishedInSec != 0 && lockedOld.StartedInSec > adjusted.FinishedInSec {
+			adjusted.FinishedInSec = lockedOld.StartedInSec
+		}
+		new = &adjusted
 	}
 
 	// Use the locked version for merging instead of the 'old' parameter

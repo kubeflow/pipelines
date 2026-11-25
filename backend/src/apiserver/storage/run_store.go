@@ -256,6 +256,18 @@ type RunStoreInterface interface {
 	// The claimGeneration must match the value returned by ClaimRunForRetry
 	// to prevent ABA rollback of a later retry.
 	RollbackRetryClaim(runID string, originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64) error
+
+	// Extends the lease of a retry claim the caller still holds, so a report cannot take the
+	// claim over as abandoned while the caller is about to mutate the workflow. It reports false
+	// when the claim is no longer held (the row is not PENDING at claimGeneration any more),
+	// in which case the caller must not touch the workflow.
+	RenewRetryClaim(runID string, claimGeneration int64) (renewed bool, err error)
+
+	// Records the terminal report of an abandoned claim, like UpdateRunIfRuntimeManifestsUnchanged,
+	// but only while the row is still PENDING at run.RetryGeneration with the lease the caller
+	// observed (claimedAtInSec). A worker that renewed the lease in between wins and the report
+	// is not applied.
+	UpdateRunIfAbandonedClaimUnchanged(run *model.Run, expectedWorkflowRuntimeManifest model.LargeText, expectedPipelineRuntimeManifest model.LargeText, claimedAtInSec int64) (bool, error)
 }
 
 type RunStore struct {
@@ -924,6 +936,55 @@ func (s *RunStore) UpdateRunIfRuntimeManifestsUnchanged(
 	})
 }
 
+// UpdateRunIfAbandonedClaimUnchanged is UpdateRunIfRuntimeManifestsUnchanged for the report of an
+// abandoned retry claim. The write only lands while the row is still PENDING at run.RetryGeneration
+// and its claim lease is still claimedAtInSec, so a retry worker that renewed the lease after the
+// caller decided the claim was abandoned keeps it. The row lock taken by the precondition check
+// serializes this against RenewRetryClaim, so exactly one of the two commits.
+func (s *RunStore) UpdateRunIfAbandonedClaimUnchanged(
+	run *model.Run,
+	expectedWorkflowRuntimeManifest model.LargeText,
+	expectedPipelineRuntimeManifest model.LargeText,
+	claimedAtInSec int64,
+) (bool, error) {
+	pending := model.RuntimeStatePending
+	return s.updateRun(run, &runRuntimeManifestPrecondition{
+		workflow:            expectedWorkflowRuntimeManifest,
+		pipeline:            expectedPipelineRuntimeManifest,
+		retryGeneration:     run.RetryGeneration,
+		state:               &pending,
+		retryClaimedAtInSec: &claimedAtInSec,
+	})
+}
+
+// RenewRetryClaim extends the lease of the caller's retry claim to now. It is a compare-and-set on
+// the claim generation and the PENDING state, so it fails once a report has accepted the claim as
+// abandoned (the row is no longer PENDING) or a later retry took it over (the generation moved).
+func (s *RunStore) RenewRetryClaim(runID string, claimGeneration int64) (bool, error) {
+	q := s.dbDialect.QuoteIdentifier
+	renewSQL, renewArgs, err := s.dbDialect.QueryBuilder().
+		Update(q("run_details")).
+		Set(q("RetryClaimedAtInSec"), s.time.Now().Unix()).
+		Where(sq.And{
+			sq.Eq{q("UUID"): runID},
+			sq.Eq{q("RetryGeneration"): claimGeneration},
+			sq.Eq{q("State"): model.RuntimeStatePending.ToString()},
+		}).
+		ToSql()
+	if err != nil {
+		return false, util.NewInternalServerError(err, "Failed to build the retry claim renewal for run %s", runID)
+	}
+	result, err := s.db.Exec(renewSQL, renewArgs...)
+	if err != nil {
+		return false, util.NewInternalServerError(err, "Failed to renew the retry claim for run %s", runID)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return false, util.NewInternalServerError(err, "Failed to renew the retry claim for run %s", runID)
+	}
+	return affected == 1, nil
+}
+
 // UpdateRunFromWorkflow applies nonterminal Workflow-derived fields with a
 // database-side compare-and-set. The transition check handles the opposite
 // race ordering: when cancellation committed before the reporter read the run,
@@ -1026,6 +1087,9 @@ type runRuntimeManifestPrecondition struct {
 	retryGeneration int64
 	namespace       *string
 	state           *model.RuntimeState
+	// retryClaimedAtInSec, when set, requires the row's claim lease to still be the one the
+	// caller observed.
+	retryClaimedAtInSec *int64
 }
 
 // lockedRun is the state of a run row read under lockRunForRuntimeManifestWrite.
@@ -1058,6 +1122,9 @@ func lockRunForRuntimeManifestWrite(
 		lockColumns = append(lockColumns, "State", "Conditions")
 	}
 	lockColumns = append(lockColumns, "RetryGeneration")
+	if expected.retryClaimedAtInSec != nil {
+		lockColumns = append(lockColumns, "RetryClaimedAtInSec")
+	}
 	lockSQL, lockArgs, err := qb.
 		Select(dialect.QuoteAll(q, lockColumns)...).
 		From(q("run_details")).
@@ -1084,6 +1151,10 @@ func lockRunForRuntimeManifestWrite(
 		lockScanTargets = append(lockScanTargets, &currentState, &currentConditions)
 	}
 	lockScanTargets = append(lockScanTargets, &currentRetryGeneration)
+	var currentClaimedAtInSec sql.NullInt64
+	if expected.retryClaimedAtInSec != nil {
+		lockScanTargets = append(lockScanTargets, &currentClaimedAtInSec)
+	}
 	if err := tx.QueryRow(d.SelectForUpdate(lockSQL), lockArgs...).Scan(lockScanTargets...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return lockedRun{}, nil
@@ -1101,7 +1172,8 @@ func lockRunForRuntimeManifestWrite(
 		(!checkPipelineRuntimeManifest || currentPipelineRuntimeManifest == expected.pipeline) &&
 		(expected.namespace == nil || currentNamespace == *expected.namespace) &&
 		(expected.state == nil || effectiveState == expected.state.ToV2()) &&
-		currentRetryGeneration.Int64 == expected.retryGeneration
+		currentRetryGeneration.Int64 == expected.retryGeneration &&
+		(expected.retryClaimedAtInSec == nil || currentClaimedAtInSec.Int64 == *expected.retryClaimedAtInSec)
 	return locked, nil
 }
 

@@ -370,8 +370,14 @@ func TestReportWorkflowResource_ReconcilesRunningTaskWhenPodDied(t *testing.T) {
 // never reported anything, so the task has no executor pod in task.Pods, but the workflow node
 // tree (task Retry -> task DAG -> executor Retry -> executor Pod) shows it failed all the same.
 func unregisteredOomWorkflowNodes() map[string]v1alpha1.NodeStatus {
-	started := v1.NewTime(time.Unix(1000, 0))
-	finished := v1.NewTime(time.Unix(1060, 0))
+	return unregisteredOomWorkflowNodesAt(1000, 1060)
+}
+
+// unregisteredOomWorkflowNodesAt is unregisteredOomWorkflowNodes with the node's start and finish
+// times chosen by the caller, for evidence that ended before a later retry reset the task.
+func unregisteredOomWorkflowNodesAt(startedAt, finishedAt int64) map[string]v1alpha1.NodeStatus {
+	started := v1.NewTime(time.Unix(startedAt, 0))
+	finished := v1.NewTime(time.Unix(finishedAt, 0))
 	return map[string]v1alpha1.NodeStatus{
 		"oom": {
 			ID: "oom", Name: "oom", DisplayName: "oom", Type: v1alpha1.NodeTypeRetry,
@@ -735,4 +741,208 @@ func TestReportWorkflowResource_ReconcilePreservesCustomProperties(t *testing.T)
 	metadata := decodeStatusMetadata(t, got.StatusMetadata)
 	assert.Equal(t, "main: OOMKilled (exit code 137)", metadata.GetMessage())
 	assert.Equal(t, "plugin-a", metadata.GetCustomProperties()["owner"].GetStringValue())
+}
+
+// taskStatesOf returns the states a task's history recorded, oldest first.
+func taskStatesOf(t *testing.T, task *model.Task) []apiv2.PipelineTask_TaskState {
+	t.Helper()
+	entries, err := model.JSONSliceToProtoSlice(task.StateHistory, func() *apiv2.PipelineTask_TaskStatus {
+		return &apiv2.PipelineTask_TaskStatus{}
+	})
+	require.NoError(t, err)
+	states := make([]apiv2.PipelineTask_TaskState, 0, len(entries))
+	for _, entry := range entries {
+		states = append(states, entry.GetState())
+	}
+	return states
+}
+
+// A genuinely abandoned retry claim: the claim reset the failed task and then the worker died, so
+// no retried workflow exists. The old terminal report fails the task again, and the real reset has
+// moved the attempt's start past the old node's finish, so the finish must be raised to the start
+// rather than persisted as an end before the beginning.
+func TestReportWorkflowResource_AbandonedRetryClaimKeepsAttemptTimestampsConsistent(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	failed := reconcileTestWorkflow(run.K8SName, run.UUID, nil)
+	failed.Status.Phase = v1alpha1.WorkflowFailed
+	syncWorkflowReportWithFakeCluster(t, store, failed)
+	_, err := manager.ReportWorkflowResource(context.Background(), failed)
+	require.NoError(t, err)
+
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1", RunUUID: run.UUID, Name: "oom", DisplayName: "oom",
+		Type: model.TaskType(apiv2.PipelineTask_RUNTIME), State: model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Fingerprint: "fp-oom-abandoned-times", Pods: model.JSONSlice{}, TypeAttrs: model.JSONData{},
+		StartedInSec: 1, FinishedInSec: 2,
+		StateHistory: model.JSONSlice{}, InputParameters: model.JSONSlice{}, OutputParameters: model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	// The retry worker claims the run and really resets the task, then dies before the workflow.
+	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
+	require.NoError(t, claimErr)
+	require.Equal(t, int64(1), claimGeneration)
+	require.NoError(t, store.TaskStore().ResetTasksForRetry([]string{task.UUID}))
+	_, err = store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, run.UUID)
+	require.NoError(t, err)
+
+	reset, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	require.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), reset.State)
+	require.Greater(t, reset.StartedInSec, int64(1), "the reset starts the new attempt after the old node finished")
+
+	// The old workflow's node finished at second 1, before the reset.
+	report := reconcileTestWorkflow(run.K8SName, run.UUID, unregisteredOomWorkflowNodesAt(1, 1))
+	report.Status.Phase = v1alpha1.WorkflowFailed
+	syncWorkflowReportWithFakeCluster(t, store, report)
+	_, err = manager.ReportWorkflowResource(context.Background(), report)
+	require.NoError(t, err)
+
+	got, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), got.State)
+	assert.GreaterOrEqual(t, got.FinishedInSec, got.StartedInSec, "a task must not finish before its attempt started")
+	states := taskStatesOf(t, got)
+	require.GreaterOrEqual(t, len(states), 2)
+	assert.Equal(t, []apiv2.PipelineTask_TaskState{apiv2.PipelineTask_RUNNING, apiv2.PipelineTask_FAILED}, states[len(states)-2:])
+}
+
+// pausingResetTaskStore holds a retry worker right after the real task reset, which is where a
+// worker that stalls past the claim grace period sits before it publishes the retried workflow.
+type pausingResetTaskStore struct {
+	storage.TaskStoreInterface
+	reset   chan struct{}
+	release chan struct{}
+}
+
+func (s *pausingResetTaskStore) ResetTasksForRetry(taskIDs []string) error {
+	if err := s.TaskStoreInterface.ResetTasksForRetry(taskIDs); err != nil {
+		return err
+	}
+	close(s.reset)
+	<-s.release
+	return nil
+}
+
+// The original retry worker can stall after the reset until its claim looks abandoned: the old
+// workflow is still the live one and its terminal report arrives. The report accepts the claim and
+// fails the reset task, so the stalled worker must then be unable to resubmit the workflow. Both
+// must not commit: the task ends FAILED exactly once, the run is not resubmitted, and no FAILED
+// entry is left behind by a retry that went on to succeed.
+func TestRetryRun_StalledWorkerCannotResumeAfterItsClaimWasAcceptedAsAbandoned(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1", RunUUID: runDetail.UUID, Name: "oom", DisplayName: "oom",
+		Type: model.TaskType(apiv2.PipelineTask_RUNTIME), State: model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Fingerprint: "fp-oom-stalled-worker", Pods: model.JSONSlice{}, TypeAttrs: model.JSONData{},
+		StartedInSec: 1, FinishedInSec: 2,
+		StateHistory: model.JSONSlice{}, InputParameters: model.JSONSlice{}, OutputParameters: model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	paused := &pausingResetTaskStore{
+		TaskStoreInterface: manager.taskStore,
+		reset:              make(chan struct{}),
+		release:            make(chan struct{}),
+	}
+	manager.taskStore = paused
+	retryDone := make(chan error, 1)
+	go func() { retryDone <- manager.RetryRun(context.Background(), runDetail.UUID) }()
+
+	select {
+	case <-paused.reset:
+	case err := <-retryDone:
+		t.Fatalf("RetryRun returned before it reset the tasks: %v", err)
+	case <-time.After(30 * time.Second):
+		t.Fatal("timed out waiting for RetryRun to reach the task reset")
+	}
+
+	// The worker's claim ages out while it is stalled, and the old workflow's terminal report is
+	// processed. The live workflow still carries no generation, so the claim reads as not applied.
+	_, err = store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, runDetail.UUID)
+	require.NoError(t, err)
+	report := reconcileTestWorkflow(runDetail.K8SName, runDetail.UUID, unregisteredOomWorkflowNodesAt(1, 1))
+	report.Status.Phase = v1alpha1.WorkflowFailed
+	syncWorkflowReportWithFakeCluster(t, store, report)
+	reported := make(chan error, 1)
+	go func() {
+		_, reportErr := manager.ReportWorkflowResource(context.Background(), report)
+		reported <- reportErr
+	}()
+	select {
+	case reportErr := <-reported:
+		require.NoError(t, reportErr)
+	case <-time.After(30 * time.Second):
+		t.Fatal("timed out processing the old terminal report")
+	}
+
+	// The worker resumes. Its claim was accepted as abandoned, so it must stop before the workflow.
+	close(paused.release)
+	select {
+	case retryErr := <-retryDone:
+		require.Error(t, retryErr, "a worker whose claim was resolved by the report must not complete the retry")
+	case <-time.After(30 * time.Second):
+		t.Fatal("timed out waiting for the resumed RetryRun")
+	}
+
+	live, err := store.ExecClient().Execution("ns1").Get(context.Background(), runDetail.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), reportedRetryGeneration(live.ExecutionObjectMeta()),
+		"the stalled worker must not resubmit the workflow after the report resolved its claim")
+
+	afterRun, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, afterRun.State, "the run must stay terminal, not be reported running again")
+
+	got, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), got.State)
+	assert.GreaterOrEqual(t, got.FinishedInSec, got.StartedInSec, "timestamps must come from one attempt")
+	states := taskStatesOf(t, got)
+	require.GreaterOrEqual(t, len(states), 2)
+	assert.Equal(t, []apiv2.PipelineTask_TaskState{apiv2.PipelineTask_RUNNING, apiv2.PipelineTask_FAILED}, states[len(states)-2:],
+		"one reset, then one FAILED: the history must not show a failure of an attempt that went on to run")
+}
+
+// A plugin can record a property between the moment the report's task snapshot is loaded and the
+// guarded failure write. The state, pod and generation checks all still pass, and the message must
+// be merged into the stored metadata rather than replace it from the older snapshot.
+func TestReconcileTaskFailure_KeepsAPropertyRecordedAfterTheSnapshotWasLoaded(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{executorPod("oom-pod")})
+	require.NoError(t, err)
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1", RunUUID: run.UUID, Name: "oom", DisplayName: "oom",
+		Type: model.TaskType(apiv2.PipelineTask_RUNTIME), State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-props-race", Pods: pods, TypeAttrs: model.JSONData{},
+		StateHistory: model.JSONSlice{}, InputParameters: model.JSONSlice{}, OutputParameters: model.JSONSlice{},
+	})
+	require.NoError(t, err)
+	snapshot, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+
+	late, err := model.ProtoMessageToJSONData(&apiv2.PipelineTask_StatusMetadata{
+		CustomProperties: map[string]*structpb.Value{"owner": structpb.NewStringValue("plugin-b")},
+	})
+	require.NoError(t, err)
+	_, err = store.TaskStore().UpdateTask(&model.Task{UUID: task.UUID, StatusMetadata: late})
+	require.NoError(t, err)
+
+	nodes := reconcileTestWorkflow(run.K8SName, run.UUID, oomedWorkflowNodes()).ExecutionStatus().NodeStatuses()
+	applied, err := manager.reconcileTaskFailure(snapshot, nodes, util.ResolveNodeLifecycleMessages(nodes), nil, 0)
+	require.NoError(t, err)
+	require.True(t, applied)
+
+	got, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	metadata := decodeStatusMetadata(t, got.StatusMetadata)
+	assert.Equal(t, "main: OOMKilled (exit code 137)", metadata.GetMessage())
+	assert.Equal(t, "plugin-b", metadata.GetCustomProperties()["owner"].GetStringValue(),
+		"the property written after the snapshot must survive the failure write")
 }

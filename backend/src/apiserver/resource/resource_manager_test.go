@@ -10186,3 +10186,81 @@ func TestLifecycleMessageForTask_RealParallelForTopology(t *testing.T) {
 		assert.Equal(t, imagePullMsg, msg)
 	}
 }
+
+// exitHookNodes models an exit handler compiled as a lifecycle hook, like the compiled
+// exit-handler fixture: the exit task print-op does not sit directly in the pipeline's DAG but in
+// the hook's DAG template (exit-hook-root-print-op), whose Retry wrapper has no task of its own.
+// The driver records print-op's parent as the surrounding pipeline task, so the extra Retry is
+// invisible to the task tree and must not be read as extra nesting.
+func exitHookNodes() map[string]util.NodeStatus {
+	const hookTemplate = "exit-hook-root-print-op"
+	return map[string]util.NodeStatus{
+		"workflow":  {ID: "workflow", DisplayName: "my-pipeline-run", Type: "Retry", TemplateName: "entrypoint", State: "Running", Children: []string{"workflow0"}},
+		"workflow0": {ID: "workflow0", DisplayName: "my-pipeline-run(0)", Type: "DAG", TemplateName: "entrypoint", State: "Running", Children: []string{"root"}},
+		"root":      {ID: "root", DisplayName: "root", Type: "Retry", TemplateName: "root", State: "Running", Children: []string{"root0"}, BoundaryID: "workflow0"},
+		"root0":     {ID: "root0", DisplayName: "root(0)", Type: "DAG", TemplateName: "root", State: "Running", Children: []string{"work", "hook"}, BoundaryID: "workflow0"},
+		"work":      {ID: "work", DisplayName: "work", Type: "Retry", State: "Succeeded", Children: []string{"work0"}, BoundaryID: "root0"},
+		"work0":     {ID: "work0", DisplayName: "work(0)", Type: "DAG", State: "Succeeded", BoundaryID: "root0"},
+		"hook":      {ID: "hook", DisplayName: "work.hooks.exit", Type: "Retry", TemplateName: hookTemplate, State: "Failed", Children: []string{"hook0"}, BoundaryID: "root0"},
+		"hook0":     {ID: "hook0", DisplayName: "work.hooks.exit(0)", Type: "DAG", TemplateName: hookTemplate, State: "Failed", Children: []string{"print-op"}, BoundaryID: "root0"},
+		"print-op":  {ID: "print-op", DisplayName: "print-op", Type: "Retry", State: "Failed", Children: []string{"print-pod"}, BoundaryID: "hook0"},
+		"print-pod": {ID: "print-pod", DisplayName: "print-op(0)", Type: "Pod", State: "Failed", Message: "main: OOMKilled (exit code 137)", BoundaryID: "hook0"},
+	}
+}
+
+func exitHookTasks(t *testing.T) map[string]*model.Task {
+	return map[string]*model.Task{
+		"wf-root":  {UUID: "wf-root", Name: "wf-root"},
+		"work":     scopedTask(t, "work", "work", "wf-root"),
+		"print-op": scopedTask(t, "print-op", "print-op", "wf-root"),
+	}
+}
+
+// Regression for the compiler's exit-hook DAG: the cleanup task's own node must still be found, or
+// a failed podless cleanup stays RUNNING.
+func TestFindScopedTaskNode_ExitHookDAGDoesNotCountAsNesting(t *testing.T) {
+	nodes := exitHookNodes()
+	tasks := exitHookTasks(t)
+
+	id, ok := findScopedTaskNode(tasks["print-op"], nodes, tasks)
+	require.True(t, ok, "the cleanup task behind the exit-hook DAG must match its own node")
+	assert.Equal(t, "print-op", id)
+
+	// The ordinary sibling still matches.
+	id, ok = findScopedTaskNode(tasks["work"], nodes, tasks)
+	require.True(t, ok)
+	assert.Equal(t, "work", id)
+
+	// Only the compiler's hook boundary is transparent: the same extra Retry without the hook
+	// template name is real nesting and still rejects the node.
+	for _, key := range []string{"hook", "hook0"} {
+		node := nodes[key]
+		node.TemplateName = "some-other-template"
+		nodes[key] = node
+	}
+	_, ok = findScopedTaskNode(tasks["print-op"], nodes, tasks)
+	assert.False(t, ok, "an unrecognized extra Retry ancestor is still extra nesting")
+}
+
+// The parentless workflow Retry is the outer wrapper the run name labels, not a task. A task that
+// happens to share the run's name and has no node of its own must not be attributed the workflow
+// node, or a sibling's failure would land on it.
+func TestFindScopedTaskNode_OuterWorkflowWrapperIsNotATaskCandidate(t *testing.T) {
+	nodes := rootWrapperNodes()
+	workflow := nodes["workflow"]
+	workflow.TemplateName = "entrypoint"
+	nodes["workflow"] = workflow
+
+	tasks := map[string]*model.Task{
+		"wf-root":   {UUID: "wf-root", Name: "wf-root"},
+		"same-name": scopedTask(t, "same-name", "my-pipeline-run", "wf-root"),
+		"top":       scopedTask(t, "top", "top", "wf-root"),
+	}
+
+	_, ok := findScopedTaskNode(tasks["same-name"], nodes, tasks)
+	assert.False(t, ok, "a task sharing the run's display name must not match the workflow's own node")
+
+	id, ok := findScopedTaskNode(tasks["top"], nodes, tasks)
+	require.True(t, ok, "control: a real top-level task still matches")
+	assert.Equal(t, "top", id)
+}

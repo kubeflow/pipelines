@@ -2475,3 +2475,60 @@ func TestUpdateTaskIfAttempt_NoPodGuardSkipsWhenTheRunRetriedAfterTheEvidenceWas
 	require.NoError(t, err)
 	assert.False(t, applied, "a pre-retry report must not fail the freshly reset attempt")
 }
+
+// The failure message is merged into the metadata stored on the locked row, so a property another
+// writer recorded after the caller read its snapshot survives the guarded write.
+func TestUpdateTaskIfAttempt_MergesStatusMetadataFromTheLockedRow(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+	created := createRunningTaskForStateTest(t, taskStore)
+
+	// A plugin records a property after the reconciler loaded its snapshot of the task.
+	_, err := taskStore.UpdateTask(&model.Task{
+		UUID:           created.UUID,
+		StatusMetadata: model.JSONData{"customProperties": map[string]interface{}{"plugin": "kept"}},
+	})
+	require.NoError(t, err)
+
+	guard := runningOnPod1
+	guard.MergeStatusMetadata = func(existing model.JSONData) (model.JSONData, error) {
+		merged := model.JSONData{}
+		for key, value := range existing {
+			merged[key] = value
+		}
+		merged["message"] = "main: OOMKilled (exit code 137)"
+		return merged, nil
+	}
+	updated, applied, err := taskStore.UpdateTaskIfAttempt(guard, &model.Task{
+		UUID:          created.UUID,
+		State:         model.TaskStatus(apiv2.PipelineTask_FAILED),
+		FinishedInSec: 42,
+	})
+	require.NoError(t, err)
+	require.True(t, applied)
+	assert.Equal(t, "main: OOMKilled (exit code 137)", updated.StatusMetadata["message"])
+	assert.Equal(t, map[string]interface{}{"plugin": "kept"}, updated.StatusMetadata["customProperties"],
+		"the property written after the snapshot must not be overwritten")
+}
+
+// A retry reset moves the attempt's start forward. Evidence from an older attempt can finish before
+// that start, which would persist a negative duration, so the guarded write never finishes a task
+// before the start recorded on the locked row.
+func TestUpdateTaskIfAttempt_NeverFinishesBeforeTheAttemptStarted(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+	created := createRunningTaskForStateTest(t, taskStore)
+
+	_, err := taskStore.UpdateTask(&model.Task{UUID: created.UUID, StartedInSec: 2000})
+	require.NoError(t, err)
+
+	updated, applied, err := taskStore.UpdateTaskIfAttempt(runningOnPod1, &model.Task{
+		UUID:          created.UUID,
+		State:         model.TaskStatus(apiv2.PipelineTask_FAILED),
+		FinishedInSec: 1500,
+	})
+	require.NoError(t, err)
+	require.True(t, applied)
+	assert.Equal(t, int64(2000), updated.StartedInSec)
+	assert.Equal(t, int64(2000), updated.FinishedInSec, "a finish before the attempt started is raised to the start")
+}

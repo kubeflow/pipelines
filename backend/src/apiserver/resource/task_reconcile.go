@@ -202,6 +202,12 @@ func executorFailureForTaskViaNode(g *nodeGraph, task *model.Task, resolved map[
 	if finishedAt <= 0 {
 		finishedAt = time.Now().Unix()
 	}
+	// The node can describe an attempt that ended before a retry reset this task, whose start the
+	// reset moved forward. Finishing before the start would record a negative duration. The guarded
+	// write applies the same floor against the stored row; this keeps the in-memory snapshot honest.
+	if task.StartedInSec > finishedAt {
+		finishedAt = task.StartedInSec
+	}
 	return executorFailure{message: msg, finishedAt: finishedAt, viaNode: true}, true
 }
 
@@ -277,30 +283,39 @@ func (r *ResourceManager) reconcileTaskFailureIn(g *nodeGraph, task *model.Task,
 	if !ok {
 		return false, nil
 	}
-	metadata, err := failureStatusMetadata(task.StatusMetadata, failure.message)
-	if err != nil {
-		return false, err
+	// The message is merged into the status metadata stored on the locked row, not into this
+	// snapshot, so a property another writer recorded since the report was loaded survives.
+	message := failure.message
+	guard := storage.TaskAttemptGuard{
+		State:           model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		RetryGeneration: reportedRetryGeneration,
+		MergeStatusMetadata: func(existing model.JSONData) (model.JSONData, error) {
+			return failureStatusMetadata(existing, message)
+		},
 	}
-	guard := storage.TaskAttemptGuard{State: model.TaskStatus(apiv2.PipelineTask_RUNNING), RetryGeneration: reportedRetryGeneration}
 	if failure.viaNode {
 		guard.RequireNoExecutorPod = true
 	} else {
 		guard.ExecutorPod = failure.podName
 	}
-	_, applied, err := r.taskStore.UpdateTaskIfAttempt(
+	updated, applied, err := r.taskStore.UpdateTaskIfAttempt(
 		guard,
 		&model.Task{
-			UUID:           task.UUID,
-			State:          model.TaskStatus(apiv2.PipelineTask_FAILED),
-			FinishedInSec:  failure.finishedAt,
-			StatusMetadata: metadata,
+			UUID:          task.UUID,
+			State:         model.TaskStatus(apiv2.PipelineTask_FAILED),
+			FinishedInSec: failure.finishedAt,
 		},
 	)
 	if err != nil || !applied {
 		return false, err
 	}
 	task.State = model.TaskStatus(apiv2.PipelineTask_FAILED)
-	task.FinishedInSec = failure.finishedAt
-	task.StatusMetadata = metadata
+	if updated != nil {
+		// Reflect what was stored: the finish time can be raised to the attempt's start.
+		task.FinishedInSec = updated.FinishedInSec
+		task.StatusMetadata = updated.StatusMetadata
+	} else {
+		task.FinishedInSec = failure.finishedAt
+	}
 	return true, nil
 }
