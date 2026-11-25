@@ -56,6 +56,7 @@ def artifact_repository(producer, object_store_host, cluster_domain, namespace):
         'KFP_VERSION': 'test-version',
         'OBJECT_STORE_HOST': object_store_host,
         'ALLOWED_ARTIFACT_ENDPOINTS': '',
+        'WEBHOOK_AUTH_TOKEN': 'test-only-profile-webhook-token-for-frontend-tests',
     }
     if cluster_domain:
         controller_env['CLUSTER_DOMAIN'] = cluster_domain
