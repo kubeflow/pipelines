@@ -160,7 +160,7 @@ def client(endpoint, access, secret):
     )
 
 
-def sync_profile(endpoint, namespace, secret=None):
+def sync_profile(endpoint, namespace, webhook_token, secret=None):
     attachments = {
         kind: {}
         for kind in (
@@ -186,7 +186,10 @@ def sync_profile(endpoint, namespace, secret=None):
     request = urllib.request.Request(
         endpoint + '/sync',
         data=json.dumps(body).encode(),
-        headers={'Content-Type': 'application/json'},
+        headers={
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {webhook_token}',
+        },
     )
     with urllib.request.urlopen(request, timeout=60) as response:
         result = json.load(response)
@@ -303,6 +306,18 @@ def exercise_profile(admin_credentials, evidence):
     ]
     apply(profile)
     wait_ready('kubeflow-pipelines-profile-controller')
+    webhook_secret = json.loads(
+        kubectl(
+            'get',
+            'secret',
+            'kubeflow-pipelines-profile-webhook-auth',
+            '-o',
+            'json',
+        )
+    )
+    webhook_token = base64.b64decode(webhook_secret['data']['token']).decode(
+        'ascii'
+    )
     with forward('seaweedfs', S3_LOCAL_PORT, S3_PORT, evidence) as endpoint:
         s3 = client(endpoint, *admin_credentials)
         verify_state(s3)
@@ -312,8 +327,10 @@ def exercise_profile(admin_credentials, evidence):
             PROFILE_PORT,
             evidence,
         ) as webhook:
-            secret = sync_profile(webhook, 'compat-user')
-            repeated = sync_profile(webhook, 'compat-user', secret)
+            secret = sync_profile(webhook, 'compat-user', webhook_token)
+            repeated = sync_profile(
+                webhook, 'compat-user', webhook_token, secret
+            )
             if repeated['data'] != secret['data']:
                 raise AssertionError(
                     'Profile reconciliation replaced existing credentials'
