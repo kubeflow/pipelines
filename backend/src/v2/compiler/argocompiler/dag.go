@@ -79,7 +79,12 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 		// (e.g. exit-hook-root-print-op).
 		name := fmt.Sprintf("exit-hook-%s-%s", name, taskName)
 
-		deps := kfpTask.GetDependentTasks()
+		// Exit tasks are compiled into their own templates rather than tasks of
+		// this DAG, so a dependency on one cannot be named from here. Argo
+		// rejects a depends expression that names a task the DAG does not
+		// define, so drop those dependencies, which is what happened before
+		// they could reach a depends expression at all.
+		deps := dagLocalDeps(dagSpec, kfpTask.GetDependentTasks())
 
 		if len(deps) > 1 {
 			// Argo evaluates an exit hook once per task it is attached to, so
@@ -706,6 +711,26 @@ func depends(deps []string) string {
 		builder.WriteString(".Succeeded")
 	}
 	return builder.String()
+}
+
+// dagLocalDeps drops the dependencies that are exit tasks of dagSpec, keeping
+// the ones that become tasks of the DAG being compiled. Only those can be
+// named from that DAG's depends expressions.
+//
+// An exit task that depends solely on other exit tasks therefore has no
+// upstream left to hang its hook on, which is the behavior before gating was
+// introduced. Representing exit-task completion inside the parent DAG would be
+// needed to chain them, and that is beyond what this change sets out to fix.
+func dagLocalDeps(dagSpec *pipelinespec.DagSpec, deps []string) []string {
+	local := make([]string, 0, len(deps))
+	for _, dep := range deps {
+		depTask, ok := dagSpec.GetTasks()[dep]
+		if ok && depTask.GetTriggerPolicy().GetStrategy().String() == "ALL_UPSTREAM_TASKS_COMPLETED" {
+			continue
+		}
+		local = append(local, dep)
+	}
+	return local
 }
 
 // gatedExitTask is an exit task that names more than one upstream task.

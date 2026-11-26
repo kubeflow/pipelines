@@ -912,3 +912,75 @@ func TestMultiUpstreamGateAvoidsExistingTaskNames(t *testing.T) {
 	invocations := exitHookInvocations(wf)["exit-hook-root-cleanup"]
 	assert.Len(t, invocations, 1, "the exit task must run exactly once, invoked from %v", invocations)
 }
+
+// dependsReferences returns the task names a depends expression refers to.
+func dependsReferences(expr string) []string {
+	var refs []string
+	for _, token := range strings.FieldsFunc(expr, func(r rune) bool {
+		return r == ' ' || r == '(' || r == ')' || r == '&' || r == '|' || r == '!'
+	}) {
+		if name, _, found := strings.Cut(token, "."); found && name != "" {
+			refs = append(refs, name)
+		}
+	}
+	return refs
+}
+
+// assertDependsResolveWithinDAG checks that every depends reference names a
+// task defined in the same DAG. Argo rejects a workflow whose depends names a
+// task the DAG does not define.
+func assertDependsResolveWithinDAG(t *testing.T, wf *wfapi.Workflow) {
+	t.Helper()
+	for _, tmpl := range wf.Spec.Templates {
+		if tmpl.DAG == nil {
+			continue
+		}
+		defined := map[string]bool{}
+		for _, task := range tmpl.DAG.Tasks {
+			defined[task.Name] = true
+		}
+		for _, task := range tmpl.DAG.Tasks {
+			for _, ref := range dependsReferences(task.Depends) {
+				assert.True(t, defined[ref],
+					"template %q task %q depends on %q, which the template does not define: %q",
+					tmpl.Name, task.Name, ref, task.Depends)
+			}
+		}
+	}
+}
+
+// An exit task may depend on another exit task. Exit tasks are compiled into
+// their own templates rather than tasks of the parent DAG, so the gate for a
+// multi-upstream exit task must not emit a depends reference to one.
+func TestChainedExitTasksKeepDependsResolvable(t *testing.T) {
+	wf := compileExitHookPipeline(t,
+		[]string{"produce", "other"},
+		[]exitTask{
+			{name: "first", deps: []string{"produce"}},
+			{name: "second", deps: []string{"first", "other"}},
+		},
+		true,
+	)
+
+	assertDependsResolveWithinDAG(t, wf)
+	assertNoDuplicateTaskNames(t, wf)
+
+	// "second" is left with one dependency this DAG defines, so it keeps the
+	// direct single-upstream shape and no gate is generated for it.
+	assert.Equal(t, "exit-hook-root-second",
+		dagTask(t, wf, "root", "other").Hooks.GetExitHook().Template)
+	assert.Equal(t, "exit-hook-root-first",
+		dagTask(t, wf, "root", "produce").Hooks.GetExitHook().Template)
+	for _, task := range dagTemplate(t, wf, "root").DAG.Tasks {
+		assert.NotContains(t, task.Name, "-upstream-gate",
+			"no gate is needed once the exit-task dependency is dropped")
+		assert.NotContains(t, task.Name, "-upstream-status")
+	}
+
+	// Both exit hooks still run exactly once.
+	for _, name := range []string{"exit-hook-root-first", "exit-hook-root-second"} {
+		assert.Len(t, exitHookInvocations(wf)[name], 1,
+			"%q must run exactly once, invoked from %v", name, exitHookInvocations(wf)[name])
+	}
+	assert.Empty(t, unreachableTemplates(wf))
+}
