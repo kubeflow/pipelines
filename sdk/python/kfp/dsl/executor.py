@@ -252,16 +252,9 @@ class Executor:
             # own `if func_output is not None` behavior for a bare return,
             # write nothing for this parameter rather than a null entry.
             return
-        if isinstance(value, (float, int)):
-            output = str(value)
-        elif isinstance(value, str):
-            # value is already a string.
-            output = value
-        elif isinstance(value, (bool, list, dict)):
-            output = json.dumps(value)
-        else:
+        if not isinstance(value, (float, int, str, bool, list, dict)):
             raise ValueError(
-                f'Unable to serialize unknown type `{value}` for parameter input with value `{type(value)}`'
+                f"Unable to serialize output parameter '{name}' of type {type(value)}: {value}"
             )
 
         if not self.excutor_output.get('parameterValues'):

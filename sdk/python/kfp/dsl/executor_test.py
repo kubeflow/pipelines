@@ -2382,6 +2382,23 @@ class TestTaskConfigDeserialization(parameterized.TestCase):
             received['claims'][0]['resourceClaimTemplateName'], 'gpu-template'
         )
 
+    def test_write_output_parameter_value_rejects_unsupported_type(self):
+        exec_inst = executor.Executor(
+            executor_input={
+                'outputs': {
+                    'outputFile': os.path.join(
+                        self._test_dir, 'output_metadata.json'
+                    ),
+                },
+            },
+            function_to_execute=lambda: None,
+        )
+        with self.assertRaisesRegex(
+            ValueError,
+            r"Unable to serialize output parameter 'bad_param' of type <class 'set'>: \{1, 2\}",
+        ):
+            exec_inst.write_output_parameter_value('bad_param', {1, 2})
+
 
 if __name__ == '__main__':
     unittest.main()
