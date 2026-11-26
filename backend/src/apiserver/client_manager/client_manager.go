@@ -821,7 +821,45 @@ func isLegacySchema(db *gorm.DB) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("detect schema version: %w", err)
 	}
-	return !ok || length > 64, nil
+
+	if !ok || length > 64 {
+		return true, nil
+	}
+
+	started, err := migrationApplied(db, legacyUpgradeStartedMigration) // upgrade was started
+	if err != nil {
+		return false, fmt.Errorf("detect interrupted legacy upgrade: %w", err)
+	}
+
+	if !started {
+		return false, nil
+	}
+
+	complete, err := migrationApplied(db, legacyUpgradeCompleteMigration) // upgrade complete
+
+	if err != nil {
+		return false, fmt.Errorf("detect interrupted legacy upgrade: %w", err)
+	}
+
+	return !complete, nil
+}
+
+// recordLegacyUpgradeStart saves the "upgrade started" marker and the decision to fill pipeline_versions (if needed).
+func recordLegacyUpgradeStart(db *gorm.DB, initializePipelineVersions bool) error {
+
+	if err := db.AutoMigrate(&model.MigrationStatus{}); err != nil {
+		return fmt.Errorf("create migration_statuses table: %w", err)
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		if initializePipelineVersions {
+			if _, err := claimMigration(tx, legacyInitPipelineVersionsMigration); err != nil {
+				return err
+			}
+		}
+		_, err := claimMigration(tx, legacyUpgradeStartedMigration)
+		return err
+	})
 }
 
 func runLegacyUpgradeFlow(db *gorm.DB, dialect sqldrv.DBDialect) error {
@@ -829,20 +867,43 @@ func runLegacyUpgradeFlow(db *gorm.DB, dialect sqldrv.DBDialect) error {
 	// Step 1: decide whether to backfill pipeline_versions
 	// If pipeline_versions table is introduced into DB for the first time,
 	// it needs initialization or data backfill.
-	var tableNames []string
+	// However, if the upgrade is resuming, Step 6 may have created the pipeline_versions table and then failed just after that without finishing Step 7.
+	resuming, err := migrationApplied(db, legacyUpgradeStartedMigration) // check if legacy upgrade was started
+	if err != nil {
+		return fmt.Errorf("check for interrupted legacy upgrade: %w", err)
+	}
 	initializePipelineVersions := true
-	db.Raw(`show tables`).Pluck("Tables_in_mlpipeline", &tableNames)
-	for _, tableName := range tableNames {
-		if tableName == "pipeline_versions" {
-			initializePipelineVersions = false
-			break
+
+	if resuming {
+		glog.Infof("Resuming an interrupted legacy upgrade.")
+		initializePipelineVersions, err = migrationApplied(db, legacyInitPipelineVersionsMigration) // this sets the previous configuration of initializePipelineVersions
+		if err != nil {
+			return fmt.Errorf("read saved pipeline_versions decision: %w", err)
+		}
+	} else {
+		// for a fresh legacy upgrade
+
+		// If pipeline_versions table is introduced into DB for the first time,
+		// it needs initialization or data backfill.
+		var tableNames []string
+		db.Raw(`show tables`).Pluck("Tables_in_mlpipeline", &tableNames)
+		for _, tableName := range tableNames {
+			if tableName == "pipeline_versions" {
+				initializePipelineVersions = false
+				break
+			}
 		}
 	}
 	// Step 2: block upgrade if legacy data too long
 	if err := runPreflightLengthChecks(db, dialect, validation.LengthSpecs); err != nil {
 		return fmt.Errorf("preflight length check failed: %w", err)
 	}
-
+	// Record progress HERE. From here on a stop will leave the database looking unfinished.
+	if !resuming {
+		if err := recordLegacyUpgradeStart(db, initializePipelineVersions); err != nil {
+			return err
+		}
+	}
 	// Step 3: drop all foreign key constraints which can block shrinking columns
 	if err := dropAllFKConstraints(db, dialect.Name()); err != nil {
 		return fmt.Errorf("drop foreign key constraints failed: %w", err)
@@ -870,18 +931,14 @@ func runLegacyUpgradeFlow(db *gorm.DB, dialect sqldrv.DBDialect) error {
 	// Backfilling DisplayName column must be done before automigrate
 	// to comply with the NOT NULL constraint
 	if db.Migrator().HasTable(&model.Pipeline{}) {
-		if !db.Migrator().HasColumn(&model.Pipeline{}, "DisplayName") {
-			if err := addDisplayNameColumn(db, &model.Pipeline{}, dialect); err != nil {
-				return fmt.Errorf("failed to add DisplayName column to the %s table: %w", model.Pipeline{}.TableName(), err)
-			}
+		if err := addDisplayNameColumn(db, &model.Pipeline{}, dialect); err != nil {
+			return fmt.Errorf("failed to add DisplayName column to the %s table: %w", model.Pipeline{}.TableName(), err)
 		}
 	}
-	// Step5-2: Data backfill in pipeline_versions table for DisplayName column
+	// Step 5-2: Data backfill in pipeline_versions table for DisplayName column
 	if db.Migrator().HasTable(&model.PipelineVersion{}) {
-		if !db.Migrator().HasColumn(&model.PipelineVersion{}, "DisplayName") {
-			if err := addDisplayNameColumn(db, &model.PipelineVersion{}, dialect); err != nil {
-				return fmt.Errorf("failed to add DisplayName column to the %s table: %w", model.PipelineVersion{}.TableName(), err)
-			}
+		if err := addDisplayNameColumn(db, &model.PipelineVersion{}, dialect); err != nil {
+			return fmt.Errorf("failed to add DisplayName column to the %s table: %w", model.PipelineVersion{}.TableName(), err)
 		}
 	}
 
@@ -896,11 +953,17 @@ func runLegacyUpgradeFlow(db *gorm.DB, dialect sqldrv.DBDialect) error {
 	// Step 7: Data backfill for pipeline_versions if this is the first time for
 	// pipeline_versions to enter mlpipeline DB.
 	if initializePipelineVersions {
-		initPipelineVersionsFromPipelines(db)
+		if err := initPipelineVersionsFromPipelines(db); err != nil {
+			return fmt.Errorf("failed to initialize pipeline_versions: %w", err)
+		}
 	}
-	err := backfillExperimentIDToRunTable(db, dialect)
-	if err != nil {
+	if err := backfillExperimentIDToRunTable(db, dialect); err != nil {
 		return fmt.Errorf("failed to backfill experiment UUID in run_details table: %s", err)
+	}
+
+	// now the upgrade is complete
+	if _, err := claimMigration(db, legacyUpgradeCompleteMigration); err != nil {
+		return fmt.Errorf("record legacy upgrade completion: %w", err)
 	}
 
 	return nil
@@ -1238,29 +1301,32 @@ func addDisplayNameColumn(db *gorm.DB, mdl interface{}, dialect sqldrv.DBDialect
 		return fmt.Errorf("table %q is not allowed for DisplayName migration", table)
 	}
 
-	if db.Migrator().HasColumn(mdl, dbCol) {
-		return nil
-	}
-
 	q := dialect.QuoteIdentifier
 	quotedTable := q(table)
+
+	hasColumn := db.Migrator().HasColumn(mdl, dbCol)
+
 	glog.Info("Adding DisplayName column to " + quotedTable)
 
 	return db.Transaction(func(tx *gorm.DB) error {
 		var stmts []string
 		switch dialect.Name() {
 		case "mysql":
-			stmts = []string{
-				"ALTER TABLE " + quotedTable + " ADD COLUMN " + q(dbCol) + " VARCHAR(255) NULL;",
-				"UPDATE " + quotedTable + " SET " + q(dbCol) + " = " + q("Name") + " WHERE " + q(dbCol) + " IS NULL;",
-				"ALTER TABLE " + quotedTable + " MODIFY COLUMN " + q(dbCol) + " VARCHAR(255) NOT NULL;",
+			if !hasColumn {
+				stmts = append(stmts, "ALTER TABLE "+quotedTable+" ADD COLUMN "+q(dbCol)+" VARCHAR(255) NULL;")
 			}
+			stmts = append(stmts,
+				"UPDATE "+quotedTable+" SET "+q(dbCol)+" = "+q("Name")+" WHERE "+q(dbCol)+" IS NULL;",
+				"ALTER TABLE "+quotedTable+" MODIFY COLUMN "+q(dbCol)+" VARCHAR(255) NOT NULL;",
+			)
 		case "pgx":
-			stmts = []string{
-				"ALTER TABLE " + quotedTable + " ADD COLUMN " + q(dbCol) + " VARCHAR(255);",
-				"UPDATE " + quotedTable + " SET " + q(dbCol) + " = " + q("Name") + " WHERE " + q(dbCol) + " IS NULL;",
-				"ALTER TABLE " + quotedTable + " ALTER COLUMN " + q(dbCol) + " SET NOT NULL;",
+			if !hasColumn {
+				stmts = append(stmts, "ALTER TABLE "+quotedTable+" ADD COLUMN "+q(dbCol)+" VARCHAR(255);")
 			}
+			stmts = append(stmts,
+				"UPDATE "+quotedTable+" SET "+q(dbCol)+" = "+q("Name")+" WHERE "+q(dbCol)+" IS NULL;",
+				"ALTER TABLE "+quotedTable+" ALTER COLUMN "+q(dbCol)+" SET NOT NULL;",
+			)
 		default:
 			return fmt.Errorf("unsupported driver: %s", dialect.Name())
 		}
@@ -1725,25 +1791,25 @@ func NewClientManager(options *Options) (*ClientManager, error) {
 // Data migration in 2 steps to introduce pipeline_versions table. This
 // migration shall be called only once when pipeline_versions table is created
 // for the first time in DB.
-func initPipelineVersionsFromPipelines(db *gorm.DB) {
-	tx := db.Begin()
+func initPipelineVersionsFromPipelines(db *gorm.DB) error {
 
-	// Step 1: duplicate pipelines to pipeline versions.
-	// The pipeline versions created here are not through KFP pipeine version
-	// API, and are only for the legacy pipelines that are created
-	// before pipeline version API is introduced.
-	// For those legacy pipelines, who don't have versions before, we create one
-	// implicit version for each of them. Given a legacy pipeline, the implicit
-	// version created here is assigned an ID the same as the pipeline ID. This
-	// way we don't need to move the minio file of pipeline package around,
-	// since the minio file's path is based on the pipeline ID (and now on the
-	// implicit version ID too). Meanwhile, IDs are required to be unique inside
-	// the same resource type, so pipeline and pipeline version as two different
-	// resources using the same ID is OK.
-	// On the other hand, pipeline and its pipeline versions created after
-	// pipeline version API is introduced will have different Ids; and the minio
-	// file will be put directly into the directories for pipeline versions.
-	tx.Exec(`
+	return db.Transaction(func(tx *gorm.DB) error {
+		// Step 1: duplicate pipelines to pipeline versions.
+		// The pipeline versions created here are not through KFP pipeine version
+		// API, and are only for the legacy pipelines that are created
+		// before pipeline version API is introduced.
+		// For those legacy pipelines, who don't have versions before, we create one
+		// implicit version for each of them. Given a legacy pipeline, the implicit
+		// version created here is assigned an ID the same as the pipeline ID. This
+		// way we don't need to move the minio file of pipeline package around,
+		// since the minio file's path is based on the pipeline ID (and now on the
+		// implicit version ID too). Meanwhile, IDs are required to be unique inside
+		// the same resource type, so pipeline and pipeline version as two different
+		// resources using the same ID is OK.
+		// On the other hand, pipeline and its pipeline versions created after
+		// pipeline version API is introduced will have different Ids; and the minio
+		// file will be put directly into the directories for pipeline versions.
+		if err := tx.Exec(`
 		INSERT INTO pipeline_versions
 			(UUID, Name, DisplayName, CreatedAtInSec, Parameters, Status, PipelineId, PipelineSpec, PipelineSpecURI)
 		SELECT
@@ -1758,17 +1824,28 @@ func initPipelineVersionsFromPipelines(db *gorm.DB) {
 			'' AS PipelineSpecURI
 		FROM pipelines p
 		LEFT JOIN pipeline_versions v ON v.UUID = p.UUID
-		WHERE v.UUID IS NULL;`)
+		WHERE v.UUID IS NULL;`).Error; err != nil {
+			return fmt.Errorf("copy pipelines into pipeline_versions: %w", err)
+		}
 
-	// Step 2: modifiy pipelines table after pipeline_versions are populated.
-	tx.Exec("update pipelines set DefaultVersionId=UUID;")
+		// Step 2: modify pipelines table after pipeline_versions are populated.
+		if err := tx.Exec("update pipelines set DefaultVersionId=UUID;").Error; err != nil {
+			return fmt.Errorf("set default pipeline versions: %w", err)
+		}
+		return nil
+	})
 
-	tx.Commit()
 }
 
 // backfillPipelineRefsMigration names the one-time data migration recorded in
 // migration_statuses.
 const backfillPipelineRefsMigration = "backfill_pipeline_refs"
+
+const (
+	legacyUpgradeStartedMigration       = "legacy_upgrade_started"
+	legacyUpgradeCompleteMigration      = "legacy_upgrade_complete"
+	legacyInitPipelineVersionsMigration = "legacy_init_pipeline_versions"
+)
 
 // migrationApplied reports whether a one-time data migration has already run.
 // A missing table means AutoMigrate has not created it yet, which can only
