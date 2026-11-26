@@ -327,6 +327,47 @@ and [reusable-workflow permission rules](https://docs.github.com/en/actions/refe
 
 The Python visualization service is retired. Image builds, CI artifact inventories, and Kustomize overlays exclude it; v2 artifact viewers and the TensorBoard viewer controller remain supported. See [artifact migration and deployment cleanup](../concepts/output-artifact.md#migrating-from-the-python-visualization-server).
 
+## Branch retention
+
+Upstream branches are kept while they are in use, and become deletion
+candidates once their work is finished or they have had no commits for six
+months. GitHub deletes a pull request's head branch when it merges, and
+`bot-branch-cleanup.yml` deletes Dependabot and Copybara branches whose pull
+requests close without merging. Other branches are reviewed in periodic manual
+audits using the rules below, which were first applied in #14488.
+
+Keep at any age:
+
+- `main`, protected branches, and release and publishing branches;
+- heads and bases of open pull requests;
+- branches used by CI, release tooling, docs or Read the Docs (for example,
+  `stable`), or a known downstream integration;
+- branches an owner identifies as active.
+
+Any other branch is a deletion candidate if either of these holds:
+
+- Its work is finished: the tip is contained in `main` or a retained release
+  branch, the tip SHA exactly matches the head SHA of a pull request merged
+  there (including a fork pull request), or the owner confirms it can go. For
+  Dependabot and Copybara, a pull request closed without merging also qualifies
+  if the branch still points to that pull request's closing head SHA and no
+  open pull request uses it.
+- Its tip commit is more than six calendar months old on the audit date.
+
+A same-name fork pull request with a different head SHA, a closed unmerged
+human or coding-agent pull request, or the absence of a pull request does not
+on its own show that work newer than six months is finished.
+
+To delete candidates:
+
+1. Publish the list with each branch's tip SHA, last commit date, and
+   qualifying reason, and get maintainer approval.
+2. Back up the approved tips, for example as a Git bundle with a branch and SHA
+   manifest, and verify that they restore.
+3. Immediately before deleting, recheck protection and open pull requests, and
+   delete only branches whose tip still matches the approved SHA.
+4. Record the deleted branches and their tip SHAs where the audit was approved.
+
 ## Python dependency artifacts
 
 `.github/resources/scripts/export_python_requirements.sh OUTPUT_DIRECTORY` produces
