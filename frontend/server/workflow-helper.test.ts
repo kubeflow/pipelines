@@ -270,15 +270,15 @@ describe('workflow-helper', () => {
       'artifact endpoint policy with namespace %s',
       (namespace) => {
         it.each([
-          ['169.254.169.254', true],
-          ['127.0.0.1:8080', true],
-          ['kubernetes.default.svc:443', false],
-          ['untrusted.example.com', true],
-          ['seaweedfs.kubeflow:9001', true],
-          ['seaweedfs.kubeflow', false],
+          ['169.254.169.254', true, 'http://169.254.169.254'],
+          ['127.0.0.1:8080', true, 'http://127.0.0.1:8080'],
+          ['kubernetes.default.svc:443', false, 'https://kubernetes.default.svc'],
+          ['untrusted.example.com', true, 'http://untrusted.example.com'],
+          ['seaweedfs.kubeflow:9001', true, 'http://seaweedfs.kubeflow:9001'],
+          ['seaweedfs.kubeflow', false, 'https://seaweedfs.kubeflow'],
         ])(
           'rejects untrusted endpoint %s (insecure=%s) before credentials or clients',
-          async (endpoint, insecure) => {
+          async (endpoint, insecure, rejectedOrigin) => {
             vi.mocked(getArgoWorkflow).mockResolvedValueOnce(
               workflowWithEndpoint(endpoint, insecure),
             );
@@ -294,7 +294,8 @@ describe('workflow-helper', () => {
                 namespace,
               ),
             ).rejects.toThrow(
-              'Artifact store endpoint is not allowed; add its exact origin to ALLOWED_ARTIFACT_ENDPOINTS',
+              `Artifact store endpoint is not allowed: "${rejectedOrigin}". ` +
+                'ALLOWED_ARTIFACT_ENDPOINTS is an operator-managed cluster setting.',
             );
 
             expect(getK8sSecret).not.toHaveBeenCalled();
@@ -317,7 +318,9 @@ describe('workflow-helper', () => {
           '2024-07-09',
           'kubeflow',
         ),
-      ).rejects.toThrow('Artifact store endpoint is not allowed');
+      ).rejects.toThrow(
+        'Artifact store endpoint is not allowed: "http://seaweedfs.kubeflow". ALLOWED_ARTIFACT_ENDPOINTS',
+      );
 
       expect(getK8sSecret).not.toHaveBeenCalled();
       expect(artifactStoreHelper.createS3ArtifactStore).not.toHaveBeenCalled();
