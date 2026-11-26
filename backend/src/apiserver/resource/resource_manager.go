@@ -23,6 +23,7 @@ import (
 	"io"
 	"net"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -790,6 +791,11 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to retrieve recurring run")
 		}
+		if run.EnableCaching == nil {
+			// ScheduledWorkflows without a workflow resource do not carry the
+			// override, so take it from the stored recurring run.
+			run.EnableCaching = job.EnableCaching
+		}
 		ownerNamespace := job.Namespace
 		if common.IsMultiUserMode() && r.IsEmptyNamespace(ownerNamespace) {
 			ownerNamespace = run.Namespace
@@ -926,6 +932,14 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		existing, err := r.runStore.GetRun(run.UUID, true)
 		if err != nil {
 			return nil, util.NewUnavailableServerError(err, "Retry after the scheduled run creator or persistence agent finishes persistence")
+		}
+		// The execution is this recurring run's, but the run ID alone does not
+		// prove that the record persisted under it is. Namespaces are a tenant
+		// boundary only in multi-user mode.
+		if existing.RecurringRunId != run.RecurringRunId ||
+			(common.IsMultiUserMode() && existing.Namespace != k8sNamespace) {
+			return nil, util.NewAlreadyExistError(
+				"Failed to create a new run. Run %v already exists and does not belong to recurring run %v", run.UUID, run.RecurringRunId)
 		}
 		return existing, nil
 	}
@@ -1961,8 +1975,9 @@ func (r *ResourceManager) prepareJobWorkflow(ctx context.Context, job *model.Job
 			return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
 		}
 
+		// The controller sends these with every run it creates through the API.
 		scheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
-			Parameters: parameters, PipelineRoot: string(job.PipelineRoot),
+			Parameters: parameters, PipelineRoot: string(job.PipelineRoot), EnableCaching: job.EnableCaching,
 		}
 		scheduledWorkflow.Spec.ServiceAccount, err = scheduledServiceAccount(renderedScheduledWorkflow, job.ServiceAccount)
 		if err != nil {
@@ -2411,6 +2426,9 @@ func (r *ResourceManager) reportWorkflowResource(
 	if jobId != "" && updateError != nil {
 		experimentID := recurringExperimentID
 		namespace := recurringNamespace
+		if err := r.validateRecurringRunReportID(jobId, runId, objMeta.Annotations[util.AnnotationKeyRunName]); err != nil {
+			return nil, err
+		}
 		pipelineSpec, err := r.recurringRunReportPipelineSpec(recurringJob, execSpec, runId)
 		if err != nil {
 			return nil, err
@@ -3341,7 +3359,25 @@ func (r *ResourceManager) ReportScheduledWorkflowResource(swf *util.ScheduledWor
 		}
 		return r.jobStore.UpdateJobStatus(swf)
 	}
-	return r.jobStore.UpdateJob(swf)
+	// Serialize validation and reporting with API mode writes. A live read before
+	// acquiring the row lock would still allow a completed Disable to be undone
+	// by a report that observed the preceding enabled generation.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return r.jobStore.UpdateJobWithGuard(ctx, swf, func(ctx context.Context) (bool, error) {
+		current, err := r.getScheduledWorkflowClient(swf.Namespace).Get(ctx, swf.Name, v1.GetOptions{})
+		if err != nil {
+			return false, util.Wrap(err, "Failed to verify live ScheduledWorkflow before reporting recurring run")
+		}
+		if current == nil || current.UID != swf.UID || current.Name != swf.Name || current.Namespace != swf.Namespace {
+			return false, util.NewInvalidInputError("ScheduledWorkflow identity changed before reporting recurring run %s", swf.UID)
+		}
+		if current.Generation != swf.Generation {
+			glog.Infof("Skipping stale ScheduledWorkflow report for recurring run %s: reported generation %d, live generation %d", swf.UID, swf.Generation, current.Generation)
+			return false, nil
+		}
+		return true, nil
+	})
 }
 
 // Returns a workflow template based on the manifest in the following priority:
@@ -3372,6 +3408,14 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 			return nil, "", util.NewInvalidInputError("Failed to fetch a template with an empty pipeline spec manifest")
 		}
 	}
+	// Apply the run's enable_caching override after resolving the pipeline
+	// version. The rewritten manifest is stored with the run or recurring run
+	// and is what the driver reads; the pipeline version is not modified.
+	effectiveManifest, err := template.ApplyCachingOverride([]byte(manifest), pipelineSpec.EnableCaching)
+	if err != nil {
+		return nil, "", err
+	}
+	manifest = string(effectiveManifest)
 	templateOptions := template.TemplateOptions{
 		CacheDisabled:          r.options.CacheDisabled,
 		DefaultWorkspace:       r.options.DefaultWorkspace,
@@ -4188,6 +4232,15 @@ func (r *ResourceManager) GetArtifact(artifactID string) (*model.Artifact, error
 	return artifact, nil
 }
 
+// GetArtifactsByIDs fetches a batch of artifacts keyed by artifact UUID.
+func (r *ResourceManager) GetArtifactsByIDs(artifactIDs []string) (map[string]*model.Artifact, error) {
+	artifactsByID, err := r.artifactStore.GetArtifactsByIDs(artifactIDs)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to fetch artifact batch")
+	}
+	return artifactsByID, nil
+}
+
 // CreateArtifact Creates an artifact entry.
 func (r *ResourceManager) CreateArtifact(artifact *model.Artifact) (*model.Artifact, error) {
 	newArtifact, err := r.artifactStore.CreateArtifact(artifact)
@@ -4292,14 +4345,16 @@ func containsString(values []string, want string) bool {
 // lifecycleMessageForTask matches a task to its pod node(s) (executor or driver) via pod identity
 // and returns the resolved message and phase from the most recently created pod. matched is true
 // when at least one node was attributed to this task by pod name.
-func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string) (msg, phase string, matched bool) {
+//
+// A pod that is stuck before the launcher starts (image pull failure, unschedulable) never gets
+// registered on the task, so the task only knows the shared driver pod. In that case the task is
+// matched through its Argo task node instead, see lifecycleMessageForTaskNode. tasksByUUID holds the
+// run's tasks and is used to check that node against the task's parent scope.
+func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string, tasksByUUID map[string]*model.Task) (msg, phase string, matched bool) {
 	if task == nil {
 		return "", "", false
 	}
 	podNames := podNamesFromTask(task)
-	if len(podNames) == 0 {
-		return "", "", false
-	}
 	type podMatch struct {
 		msg        string
 		phase      string
@@ -4313,7 +4368,7 @@ func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus,
 		matches = append(matches, podMatch{msg: resolved[id], phase: node.State, createTime: node.CreateTime})
 	}
 	if len(matches) == 0 {
-		return "", "", false
+		return lifecycleMessageForTaskNode(task, nodes, resolved, tasksByUUID)
 	}
 	// Pick the message from the most recently created pod so that a recovered retry
 	// (no lifecycle event) overrides a stale failure from an earlier attempt.
@@ -4321,6 +4376,157 @@ func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus,
 		return matches[i].createTime > matches[j].createTime
 	})
 	return matches[0].msg, matches[0].phase, true
+}
+
+// lifecycleMessageForTaskNode matches a task to the Argo Retry node named after it. That node sits
+// above the task's executor pod (task Retry -> task DAG -> executor Retry -> executor Pod), and
+// resolved already carries the executor pod's message up to it, following only the latest attempt.
+// The phase is the state of that node. The task name alone is not unique across sub-DAGs, so a node
+// only counts when it sits inside the same enclosing tasks as the task does, and a name that is
+// still ambiguous is left unmatched rather than guessed. Without that scope check, a skipped task
+// would pick up the failure of a same-named task that ran in another sub-DAG, since the skipped
+// one has no node of its own.
+func lifecycleMessageForTaskNode(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string, tasksByUUID map[string]*model.Task) (msg, phase string, matched bool) {
+	if task.Name == "" {
+		return "", "", false
+	}
+	scope, ok := parentTaskScope(task, tasksByUUID)
+	if !ok {
+		return "", "", false
+	}
+	var nodeID string
+	count := 0
+	for id, node := range nodes {
+		if node.Type != "Retry" || node.DisplayName != task.Name {
+			continue
+		}
+		if !nodeInScope(id, scope, nodes) {
+			continue
+		}
+		nodeID = id
+		count++
+	}
+	if count != 1 {
+		return "", "", false
+	}
+	return resolved[nodeID], nodes[nodeID].State, true
+}
+
+// parentTaskScope returns the names of the tasks enclosing task, nearest first, leaving out the
+// root DAG task that every run has. A top-level task has an empty scope. It reports false when
+// the parent chain cannot be followed, so the caller does not guess.
+func parentTaskScope(task *model.Task, tasksByUUID map[string]*model.Task) (scope []string, ok bool) {
+	seen := map[string]bool{task.UUID: true}
+	current := task
+	for current.ParentTaskUUID != nil && *current.ParentTaskUUID != "" {
+		parent, found := tasksByUUID[*current.ParentTaskUUID]
+		if !found || seen[parent.UUID] {
+			return nil, false
+		}
+		seen[parent.UUID] = true
+		if parent.ParentTaskUUID == nil || *parent.ParentTaskUUID == "" {
+			// The root DAG task is the top of every run, not a scope of its own.
+			break
+		}
+		scope = append(scope, parent.Name)
+		current = parent
+	}
+	return scope, true
+}
+
+// retryAttemptDisplayName matches an Argo retry attempt's display name, e.g. "my-task(2)", and
+// captures the task name of the Retry node it belongs to.
+var retryAttemptDisplayName = regexp.MustCompile(`^(.+)\(\d+\)$`)
+
+// nodeParent returns the node that structurally contains id, using BoundaryID rather than
+// Children. Argo also uses Children to record dependency ordering between sibling tasks (a
+// predecessor's last attempt pointing at a dependent's Retry node), so a reversed Children map
+// can misread a plain dependency edge as containment. BoundaryID has no such ambiguity: the
+// execution engine sets it from the workflow's actual template nesting.
+//
+// A Retry node and its attempts (displayed as "name(0)", "name(1)", ...) share the same
+// BoundaryID, so an attempt's structural parent is its Retry node, found by matching that name
+// and boundary, not the boundary node itself. Anything else, including a Retry node, is directly
+// contained by its BoundaryID. A node with no BoundaryID has no enclosing node, which is the case
+// for a top-level task hanging off the workflow's own root.
+func nodeParent(id string, nodes map[string]util.NodeStatus) (string, bool) {
+	node, ok := nodes[id]
+	if !ok {
+		return "", false
+	}
+	if m := retryAttemptDisplayName.FindStringSubmatch(node.DisplayName); m != nil {
+		taskName := m[1]
+		for retryID, retryNode := range nodes {
+			if retryNode.Type == "Retry" && retryNode.DisplayName == taskName && retryNode.BoundaryID == node.BoundaryID {
+				return retryID, true
+			}
+		}
+	}
+	if node.BoundaryID == "" {
+		return "", false
+	}
+	return node.BoundaryID, true
+}
+
+// nodeInScope reports whether the nearest Retry ancestors of the node are the enclosing tasks in
+// scope, nearest first, and nothing more. Once scope is exhausted (including the empty, top-level
+// case), any further Retry ancestor before the root means the node is nested deeper than the task
+// actually is, so it is rejected rather than treated as a match.
+//
+// Two compiler-inserted wrappers are the exception. KFP's neutralizeDAGRetries gives every DAG
+// template a zero-limit retry strategy, and the compiler always wraps the entrypoint DAG in its
+// own Retry node, which itself invokes a second, reserved "root" task (compiler.RootComponentName)
+// that in turn invokes the pipeline's real root DAG. Neither is a real task or sits inside any
+// task's own scope, so both disqualify nothing. They are identified structurally, not by name,
+// since "root" is also a name a user's own nested pipeline step can legitimately have: the
+// outermost wrapper is the Retry with no parent of its own; the inner "root" wrapper is the Retry
+// exactly two hops below that outermost one (its own parent's parent has no parent). A real task
+// that merely happens to be named "root" sits somewhere else in the tree and fails that structural
+// test, so it is still rejected like any other extra nesting.
+func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bool {
+	seen := map[string]bool{id: true}
+	current := id
+	for next := 0; next < len(scope); {
+		parentID, ok := nodeParent(current, nodes)
+		if !ok || seen[parentID] {
+			return false
+		}
+		seen[parentID] = true
+		current = parentID
+		if node := nodes[parentID]; node.Type == "Retry" {
+			if node.DisplayName != scope[next] {
+				return false
+			}
+			next++
+		}
+	}
+	for {
+		parentID, ok := nodeParent(current, nodes)
+		if !ok {
+			return true
+		}
+		if seen[parentID] {
+			return false
+		}
+		seen[parentID] = true
+		current = parentID
+		if nodes[parentID].Type == "Retry" {
+			hop1, hasHop1 := nodeParent(parentID, nodes)
+			if !hasHop1 {
+				// No parent of its own: this is the outermost compiler wrapper, structurally
+				// equivalent to the true root.
+				return true
+			}
+			if hop2, hasHop2 := nodeParent(hop1, nodes); hasHop2 {
+				if _, hasHop3 := nodeParent(hop2, nodes); !hasHop3 {
+					// Exactly two hops below a parentless Retry: this is the compiler's reserved
+					// "root" wrapper by structural position, not a real task boundary.
+					continue
+				}
+			}
+			return false
+		}
+	}
 }
 
 // persistTaskLifecycleMessages resolves pod lifecycle messages from the workflow and writes them
@@ -4335,8 +4541,24 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 		return nil
 	}
 	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	tasksByUUID := make(map[string]*model.Task, len(tasks))
 	for _, task := range tasks {
-		msg, phase, matched := lifecycleMessageForTask(task, nodes, resolved)
+		if task != nil {
+			tasksByUUID[task.UUID] = task
+		}
+	}
+	var reconcileErrs []error
+	for _, task := range tasks {
+		// A failure reconciling one task's state must not stop lifecycle messages from being
+		// persisted for every other task in the run, so keep going. The error itself is
+		// collected and returned below instead of being swallowed: ReportWorkflow calls this
+		// before marking the workflow persisted or deleting it, and once the workflow is gone
+		// the persistence agent stops retrying, so a caller that saw success here would have no
+		// other chance to reconcile this task. Returning the error keeps that from happening.
+		if _, err := r.reconcileTaskFailure(task, nodes, resolved); err != nil {
+			reconcileErrs = append(reconcileErrs, fmt.Errorf("reconciling task %q: %w", task.UUID, err))
+		}
+		msg, phase, matched := lifecycleMessageForTask(task, nodes, resolved, tasksByUUID)
 		if !matched {
 			continue
 		}
@@ -4364,6 +4586,13 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 		}); err != nil {
 			return err
 		}
+	}
+	if len(reconcileErrs) > 0 {
+		msgs := make([]string, len(reconcileErrs))
+		for i, e := range reconcileErrs {
+			msgs[i] = e.Error()
+		}
+		return fmt.Errorf("failed to reconcile %d task(s): %s", len(reconcileErrs), strings.Join(msgs, "; "))
 	}
 	return nil
 }

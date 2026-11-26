@@ -9,7 +9,7 @@ on:
         type: string
         default: ''
       queue_base_ref:
-        description: Queue target branch, master or main (internal queue dispatch)
+        description: Queue target branch, master, main, or release-2.18 (internal queue dispatch)
         required: false
         type: string
         default: ''
@@ -20,7 +20,7 @@ on:
         default: ''
   merge_group:
     types: [checks_requested]
-    branches: [master, main]
+    branches: [master, main, release-2.18]
   pull_request:
     paths:
       - '**/*.py'

@@ -528,6 +528,7 @@ func toModelRuntimeConfig(obj interface{}) (*model.RuntimeConfig, error) {
 		return nil, util.NewInvalidInputError("Failed to convert API runtime config to its internal representation. Input cannot be nil")
 	}
 	var params, root string
+	var enableCaching *bool
 	switch obj := obj.(type) {
 	case *apiv2.RuntimeConfig:
 		apiRuntimeConfigV2 := obj
@@ -537,6 +538,11 @@ func toModelRuntimeConfig(obj interface{}) (*model.RuntimeConfig, error) {
 		}
 		params = p
 		root = apiRuntimeConfigV2.GetPipelineRoot()
+		// The request may omit runtime_config, so the pointer can be nil.
+		if apiRuntimeConfigV2 != nil && apiRuntimeConfigV2.EnableCaching != nil {
+			value := apiRuntimeConfigV2.GetEnableCaching()
+			enableCaching = &value
+		}
 	case *pipelinespec.PipelineJob_RuntimeConfig:
 		specRuntimeConfig := obj
 		p, err := toModelParameters(specRuntimeConfig.GetParameterValues())
@@ -549,8 +555,9 @@ func toModelRuntimeConfig(obj interface{}) (*model.RuntimeConfig, error) {
 		return nil, util.NewUnknownApiVersionError("RuntimeConfig", obj)
 	}
 	return &model.RuntimeConfig{
-		Parameters:   model.LargeText(params),
-		PipelineRoot: model.LargeText(root),
+		Parameters:    model.LargeText(params),
+		PipelineRoot:  model.LargeText(root),
+		EnableCaching: enableCaching,
 	}, nil
 }
 
@@ -559,6 +566,10 @@ func toModelRuntimeConfig(obj interface{}) (*model.RuntimeConfig, error) {
 // Note: returns nil if a parsing error occurs.
 func toAPIRuntimeConfig(modelRuntime model.RuntimeConfig) *apiv2.RuntimeConfig {
 	apiRuntimeConfig := apiv2.RuntimeConfig{}
+	if modelRuntime.EnableCaching != nil {
+		value := *modelRuntime.EnableCaching
+		apiRuntimeConfig.EnableCaching = &value
+	}
 	if modelRuntime.Parameters == "" && modelRuntime.PipelineRoot == "" {
 		return &apiRuntimeConfig
 	}
@@ -621,9 +632,11 @@ func toModelRun(apiRunV2 *apiv2.Run) (*model.Run, error) {
 	recRunId = apiRunV2.GetRecurringRunId()
 
 	specMap := apiRunV2.GetPipelineSpec().AsMap()
-	if pv, ok := specMap["PipelineInfo"]; ok {
-		if pName, ok := pv.(map[string]interface{})["Name"]; ok {
-			resources := common.ParseResourceIdsFromFullName(pName.(string))
+	// The pipeline spec is an arbitrary user-supplied struct, so PipelineInfo and
+	// Name can be of any JSON type. Only an object with a string name is used.
+	if pipelineInfo, ok := specMap["PipelineInfo"].(map[string]interface{}); ok {
+		if pName, ok := pipelineInfo["Name"].(string); ok {
+			resources := common.ParseResourceIdsFromFullName(pName)
 			if namespace == "" {
 				namespace = resources["Namespace"]
 			}
@@ -697,13 +710,15 @@ func toModelRun(apiRunV2 *apiv2.Run) (*model.Run, error) {
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           pipelineId,
 			PipelineVersionId:    pipelineVersionId,
+			NameRef:              toModelPipelineNameRef(apiRunV2.GetPipelineVersionReference()),
 			PipelineName:         pipelineName,
 			PipelineSpecManifest: model.LargeText(pipelineSpec),
 			WorkflowSpecManifest: model.LargeText(workflowSpec),
 			Parameters:           model.LargeText(specParams),
 			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   model.LargeText(cfgParams),
-				PipelineRoot: model.LargeText(pipelineRoot),
+				Parameters:    model.LargeText(cfgParams),
+				PipelineRoot:  model.LargeText(pipelineRoot),
+				EnableCaching: cfg.EnableCaching,
 			},
 		},
 		RunDetails: model.RunDetails{
@@ -752,7 +767,7 @@ func toAPIRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 	if runtimeConfig != nil && len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0 {
 		if params := toMapProtoStructParameters(string(r.Parameters)); len(params) > 0 {
 			runtimeConfig.Parameters = params
-		} else {
+		} else if runtimeConfig.EnableCaching == nil {
 			runtimeConfig = nil
 		}
 	}
@@ -832,6 +847,8 @@ func toAPIRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 		}
 	}
 
+	// A manifest parsing error below is not a *util.UserError, so one is built
+	// from it rather than asserted on the wrapped error.
 	pipelineSourceErr := util.NewInvalidInputError("Failed to parse the pipeline source")
 	if preferEmbeddedPipelineSpec && r.PipelineSpecManifest != "" {
 		spec, err1 := YamlStringToPipelineSpecStruct(string(r.PipelineSpecManifest))
@@ -840,7 +857,7 @@ func toAPIRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 				PipelineSpec: spec,
 			}
 		} else if apiRunErr == nil {
-			pipelineSourceErr = util.Wrap(err1, pipelineSourceErr.Error()).(*util.UserError)
+			pipelineSourceErr = util.NewInvalidInputErrorWithDetails(err1, "Failed to parse the pipeline source")
 		}
 	}
 	switch {
@@ -858,7 +875,7 @@ func toAPIRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 				PipelineSpec: spec,
 			}
 		} else if apiRunErr == nil {
-			pipelineSourceErr = util.Wrap(err1, pipelineSourceErr.Error()).(*util.UserError)
+			pipelineSourceErr = util.NewInvalidInputErrorWithDetails(err1, "Failed to parse the pipeline source")
 		}
 	case apiRunV2.PipelineSource == nil && r.WorkflowSpecManifest != "":
 		spec, err1 := YamlStringToPipelineSpecStruct(string(r.WorkflowSpecManifest))
@@ -867,7 +884,7 @@ func toAPIRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 				PipelineSpec: spec,
 			}
 		} else if apiRunErr == nil {
-			pipelineSourceErr = util.Wrap(err1, pipelineSourceErr.Error()).(*util.UserError)
+			pipelineSourceErr = util.NewInvalidInputErrorWithDetails(err1, "Failed to parse the pipeline source")
 		}
 	}
 
@@ -1026,12 +1043,14 @@ func toModelJob(apiJob *apiv2.RecurringRun) (*model.Job, error) {
 			PipelineId:           pipelineId,
 			PipelineName:         pipelineName,
 			PipelineVersionId:    pipelineVersionId,
+			NameRef:              toModelPipelineNameRef(apiJob.GetPipelineVersionReference()),
 			PipelineSpecManifest: model.LargeText(pipelineSpec),
 			WorkflowSpecManifest: model.LargeText(workflowSpec),
 			Parameters:           model.LargeText(specParams),
 			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   model.LargeText(cfgParams),
-				PipelineRoot: model.LargeText(pipelineRoot),
+				Parameters:    model.LargeText(cfgParams),
+				PipelineRoot:  model.LargeText(pipelineRoot),
+				EnableCaching: cfg.EnableCaching,
 			},
 		},
 	}, nil
@@ -1080,10 +1099,10 @@ func toAPIRecurringRun(j *model.Job) *apiv2.RecurringRun {
 			Error:          util.ToRpcStatus(util.NewInternalServerError(util.NewInvalidInputError("Runtime config was not parsed correctly"), "Failed to convert recurring run's internal representation to its API counterpart")),
 		}
 	}
-	if runtimeConfig == nil || (len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0) {
+	if len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0 {
 		if params := toMapProtoStructParameters(string(j.Parameters)); len(params) > 0 {
 			runtimeConfig.Parameters = params
-		} else {
+		} else if runtimeConfig.EnableCaching == nil {
 			runtimeConfig = nil
 		}
 	}
@@ -2101,4 +2120,16 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2.Pipeline
 	}
 
 	return apiTask, nil
+}
+
+// toModelPipelineNameRef returns the name-based part of a pipeline version
+// reference, or nil when the reference names nothing.
+func toModelPipelineNameRef(ref *apiv2.PipelineVersionReference) *model.PipelineNameRef {
+	if ref.GetPipelineName() == "" && ref.GetPipelineVersionName() == "" {
+		return nil
+	}
+	return &model.PipelineNameRef{
+		PipelineName:        ref.GetPipelineName(),
+		PipelineVersionName: ref.GetPipelineVersionName(),
+	}
 }

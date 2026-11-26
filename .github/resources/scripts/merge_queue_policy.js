@@ -13,7 +13,13 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const QUEUE_BRANCHES = ['master', 'main', 'release-2.18'];
 const DEFAULT_ROOT = path.resolve(__dirname, '../../..');
+
+// The release queue relies on ci-passed to enforce pre-commit for both events.
+function missingReleasePreCommit(baseRef, expectedPaths) {
+  return baseRef === 'release-2.18' && !expectedPaths.includes('.github/workflows/pre-commit.yml');
+}
 
 function loadPolicy(root = DEFAULT_ROOT) {
   // This file comes from the trusted publisher checkout, never a PR checkout.
@@ -21,15 +27,38 @@ function loadPolicy(root = DEFAULT_ROOT) {
   if (!policy || Array.isArray(policy) || policy.version !== 1 ||
       Object.keys(policy).some(key => !['version', 'enabled_branches'].includes(key)) ||
       !Array.isArray(policy.enabled_branches) ||
-      policy.enabled_branches.some(branch => !['master', 'main'].includes(branch)) ||
-      new Set(policy.enabled_branches).size !== policy.enabled_branches.length) {
-    throw new Error('Invalid merge queue policy; enable only master or main with policy version 1.');
+      policy.enabled_branches.some(branch => ![...QUEUE_BRANCHES, '~DEFAULT_BRANCH'].includes(branch)) ||
+      new Set(policy.enabled_branches).size !== policy.enabled_branches.length ||
+      (policy.enabled_branches.includes('~DEFAULT_BRANCH') && policy.enabled_branches.some(branch => ['master', 'main'].includes(branch)))) {
+    throw new Error('Invalid merge queue policy; use master/main or ~DEFAULT_BRANCH, optionally with release-2.18, and policy version 1.');
   }
   return policy;
 }
 
+async function enabledBranches({github, context, root}) {
+  const branches = loadPolicy(root).enabled_branches;
+  if (!branches.includes('~DEFAULT_BRANCH')) return branches;
+  // Read trusted repository metadata at every boundary, never PR payload data
+  // or a cached default: a rename can occur between admission and publication.
+  const {data} = await github.rest.repos.get({...context.repo});
+  if (data?.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+      !['master', 'main'].includes(data?.default_branch)) {
+    throw new Error('Cannot resolve merge queue default branch to trusted master or main.');
+  }
+  return branches.map(branch => branch === '~DEFAULT_BRANCH' ? data.default_branch : branch);
+}
+
 async function queueEnabled({github, context, branch, root}) {
-  if (!loadPolicy(root).enabled_branches.includes(branch)) return false;
+  if (!QUEUE_BRANCHES.includes(branch)) return false;
+  const configured = loadPolicy(root).enabled_branches;
+  if (!configured.includes(branch) && !(configured.includes('~DEFAULT_BRANCH') &&
+      ['master', 'main'].includes(branch))) return false;
+  if (!(await enabledBranches({github, context, root})).includes(branch)) return false;
+  await requireQueueRule({github, context, branch});
+  return true;
+}
+
+async function requireQueueRule({github, context, branch}) {
   // This endpoint returns rules from active rulesets applicable to this branch,
   // including organization rules. A configured but unenforced queue is insufficient.
   const rules = await github.paginate('GET /repos/{owner}/{repo}/rules/branches/{branch}', {
@@ -38,7 +67,6 @@ async function queueEnabled({github, context, branch, root}) {
   if (!Array.isArray(rules) || !rules.some(rule => rule?.type === 'merge_queue')) {
     throw new Error(`Merge queue policy requires an enforced merge_queue rule for ${branch}.`);
   }
-  return true;
 }
 
-module.exports = {loadPolicy, queueEnabled};
+module.exports = {missingReleasePreCommit, QUEUE_BRANCHES, loadPolicy, enabledBranches, queueEnabled, requireQueueRule};

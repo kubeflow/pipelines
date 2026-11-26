@@ -13,7 +13,8 @@
 'use strict';
 
 const METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']);
-const SCOPES = new Set(['prepare', 'finalize', 'recovery', 'merged_prepare', 'merged_finalize', 'revoke']);
+const SCOPES = new Set(['prepare', 'finalize', 'recovery', 'merged_prepare', 'merged_finalize', 'revoke',
+  'merge_group', 'queue_admission', 'queue_recovery']);
 const RESOURCES = new Set(['core', 'graphql', 'search', 'code_search', 'integration_manifest',
   'scim', 'actions_runner_registration', 'source_import']);
 
@@ -21,10 +22,12 @@ function category(url) {
   // Discard query parameters before matching. Never include a URL in output.
   const path = String(url || '').split('?')[0].replace(/^https?:\/\/[^/]+/, '');
   if (path === '/graphql') return 'graphql';
+  if (/^\/repos\/[^/]+\/[^/]+\/?$/.test(path)) return 'repository_metadata';
   const repo = path.replace(/^\/repos\/[^/]+\/[^/]+/, '');
   if (/^\/actions\/(runs(?:\/[^/]+)?\/artifacts|artifacts)(?:\/|$)/.test(repo)) return 'artifacts';
   if (/^\/actions\/runs\/[^/]+(?:\/attempts\/[^/]+)?\/jobs(?:\/|$)/.test(repo)) return 'run_jobs';
   if (/^\/actions\/(runs|workflows\/[^/]+\/runs)(?:\/|$)/.test(repo)) return 'workflow_runs';
+  if (/^\/actions\/workflows\/[^/]+\/dispatches$/.test(repo)) return 'workflow_dispatches';
   if (/^\/actions\/workflows(?:\/|$)/.test(repo)) return 'workflow_definitions';
   if (/^\/commits\/[^/]+\/check-runs$/.test(repo)) return 'check_runs';
   if (/^\/(statuses\/[^/]+|commits\/[^/]+\/status(?:es)?)$/.test(repo)) return 'commit_statuses';
@@ -33,6 +36,7 @@ function category(url) {
   if (/^\/issues\/[^/]+\/labels(?:\/|$)/.test(repo)) return 'issue_labels';
   if (/^\/issues\/[^/]+\/timeline$/.test(repo)) return 'issue_timeline';
   if (/^\/contents(?:\/|$)/.test(repo)) return 'contents';
+  if (/^\/rules\/branches\/.+/.test(repo)) return 'branch_rules';
   if (/^\/(branches|git\/refs?)(?:\/|$)/.test(repo)) return 'branches';
   return 'other';
 }

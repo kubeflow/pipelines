@@ -48,6 +48,22 @@ class QueueTestSourcesTest(unittest.TestCase):
                 sha,
             ),
         ]
+        cases.extend(
+            [
+                (
+                    'merge_group',
+                    'refs/heads/gh-readonly-queue/release-2.18/pr-7-test',
+                    {'merge_group': {'head_sha': sha}},
+                    sha,
+                ),
+                (
+                    'workflow_dispatch',
+                    'refs/heads/gh-readonly-queue/release-2.18/pr-7-test',
+                    {},
+                    sha,
+                ),
+            ]
+        )
         count = 0
         for filename in [
             'kfp-sdk-tests.yml',
@@ -137,13 +153,41 @@ class QueueTestSourcesTest(unittest.TestCase):
             for step in action['runs']['steps']
             if step.get('id') == 'run-tests'
         )
-        self.assertEqual(
-            step['env']['TEST_SOURCE_REF'],
-            '${{ github.event.merge_group.head_sha || '
-            "(github.event_name == 'workflow_dispatch' && "
-            "startsWith(github.ref, 'refs/heads/gh-readonly-queue/') && "
-            "github.sha) || 'master' }}",
-        )
+        sha = 'a' * 40
+        for branch in ['master', 'main', 'release-2.18']:
+            queue = f'refs/heads/gh-readonly-queue/{branch}/pr-7-test'
+            for event, ref, payload, expected in [
+                ('pull_request', 'refs/pull/7/merge', {}, branch),
+                ('push', f'refs/heads/{branch}', {}, branch),
+                ('workflow_dispatch', f'refs/heads/{branch}', {}, branch),
+                (
+                    'merge_group',
+                    queue,
+                    {'merge_group': {'head_sha': sha}},
+                    sha,
+                ),
+                ('workflow_dispatch', queue, {}, sha),
+            ]:
+                with self.subTest(branch=branch, event=event, ref=ref):
+                    self.assertEqual(
+                        render(
+                            step['env']['TEST_SOURCE_REF'],
+                            {
+                                'github': {
+                                    'event_name': event,
+                                    'ref': ref,
+                                    'sha': sha,
+                                    'event': {
+                                        'repository': {
+                                            'default_branch': branch
+                                        },
+                                        **payload,
+                                    },
+                                }
+                            },
+                        ),
+                        expected,
+                    )
         self.assertIn('-branchName="$TEST_SOURCE_REF"', step['run'])
 
 

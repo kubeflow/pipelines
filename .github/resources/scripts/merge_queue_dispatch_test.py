@@ -18,7 +18,13 @@ import unittest
 from pathlib import Path
 
 from ci_merge_group_test import good_run
-from merge_queue_admission_test import entry, pr, queue
+from merge_queue_admission_test import (
+    admitted_run,
+    attempts_url,
+    entry,
+    pr,
+    queue,
+)
 
 ROOT = Path(__file__).resolve().parents[3]
 MODULE = ROOT / '.github/resources/scripts/merge_queue_dispatch.js'
@@ -97,10 +103,21 @@ def dispatch(branch='master', **options):
             json.dumps({'version': 1, 'enabled_branches': fixture['enabled']})
         )
         script = f"""
-const gate = require({json.dumps(str(MODULE))});
 const f = {json.dumps(fixture)};
+const gate = require({json.dumps(str(MODULE))});
 const writes = [], dispatches = [], requests = [], inventoryRequests = [], operations = [];
 const counts = new Map();
+const summaries = [];
+let candidateReplaced = false;
+let activeDispatches = 0, peakDispatches = 0, completedDispatches = 0;
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+function graphqlPR(pr) {{
+  return {{id:pr.node_id, number:pr.number, state:pr.state.toUpperCase(),
+    isDraft:pr.draft, merged:pr.merged, headRefOid:pr.head.sha,
+    baseRefName:pr.base.ref, baseRepository:{{nameWithOwner:pr.base.repo.full_name}},
+    author:{{__typename:pr.user.type, login:pr.user.login}},
+    labels:{{nodes:pr.labels,totalCount:pr.labels.length,pageInfo:{{hasNextPage:false}}}}}};
+}}
 const reserved = () => writes.some(w => w.context.startsWith('ci-queue-dispatch/'));
 function next(key, values) {{
   const count = counts.get(key) || 0;
@@ -113,28 +130,51 @@ const github = {{rest: {{
     const changed = reserved() && f.refsAfterReservation;
     const refs = changed || f.refs;
     const sha = next('ref-' + options.ref, refs[options.ref] ||
-      [['heads/master', 'heads/main'].includes(options.ref) ? {json.dumps(BASE)} : {json.dumps(HEAD)}]);
+      [['heads/master', 'heads/main', 'heads/release-2.18'].includes(options.ref) ? {json.dumps(BASE)} : {json.dumps(HEAD)}]);
     if (sha === null) throw Object.assign(new Error('Ref disappeared'), {{status:404}});
     return {{data:{{ref:'refs/' + options.ref, object:{{type:'commit',sha}}}}}};
   }}}},
-  pulls: {{get: async options => {{
+  pulls: {{list:'pulls',get: async options => {{
     requests.push({{route:'pr', options}});
     if (reserved() && f.prAfterReservation) return {{data:f.prAfterReservation}};
     return {{data:f.prs ? f.prs[options.pull_number] : next('pr',f.queuePRs)}};
   }}}},
-  actions: {{listWorkflowRunsForRepo:'runs', createWorkflowDispatch:async options => {{
+  actions: {{listWorkflowRunsForRepo:'runs',
+    getWorkflowRun: async options => ({{data:f.runs.find(r => r.id === options.run_id)}}),
+    cancelWorkflowRun: async options => {{ operations.push({{route:'cancel',options}}); }},
+    createWorkflowDispatch:async options => {{
     dispatches.push(options); operations.push({{route:'dispatch',options}});
-    if (f.dispatchError) throw new Error('Dispatch response lost');
-    return {{status:204}};
+    activeDispatches++; peakDispatches = Math.max(peakDispatches, activeDispatches);
+    try {{
+      if (f.dispatchDelayMs) await delay(f.dispatchDelayMs);
+      if (f.dispatchError) throw new Error('Dispatch response lost');
+      return {{status:204}};
+    }} finally {{ activeDispatches--; completedDispatches++; }}
   }}}},
-  repos: {{listCommitStatusesForRef:'statuses', createCommitStatus:async options => {{
+  repos: {{get: async options => {{
+    requests.push({{route:'repository',options}});
+    if (f.repositoryError) throw new Error('Repository unavailable');
+    return {{data:{{full_name:'owner/repo',default_branch:next('defaultBranch', f.defaultBranches || [f.defaultBranch || f.branch])}}}};
+  }}, listCommitStatusesForRef:'statuses', createCommitStatus:async options => {{
     writes.push(options); operations.push({{route:'status',options}});
-    if (f.statusWriteError) throw new Error('Status write failed');
+    if (f.statusWriteError || options.context === f.statusWriteErrorContext) throw new Error('Status write failed');
+    if (f.replaceOnReservation === options.context) {{
+      // Complete this reservation after the others have resolved, reproducing
+      // a ref replacement before the batch can issue its dispatch requests.
+      await new Promise(resolve => setImmediate(resolve));
+      candidateReplaced = true;
+    }}
+    if (f.statusWriteDelayMs) await delay(f.statusWriteDelayMs);
     return {{data:{{...options,created_at:{json.dumps(NOW)}}}}};
   }}}},
 }}, paginate:async (route,options) => {{
   requests.push({{route,options}});
-  if (route.includes('/rules/branches/')) return f.rules;
+  if (route.includes('/rules/branches/')) {{
+    const rules = f.branchRules ? f.branchRules[options.branch] : f.rules;
+    if (rules === null) throw new Error('Rule lookup unavailable');
+    return rules;
+  }}
+  if (route === 'pulls') return f.listed || [];
   if (route === 'matchingRefs') return f.matchingRefs;
   if (route === 'runs') {{
     if (f.runsError) throw new Error('Runs unavailable');
@@ -145,7 +185,44 @@ const github = {{rest: {{
     return f.statuses;
   }}
   throw new Error('Unexpected API route: ' + route);
-}}, graphql:async query => {{
+}}, graphql:async (query, variables) => {{
+  if (query.includes('query RecoveryStatuses')) {{
+    requests.push({{route:'candidateStatus'}});
+    return {{repository: {{nameWithOwner:'owner/repo',
+      head0:{{__typename:'Commit',oid:variables.sha0,status:null}}}}}};
+  }}
+  if (query.includes('query AdmissionReviewPolicy')) {{
+    return {{repository:{{nameWithOwner:'owner/repo',ref:{{
+      name:variables.branch.slice('refs/heads/'.length),refUpdateRule:null
+    }}}}}};
+  }}
+  if (query.includes('enqueuePullRequest')) {{
+    requests.push({{route:'enqueue',options:variables}});
+    return {{enqueuePullRequest:{{mergeQueueEntry:{{id:'ENTRY_7',headCommit:f.enqueuedCandidate ? {{oid:f.enqueuedCandidate}} : null}}}}}};
+  }}
+  if (query.includes('query DispatchSnapshot')) {{
+    requests.push({{route:'dispatchSnapshot'}});
+    if (f.repositoryError) throw new Error('Repository unavailable');
+    if (f.queueError) throw new Error('Queue unavailable');
+    const value = structuredClone(next('queue', f.queues));
+    const repository = value.repository;
+    const refs = reserved() && f.refsAfterReservation || f.refs;
+    function refValue(ref) {{
+      const oid = next('ref-' + ref, refs[ref] ||
+        [['heads/master', 'heads/main', 'heads/release-2.18'].includes(ref) ? {json.dumps(BASE)} : {json.dumps(HEAD)}]);
+      return oid === null ? null : {{target:{{__typename:'Commit',oid}}}};
+    }}
+    repository.defaultBranchRef = {{name:next('defaultBranch', f.defaultBranches || [f.defaultBranch || f.branch])}};
+    repository.candidateRef = candidateReplaced ? {{target:{{__typename:'Commit',oid:{json.dumps(OTHER)}}}}} : refValue(variables.candidate.slice(5));
+    repository.baseRef = refValue(variables.base.slice(5));
+    for (const item of repository.mergeQueue.entries.nodes) {{
+      const number = item.pullRequest.number;
+      const pr = reserved() && f.prAfterReservation ? f.prAfterReservation :
+        (f.prs ? f.prs[number] : next('pr',f.queuePRs));
+      item.pullRequest = graphqlPR(pr);
+    }}
+    return value;
+  }}
   if (query.includes('query QueuePolicies')) {{
     requests.push({{route:'policies'}});
     const repository = {{nameWithOwner:'owner/repo'}};
@@ -171,12 +248,16 @@ const loadInventory = async options => {{
   if (f.inventoryError) throw new Error('Inventory unavailable');
   return {{inventory:f.inventory,workflowFiles:f.workflowFiles}};
 }};
-const core = {{info:()=>{{}},warning:()=>{{}},error:()=>{{}}}};
-gate[f.method]({{github, context:{{eventName:'schedule',payload:{{}},repo:{{owner:'owner',repo:'repo'}},runId:123}},
-  group:f.group, root:{json.dumps(str(root))}, core, loadInventory,
+const core = {{info:message=>{{
+  if (message.startsWith('{{')) summaries.push(JSON.parse(message));
+}},warning:()=>{{}},error:()=>{{}}}};
+const workspaceRoot = {json.dumps(str(root))};
+process.env.GITHUB_WORKSPACE = f.omitRoot ? workspaceRoot : workspaceRoot + '/unused';
+gate[f.method]({{github, context:{{eventName:f.eventName || 'schedule',payload:f.payload || {{}},repo:{{owner:'owner',repo:'repo'}},runId:123}},
+  workflowPaths:new Set(f.workflowFiles.map(file=>file.path)), group:f.group, ...(f.omitRoot ? {{}} : {{root:workspaceRoot}}), core, loadInventory,
   now:()=>Date.parse({json.dumps(NOW)})}})
-.then(result=>console.log(JSON.stringify({{result,writes,dispatches,requests,inventoryRequests,operations}})))
-.catch(error=>console.log(JSON.stringify({{error:error.message,writes,dispatches,requests,inventoryRequests,operations}})));
+.then(result=>console.log(JSON.stringify({{result,workspaceRoot,summaries,writes,dispatches,requests,inventoryRequests,operations,activeDispatches,peakDispatches,completedDispatches}})))
+.catch(error=>console.log(JSON.stringify({{error:error.message,workspaceRoot,summaries,writes,dispatches,requests,inventoryRequests,operations,activeDispatches,peakDispatches,completedDispatches}})));
 """
         completed = subprocess.run(
             ['node'], input=script, text=True, capture_output=True, check=True
@@ -185,6 +266,295 @@ gate[f.method]({{github, context:{{eventName:'schedule',payload:{{}},repo:{{owne
 
 
 class QueueRecoveryTest(unittest.TestCase):
+    def test_dispatch_materialized_enqueue_only_for_exact_pr_ref_and_sha(self):
+        prefix = 'heads/gh-readonly-queue/master/pr-7-'
+
+        def candidate_ref(ref, sha):
+            return {
+                'ref': 'refs/' + ref,
+                'object': {'type': 'commit', 'sha': sha},
+            }
+
+        other_refs = [
+            candidate_ref(prefix + 'replaced', HEAD),
+            candidate_ref('heads/gh-readonly-queue/master/pr-70-other', OTHER),
+        ]
+        for materialized, available in [
+            (False, False),
+            (True, False),
+            (True, True),
+        ]:
+            refs = list(other_refs)
+            if available:
+                refs.append(candidate_ref(prefix + 'abcdef', OTHER))
+            with self.subTest(materialized=materialized, available=available):
+                result = dispatch(
+                    method='reconcileQueue',
+                    eventName='pull_request_target',
+                    payload={'pull_request': {'number': 7}},
+                    enqueuedCandidate=OTHER if materialized else None,
+                    queues=[
+                        queue(),  # Initial admission snapshot.
+                        queue(),  # Revalidate predecessors before enqueue.
+                        queue([entry(headCommit={'oid': OTHER})]),
+                    ],
+                    matchingRefs=refs,
+                    refs={prefix + 'abcdef': [OTHER]},
+                    runs=[admitted_run()],
+                    statuses=[
+                        {
+                            'id': 10,
+                            'context': 'ci-passed',
+                            'state': 'success',
+                            'description': 'Queue admission master CI passed; base policy '
+                            + 'f' * 64
+                            + '.',
+                            'target_url': attempts_url([admitted_run()]),
+                        }
+                    ],
+                )
+                self.assertNotIn('error', result, result)
+                routes = [r['route'] for r in result['requests']]
+                self.assertIn('enqueue', routes)
+                self.assertNotIn('pulls', routes)
+                queries = [
+                    r['options']['ref']
+                    for r in result['requests']
+                    if r['route'] == 'matchingRefs'
+                ]
+                self.assertEqual(queries, [prefix] if materialized else [])
+                self.assertEqual(
+                    [
+                        d['inputs']['queue_head_sha']
+                        for d in result['dispatches']
+                    ],
+                    [OTHER] if available else [],
+                )
+                self.assertFalse(
+                    any(w['context'] == 'ci-passed' for w in result['writes'])
+                )
+
+    def test_schedule_still_discovers_candidates_and_publishes_status(self):
+        result = dispatch(method='reconcileQueue', runs=[good_run()])
+        self.assertNotIn('error', result, result)
+        routes = [r['route'] for r in result['requests']]
+        self.assertIn('matchingRefs', routes)
+        self.assertIn('pulls', routes)
+        self.assertTrue(
+            any(
+                w['context'] == 'ci-passed' and w['state'] == 'success'
+                for w in result['writes']
+            )
+        )
+
+    def test_queue_completion_reconciles_only_trigger_candidate(self):
+        branch = 'gh-readonly-queue/master/pr-7-abcdef'
+        unrelated = 'gh-readonly-queue/master/pr-8-other'
+        for event in ['merge_group', 'workflow_dispatch']:
+            with self.subTest(event=event):
+                result = dispatch(
+                    method='reconcileQueue',
+                    eventName='workflow_run',
+                    payload={
+                        'action': 'completed',
+                        'workflow_run': good_run(
+                            event=event, head_branch=branch
+                        ),
+                    },
+                    enabled=['master', 'release-2.18'],
+                    matchingRefs=[
+                        {
+                            'ref': 'refs/heads/' + branch,
+                            'object': {'type': 'commit', 'sha': HEAD},
+                        },
+                        {
+                            'ref': 'refs/heads/' + unrelated,
+                            'object': {'type': 'commit', 'sha': OTHER},
+                        },
+                    ],
+                    refs={'heads/' + unrelated: [OTHER]},
+                    queues=[
+                        queue(
+                            [
+                                entry(headCommit={'oid': HEAD}),
+                                entry(8, position=2, headCommit={'oid': OTHER}),
+                            ]
+                        )
+                    ],
+                    prs={'7': pr(), '8': pr(8)},
+                )
+                self.assertNotIn('error', result, result)
+                self.assertEqual(
+                    [d['ref'] for d in result['dispatches']], [branch]
+                )
+                routes = [r['route'] for r in result['requests']]
+                self.assertNotIn('matchingRefs', routes)
+                self.assertNotIn('pulls', routes)
+                self.assertNotIn('queue', routes)
+                self.assertFalse(
+                    any(w['context'] == 'ci-passed' for w in result['writes'])
+                )
+                for r in result['requests']:
+                    if r['route'] == 'runs':
+                        self.assertEqual(r['options']['head_sha'], HEAD)
+                    self.assertNotEqual(
+                        r.get('options', {}).get('branch'), 'release-2.18'
+                    )
+
+    def test_unrelated_or_invalid_workflow_event_performs_no_queue_io(self):
+        for run in [
+            good_run(event='push'),
+            good_run(head_sha='invalid'),
+            good_run(head_branch='main'),
+            good_run(head_repository={'full_name': 'fork/repo'}),
+            good_run(repository={'full_name': 'fork/repo'}),
+        ]:
+            with self.subTest(run=run):
+                result = dispatch(
+                    method='reconcileQueue',
+                    eventName='workflow_run',
+                    payload={'action': 'completed', 'workflow_run': run},
+                )
+                self.assertNotIn('error', result, result)
+                self.assertEqual(result['requests'], [])
+                self.assertEqual(result['writes'], [])
+
+    def test_stale_queue_completion_does_not_dispatch_replacement(self):
+        branch = 'gh-readonly-queue/master/pr-7-abcdef'
+        for sha in [OTHER, None]:
+            with self.subTest(sha=sha):
+                result = dispatch(
+                    method='reconcileQueue',
+                    eventName='workflow_run',
+                    payload={
+                        'action': 'completed',
+                        'workflow_run': good_run(head_branch=branch),
+                    },
+                    refs={'heads/' + branch: [sha]},
+                    runs=[
+                        good_run(
+                            id=11,
+                            head_branch=branch,
+                            status='in_progress',
+                            conclusion=None,
+                        ),
+                        good_run(
+                            id=12,
+                            head_branch=branch,
+                            head_sha=OTHER,
+                            status='in_progress',
+                            conclusion=None,
+                        ),
+                        good_run(
+                            id=13,
+                            head_branch='gh-readonly-queue/master/pr-8-other',
+                            status='in_progress',
+                            conclusion=None,
+                        ),
+                    ],
+                )
+                self.assertNotIn('error', result, result)
+                self.assertEqual(result['dispatches'], [])
+                self.assertEqual(
+                    [
+                        op['options']['run_id']
+                        for op in result['operations']
+                        if op['route'] == 'cancel'
+                    ],
+                    [11],
+                )
+                self.assertEqual(result['inventoryRequests'], [])
+                self.assertEqual(result['writes'], [])
+                self.assertNotIn(
+                    'matchingRefs', [r['route'] for r in result['requests']]
+                )
+
+    def test_dispatch_uses_workspace_when_caller_omits_root(self):
+        for method in ['dispatchGroup', 'dispatchCandidates']:
+            for omit_root in [True, False]:
+                with self.subTest(method=method, omit_root=omit_root):
+                    result = dispatch(method=method, omitRoot=omit_root)
+                    self.assertNotIn('error', result)
+                    self.assertEqual(len(result['dispatches']), 1, result)
+                    self.assertTrue(result['inventoryRequests'])
+                    for request in result['inventoryRequests']:
+                        self.assertEqual(
+                            request.get('root'), result['workspaceRoot']
+                        )
+
+    def test_default_rule_failure_does_not_block_release_dispatch(self):
+        for rules in [[], None]:
+            with self.subTest(rules=rules):
+                result = dispatch(
+                    method='dispatchCandidates',
+                    branch='release-2.18',
+                    lanes=[
+                        lane(
+                            '.github/workflows/pre-commit.yml',
+                            branch='release-2.18',
+                        )
+                    ],
+                    defaultBranch='main',
+                    enabled=['~DEFAULT_BRANCH', 'release-2.18'],
+                    branchRules={
+                        'main': rules,
+                        'release-2.18': [{'type': 'merge_queue'}],
+                    },
+                )
+                self.assertTrue(result['error'].startswith('main: '), result)
+                self.assertNotIn('release-2.18:', result['error'])
+                self.assertEqual(len(result['dispatches']), 1, result)
+                self.assertEqual(
+                    result['dispatches'][0]['inputs']['queue_base_ref'],
+                    'release-2.18',
+                )
+                self.assertTrue(
+                    any(w['context'] == 'ci-passed' for w in result['writes']),
+                    result,
+                )
+
+    def test_default_selector_dispatches_resolved_candidate_for_either_name(
+        self,
+    ):
+        for branch in ['master', 'main']:
+            with self.subTest(branch=branch):
+                result = dispatch(
+                    method='dispatchCandidates',
+                    branch=branch,
+                    enabled=['~DEFAULT_BRANCH'],
+                )
+                self.assertNotIn('error', result)
+                self.assertTrue(result['dispatches'])
+                for call in result['dispatches']:
+                    self.assertTrue(
+                        call['ref'].startswith(f'gh-readonly-queue/{branch}/')
+                    )
+                    self.assertEqual(call['inputs']['queue_base_ref'], branch)
+
+    def test_default_branch_change_before_initial_snapshot_never_dispatches(
+        self,
+    ):
+        for branch in ['master', 'main']:
+            with self.subTest(branch=branch):
+                other = 'main' if branch == 'master' else 'master'
+                result = dispatch(
+                    branch=branch,
+                    enabled=['~DEFAULT_BRANCH'],
+                    defaultBranches=[branch, other],
+                )
+                self.assertEqual(result['dispatches'], [], result)
+                self.assertEqual(result['writes'], [], result)
+
+    def test_default_selector_metadata_failure_never_dispatches(self):
+        result = dispatch(
+            method='dispatchCandidates',
+            enabled=['~DEFAULT_BRANCH'],
+            repositoryError=True,
+        )
+        self.assertIn('Repository unavailable', result['error'])
+        self.assertEqual(result['dispatches'], [])
+        self.assertEqual(result['writes'], [])
+
     def test_scheduled_recovery_publishes_completed_ci_without_workflow_run(
         self,
     ):
@@ -207,7 +577,7 @@ class QueueRecoveryTest(unittest.TestCase):
                         (write['sha'], write['state'])
                         for write in result['writes']
                     ],
-                    [(HEAD, 'pending'), (HEAD, 'success')],
+                    [(HEAD, 'success')],
                     result,
                 )
 
@@ -314,10 +684,103 @@ class QueueDispatchTest(unittest.TestCase):
         self.assertNotIn('error', result)
         self.assertEqual(len(result['dispatches']), 32)
         routes = [request['route'] for request in result['requests']]
-        # Initial validation plus both checks around each dispatch reservation.
-        self.assertEqual(routes.count('queue'), 65)
-        self.assertEqual(routes.count('policies'), 65)
+        # Initial validation plus two fresh snapshots for each four-lane batch.
+        # Each fresh boundary is one GraphQL snapshot plus active-rules REST;
+        # native/dispatched workflow and status discovery add three reads.
+        self.assertEqual(len(result['requests']), 37)
+        self.assertEqual(routes.count('dispatchSnapshot'), 17)
+        self.assertEqual(routes.count('queue'), 0)
+        self.assertEqual(routes.count('policies'), 0)
         self.assertEqual(routes.count('pr'), 0)
+        self.assert_candidate_counts(result, 17, 32, 32)
+
+    def assert_candidate_counts(
+        self, result, validations, reservations, dispatches
+    ):
+        summaries = [
+            row
+            for row in result['summaries']
+            if row.get('event') == 'queue_candidate_dispatch'
+        ]
+        self.assertEqual(len(summaries), 1, summaries)
+        summary = summaries[0]
+        self.assertEqual(summary['candidate'], HEAD)
+        self.assertEqual(summary['validations'], validations)
+        self.assertEqual(summary['reservations'], reservations)
+        self.assertEqual(summary['dispatches'], dispatches)
+
+    def test_replaced_candidate_during_batch_reservation_gets_zero_dispatches(
+        self,
+    ):
+        result = dispatch(
+            lanes=[
+                lane(path=f'.github/workflows/lane-{i}.yml') for i in range(8)
+            ],
+            replaceOnReservation='ci-queue-dispatch/lane-3.yml',
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(len(result['writes']), 4)
+        self.assertEqual(
+            [call['workflow_id'] for call in result['dispatches']], []
+        )
+        self.assert_candidate_counts(result, 3, 4, 0)
+
+    def test_missing_workflows_use_bounded_parallel_dispatch(self):
+        result = dispatch(
+            lanes=[
+                lane(path=f'.github/workflows/lane-{i}.yml') for i in range(9)
+            ],
+            dispatchDelayMs=10,
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(len(result['dispatches']), 9)
+        self.assertEqual(result['peakDispatches'], 4)
+        self.assertEqual(result['activeDispatches'], 0)
+        self.assertEqual(result['completedDispatches'], 9)
+
+    def test_failed_reservation_drains_siblings_before_reporting_error(self):
+        result = dispatch(
+            lanes=[
+                lane(path=f'.github/workflows/lane-{i}.yml') for i in range(9)
+            ],
+            statusWriteErrorContext='ci-queue-dispatch/lane-0.yml',
+            statusWriteDelayMs=20,
+            dispatchDelayMs=10,
+        )
+        self.assertIn('Status write failed', result['error'])
+        self.assertEqual(len(result['writes']), 4)
+        self.assertEqual(len(result['dispatches']), 3)
+        self.assert_candidate_counts(result, 3, 4, 3)
+        self.assertEqual(result['completedDispatches'], 3)
+        self.assertEqual(result['activeDispatches'], 0)
+        self.assertFalse(
+            any(
+                'lane-4' in call['workflow_id'] for call in result['dispatches']
+            )
+        )
+
+    def test_invalid_receipt_preserves_valid_sibling_dispatch(self):
+        result = dispatch(
+            lanes=[lane(), lane(path='.github/workflows/other.yml')],
+            statuses=[reservation(state='error')],
+        )
+        self.assertIn('Invalid queue dispatch reservation', result['error'])
+        self.assertEqual(
+            [call['workflow_id'] for call in result['dispatches']],
+            ['other.yml'],
+        )
+        self.assert_candidate_counts(result, 3, 1, 1)
+
+    def test_hold_after_parallel_reservations_stops_later_batches(self):
+        result = dispatch(
+            lanes=[
+                lane(path=f'.github/workflows/lane-{i}.yml') for i in range(9)
+            ],
+            prAfterReservation=pr(labels=[{'name': 'do-not-merge/hold'}]),
+        )
+        self.assertIn('error', result)
+        self.assertEqual(len(result['writes']), 4)
+        self.assertEqual(result['dispatches'], [])
 
     def assert_never_publishes_success(self, result):
         self.assertFalse(
@@ -326,15 +789,20 @@ class QueueDispatchTest(unittest.TestCase):
         )
 
     def test_missing_lane_dispatches_exact_candidate_for_either_branch(self):
-        for branch in ['master', 'main']:
+        for branch in ['master', 'main', 'release-2.18']:
             with self.subTest(branch=branch):
-                result = dispatch(branch=branch)
+                result = dispatch(
+                    branch=branch,
+                    lanes=[
+                        lane('.github/workflows/pre-commit.yml', branch=branch)
+                    ],
+                )
                 self.assertNotIn('error', result)
                 self.assertEqual(len(result['dispatches']), 1, result)
                 call = result['dispatches'][0]
                 self.assertEqual(call['owner'], 'owner')
                 self.assertEqual(call['repo'], 'repo')
-                self.assertEqual(call['workflow_id'], 'frontend.yml')
+                self.assertEqual(call['workflow_id'], 'pre-commit.yml')
                 self.assertEqual(
                     call['ref'], f'gh-readonly-queue/{branch}/pr-7-abcdef'
                 )
@@ -350,7 +818,7 @@ class QueueDispatchTest(unittest.TestCase):
                 reservations = [
                     write
                     for write in result['writes']
-                    if write['context'] == 'ci-queue-dispatch/frontend.yml'
+                    if write['context'] == 'ci-queue-dispatch/pre-commit.yml'
                 ]
                 self.assertEqual(len(reservations), 1, result)
                 self.assertEqual(
@@ -456,6 +924,7 @@ class QueueDispatchTest(unittest.TestCase):
         result = dispatch(dispatchError=True)
         self.assertIn('error', result)
         self.assertEqual(len(result['dispatches']), 1, result)
+        self.assert_candidate_counts(result, 3, 1, 1)
         self.assertTrue(
             any(
                 write['context'] == 'ci-queue-dispatch/frontend.yml'

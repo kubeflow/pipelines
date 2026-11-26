@@ -11,6 +11,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag/jsonutils"
 	"github.com/go-openapi/swag/typeutils"
+	"github.com/go-openapi/validate"
 )
 
 // V2ListPipelinesResponse v2 list pipelines response
@@ -49,8 +50,8 @@ func (m *V2ListPipelinesResponse) validatePipelines(formats strfmt.Registry) err
 	}
 
 	for i := 0; i < len(m.Pipelines); i++ {
-		if typeutils.IsZero(m.Pipelines[i]) { // not required
-			continue
+		if m.Pipelines[i] == nil {
+			return validate.Required("pipelines"+"."+strconv.Itoa(i), "body", m.Pipelines[i])
 		}
 
 		if m.Pipelines[i] != nil {
@@ -94,7 +95,7 @@ func (m *V2ListPipelinesResponse) contextValidatePipelines(ctx context.Context, 
 		if m.Pipelines[i] != nil {
 
 			if typeutils.IsZero(m.Pipelines[i]) { // not required
-				return nil
+				continue
 			}
 
 			if err := m.Pipelines[i].ContextValidate(ctx, formats); err != nil {

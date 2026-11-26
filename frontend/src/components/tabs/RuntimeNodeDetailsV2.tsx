@@ -53,7 +53,11 @@ import {
   isTaskFinished,
 } from 'src/lib/v2/RuntimeArtifactUtils';
 import { NodeRuntimeInfo } from 'src/lib/v2/DynamicFlow';
-import { getTaskDisplayName, getTaskLifecycleMessage } from 'src/lib/v2/RunTaskUtils';
+import {
+  getTaskDisplayName,
+  getTaskLifecycleCategory,
+  getTaskLifecycleMessage,
+} from 'src/lib/v2/RunTaskUtils';
 import { getTaskKeyFromNodeKey, NodeTypeNames } from 'src/lib/v2/StaticFlow';
 import type { PipelineFlowElement } from 'src/lib/v2/FlowTypes';
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
@@ -68,6 +72,12 @@ export const LIFECYCLE_ENDED_MESSAGE =
   "Kubernetes reported a problem with this task's pod before the run ended. Select Details to see the raw message.";
 export const LIFECYCLE_FAILURE_MESSAGE =
   'The task failed after Kubernetes reported a problem with its pod. Select Details to see the raw message.';
+// An unclassified message is a raw pod status, not a known problem, so it is worded as
+// information and shown in blue, the same as on the graph node.
+export const LIFECYCLE_STATUS_MESSAGE =
+  'Kubernetes reported a pod status for this task that could not be classified. This is not necessarily a problem. Select Details to see the raw message.';
+export const LIFECYCLE_STATUS_ENDED_MESSAGE =
+  'Kubernetes reported a pod status for this task that could not be classified before the run ended. Select Details to see the raw message.';
 
 function LifecycleBanner({
   task,
@@ -81,16 +91,20 @@ function LifecycleBanner({
     return null;
   }
   const failed = task?.state === PipelineTaskTaskState.FAILED;
+  const unclassified = !failed && getTaskLifecycleCategory(task) === 'unknown';
+  const message = failed
+    ? LIFECYCLE_FAILURE_MESSAGE
+    : unclassified
+      ? sourceFinished
+        ? LIFECYCLE_STATUS_ENDED_MESSAGE
+        : LIFECYCLE_STATUS_MESSAGE
+      : sourceFinished
+        ? LIFECYCLE_ENDED_MESSAGE
+        : LIFECYCLE_WARNING_MESSAGE;
   return (
     <Banner
-      mode={failed ? 'error' : 'warning'}
-      message={
-        failed
-          ? LIFECYCLE_FAILURE_MESSAGE
-          : sourceFinished
-            ? LIFECYCLE_ENDED_MESSAGE
-            : LIFECYCLE_WARNING_MESSAGE
-      }
+      mode={failed ? 'error' : unclassified ? 'info' : 'warning'}
+      message={message}
       additionalInfo={lifecycleMessage}
     />
   );

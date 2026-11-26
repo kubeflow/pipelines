@@ -3,7 +3,7 @@ name: Shared CI Images
 on:
   merge_group:
     types: [checks_requested]
-    branches: [master, main]
+    branches: [master, main, release-2.18]
   push:
     branches: [master, main]
   pull_request:
@@ -50,6 +50,8 @@ on:
       - 'kubernetes_platform/**'
       - 'manifests/kustomize/**'
       - 'proxy/**'
+      - 'release/kfpr/go_build_provenance.py'
+      - 'release/kfpr/read_go_buildinfo.go'
       - 'pyproject.toml'
       - 'samples/**'
       - 'sdk/**'
@@ -65,6 +67,18 @@ on:
       - 'third_party/**'
       - 'tools/k8s-native/**'
       - 'uv.lock'
+      - 'backend/Dockerfile.tensorboard'
+      - 'backend/src/tensorboard/**'
+      - 'backend/src/crd/controller/viewer/**'
+      - 'frontend/src/components/viewers/Tensorboard*'
+      - 'frontend/server/handlers/tensorboard*'
+      - 'test/tensorboard/**'
+      - 'hack/update_tensorboard_image.py'
+      - '.github/workflows/tensorboard-acceptance.yml'
+      - '.github/resources/scripts/artifact-files.sh'
+      - '.github/resources/scripts/ci-image-artifacts.sh'
+      - '.github/resources/scripts/load-tensorboard-image.sh'
+      - '.github/resources/scripts/shared_ci_images.py'
       - '!**/*.md'
       - '!**/OWNERS'
   workflow_dispatch:
@@ -75,7 +89,7 @@ on:
         type: string
         default: ''
       queue_base_ref:
-        description: Queue target branch, master or main (internal queue dispatch)
+        description: Queue target branch, master, main, or release-2.18 (internal queue dispatch)
         required: false
         type: string
         default: ''
@@ -106,7 +120,7 @@ jobs:
 
   source:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     permissions:
       contents: read
       pull-requests: read
@@ -124,6 +138,17 @@ jobs:
         with:
           name: ci-image-source-attempt-${{ github.run_attempt }}
           path: source.json
+          if-no-files-found: error
+          retention-days: 1
+      - name: Prepare pinned Argo manifests
+        run: python3 .github/resources/scripts/argo_manifest_artifacts.py prepare --output argo-manifests
+      - name: Publish pinned Argo manifests
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: argo-manifests-attempt-${{ github.run_attempt }}
+          path: |
+            argo-manifests/argo-manifests.tar
+            argo-manifests/argo-manifests.json
           if-no-files-found: error
           retention-days: 1
       - name: Select required architectures

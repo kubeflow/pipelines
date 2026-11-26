@@ -131,7 +131,9 @@ class SdkRuntimeTest(unittest.TestCase):
                     self.assertIn('--cov=kfp', command['args'])
                     self.assertIn('regression', command['args'])
                     self.assertNotIn('-s', command['args'])
-                    self.assertEqual(command['args'][-2:], ['-n', '2'])
+                    self.assertEqual(
+                        command['args'][command['args'].index('-n') + 1], '2'
+                    )
 
     def test_build_and_test_failures_stop_the_presubmit(self) -> None:
         """Propagate each failed phase and remove its build directory."""

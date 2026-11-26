@@ -104,18 +104,34 @@ preserved. Invalid or unreadable run identity fails closed. A completed
 triggering run falls through to full reconciliation: its delayed event may have
 replaced another run's invalidation or a PR retarget event in the writer queue.
 
-Successful completion events first inspect current workflow attempts. While another
-constituent is active, a trusted intermediate result skips workflow-policy,
-changed-file, retarget-history and full check scans. Finalization still revalidates
-the PR/head/base snapshot and reads the current aggregate status before publication.
-It preserves failures observed by those status reads, including a failure
-published after preparation and visible to finalization; unreadable status fails
-closed. Status reads and writes are not atomic with the independently locked
-stale-green revoker: a failure written after a success read but before the pending
-write can still become pending. This existing race cannot publish green; the next
-completion or recovery reconciliation reassesses the current evidence. This path can only revoke green or retain a
-non-success status. Newly appearing external failures are assessed on the next
-full reconciliation rather than scanned during each intermediate completion.
+Successful completion events first inspect current workflow attempts. If another
+constituent is active, the PR is open and unheld, its labels are known without a
+`ci-passed` label, and a subsequent aggregate-status read is already pending,
+preparation returns without writes or identity outputs. The always-run finalizer
+therefore also does nothing. In the single-page fixture/common case, this
+read-only path costs four API reads instead of six (PR discovery, PR detail, active runs and status); it cannot overwrite a
+concurrent failure or publish green. The status read follows the live run scan,
+so a failure or success observed during that scan takes the normal path.
+
+Other active-completion states retain the intermediate result and finalizer:
+finalization revalidates the PR/head/base snapshot and reads the aggregate status
+before publication. An active completion with clean labels but a non-pending
+status costs seven reads instead of six because of the optional status probe;
+label reconciliation still costs six. Paginated responses add reads to these
+fixture counts. The active-run result is reused only within
+this preparation invocation. A false or failed probe enters full validation,
+without probing again or caching positive evidence across events. A failed status
+read fails closed after emitting identity outputs for the failure finalizer.
+
+The fallback preserves failures observed by its status reads, including a failure
+published after preparation and visible to finalization. Status reads and writes
+are not atomic with the independently locked stale-green revoker: a failure
+written after a success read but before the pending write can still become
+pending. This existing fallback race cannot publish green; the next completion
+or recovery reassesses the evidence. Same-head green publishers share the gate's
+writer lock; the separate stale-green revoker only writes failure. Newly appearing
+external failures are assessed on the next full reconciliation rather than scanned
+during each intermediate completion.
 Failed/cancelled completion events probe the validated latest workflow attempts.
 A current failure (including timeout, action-required, stale or startup-failure)
 produces a failure-only prepared result, skipping policy and check scans. A delayed
@@ -372,6 +388,20 @@ pending on main; a real main bootstrap record allows only strictly newer CI.
 GitHub documents [branch rename behavior](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-branches-in-your-repository/renaming-a-branch)
 and [pending-run replacement](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency).
 
+### November 16, 2026 migration checkpoint
+
+The `master` to `main` rename preserved base commit
+`fb0ab08126ca305804e2b37b8cd1691b780099fb`. Its associated merged PR,
+[#15691](https://github.com/kubeflow/pipelines/pull/15691), records `master` as
+its base branch. That historical record does not establish arrival on `main`.
+
+The documentation-only PR adding this checkpoint is the bootstrap candidate
+for that base. Its creation does not authorize an exceptional merge or complete
+the cutover. Record the reviewed head, exact base, passing constituent checks,
+and maintainer authorization on the PR using the procedure above. After its
+merge, verify the new `main` merge record before updating other PRs and starting
+fresh CI against that new base.
+
 ## Validation and coordinated rollout
 
 Publisher code always executes from the trusted base revision. A PR changing the
@@ -413,18 +443,23 @@ After verifying the PR number and exact tested head, dispatch **CI Check** from
 the default branch with `merged_pr` and `head_sha`. For example:
 
 ```sh
-gh workflow run ci-checks.yml --ref master -f merged_pr=12345 -f head_sha=<40-character-head-SHA>
+gh workflow run ci-checks.yml --ref main -f merged_pr=12345 -f head_sha=<40-character-head-SHA>
 ```
 
 This explicit recovery accepts only merged `release-X.Y` PRs in this repository
 whose aggregate is pending, or whose leftover success/failure is proven to come
 from an interrupted recovery run. It binds the head, merge commit, repository and branch,
-and accepts only single-commit PRs whose tested head and merged commit have
-identical trees and identical sole parents. This proves the immutable pre-PR
-base without trusting a subsequently advancing PR base field. Multi-commit PRs,
-merge commits with multiple parents, and changed parents or trees fail closed;
-a first parent alone is not proof because a multi-commit rebase can put it inside
-the PR. The required workflow inventory comes from this verified parent. Other green or failed aggregate statuses are left untouched. Successful preparation,
+and requires identical tested and landed trees. The landed commit must have a
+single parent. For a single-commit PR, the tested head must have that same sole
+parent. For a two-commit PR, the first PR commit must have one parent. The
+second must be the tested merge of that first PR commit (first parent) and
+the exact landed base (second parent). Other commit shapes fail closed.
+These checks establish the immutable base for the required workflow inventory
+even when the release branch has advanced since the PR merged. Recovery uses
+this inventory throughout validation regardless of the current merge queue rule.
+The workflow attempts must agree at preparation, immediately before publication,
+and during the post-publication check. A change during publication revokes the
+success written by that recovery. Other green or failed aggregate statuses are left untouched. Successful preparation,
 required-workflow validation and the fresh external-check reader are all required. Identity
 changes, unavailable evidence and pending or failed checks cannot authorize a
 success. Recovery does not change PR labels. No release tag or package is published by this workflow.
@@ -465,7 +500,10 @@ for the exact candidate SHA, repository and queue branch, and publishes
 `ci-passed` only onto that SHA. It validates the triggering run through the
 individual-run endpoint, rejecting an older attempt or conflicting identity even
 when workflow lists still show green. It rereads run attempts and refs before
-and after success. Queue-enforcement lookup failures revoke prior success. Missing or running lanes remain pending; failed,
+and after publishing success. A successful candidate status records the base SHA,
+queue policy snapshot, and verified workflow attempts in a fingerprint on its run
+link. When those inputs still match, recovery preserves the existing green status.
+Queue-enforcement lookup failures revoke prior success. Missing or running lanes remain pending; failed,
 cancelled or skipped lanes cannot pass. Rebuilt/deleted candidates cannot lend
 their results to a new candidate. Changes to the target branch during
 reconciliation leave success unconfirmed until a subsequent constituent event

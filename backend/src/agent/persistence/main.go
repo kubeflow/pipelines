@@ -28,6 +28,7 @@ import (
 	swfinformers "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions"
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -127,6 +128,9 @@ func main() {
 		swfInformerFactory = swfinformers.NewSharedInformerFactory(swfClient, time.Second*30)
 	} else {
 		swfInformerFactory = swfinformers.NewFilteredSharedInformerFactory(swfClient, time.Second*30, namespace, nil)
+	}
+	if err := util.RegisterScheduledWorkflowInformer(swfInformerFactory, dynamic.NewForConfigOrDie(cfg), namespace); err != nil {
+		log.Fatalf("Error registering the ScheduledWorkflow informer: %v", err)
 	}
 
 	tokenRefresher := tokenrefresher.NewTokenRefresher(time.Duration(saTokenRefreshIntervalInSecs)*time.Second, nil)

@@ -46,8 +46,10 @@ def add_init_container(
         task: Pipeline task.
         name: Name of the init container. Must be unique within the pod.
         image: Container image of the init container.
-        command: Entrypoint array. Corresponds to the ``command`` field.
-        args: Arguments to the entrypoint. Corresponds to the ``args`` field.
+        command: Entrypoint array, as a list of strings. Corresponds to the
+            ``command`` field.
+        args: Arguments to the entrypoint, as a list of strings. Corresponds
+            to the ``args`` field.
         env: Mapping of environment variable names to values. Insertion order
             is preserved when serializing to the pod spec, which matters for
             ``$(VAR)`` references; duplicate names are not representable.
@@ -68,6 +70,12 @@ def add_init_container(
     Returns:
         Task object with the added init container.
     """
+    for argument_name, argument_value in (('command', command), ('args', args)):
+        if isinstance(argument_value, str):
+            raise TypeError(
+                f"'{argument_name}' must be a list of strings, got str: "
+                f'{argument_value!r}.'
+            )
     if not name:
         raise ValueError('Argument for "name" must be a non-empty string.')
     if name == 'kfp-launcher':

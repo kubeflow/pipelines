@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.27.4-alpine@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf AS builder
+FROM golang:1.27.4-alpine@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280 AS builder
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
@@ -33,9 +33,12 @@ RUN GO111MODULE=on go mod download
 
 COPY . .
 
-RUN GO111MODULE=on go build -o /bin/persistence_agent backend/src/agent/persistence/*.go
+RUN GO111MODULE=on go build -buildvcs=true -mod=readonly -o /bin/persistence_agent ./backend/src/agent/persistence
 
 FROM alpine:3.21
+
+# Refresh the runtime library even when the base tag still contains an older package.
+RUN apk add --no-cache 'zlib>=1.4-r0'
 
 RUN adduser -S appuser
 USER appuser

@@ -164,7 +164,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
             </div>
             <div
               class="columnName_f1kdqshe"
-              style="width: 8.333333333333332%;"
+              style="width: 8.33333%;"
               title="Status"
             >
               <span
@@ -179,7 +179,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
             </div>
             <div
               class="columnName_f1kdqshe"
-              style="width: 8.333333333333332%;"
+              style="width: 8.33333%;"
               title="Duration"
             >
               <span
@@ -194,7 +194,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
             </div>
             <div
               class="columnName_f1kdqshe"
-              style="width: 16.666666666666664%;"
+              style="width: 16.6667%;"
               title="Experiment"
             >
               <span
@@ -209,7 +209,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
             </div>
             <div
               class="columnName_f1kdqshe"
-              style="width: 16.666666666666664%;"
+              style="width: 16.6667%;"
               title="Pipeline Version"
             >
               <span
@@ -224,7 +224,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
             </div>
             <div
               class="columnName_f1kdqshe"
-              style="width: 8.333333333333332%;"
+              style="width: 8.33333%;"
               title="Recurring Run"
             >
               <span
@@ -239,7 +239,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
             </div>
             <div
               class="columnName_f1kdqshe"
-              style="width: 16.666666666666664%;"
+              style="width: 16.6667%;"
               title="Start time"
             >
               <span
@@ -551,7 +551,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
             </div>
             <div
               class="columnName_f1kdqshe"
-              style="width: 8.333333333333332%;"
+              style="width: 8.33333%;"
               title="Status"
             >
               <span
@@ -566,7 +566,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
             </div>
             <div
               class="columnName_f1kdqshe"
-              style="width: 8.333333333333332%;"
+              style="width: 8.33333%;"
               title="Duration"
             >
               <span
@@ -581,7 +581,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
             </div>
             <div
               class="columnName_f1kdqshe"
-              style="width: 16.666666666666664%;"
+              style="width: 16.6667%;"
               title="Experiment"
             >
               <span
@@ -596,7 +596,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
             </div>
             <div
               class="columnName_f1kdqshe"
-              style="width: 16.666666666666664%;"
+              style="width: 16.6667%;"
               title="Pipeline Version"
             >
               <span
@@ -611,7 +611,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
             </div>
             <div
               class="columnName_f1kdqshe"
-              style="width: 8.333333333333332%;"
+              style="width: 8.33333%;"
               title="Recurring Run"
             >
               <span
@@ -626,7 +626,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
             </div>
             <div
               class="columnName_f1kdqshe"
-              style="width: 16.666666666666664%;"
+              style="width: 16.6667%;"
               title="Start time"
             >
               <span

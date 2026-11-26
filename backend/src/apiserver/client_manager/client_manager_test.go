@@ -688,7 +688,7 @@ func TestBackfillRefColumnSQL_QuotesPerDialect(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.dialect, func(t *testing.T) {
-			sql := backfillRefColumnSQL(dialect.NewDBDialect(tt.dialect), "run_details", "PipelineId", model.PipelineResourceType)
+			sql := backfillRefColumnSQL(dialect.NewDBDialect(tt.dialect), "run_details", "PipelineId", model.PipelineResourceType).updateSQL
 
 			assert.Contains(t, sql, tt.quoted)
 
@@ -697,7 +697,7 @@ func TestBackfillRefColumnSQL_QuotesPerDialect(t *testing.T) {
 			assert.Contains(t, sql, "= 'pipeline'")
 			assert.Contains(t, sql, "= 'Run'")
 
-			pvSQL := backfillRefColumnSQL(dialect.NewDBDialect(tt.dialect), "run_details", "PipelineVersionId", model.PipelineVersionResourceType)
+			pvSQL := backfillRefColumnSQL(dialect.NewDBDialect(tt.dialect), "run_details", "PipelineVersionId", model.PipelineVersionResourceType).updateSQL
 			assert.Contains(t, pvSQL, "= 'PipelineVersion'")
 		})
 	}
@@ -740,6 +740,13 @@ func TestBackfillPipelineRefs_RunsOnceThenSkips(t *testing.T) {
 	require.NoError(t, autoMigrate(db))
 	dbDialect := dialect.NewDBDialect("sqlite")
 
+	// On large installations with no legacy references, even a zero-row
+	// locking UPDATE can stall live traffic. Only the marker should be written.
+	require.NoError(t, db.Callback().Raw().Before("gorm:raw").Register("test:reject-target-update", func(tx *gorm.DB) {
+		if strings.HasPrefix(strings.TrimSpace(tx.Statement.SQL.String()), "UPDATE ") {
+			tx.AddError(errors.New("unexpected UPDATE with no candidates"))
+		}
+	}))
 	require.NoError(t, backfillPipelineRefsToRunTable(db, dbDialect))
 
 	applied, err := migrationApplied(db, backfillPipelineRefsMigration)
@@ -779,6 +786,11 @@ func getTestMySQL(t *testing.T) *gorm.DB {
 	if serverDSN == "" {
 		t.Skip("set KFP_MIGRATION_MYSQL_TEST_DSN to run against MySQL")
 	}
+	return newTestMySQL(t, serverDSN)
+}
+
+func newTestMySQL(t *testing.T, serverDSN string) *gorm.DB {
+	t.Helper()
 	mysqlConfig, parseError := mysqlStd.ParseDSN(serverDSN)
 	require.NoError(t, parseError)
 	mysqlConfig.DBName = ""
@@ -931,7 +943,7 @@ func TestBackfillPipelineRefs_LegacyJobs(t *testing.T) {
 
 func TestBackfillRefColumnSQL_JobsUseJobResourceType(t *testing.T) {
 	// Job references use ResourceType 'Job'; matching 'Run' would backfill nothing.
-	sql := backfillRefColumnSQL(dialect.NewDBDialect("sqlite"), "jobs", "PipelineId", model.PipelineResourceType)
+	sql := backfillRefColumnSQL(dialect.NewDBDialect("sqlite"), "jobs", "PipelineId", model.PipelineResourceType).updateSQL
 	assert.Contains(t, sql, "= 'Job'")
 	assert.Contains(t, sql, "UPDATE jobs")
 	assert.NotContains(t, sql, "= 'Run'")
@@ -996,4 +1008,36 @@ func TestCreateExpressionIndexes_NonPostgresNoop(t *testing.T) {
 	assert.NotPanics(t, func() {
 		createExpressionIndexes(db, dialect.NewDBDialect("sqlite"))
 	})
+}
+
+func TestBackfillPipelineRefs_RestartsAfterPartialCommit(t *testing.T) {
+	db := getTestSQLite(t)
+	require.NoError(t, autoMigrate(db))
+	insertBackfillCandidates(t, db, pipelineRefBatchSize+1)
+	interrupted := errors.New("interrupted second batch")
+	updates := 0
+	require.NoError(t, db.Callback().Raw().Before("gorm:raw").Register("test:interrupt", func(tx *gorm.DB) {
+		if isRunBackfillWrite(tx) {
+			updates++
+			if updates == 2 {
+				tx.AddError(interrupted)
+			}
+		}
+	}))
+	d := dialect.NewDBDialect("sqlite")
+	require.ErrorIs(t, backfillPipelineRefsToRunTable(db, d), interrupted)
+	countRepaired := func() int64 {
+		var count int64
+		require.NoError(t, db.Model(&model.Run{}).Where(map[string]any{"PipelineId": "pipeline"}).Count(&count).Error)
+		return count
+	}
+	require.EqualValues(t, pipelineRefBatchSize, countRepaired())
+	applied, err := migrationApplied(db, backfillPipelineRefsMigration)
+	require.NoError(t, err)
+	require.False(t, applied)
+	require.NoError(t, backfillPipelineRefsToRunTable(db, d))
+	require.EqualValues(t, pipelineRefBatchSize+1, countRepaired())
+	applied, err = migrationApplied(db, backfillPipelineRefsMigration)
+	require.NoError(t, err)
+	require.True(t, applied)
 }

@@ -143,7 +143,7 @@ class QueueDispatchWorkflowsTest(unittest.TestCase):
     def test_guard_requires_exact_head_base_and_live_refs_for_both_branches(
         self,
     ):
-        for branch in ['master', 'main']:
+        for branch in ['master', 'main', 'release-2.18']:
             with self.subTest(branch=branch):
                 self.assertEqual(guard_case(branch), {'ok': True})
                 for key in [
@@ -166,7 +166,7 @@ class QueueDispatchWorkflowsTest(unittest.TestCase):
                         moved=f'heads/gh-readonly-queue/{branch}/pr-7-candidate',
                     ),
                 )
-        self.assertIn('error', guard_case('release-2.18'))
+        self.assertIn('error', guard_case('release-2.19'))
         self.assertIn('error', guard_case(malformed={'eventName': 'push'}))
         self.assertIn('error', guard_case(malformed={'sha': 'd' * 40}))
 
@@ -233,6 +233,38 @@ class QueueDispatchWorkflowsTest(unittest.TestCase):
         for expression in assertions:
             self.assertTrue(evaluate(expression, context()))
             self.assertTrue(evaluate(expression, context(inputs={})))
+
+    def test_release_only_dispatch_registrations_fail_closed_on_default(self):
+        release_lanes = {
+            'artifact-storage-acceptance.yml': 'Artifact storage acceptance',
+            'backend-visualization.yml': 'KFP backend visualization tests',
+            'build-tools-images-merge-group.yml': 'Build tools images merge group',
+            'cache-rolling-upgrade.yml': 'Legacy cache rolling upgrade',
+            'integration-tests-v1.yml': 'KFP API Integration v1 tests',
+            'legacy-v2-api-integration-tests.yml': 'KFP API Integration V2 (Legacy)',
+            'postgresql-image-upgrade.yml': 'PostgreSQL image retained-data upgrade',
+            'runtime-base-images-merge-group.yml': 'Runtime Base Images Merge Group',
+            'upgrade-readiness.yml': 'Upgrade readiness tool',
+        }
+        publisher = workflow('ci-checks.yml')['on']['workflow_run']['workflows']
+        for filename, name in release_lanes.items():
+            with self.subTest(workflow=filename):
+                definition = workflow(filename)
+                self.assertEqual(definition['name'], name)
+                self.assertEqual(set(definition['on']), {'workflow_dispatch'})
+                self.assertEqual(
+                    set(definition['on']['workflow_dispatch']['inputs']),
+                    {'queue_head_sha', 'queue_base_ref', 'queue_base_sha'},
+                )
+                self.assertEqual(definition['permissions'], {})
+                self.assertEqual(set(definition['jobs']), {'release-only'})
+                steps = definition['jobs']['release-only']['steps']
+                self.assertEqual(len(steps), 1)
+                self.assertNotIn('uses', steps[0])
+                self.assertIn('exit 1', steps[0]['run'])
+                self.assertIn(name, publisher)
+        self.assertIn('KFP SDK Isort Test', publisher)
+        self.assertIn('KFP SDK YAPF Tests', publisher)
 
     def test_queue_dispatch_cannot_publish_tools_images(self):
         jobs = workflow('build-tools-images.yml')['jobs']

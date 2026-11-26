@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -26,6 +27,9 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	authzv1 "k8s.io/api/authorization/v1"
@@ -372,6 +376,30 @@ func TestFindCachedTask_UsesListVerb(t *testing.T) {
 		assert.Equal(t, common.RbacResourceVerbList, recorder.lastReview.Spec.ResourceAttributes.Verb)
 		assert.Equal(t, run.Namespace, recorder.lastReview.Spec.ResourceAttributes.Namespace)
 	}
+}
+
+func TestFindCachedTask_BoundRunNamespaceMismatchReturnsPermissionDenied(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	clients, _, run := initWithOneTimeRunV2(t)
+	defer clients.Close()
+	clients.SubjectAccessReviewClientFake = &taskRecordingSubjectAccessReviewClient{}
+	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+	runSrv := createRunServer(manager)
+
+	ctx := ctxWithUser()
+	requestMetadata, _ := metadata.FromIncomingContext(ctx)
+	requestMetadata = requestMetadata.Copy()
+	requestMetadata.Set(auth.BoundRunIDMetadataKey, run.UUID)
+	ctx = metadata.NewIncomingContext(ctx, requestMetadata)
+
+	_, err := runSrv.FindCachedTask(ctx, &apiv2.FindCachedTaskRequest{
+		Namespace:        "other-ns",
+		CacheFingerprint: "cache-fp",
+	})
+	require.Error(t, err)
+	assert.Equal(t, codes.PermissionDenied, status.Code(err))
 }
 
 func TestCreateTask_CacheEntryStaysInAuthorizedRunNamespace(t *testing.T) {

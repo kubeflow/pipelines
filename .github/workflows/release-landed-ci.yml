@@ -1,0 +1,57 @@
+name: Release landed CI
+run-name: 'Release landed CI #${{ inputs.pr_number }} at ${{ inputs.release_sha }}'
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Merged upstream release PR number
+        type: string
+        required: true
+      release_sha:
+        description: Full SHA of the merged release commit
+        type: string
+        required: true
+      replay_pr:
+        description: Upstream PR testing the landed commit against its parent
+        type: string
+        required: true
+
+permissions: {}
+cache-mode: none
+
+jobs:
+  ci-passed:
+    if: github.repository == 'kubeflow/pipelines' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      checks: read
+      pull-requests: read
+      statuses: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r .github/scripts/requirements.txt
+      - name: Verify landed release CI
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          REPLAY_PR: ${{ inputs.replay_pr }}
+          GH_TOKEN: ${{ github.token }}
+          PYTHONPATH: release
+        run: |
+          python -m kfpr.landed_ci --pr "$PR_NUMBER" --sha "$RELEASE_SHA" --replay-pr "$REPLAY_PR" --output "$RUNNER_TEMP/landed-ci.json"
+      - name: Save verified CI evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: landed-ci-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/landed-ci.json
+          if-no-files-found: error

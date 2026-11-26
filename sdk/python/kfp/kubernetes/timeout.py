@@ -36,6 +36,11 @@ def set_timeout(
         Task object with an updated active_deadline_seconds.
     """
 
+    if isinstance(seconds, bool):
+        raise TypeError(
+            f'Argument for "seconds" must be an int, not bool. Got: {seconds}.'
+        )
+
     msg = common.get_existing_kubernetes_config_as_message(task)
     if seconds >= 0:
         msg.active_deadline_seconds = seconds
