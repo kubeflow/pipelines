@@ -60,6 +60,23 @@ type Filter struct {
 	caseInsensitiveKeys map[string]struct{}
 }
 
+// HasPredicates reports whether f carries at least one predicate. A filter
+// parsed from an empty filter spec carries none, which lets callers tell a
+// request that filtered on nothing from one that filtered on something.
+func (f *Filter) HasPredicates() bool {
+	if f == nil {
+		return false
+	}
+	for _, m := range []map[string][]interface{}{
+		f.eq, f.neq, f.gt, f.gte, f.lt, f.lte, f.in, f.substring,
+	} {
+		if len(m) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func (f *Filter) isCaseInsensitive(key string) bool {
 	if f.caseInsensitiveKeys == nil {
 		return false
