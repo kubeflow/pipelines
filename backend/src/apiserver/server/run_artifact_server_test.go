@@ -179,6 +179,31 @@ func TestReadArtifact_RunNotFound(t *testing.T) {
 	require.NotEqual(t, http.StatusOK, rr.Code)
 }
 
+// TestReadArtifact_ErrorContentType verifies that error responses are sent with a
+// JSON Content-Type. Result() is used because it reflects the headers that were
+// actually committed by WriteHeader, unlike rr.Header().
+func TestReadArtifact_ErrorContentType(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer clientManager.Close()
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	runArtifactServer := NewRunArtifactServer(resourceManager)
+
+	req := httptest.NewRequest("GET", "/apis/v2/runs/non-existent-run-id/nodes/node-1/artifacts/artifact-1:read", nil)
+	req = mux.SetURLVars(req, map[string]string{
+		"run_id":        "non-existent-run-id",
+		"node_id":       "node-1",
+		"artifact_name": "artifact-1",
+	})
+	rr := httptest.NewRecorder()
+
+	runArtifactServer.ReadArtifact(rr, req)
+
+	res := rr.Result()
+	defer res.Body.Close()
+	require.NotEqual(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+}
+
 // TestReadArtifact_ChunkedResponse validates that the HTTP endpoint
 // actually streams the response in chunks, not loading it all into memory.
 // This is the critical test that proves the endpoint prevents OOM errors.

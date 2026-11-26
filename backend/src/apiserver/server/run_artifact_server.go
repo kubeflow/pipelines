@@ -157,8 +157,8 @@ func (s *RunArtifactServer) artifactFileExists(ctx context.Context, runID string
 
 func (s *RunArtifactServer) writeErrorToResponse(response http.ResponseWriter, code int, err error) {
 	glog.Errorf("Failed to read artifact. Error: %+v", err)
-	response.WriteHeader(code)
 	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(code)
 	errorResponse := &apiError{ErrorMessage: err.Error(), ErrorDetails: fmt.Sprintf("%+v", err)}
 	errBytes, err := json.Marshal(errorResponse)
 	if err != nil {
