@@ -361,11 +361,13 @@ on its own show that work newer than six months is finished.
 To delete candidates:
 
 1. Publish the list with each branch's tip SHA, last commit date, and
-   qualifying reason, and get maintainer approval.
+   qualifying reason where owners can see it, and get maintainer approval.
+   Keep any branch whose owner objects or whose status is uncertain.
 2. Back up the approved tips, for example as a Git bundle with a branch and SHA
    manifest, and verify that they restore.
-3. Immediately before deleting, recheck protection and open pull requests, and
-   delete only branches whose tip still matches the approved SHA.
+3. Immediately before deleting, recheck that each branch still matches none of
+   the keep rules above, and delete only branches whose tip still matches the
+   approved SHA.
 4. Record the deleted branches and their tip SHAs where the audit was approved.
 
 ## Python dependency artifacts
