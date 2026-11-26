@@ -249,6 +249,30 @@ func TestRetryReadRejectsSuccessAfterAttemptTimeout(t *testing.T) {
 	require.ErrorIs(t, err, context.DeadlineExceeded)
 }
 
+func TestRetryReadRetriesLateSuccessAfterAttemptTimeout(t *testing.T) {
+	policy := testRetryPolicy()
+	policy.AttemptTimeout = 10 * time.Millisecond
+	policy.TotalTimeout = time.Second
+	policy.MaxAttempts = 3
+	fake := &fakeRetryEnv{}
+
+	calls := 0
+	result, err := retryReadWithEnv(context.Background(), fake.env(), "TestLateSuccess", policy,
+		func(ctx context.Context) (string, error) {
+			calls++
+			if calls == 1 {
+				<-ctx.Done()
+				return "late success", nil
+			}
+			return "ok", nil
+		})
+
+	require.NoError(t, err)
+	require.Equal(t, "ok", result)
+	require.Equal(t, 2, calls)
+	require.Len(t, fake.slept, 1)
+}
+
 // fakeRetryEnv records the delays the retry loop asks for without sleeping.
 type fakeRetryEnv struct {
 	upperBounds []time.Duration

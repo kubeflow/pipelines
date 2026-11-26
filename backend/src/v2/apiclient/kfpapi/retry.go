@@ -186,10 +186,13 @@ func retryReadWithEnv[T any](
 			return zero, budgetErr
 		}
 
+		// A success that arrives after the attempt deadline is treated as that
+		// attempt timing out, so it is retried while attempts and budget remain.
+		if err == nil && attemptTimedOut {
+			result, err = zero, context.DeadlineExceeded
+		}
+
 		if err == nil {
-			if attemptTimedOut {
-				return zero, context.DeadlineExceeded
-			}
 			if attempt > 1 {
 				glog.Infof(
 					"Runtime RPC %s succeeded after retries: attempts=%d elapsed=%s",
