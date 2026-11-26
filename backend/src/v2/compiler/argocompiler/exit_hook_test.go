@@ -15,6 +15,9 @@
 package argocompiler_test
 
 import (
+	"fmt"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
@@ -435,4 +438,549 @@ func assertNoDuplicateParameters(t *testing.T, templates map[string]wfapi.Templa
 			}
 		}
 	}
+}
+
+// exitTask describes an exit task, i.e. one the SDK marks with
+// ALL_UPSTREAM_TASKS_COMPLETED. dsl.ExitHandler exit tasks and
+// .ignore_upstream_failure() tasks both compile to that trigger strategy.
+type exitTask struct {
+	name string
+	deps []string
+}
+
+// compileExitHookPipeline compiles a pipeline with the given plain producers and
+// exit tasks, mirroring the IR the SDK emits for them.
+func compileExitHookPipeline(t *testing.T, producers []string, exitTasks []exitTask, enableCache bool) *wfapi.Workflow {
+	t.Helper()
+	proxy.InitializeConfigWithEmptyForTests()
+
+	tasks := map[string]*pipelinespec.PipelineTaskSpec{}
+	components := map[string]*pipelinespec.ComponentSpec{}
+	executors := map[string]any{}
+
+	addComponent := func(name string) {
+		components["comp-"+name] = &pipelinespec.ComponentSpec{
+			Implementation: &pipelinespec.ComponentSpec_ExecutorLabel{ExecutorLabel: "exec-" + name},
+		}
+		executors["exec-"+name] = map[string]any{
+			"container": map[string]any{
+				"image":   "python:3.11",
+				"command": []any{"echo", name},
+			},
+		}
+	}
+
+	for _, p := range producers {
+		addComponent(p)
+		tasks[p] = &pipelinespec.PipelineTaskSpec{
+			TaskInfo:       &pipelinespec.PipelineTaskInfo{Name: p},
+			ComponentRef:   &pipelinespec.ComponentRef{Name: "comp-" + p},
+			CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{EnableCache: enableCache},
+		}
+	}
+	for _, e := range exitTasks {
+		addComponent(e.name)
+		tasks[e.name] = &pipelinespec.PipelineTaskSpec{
+			TaskInfo:       &pipelinespec.PipelineTaskInfo{Name: e.name},
+			ComponentRef:   &pipelinespec.ComponentRef{Name: "comp-" + e.name},
+			CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{EnableCache: enableCache},
+			DependentTasks: e.deps,
+			TriggerPolicy: &pipelinespec.PipelineTaskSpec_TriggerPolicy{
+				Strategy: pipelinespec.PipelineTaskSpec_TriggerPolicy_ALL_UPSTREAM_TASKS_COMPLETED,
+			},
+		}
+	}
+
+	deployment, err := structpb.NewStruct(map[string]any{"executors": executors})
+	require.NoError(t, err)
+
+	spec := &pipelinespec.PipelineSpec{
+		PipelineInfo:   &pipelinespec.PipelineInfo{Name: "exit-hook-test"},
+		SchemaVersion:  "2.1.0",
+		SdkVersion:     "kfp-2.17.0",
+		DeploymentSpec: deployment,
+		Components:     components,
+		Root: &pipelinespec.ComponentSpec{
+			Implementation: &pipelinespec.ComponentSpec_Dag{
+				Dag: &pipelinespec.DagSpec{Tasks: tasks},
+			},
+		},
+	}
+
+	raw, err := protojson.Marshal(spec)
+	require.NoError(t, err)
+	specStruct := &structpb.Struct{}
+	require.NoError(t, protojson.Unmarshal(raw, specStruct))
+
+	wf, err := argocompiler.Compile(
+		&pipelinespec.PipelineJob{PipelineSpec: specStruct}, nil, &argocompiler.Options{},
+	)
+	require.NoError(t, err)
+	return wf
+}
+
+// hookAttachments maps each hooked template to the "<template>/<task>" sites
+// that attach it as an exit hook.
+func hookAttachments(wf *wfapi.Workflow) map[string][]string {
+	attachments := map[string][]string{}
+	for _, tmpl := range wf.Spec.Templates {
+		if tmpl.DAG == nil {
+			continue
+		}
+		for _, task := range tmpl.DAG.Tasks {
+			for event, hook := range task.Hooks {
+				attachments[hook.Template] = append(attachments[hook.Template],
+					fmt.Sprintf("%s/%s[%s]", tmpl.Name, task.Name, event))
+			}
+		}
+	}
+	return attachments
+}
+
+// exitHookInvocations maps each "exit-hook-*" template to every site that
+// invokes it, whether attached as a lifecycle hook or run as a task of an
+// aggregating wrapper. A template invoked from two sites runs twice.
+func exitHookInvocations(wf *wfapi.Workflow) map[string][]string {
+	invocations := map[string][]string{}
+	record := func(template, site string) {
+		if strings.HasPrefix(template, "exit-hook-") {
+			invocations[template] = append(invocations[template], site)
+		}
+	}
+	for _, tmpl := range wf.Spec.Templates {
+		if tmpl.DAG == nil {
+			continue
+		}
+		for _, task := range tmpl.DAG.Tasks {
+			record(task.Template, fmt.Sprintf("%s/%s", tmpl.Name, task.Name))
+			for event, hook := range task.Hooks {
+				record(hook.Template, fmt.Sprintf("%s/%s[%s]", tmpl.Name, task.Name, event))
+			}
+		}
+	}
+	return invocations
+}
+
+// unreachableTemplates returns templates that nothing in the workflow can reach,
+// so a generated exit hook that is never invoked fails loudly.
+func unreachableTemplates(wf *wfapi.Workflow) []string {
+	reachable := map[string]bool{wf.Spec.Entrypoint: true}
+	if wf.Spec.OnExit != "" {
+		reachable[wf.Spec.OnExit] = true
+	}
+	for _, tmpl := range wf.Spec.Templates {
+		if tmpl.DAG == nil {
+			continue
+		}
+		for _, task := range tmpl.DAG.Tasks {
+			if task.Template != "" {
+				reachable[task.Template] = true
+			}
+			for _, hook := range task.Hooks {
+				reachable[hook.Template] = true
+			}
+		}
+	}
+	var unreachable []string
+	for _, tmpl := range wf.Spec.Templates {
+		if !reachable[tmpl.Name] {
+			unreachable = append(unreachable, tmpl.Name)
+		}
+	}
+	return unreachable
+}
+
+func dagTask(t *testing.T, wf *wfapi.Workflow, tmplName, taskName string) wfapi.DAGTask {
+	t.Helper()
+	for _, tmpl := range wf.Spec.Templates {
+		if tmpl.Name != tmplName || tmpl.DAG == nil {
+			continue
+		}
+		for _, task := range tmpl.DAG.Tasks {
+			if task.Name == taskName {
+				return task
+			}
+		}
+	}
+	t.Fatalf("task %q not found in template %q", taskName, tmplName)
+	return wfapi.DAGTask{}
+}
+
+// TestExitHookInvokedExactlyOnce locks in the two invariants the exit-hook
+// compiler must hold for every pipeline shape:
+//
+//  1. Every generated exit-hook template is reachable. Keying the upstream ->
+//     template mapping by upstream task name used to let a second exit task
+//     naming the same upstream replace the first, leaving a template that
+//     nothing invoked, so that exit task silently never ran.
+//  2. Every exit-hook template is attached exactly once. Argo evaluates an exit
+//     hook per task it is attached to, so attaching one template to several
+//     upstream tasks ran the exit task once per upstream.
+func TestExitHookInvokedExactlyOnce(t *testing.T) {
+	tests := []struct {
+		name      string
+		producers []string
+		exitTasks []exitTask
+	}{
+		{
+			name:      "single upstream",
+			producers: []string{"produce"},
+			exitTasks: []exitTask{{name: "cleanup", deps: []string{"produce"}}},
+		},
+		{
+			name:      "two upstream tasks",
+			producers: []string{"produce", "produce-2"},
+			exitTasks: []exitTask{{name: "cleanup", deps: []string{"produce", "produce-2"}}},
+		},
+		{
+			name:      "three upstream tasks",
+			producers: []string{"produce", "produce-2", "produce-3"},
+			exitTasks: []exitTask{{name: "cleanup", deps: []string{"produce", "produce-2", "produce-3"}}},
+		},
+		{
+			name:      "two exit tasks sharing one upstream",
+			producers: []string{"produce"},
+			exitTasks: []exitTask{
+				{name: "cleanup", deps: []string{"produce"}},
+				{name: "cleanup-2", deps: []string{"produce"}},
+			},
+		},
+		{
+			name:      "three exit tasks sharing one upstream",
+			producers: []string{"produce"},
+			exitTasks: []exitTask{
+				{name: "cleanup", deps: []string{"produce"}},
+				{name: "cleanup-2", deps: []string{"produce"}},
+				{name: "cleanup-3", deps: []string{"produce"}},
+			},
+		},
+		{
+			name:      "exit tasks on different upstream tasks",
+			producers: []string{"produce", "produce-2"},
+			exitTasks: []exitTask{
+				{name: "cleanup", deps: []string{"produce"}},
+				{name: "cleanup-2", deps: []string{"produce-2"}},
+			},
+		},
+		{
+			name:      "shared upstream mixed with multi upstream",
+			producers: []string{"produce", "produce-2"},
+			exitTasks: []exitTask{
+				{name: "cleanup", deps: []string{"produce"}},
+				{name: "cleanup-2", deps: []string{"produce"}},
+				{name: "cleanup-3", deps: []string{"produce", "produce-2"}},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			wf := compileExitHookPipeline(t, test.producers, test.exitTasks, true)
+
+			assert.Empty(t, unreachableTemplates(wf),
+				"every generated template must be reachable; an unreachable exit hook never runs")
+
+			invocations := exitHookInvocations(wf)
+			for _, e := range test.exitTasks {
+				tmpl := fmt.Sprintf("exit-hook-root-%s", e.name)
+				require.Contains(t, invocations, tmpl,
+					"exit task %q produced no reachable invocation site", e.name)
+			}
+			for tmpl, sites := range invocations {
+				assert.Len(t, sites, 1,
+					"exit-hook template %q is invoked from %d sites, so the exit task runs once per site: %v",
+					tmpl, len(sites), sites)
+			}
+		})
+	}
+}
+
+// TestMultiUpstreamExitTaskIsGated checks the structure that makes a
+// multi-upstream exit task run once: the hook moves onto a gate task that waits
+// for every upstream task to reach a final state, and a companion status task
+// keeps an upstream failure visible in the DAG phase.
+func TestMultiUpstreamExitTaskIsGated(t *testing.T) {
+	wf := compileExitHookPipeline(t,
+		[]string{"produce", "produce-2"},
+		[]exitTask{{name: "cleanup", deps: []string{"produce", "produce-2"}}},
+		true,
+	)
+
+	// The upstream tasks themselves must not carry the hook any more.
+	for _, producer := range []string{"produce", "produce-2"} {
+		assert.Empty(t, dagTask(t, wf, "root", producer).Hooks,
+			"upstream task %q must not carry the exit hook, or the exit task runs once per upstream", producer)
+	}
+
+	gate := dagTask(t, wf, "root", "cleanup-upstream-gate")
+	require.NotNil(t, gate.Hooks.GetExitHook(), "the gate must carry the exit hook")
+	assert.Equal(t, "exit-hook-root-cleanup", gate.Hooks.GetExitHook().Template)
+	// The gate waits for both upstream tasks, in any final state, so that
+	// .ignore_upstream_failure() still runs the exit task when one fails.
+	for _, producer := range []string{"produce", "produce-2"} {
+		for _, state := range []string{"Succeeded", "Failed", "Errored", "Skipped", "Omitted"} {
+			assert.Contains(t, gate.Depends, producer+"."+state)
+		}
+	}
+	assert.Equal(t, 1, strings.Count(gate.Depends, "&&"),
+		"the gate must require both upstream tasks, not either one: %q", gate.Depends)
+
+	// The gate succeeds even when an upstream task fails, and depending on the
+	// upstream tasks stops them being DAG leaves. Without the status task the
+	// DAG would then report success despite the failure.
+	status := dagTask(t, wf, "root", "cleanup-upstream-status")
+	assert.Equal(t, "produce.Succeeded && produce-2.Succeeded", status.Depends)
+	assert.Empty(t, status.Hooks, "the status task must not duplicate the hook")
+
+	// Neither gate task should schedule a pod.
+	for _, tmpl := range wf.Spec.Templates {
+		if tmpl.Name == gate.Template {
+			require.NotNil(t, tmpl.Suspend, "gate template must be a suspend template, not a pod")
+			assert.Equal(t, "0s", tmpl.Suspend.Duration)
+		}
+	}
+	assert.Equal(t, gate.Template, status.Template, "both gate tasks share one no-op template")
+}
+
+// TestSingleUpstreamExitHookUnchanged keeps the single-upstream shape, which is
+// what dsl.ExitHandler and the common .ignore_upstream_failure() case compile
+// to, attached directly to its upstream task with no added tasks.
+func TestSingleUpstreamExitHookUnchanged(t *testing.T) {
+	wf := compileExitHookPipeline(t,
+		[]string{"produce"},
+		[]exitTask{{name: "cleanup", deps: []string{"produce"}}},
+		true,
+	)
+
+	produce := dagTask(t, wf, "root", "produce")
+	require.NotNil(t, produce.Hooks.GetExitHook())
+	assert.Equal(t, "exit-hook-root-cleanup", produce.Hooks.GetExitHook().Template,
+		"a single upstream task keeps the hook directly, with no wrapper")
+
+	for _, tmpl := range wf.Spec.Templates {
+		assert.NotContains(t, tmpl.Name, "-group", "no aggregation wrapper is needed for one exit task")
+		assert.Nil(t, tmpl.Suspend, "no gate is needed for a single upstream task")
+	}
+	for _, task := range dagTemplate(t, wf, "root").DAG.Tasks {
+		assert.NotContains(t, task.Name, "-upstream-gate")
+		assert.NotContains(t, task.Name, "-upstream-status")
+	}
+}
+
+// TestSharedUpstreamExitTemplatesAreAggregated covers two exit tasks naming the
+// same upstream task. Argo's lifecycle hooks are keyed by event, so one task can
+// hold only one "exit" hook; both exit tasks therefore run through a single
+// aggregating template rather than one replacing the other.
+func TestSharedUpstreamExitTemplatesAreAggregated(t *testing.T) {
+	wf := compileExitHookPipeline(t,
+		[]string{"produce"},
+		[]exitTask{
+			{name: "cleanup", deps: []string{"produce"}},
+			{name: "cleanup-2", deps: []string{"produce"}},
+		},
+		true,
+	)
+
+	produce := dagTask(t, wf, "root", "produce")
+	require.NotNil(t, produce.Hooks.GetExitHook())
+	wrapper := produce.Hooks.GetExitHook().Template
+	assert.Equal(t, "exit-hook-root-produce-group", wrapper)
+
+	invoked := map[string]bool{}
+	for _, task := range dagTemplate(t, wf, wrapper).DAG.Tasks {
+		invoked[task.Template] = true
+	}
+	assert.True(t, invoked["exit-hook-root-cleanup"], "first exit task must still run")
+	assert.True(t, invoked["exit-hook-root-cleanup-2"], "second exit task must still run")
+	assert.Empty(t, unreachableTemplates(wf))
+}
+
+// TestExitHookGatingIndependentOfCaching checks that running a multi-upstream
+// exit task once comes from the generated topology rather than from a cache hit
+// suppressing a second execution.
+func TestExitHookGatingIndependentOfCaching(t *testing.T) {
+	for _, enableCache := range []bool{true, false} {
+		t.Run(fmt.Sprintf("enableCache=%v", enableCache), func(t *testing.T) {
+			wf := compileExitHookPipeline(t,
+				[]string{"produce", "produce-2"},
+				[]exitTask{{name: "cleanup", deps: []string{"produce", "produce-2"}}},
+				enableCache,
+			)
+			require.Len(t, exitHookInvocations(wf)["exit-hook-root-cleanup"], 1)
+			require.Len(t, hookAttachments(wf)["exit-hook-root-cleanup"], 1)
+			assert.Empty(t, dagTask(t, wf, "root", "produce").Hooks)
+			assert.Empty(t, dagTask(t, wf, "root", "produce-2").Hooks)
+		})
+	}
+}
+
+// TestCompiledFixturesHaveNoUnreachableExitHooks applies the same invariants to
+// the SDK-compiled fixtures, including nested DAGs and dsl.ExitHandler.
+func TestCompiledFixturesHaveNoUnreachableExitHooks(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	fixtures := []string{
+		"failing/pipeline_with_exit_handler.yaml",
+		"failing/pipeline_with_multiple_exit_handlers.yaml",
+		"pipeline_as_exit_task.yaml",
+		"pipeline_with_task_using_ignore_upstream_failure.yaml",
+	}
+	for _, fixture := range fixtures {
+		t.Run(fixture, func(t *testing.T) {
+			spec, platform, err := util.LoadPipelineAndPlatformSpec(filepath.Join(
+				"../../../../../test_data/sdk_compiled_pipelines/valid", fixture))
+			require.NoError(t, err)
+			raw, err := protojson.Marshal(spec)
+			require.NoError(t, err)
+			specStruct := &structpb.Struct{}
+			require.NoError(t, protojson.Unmarshal(raw, specStruct))
+			wf, err := argocompiler.Compile(&pipelinespec.PipelineJob{PipelineSpec: specStruct},
+				platform.GetPlatforms()["kubernetes"], &argocompiler.Options{})
+			require.NoError(t, err)
+
+			assert.Empty(t, unreachableTemplates(wf))
+			for tmpl, sites := range exitHookInvocations(wf) {
+				assert.Len(t, sites, 1, "exit-hook template %q invoked from %d sites: %v",
+					tmpl, len(sites), sites)
+			}
+		})
+	}
+}
+
+func dagTemplate(t *testing.T, wf *wfapi.Workflow, name string) wfapi.Template {
+	t.Helper()
+	for _, tmpl := range wf.Spec.Templates {
+		if tmpl.Name == name {
+			require.NotNil(t, tmpl.DAG, "template %q is not a DAG", name)
+			return tmpl
+		}
+	}
+	t.Fatalf("template %q not found", name)
+	return wfapi.Template{}
+}
+
+// assertNoDuplicateTaskNames checks that every DAG template names each of its
+// tasks once. Argo validation rejects a workflow that repeats a task name.
+func assertNoDuplicateTaskNames(t *testing.T, wf *wfapi.Workflow) {
+	t.Helper()
+	for _, tmpl := range wf.Spec.Templates {
+		if tmpl.DAG == nil {
+			continue
+		}
+		seen := map[string]bool{}
+		for _, task := range tmpl.DAG.Tasks {
+			assert.False(t, seen[task.Name],
+				"template %q names task %q more than once", tmpl.Name, task.Name)
+			seen[task.Name] = true
+		}
+	}
+}
+
+// An exit task may legitimately be named "<upstream>-group", which collides
+// with the name of the wrapper that aggregates several exit tasks sharing that
+// upstream. The wrapper must pick another name rather than fail compilation.
+func TestSharedUpstreamWrapperAvoidsExitTemplateName(t *testing.T) {
+	wf := compileExitHookPipeline(t,
+		[]string{"produce"},
+		[]exitTask{
+			{name: "cleanup", deps: []string{"produce"}},
+			{name: "produce-group", deps: []string{"produce"}},
+		},
+		true,
+	)
+
+	assert.Empty(t, unreachableTemplates(wf),
+		"both exit hooks must stay reachable through the aggregating wrapper")
+	assertNoDuplicateTaskNames(t, wf)
+	for _, name := range []string{"exit-hook-root-cleanup", "exit-hook-root-produce-group"} {
+		invocations := exitHookInvocations(wf)[name]
+		assert.Len(t, invocations, 1, "%q must run exactly once, invoked from %v", name, invocations)
+	}
+}
+
+// A pipeline may already contain tasks named "<exit task>-upstream-gate" or
+// "-upstream-status", which are the names used for the synthetic tasks that
+// gate a multi-upstream exit task. The synthetic tasks must not collide.
+func TestMultiUpstreamGateAvoidsExistingTaskNames(t *testing.T) {
+	wf := compileExitHookPipeline(t,
+		[]string{"produce", "produce-2", "cleanup-upstream-gate", "cleanup-upstream-status"},
+		[]exitTask{{name: "cleanup", deps: []string{"produce", "produce-2"}}},
+		true,
+	)
+
+	assertNoDuplicateTaskNames(t, wf)
+	assert.Empty(t, unreachableTemplates(wf))
+	invocations := exitHookInvocations(wf)["exit-hook-root-cleanup"]
+	assert.Len(t, invocations, 1, "the exit task must run exactly once, invoked from %v", invocations)
+}
+
+// dependsReferences returns the task names a depends expression refers to.
+func dependsReferences(expr string) []string {
+	var refs []string
+	for _, token := range strings.FieldsFunc(expr, func(r rune) bool {
+		return r == ' ' || r == '(' || r == ')' || r == '&' || r == '|' || r == '!'
+	}) {
+		if name, _, found := strings.Cut(token, "."); found && name != "" {
+			refs = append(refs, name)
+		}
+	}
+	return refs
+}
+
+// assertDependsResolveWithinDAG checks that every depends reference names a
+// task defined in the same DAG. Argo rejects a workflow whose depends names a
+// task the DAG does not define.
+func assertDependsResolveWithinDAG(t *testing.T, wf *wfapi.Workflow) {
+	t.Helper()
+	for _, tmpl := range wf.Spec.Templates {
+		if tmpl.DAG == nil {
+			continue
+		}
+		defined := map[string]bool{}
+		for _, task := range tmpl.DAG.Tasks {
+			defined[task.Name] = true
+		}
+		for _, task := range tmpl.DAG.Tasks {
+			for _, ref := range dependsReferences(task.Depends) {
+				assert.True(t, defined[ref],
+					"template %q task %q depends on %q, which the template does not define: %q",
+					tmpl.Name, task.Name, ref, task.Depends)
+			}
+		}
+	}
+}
+
+// An exit task may depend on another exit task. Exit tasks are compiled into
+// their own templates rather than tasks of the parent DAG, so the gate for a
+// multi-upstream exit task must not emit a depends reference to one.
+func TestChainedExitTasksKeepDependsResolvable(t *testing.T) {
+	wf := compileExitHookPipeline(t,
+		[]string{"produce", "other"},
+		[]exitTask{
+			{name: "first", deps: []string{"produce"}},
+			{name: "second", deps: []string{"first", "other"}},
+		},
+		true,
+	)
+
+	assertDependsResolveWithinDAG(t, wf)
+	assertNoDuplicateTaskNames(t, wf)
+
+	// "second" is left with one dependency this DAG defines, so it keeps the
+	// direct single-upstream shape and no gate is generated for it.
+	assert.Equal(t, "exit-hook-root-second",
+		dagTask(t, wf, "root", "other").Hooks.GetExitHook().Template)
+	assert.Equal(t, "exit-hook-root-first",
+		dagTask(t, wf, "root", "produce").Hooks.GetExitHook().Template)
+	for _, task := range dagTemplate(t, wf, "root").DAG.Tasks {
+		assert.NotContains(t, task.Name, "-upstream-gate",
+			"no gate is needed once the exit-task dependency is dropped")
+		assert.NotContains(t, task.Name, "-upstream-status")
+	}
+
+	// Both exit hooks still run exactly once.
+	for _, name := range []string{"exit-hook-root-first", "exit-hook-root-second"} {
+		assert.Len(t, exitHookInvocations(wf)[name], 1,
+			"%q must run exactly once, invoked from %v", name, exitHookInvocations(wf)[name])
+	}
+	assert.Empty(t, unreachableTemplates(wf))
 }
