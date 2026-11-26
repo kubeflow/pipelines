@@ -2605,9 +2605,13 @@ func (r *ResourceManager) reportWorkflowResource(
 					runId,
 				)
 			}
-			if _, identityError := r.storedWorkflowIdentityForRun(currentRun); identityError != nil {
+			identity, identityError := r.storedWorkflowIdentityForRun(currentRun)
+			if identityError != nil {
 				return nil, identityError
 			}
+			// Best-effort: if the cancellation was committed but the Workflow was never
+			// patched, re-issue the patch before asking the caller to retry.
+			r.reterminateCancelingWorkflow(ctx, currentRun, identity, execSpec)
 			return nil, util.NewUnavailableServerError(
 				errors.New("stored run changed while processing workflow report"),
 				"Failed to report workflow for run %s because the stored run changed concurrently - try again later",
@@ -3289,6 +3293,106 @@ type jsonPatchOperation struct {
 	Op    string `json:"op"`
 	Path  string `json:"path"`
 	Value any    `json:"value,omitempty"`
+}
+
+// reterminateConflictAttempts bounds how often a status update that lands
+// between reading and patching the Workflow is retried.
+const reterminateConflictAttempts = 3
+
+// reterminateCancelingWorkflow re-issues the termination patch when a run's
+// cancellation was committed but its Workflow was never patched, for example
+// because the API server stopped between the two writes. The live Workflow must
+// match the stored UID and the run's retry generation. As in the persistence
+// agent's image pull termination, the patch carries the live uid and
+// resourceVersion as preconditions. Failures are logged, and the caller still
+// returns Unavailable so the persistence agent reports again.
+func (r *ResourceManager) reterminateCancelingWorkflow(
+	ctx context.Context,
+	run *model.Run,
+	identity storedWorkflowIdentity,
+	reported util.ExecutionSpec,
+) {
+	if run.State.ToV2() != model.RuntimeStateCancelling {
+		return
+	}
+
+	name := identity.name
+	namespace := identity.namespace
+	if name == "" {
+		name = reported.ExecutionName()
+	}
+	if namespace == "" {
+		namespace = reported.ExecutionNamespace()
+	}
+	if name == "" || namespace == "" {
+		return
+	}
+	terminatePatch, ok := util.GetTerminatePatch(util.CurrentExecutionType()).(map[string]interface{})
+	if !ok {
+		glog.Warningf("Skip re-terminating workflow for canceling run %q: unsupported execution type", run.UUID)
+		return
+	}
+
+	wfClient := r.getWorkflowClient(namespace)
+	for attempt := 1; attempt <= reterminateConflictAttempts; attempt++ {
+		live, err := wfClient.Get(ctx, name, v1.GetOptions{})
+		if err != nil {
+			glog.Warningf(
+				"Skip re-terminating workflow %q/%q for canceling run %q: failed to get the workflow: %v",
+				namespace, name, run.UUID, err)
+			return
+		}
+		if reason := reterminateSkipReason(run, identity, live); reason != "" {
+			glog.Infof("Skip re-terminating workflow %q/%q for canceling run %q: %s", namespace, name, run.UUID, reason)
+			return
+		}
+
+		patch := map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"uid":             string(live.ExecutionObjectMeta().UID),
+				"resourceVersion": live.Version(),
+			},
+		}
+		for key, value := range terminatePatch {
+			patch[key] = value
+		}
+		patchBytes, err := json.Marshal(patch)
+		if err != nil {
+			glog.Warningf("Skip re-terminating workflow for canceling run %q: failed to marshal the patch: %v", run.UUID, err)
+			return
+		}
+		_, err = wfClient.Patch(ctx, name, types.MergePatchType, patchBytes, v1.PatchOptions{})
+		if err == nil {
+			glog.Infof("Re-terminated workflow %q/%q of canceling run %q", namespace, name, run.UUID)
+			return
+		}
+		if !apierrors.IsConflict(err) {
+			glog.Warningf("Failed to re-terminate workflow %q/%q of canceling run %q: %v", namespace, name, run.UUID, err)
+			return
+		}
+	}
+	glog.Warningf(
+		"Failed to re-terminate workflow %q/%q of canceling run %q: it changed during %d attempts; the next report retries",
+		namespace, name, run.UUID, reterminateConflictAttempts)
+}
+
+// reterminateSkipReason returns why the live Workflow must not be re-terminated
+// for run, or "" when the patch may be sent.
+func reterminateSkipReason(run *model.Run, identity storedWorkflowIdentity, live util.ExecutionSpec) string {
+	liveUID := live.ExecutionObjectMeta().UID
+	switch {
+	case identity.uid == "":
+		return "the run has no stored workflow UID"
+	case identity.uid != liveUID:
+		return fmt.Sprintf("live workflow UID %q does not match stored UID %q", liveUID, identity.uid)
+	case reportedRetryGeneration(live.ExecutionObjectMeta()) != run.RetryGeneration:
+		return fmt.Sprintf("workflow retry generation does not match run retry generation %d", run.RetryGeneration)
+	case live.ExecutionStatus().IsInFinalState() || live.IsTerminating():
+		return "the workflow is already final or terminating"
+	case live.Version() == "":
+		return "the workflow has no resourceVersion"
+	}
+	return ""
 }
 
 // Adds a label only if the workflow still matches the object that reported the

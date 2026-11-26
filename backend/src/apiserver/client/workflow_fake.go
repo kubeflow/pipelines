@@ -173,6 +173,11 @@ func (c *FakeWorkflowClient) Patch(ctx context.Context, name string, pt types.Pa
 
 	var dat map[string]interface{}
 	json.Unmarshal(data, &dat)
+	if pt == types.MergePatchType {
+		if err := checkFakeMergePatchPreconditions(workflow, name, dat); err != nil {
+			return nil, err
+		}
+	}
 
 	// TODO: Should we actually assert the type here, or just panic if it's wrong?
 
@@ -271,4 +276,19 @@ func (c *FakeBadWorkflowClient) Update(ctx context.Context, workflow util.Execut
 
 func (c *FakeBadWorkflowClient) Delete(ctx context.Context, name string, options v1.DeleteOptions) error {
 	return errors.New("failed to delete workflow")
+}
+
+// checkFakeMergePatchPreconditions mirrors the API server for merge patches that
+// carry metadata preconditions: a different uid is rejected as an invalid
+// change to an immutable field, and a stale resourceVersion as a conflict.
+func checkFakeMergePatchPreconditions(workflow *v1alpha1.Workflow, name string, patch map[string]interface{}) error {
+	metadata, _ := patch["metadata"].(map[string]interface{})
+	if uid, ok := metadata["uid"].(string); ok && uid != string(workflow.UID) {
+		return k8errors.NewInvalid(k8schema.GroupKind{Group: "argoproj.io", Kind: "Workflow"}, name, nil)
+	}
+	if resourceVersion, ok := metadata["resourceVersion"].(string); ok && resourceVersion != workflow.ResourceVersion {
+		return k8errors.NewConflict(k8schema.ParseGroupResource("workflows.argoproj.io"), name,
+			fmt.Errorf("the object has been modified; please apply your changes to the latest version and try again"))
+	}
+	return nil
 }
