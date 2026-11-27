@@ -5,7 +5,10 @@ metadata:
   name: ml-pipeline-ui-signing-key-init
 spec:
   backoffLimit: 3
-  activeDeadlineSeconds: 300
+  # No activeDeadlineSeconds: a Job deadline also counts image pull time, so a
+  # slow pull would fail the Job before the initializer starts and leave the UI
+  # waiting for the Secret field indefinitely. Retries stay bounded by
+  # backoffLimit and the initializer's own retry loop.
   template:
     metadata:
       labels:
