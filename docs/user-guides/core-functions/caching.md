@@ -67,12 +67,11 @@ client.create_run_from_pipeline_func(
     enable_caching=True,  # overrides the above disabling of caching
 )
 
-# Also works for a pipeline uploaded earlier.
+# Also works for a pipeline uploaded earlier. Without version_id, the
+# pipeline's default version is used.
 client.run_pipeline(
-    experiment_id=experiment_id,
     job_name='hello-no-cache',
-    pipeline_id=pipeline_id,
-    version_id=version_id,
+    pipeline_id=client.get_pipeline_id('hello-pipeline'),
     enable_caching=False,
 )
 ```

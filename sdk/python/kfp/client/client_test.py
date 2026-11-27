@@ -19,6 +19,7 @@ import tempfile
 import textwrap
 import unittest
 from logging import WARNING
+from typing import Any, Optional
 from unittest.mock import MagicMock, Mock, patch
 
 import kubernetes as k8s
@@ -1700,17 +1701,19 @@ class TestCreateJobConfigPipelineVersionReference(parameterized.TestCase):
 class TestEnableCachingByReference(parameterized.TestCase):
     """The server applies enable_caching for pipeline_id/version_id."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.client = client.Client(namespace='ns1')
 
     @staticmethod
-    def _wire_runtime_config(body):
+    def _wire_runtime_config(
+        body: kfp.server_api.V2Run | kfp.server_api.V2RecurringRun,
+    ) -> dict:
         return kfp.server_api.ApiClient().sanitize_for_serialization(
             body.runtime_config
         )
 
-    def _run_pipeline(self, **kwargs):
+    def _run_pipeline(self, **kwargs: Any) -> kfp.server_api.V2Run:
         with patch.object(
             self.client._run_api, 'run_service_create_run'
         ) as mock_create:
@@ -1719,7 +1722,9 @@ class TestEnableCachingByReference(parameterized.TestCase):
             )
         return mock_create.call_args.kwargs['run']
 
-    def _create_recurring_run(self, **kwargs):
+    def _create_recurring_run(
+        self, **kwargs: Any
+    ) -> kfp.server_api.V2RecurringRun:
         with patch.object(
             self.client._recurring_run_api,
             'recurring_run_service_create_recurring_run',
@@ -1737,7 +1742,9 @@ class TestEnableCachingByReference(parameterized.TestCase):
         (False, {'parameters': {}, 'enable_caching': False}),
         (True, {'parameters': {}, 'enable_caching': True}),
     )
-    def test_run_pipeline_sends_override(self, enable_caching, expected):
+    def test_run_pipeline_sends_override(
+        self, enable_caching: Optional[bool], expected: dict
+    ) -> None:
         run = self._run_pipeline(enable_caching=enable_caching)
 
         self.assertEqual(self._wire_runtime_config(run), expected)
@@ -1748,15 +1755,15 @@ class TestEnableCachingByReference(parameterized.TestCase):
         (True, {'parameters': {}, 'enable_caching': True}),
     )
     def test_create_recurring_run_sends_override(
-        self, enable_caching, expected
-    ):
+        self, enable_caching: Optional[bool], expected: dict
+    ) -> None:
         recurring_run = self._create_recurring_run(
             enable_caching=enable_caching
         )
 
         self.assertEqual(self._wire_runtime_config(recurring_run), expected)
 
-    def test_package_submission_does_not_send_override(self):
+    def test_package_submission_does_not_send_override(self) -> None:
         # Inline specs are rewritten client-side, which keeps package
         # submissions working against servers without the field.
         @component
@@ -1764,7 +1771,7 @@ class TestEnableCachingByReference(parameterized.TestCase):
             return msg
 
         @pipeline(name='package-caching')
-        def package_pipeline():
+        def package_pipeline() -> None:
             echo(msg='hi')
 
         with tempfile.TemporaryDirectory() as tempdir:
@@ -1787,7 +1794,7 @@ class TestEnableCachingByReference(parameterized.TestCase):
         self.assertFalse(task['cachingOptions'].get('enableCache', False))
 
     @staticmethod
-    def _unknown_field_error():
+    def _unknown_field_error() -> kfp.server_api.ApiException:
         error = kfp.server_api.ApiException(status=400, reason='Bad Request')
         error.body = (
             '{"code":3,"message":"proto: (line 1:120): unknown field '
@@ -1795,7 +1802,7 @@ class TestEnableCachingByReference(parameterized.TestCase):
         )
         return error
 
-    def test_run_pipeline_old_server_raises_actionable_error(self):
+    def test_run_pipeline_old_server_raises_actionable_error(self) -> None:
         with patch.object(
             self.client._run_api,
             'run_service_create_run',
@@ -1811,7 +1818,9 @@ class TestEnableCachingByReference(parameterized.TestCase):
         # The override is never silently dropped by retrying without it.
         mock_create.assert_called_once()
 
-    def test_create_recurring_run_old_server_raises_actionable_error(self):
+    def test_create_recurring_run_old_server_raises_actionable_error(
+        self,
+    ) -> None:
         with patch.object(
             self.client._recurring_run_api,
             'recurring_run_service_create_recurring_run',
@@ -1829,7 +1838,7 @@ class TestEnableCachingByReference(parameterized.TestCase):
 
         mock_create.assert_called_once()
 
-    def test_unrelated_bad_request_is_not_rewritten(self):
+    def test_unrelated_bad_request_is_not_rewritten(self) -> None:
         error = kfp.server_api.ApiException(status=400, reason='Bad Request')
         error.body = '{"code":3,"message":"invalid pipeline version"}'
         with patch.object(
