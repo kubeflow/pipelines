@@ -865,11 +865,14 @@ class Client:
                 run. If not set, defaults to the compile-time settings, which
                 is ``True`` for all tasks by default. If set, the
                 setting applies to all tasks in the pipeline (overrides the
-                compile time settings).
+                compile time settings). For ``pipeline_id`` / ``version_id``
+                submissions, the API server applies the override, so it
+                requires a KFP backend that supports it.
             cache_key (optional): Customized cache key for tasks.
                 The customized cache key is combined with component reference identity
                 to prevent cross-component cache collisions, overriding automatic
-                task fingerprinting.
+                task fingerprinting. Only applied to ``pipeline_package_path``
+                submissions.
             service_account: Specifies which Kubernetes service
                 account to use for this run.
             namespace: Kubernetes namespace to place the run in when
@@ -906,7 +909,11 @@ class Client:
             plugins_input=plugins_input,
         )
 
-        response = self._run_api.run_service_create_run(run=run_body)
+        try:
+            response = self._run_api.run_service_create_run(run=run_body)
+        except kfp.server_api.ApiException as error:
+            _raise_if_enable_caching_unsupported(error, job_config)
+            raise
 
         link = f'{self._get_url_prefix()}/#/runs/details/{response.run_id}'
         if auth.is_ipython():
@@ -1028,11 +1035,14 @@ class Client:
                 is ``True`` for all tasks by default, while users may specify
                 different caching options for individual tasks. If set, the
                 setting applies to all tasks in the pipeline (overrides the
-                compile time settings).
+                compile time settings). For ``pipeline_id`` / ``version_id``
+                submissions, the API server applies the override, so it
+                requires a KFP backend that supports it.
             cache_key (optional): Customized cache key for tasks.
                 The customized cache key is combined with component reference identity
                 to prevent cross-component cache collisions, overriding automatic
-                task fingerprinting.
+                task fingerprinting. Only applied to ``pipeline_package_path``
+                submissions.
             service_account: Specifies which Kubernetes service
                 account this recurring run uses.
             namespace: Kubernetes namespace to place the recurring run in when
@@ -1100,11 +1110,13 @@ class Client:
             service_account=service_account,
             plugins_input=plugins_input,
         )
-        return (
-            self._recurring_run_api.recurring_run_service_create_recurring_run(
+        try:
+            return self._recurring_run_api.recurring_run_service_create_recurring_run(
                 recurring_run=job_body
             )
-        )
+        except kfp.server_api.ApiException as error:
+            _raise_if_enable_caching_unsupported(error, job_config)
+            raise
 
     def _create_job_config(
         self,
@@ -1183,6 +1195,15 @@ class Client:
         runtime_config = kfp.server_api.V2RuntimeConfig(
             pipeline_root=pipeline_root,
             parameters=params,
+            # The server applies the override to a referenced pipeline
+            # version. Inline specs were already rewritten above, so the
+            # field is only sent for references and older servers keep
+            # accepting package submissions.
+            enable_caching=(
+                enable_caching
+                if pipeline_version_reference is not None
+                else None
+            ),
         )
         return _JobConfig(
             pipeline_spec=pipeline_spec,
@@ -2049,6 +2070,33 @@ def _extract_pipeline_yaml(package_file: str) -> _PipelineDoc:
             f'The package_file {package_file} should end with one of the '
             'following formats: [.tar.gz, .tgz, .zip, .yaml, .yml].'
         )
+
+
+def _raise_if_enable_caching_unsupported(
+    error: kfp.server_api.ApiException,
+    job_config: _JobConfig,
+) -> None:
+    """Raises an actionable error when the server predates
+    ``RuntimeConfig.enable_caching``.
+
+    Older API servers reject unknown request fields with HTTP 400. The
+    override is not retried without the field, because that would run
+    the pipeline with caching settings the caller did not ask for.
+    """
+    if job_config.runtime_config.enable_caching is None:
+        return
+    if error.status != 400:
+        return
+    body = str(error.body or '')
+    if 'unknown field' not in body or 'enable_caching' not in body:
+        return
+    raise RuntimeError(
+        'The KFP API server does not support enable_caching for runs or '
+        'recurring runs created from an uploaded pipeline (pipeline_id / '
+        'version_id). Upgrade the KFP backend, or submit the pipeline '
+        'package with pipeline_package_path so the SDK can apply the '
+        'override client-side, or omit enable_caching.'
+    ) from error
 
 
 def _override_caching_options(

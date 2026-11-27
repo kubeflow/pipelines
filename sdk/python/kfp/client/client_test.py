@@ -19,6 +19,7 @@ import tempfile
 import textwrap
 import unittest
 from logging import WARNING
+from typing import Any, Optional
 from unittest.mock import MagicMock, Mock, patch
 
 import kubernetes as k8s
@@ -1695,6 +1696,158 @@ class TestCreateJobConfigPipelineVersionReference(parameterized.TestCase):
                 cache_key=None,
                 pipeline_root=None,
             )
+
+
+class TestEnableCachingByReference(parameterized.TestCase):
+    """The server applies enable_caching for pipeline_id/version_id."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.client = client.Client(namespace='ns1')
+
+    @staticmethod
+    def _wire_runtime_config(
+        body: kfp.server_api.V2Run | kfp.server_api.V2RecurringRun,
+    ) -> dict:
+        return kfp.server_api.ApiClient().sanitize_for_serialization(
+            body.runtime_config
+        )
+
+    def _run_pipeline(self, **kwargs: Any) -> kfp.server_api.V2Run:
+        with patch.object(
+            self.client._run_api, 'run_service_create_run'
+        ) as mock_create:
+            self.client.run_pipeline(
+                job_name='run1', pipeline_id='p1', version_id='v1', **kwargs
+            )
+        return mock_create.call_args.kwargs['run']
+
+    def _create_recurring_run(
+        self, **kwargs: Any
+    ) -> kfp.server_api.V2RecurringRun:
+        with patch.object(
+            self.client._recurring_run_api,
+            'recurring_run_service_create_recurring_run',
+        ) as mock_create:
+            self.client.create_recurring_run(
+                job_name='recurring1',
+                pipeline_id='p1',
+                interval_second=3600,
+                **kwargs,
+            )
+        return mock_create.call_args.kwargs['recurring_run']
+
+    @parameterized.parameters(
+        (None, {'parameters': {}}),
+        (False, {'parameters': {}, 'enable_caching': False}),
+        (True, {'parameters': {}, 'enable_caching': True}),
+    )
+    def test_run_pipeline_sends_override(
+        self, enable_caching: Optional[bool], expected: dict
+    ) -> None:
+        run = self._run_pipeline(enable_caching=enable_caching)
+
+        self.assertEqual(self._wire_runtime_config(run), expected)
+
+    @parameterized.parameters(
+        (None, {'parameters': {}}),
+        (False, {'parameters': {}, 'enable_caching': False}),
+        (True, {'parameters': {}, 'enable_caching': True}),
+    )
+    def test_create_recurring_run_sends_override(
+        self, enable_caching: Optional[bool], expected: dict
+    ) -> None:
+        recurring_run = self._create_recurring_run(
+            enable_caching=enable_caching
+        )
+
+        self.assertEqual(self._wire_runtime_config(recurring_run), expected)
+
+    def test_package_submission_does_not_send_override(self) -> None:
+        # Inline specs are rewritten client-side, which keeps package
+        # submissions working against servers without the field.
+        @component
+        def echo(msg: str) -> str:
+            return msg
+
+        @pipeline(name='package-caching')
+        def package_pipeline() -> None:
+            echo(msg='hi')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            Compiler().compile(
+                pipeline_func=package_pipeline, package_path=package_path
+            )
+            with patch.object(
+                self.client._run_api, 'run_service_create_run'
+            ) as mock_create:
+                self.client.run_pipeline(
+                    job_name='run1',
+                    pipeline_package_path=package_path,
+                    enable_caching=False,
+                )
+
+        run = mock_create.call_args.kwargs['run']
+        self.assertNotIn('enable_caching', self._wire_runtime_config(run))
+        task = run.pipeline_spec['root']['dag']['tasks']['echo']
+        self.assertFalse(task['cachingOptions'].get('enableCache', False))
+
+    @staticmethod
+    def _unknown_field_error() -> kfp.server_api.ApiException:
+        error = kfp.server_api.ApiException(status=400, reason='Bad Request')
+        error.body = (
+            '{"code":3,"message":"proto: (line 1:120): unknown field '
+            '\\"enable_caching\\""}'
+        )
+        return error
+
+    def test_run_pipeline_old_server_raises_actionable_error(self) -> None:
+        with patch.object(
+            self.client._run_api,
+            'run_service_create_run',
+            side_effect=self._unknown_field_error(),
+        ) as mock_create:
+            with self.assertRaisesRegex(
+                RuntimeError, 'does not support enable_caching'
+            ):
+                self.client.run_pipeline(
+                    job_name='run1', pipeline_id='p1', enable_caching=False
+                )
+
+        # The override is never silently dropped by retrying without it.
+        mock_create.assert_called_once()
+
+    def test_create_recurring_run_old_server_raises_actionable_error(
+        self,
+    ) -> None:
+        with patch.object(
+            self.client._recurring_run_api,
+            'recurring_run_service_create_recurring_run',
+            side_effect=self._unknown_field_error(),
+        ) as mock_create:
+            with self.assertRaisesRegex(
+                RuntimeError, 'does not support enable_caching'
+            ):
+                self.client.create_recurring_run(
+                    job_name='recurring1',
+                    pipeline_id='p1',
+                    interval_second=3600,
+                    enable_caching=True,
+                )
+
+        mock_create.assert_called_once()
+
+    def test_unrelated_bad_request_is_not_rewritten(self) -> None:
+        error = kfp.server_api.ApiException(status=400, reason='Bad Request')
+        error.body = '{"code":3,"message":"invalid pipeline version"}'
+        with patch.object(
+            self.client._run_api, 'run_service_create_run', side_effect=error
+        ):
+            with self.assertRaises(kfp.server_api.ApiException):
+                self.client.run_pipeline(
+                    job_name='run1', pipeline_id='p1', enable_caching=False
+                )
 
 
 if __name__ == '__main__':
