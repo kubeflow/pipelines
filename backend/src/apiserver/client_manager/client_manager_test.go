@@ -37,6 +37,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
+	sqldrv "github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 )
@@ -1040,4 +1041,95 @@ func TestBackfillPipelineRefs_RestartsAfterPartialCommit(t *testing.T) {
 	applied, err = migrationApplied(db, backfillPipelineRefsMigration)
 	require.NoError(t, err)
 	require.True(t, applied)
+}
+
+// TestInterruptedLegacyUpgradeIsResumed reproduces issue #15513
+// if the server stops after Step 4 (which shrinks pipelines.UUID),
+// the next start should still recognize the database as legacy and finish the remaining steps.
+func TestInterruptedLegacyUpgradeIsResumed(t *testing.T) {
+	// Please set KFP_TEST_MYSQL_ADDR in your environment if it is different from 127.0.0.1:3306
+	addr := os.Getenv("KFP_TEST_MYSQL_ADDR")
+	if addr == "" {
+		addr = "127.0.0.1:3306"
+	}
+	const testDBName = "kfp_test_legacy_upgrade"
+
+	admin, err := gorm.Open(mysql.Open("root:root@tcp("+addr+")/?parseTime=true"), &gorm.Config{})
+	if err != nil {
+		t.Skipf("no MySQL available at %q, skipping: %v", addr, err)
+	}
+	if err := admin.Exec("DROP DATABASE IF EXISTS " + testDBName).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := admin.Exec("CREATE DATABASE " + testDBName).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	defer admin.Exec("DROP DATABASE IF EXISTS " + testDBName)
+
+	db, err := gorm.Open(mysql.Open("root:root@tcp("+addr+")/"+testDBName+"?parseTime=true"), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Build a legacy shaped pipelines table (UUID > 64)
+	if err := db.Exec("CREATE TABLE pipelines (UUID varchar(255) NOT NULL PRIMARY KEY, Name varchar(255) NOT NULL, Namespace varchar(255) NOT NULL)").Error; err != nil {
+		t.Fatal(err)
+	}
+
+	// Check if the stage is actually (should be true)
+	legacy, err := isLegacySchema(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !legacy {
+		t.Fatal("setup is wrong: a long UUID column should be detected as legacy")
+	}
+
+	// run steps 2-4 of runLegacyUpgradeFlow and then stop
+	dialect := sqldrv.NewDBDialect("mysql")
+	if err := dropAllFKConstraints(db, "mysql"); err != nil {
+		t.Fatal(err)
+	}
+	if err := dropLegacyIndexes(db, dialect); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := db.AutoMigrate(&model.MigrationStatus{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.MigrationStatus{
+		Name:           "legacy_upgrade_started",
+		AppliedAtInSec: 1,
+		ClaimToken:     "test",
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	if err := shrinkColumns(db, validation.LengthSpecs); err != nil {
+		t.Logf("shrinkColumns returned %v", err)
+	}
+
+	// The column has already been shrinked, so without the fix this should return false. With the fix done, this should return true
+	legacy, err = isLegacySchema(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !legacy {
+		t.Fatal("BUG: an interrupted legacy upgrade is no longer detected as legacy; the remaining steps would be skipped")
+	}
+
+	// trying to restart the flow again
+	if err := runLegacyUpgradeFlow(db, dialect); err != nil {
+		t.Fatalf("resumed upgrade failed: %v", err)
+	}
+
+	// the upgrade is now complete, so the database should no longer be legacy
+	legacy, err = isLegacySchema(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if legacy {
+		t.Error("schema is still reported as legacy after the upgrade finished!")
+	}
 }
