@@ -291,7 +291,9 @@ export function triggerDisplayString(trigger?: TriggerSchedule): string {
       const secInMonth = secInDay * 30;
       const months = Math.floor(+intervalSecond / secInMonth);
       const weeks = Math.floor((+intervalSecond % secInMonth) / secInWeek);
-      const days = Math.floor((+intervalSecond % secInWeek) / secInDay);
+      // A month (30 days) is not a whole number of weeks, so the days have to
+      // be taken from what is left after the months and weeks.
+      const days = Math.floor(((+intervalSecond % secInMonth) % secInWeek) / secInDay);
       const hours = Math.floor((+intervalSecond % secInDay) / secInHour);
       const minutes = Math.floor((+intervalSecond % secInHour) / secInMin);
       const seconds = Math.floor(+intervalSecond % secInMin);

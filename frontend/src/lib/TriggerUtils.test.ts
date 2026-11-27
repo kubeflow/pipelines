@@ -397,7 +397,22 @@ describe('TriggerUtils', () => {
       const trigger: TriggerSchedule = {
         periodic_schedule: { interval_second: (80 * 24 * 60 * 60).toString() },
       };
-      expect(triggerDisplayString(trigger)).toBe('Every 2 months, 2 weeks, and 3 days');
+      // 80 days = 2 * 30 + 2 * 7 + 6.
+      expect(triggerDisplayString(trigger)).toBe('Every 2 months, 2 weeks, and 6 days');
+    });
+
+    it('counts the days left after the months', () => {
+      const trigger: TriggerSchedule = {
+        periodic_schedule: { interval_second: (31 * 24 * 60 * 60).toString() },
+      };
+      expect(triggerDisplayString(trigger)).toBe('Every 1 months, and 1 days');
+    });
+
+    it('keeps the days when the total is a whole number of weeks', () => {
+      const trigger: TriggerSchedule = {
+        periodic_schedule: { interval_second: (35 * 24 * 60 * 60 + 60 * 60).toString() },
+      };
+      expect(triggerDisplayString(trigger)).toBe('Every 1 months, 5 days, and 1 hours');
     });
   });
 });
