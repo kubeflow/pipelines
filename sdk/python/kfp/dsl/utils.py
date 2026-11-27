@@ -162,4 +162,4 @@ def normalize_resource_quantity(value: str) -> Optional[str]:
         return None
     if value.endswith('K'):
         value = value[:-1] + 'k'
-    return value if _RESOURCE_QUANTITY_PATTERN.match(value) else None
+    return value if _RESOURCE_QUANTITY_PATTERN.fullmatch(value) else None

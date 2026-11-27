@@ -196,6 +196,27 @@ class PipelineTaskTest(parameterized.TestCase):
         self.assertEqual(expected_cpu, task.container_spec.resources.cpu_limit)
 
     @parameterized.parameters(
+        {'cpu': 2},
+        {'cpu': 2.5},
+        {'cpu': None},
+        {'cpu': ''},
+        {'cpu': 'abc'},
+        {'cpu': '2\n'},
+        {'cpu': '500m\n'},
+    )
+    def test_set_invalid_cpu_request_limit(self, cpu):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML
+            ),
+            args={'input1': 'value'},
+        )
+        with self.assertRaisesRegex(ValueError, 'Invalid cpu string'):
+            task.set_cpu_request(cpu)
+        with self.assertRaisesRegex(ValueError, 'Invalid cpu string'):
+            task.set_cpu_limit(cpu)
+
+    @parameterized.parameters(
         {
             'gpu_limit': '1',
             'expected_gpu_number': '1',
@@ -287,6 +308,8 @@ class PipelineTaskTest(parameterized.TestCase):
         {'limit': 'abc'},
         {'limit': '1.5'},
         {'limit': '-1'},
+        {'limit': '1\n'},
+        {'limit': '\u0663'},
         # Numeric floats must be rejected at call time, not at compile time.
         {'limit': 1.5},
         {'limit': 2.0},

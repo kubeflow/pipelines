@@ -190,6 +190,8 @@ class NormalizeResourceQuantityTest(parameterized.TestCase):
         '1e',
         '0x10',
         '.',
+        '1Gi\n',
+        '1000\n',
         None,
         10,
     )
