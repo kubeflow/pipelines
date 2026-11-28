@@ -217,6 +217,37 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
             ),
         )
 
+    def test_make_index_url_options_shell_quotes_values(self):
+        index_url = 'https://packages.example.com/simple?token=abc&region=us'
+        extra_index_url = (
+            'https://mirror.example.com/simple?token=xyz&region=eu'
+        )
+        trusted_host = 'packages.example.com&mirror'
+
+        result = component_factory.make_index_url_options(
+            [index_url, extra_index_url],
+            [trusted_host],
+        )
+
+        expected = (
+            f"--index-url '{index_url}' "
+            f"--extra-index-url '{extra_index_url}' "
+            f"--trusted-host '{trusted_host}' "
+        )
+        self.assertEqual(result, expected)
+
+    def test_shell_quoted_index_url_survives_sh_c_wrapping(self):
+        url = 'https://packages.example.com/simple?token=abc&region=us'
+
+        command = component_factory._get_packages_to_install_command(
+            packages_to_install=['package1'],
+            pip_index_urls=[url],
+        )
+
+        self.assertEqual(command[0], 'sh')
+        self.assertEqual(command[1], '-c')
+        self.assertIn(f"--index-url '{url}'", command[2])
+
     def test_with_packages_to_install_with_pip_index_url_and_trusted_host(self):
         packages_to_install = ['package1', 'package2']
         pip_index_urls = ['https://myurl.org/simple']
