@@ -343,13 +343,32 @@ func ResolveInputParameter(
 			}
 			// When a constant runtime value is a pipeline channel, then we expect the source value to be found
 			// via the pipeline channel's key within this task's inputs.
-			isMatch, isPipelineChannel, paramName := common.ParsePipelineParam(v.GetStringValue())
-			if isMatch && isPipelineChannel {
+			resolveChannel := func(paramName string) (*apiv2.PipelineTask_InputOutputs_IOParameter, apiv2.IOType, error) {
 				channelParamSpec, ok := opts.Task.Inputs.GetParameters()[paramName]
 				if !ok {
-					return nil, apiv2.IOType_RUNTIME_VALUE_INPUT, fmt.Errorf("pipeline channel %s not found in task %s", v.GetStringValue(), opts.TaskName)
+					return nil, apiv2.IOType_RUNTIME_VALUE_INPUT, fmt.Errorf("pipeline channel %s not found in task %s", paramName, opts.TaskName)
 				}
 				return ResolveInputParameter(opts, channelParamSpec, inputParams)
+			}
+			valStr = v.GetStringValue()
+			isMatch, isPipelineChannel, paramName := common.ParsePipelineParam(valStr)
+			if isMatch && isPipelineChannel && valStr == "{{$.inputs.parameters['"+paramName+"']}}" {
+				// The whole constant is one channel, so keep the channel value's type.
+				return resolveChannel(paramName)
+			}
+			// Otherwise the constant is a template (e.g. an f-string), so splice each channel's text into it.
+			interpolated, err := common.ReplacePipelineChannels(valStr, func(paramName string) (string, error) {
+				resolved, _, err := resolveChannel(paramName)
+				if err != nil {
+					return "", err
+				}
+				return util.PBValueToText(resolved.GetValue())
+			})
+			if err != nil {
+				return nil, apiv2.IOType_RUNTIME_VALUE_INPUT, err
+			}
+			if interpolated != valStr {
+				v = structpb.NewStringValue(interpolated)
 			}
 
 			ioParameter := &apiv2.PipelineTask_InputOutputs_IOParameter{

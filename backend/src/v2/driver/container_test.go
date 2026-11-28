@@ -385,3 +385,20 @@ func TestCachedArtifactSchemaReconstruction(t *testing.T) {
 		})
 	}
 }
+
+func TestContainer_InterpolatesPipelineChannelsInConstantInputs(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{
+		ParameterValues: map[string]*structpb.Value{"name": structpb.NewStringValue("world")},
+	}, "../../../../test_data/sdk_compiled_pipelines/valid/essential/pipeline_with_params_containing_format.yaml")
+
+	printOp, _ := tc.RunContainerDriver("print-op", tc.RootTask, nil, false)
+	require.Equal(t, "Hello world", printOp.ExecutorInput.GetInputs().GetParameterValues()["text"].GetStringValue())
+	outputPath := printOp.ExecutorInput.GetOutputs().GetParameters()["Output"].GetOutputFile()
+	tc.RunLauncher(printOp, map[string][]byte{
+		"/tmp/kfp_outputs/output_metadata.json": []byte("{}"),
+		outputPath:                              []byte("Hello world"),
+	}, true)
+
+	printOp2, _ := tc.RunContainerDriver("print-op-2", tc.RootTask, nil, true)
+	require.Equal(t, "Hello world, again.", printOp2.ExecutorInput.GetInputs().GetParameterValues()["text"].GetStringValue())
+}

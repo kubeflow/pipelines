@@ -217,6 +217,25 @@ func ParsePipelineParam(s string) (bool, bool, string) {
 	return true, isPipelineChannel(paramName), paramName
 }
 
+// ReplacePipelineChannels replaces every pipeline channel placeholder embedded in s with the
+// text returned by resolve. Other input parameter placeholders are left unchanged.
+func ReplacePipelineChannels(s string, resolve func(paramName string) (string, error)) (string, error) {
+	var resolveErr error
+	replaced := paramPattern.ReplaceAllStringFunc(s, func(placeholder string) string {
+		paramName := paramPattern.FindStringSubmatch(placeholder)[1]
+		if resolveErr != nil || !isPipelineChannel(paramName) {
+			return placeholder
+		}
+		text, err := resolve(paramName)
+		if err != nil {
+			resolveErr = err
+			return placeholder
+		}
+		return text
+	})
+	return replaced, resolveErr
+}
+
 // extractParameterName extracts the inner value inside the brackets ['...']
 // e.g. returns "pipelinechannel--cpu_limit" from "{{$.inputs.parameters['pipelinechannel--cpu_limit']}}"
 func extractParameterName(s string) (string, bool) {

@@ -71,6 +71,53 @@ func TestResolveInputParameter_RuntimePipelineJobTimes(t *testing.T) {
 	}
 }
 
+// The SDK compiles f-strings and str.format() arguments that reference pipeline channels into a
+// constant with embedded placeholders plus a pipelinechannel--* task input for each channel.
+func TestResolveInputParameter_ConstantWithEmbeddedPipelineChannels(t *testing.T) {
+	parentTask := &apiv2.PipelineTask{TaskId: "parent-task", Name: "parent"}
+	parentInputs := []*apiv2.PipelineTask_InputOutputs_IOParameter{
+		{ParameterKey: "name", Value: structpb.NewStringValue("world")},
+		{ParameterKey: "other", Value: structpb.NewStringValue("KFP")},
+		{ParameterKey: "num", Value: structpb.NewNumberValue(3)},
+	}
+	opts := common.Options{
+		ParentTask: parentTask,
+		Run:        &apiv2.Run{RunId: "run-1"},
+		Task: &pipelinespec.PipelineTaskSpec{Inputs: &pipelinespec.TaskInputsSpec{
+			Parameters: map[string]*pipelinespec.TaskInputsSpec_InputParameterSpec{
+				"pipelinechannel--name":  common.InputParamComponent("name"),
+				"pipelinechannel--other": common.InputParamComponent("other"),
+				"pipelinechannel--num":   common.InputParamComponent("num"),
+			},
+		}},
+	}
+	channel := func(name string) string { return "{{$.inputs.parameters['pipelinechannel--" + name + "']}}" }
+
+	tests := []struct {
+		name     string
+		constant string
+		want     *structpb.Value
+	}{
+		{"prefix text", "Hello " + channel("name"), structpb.NewStringValue("Hello world")},
+		{"suffix text", channel("name") + ", again.", structpb.NewStringValue("world, again.")},
+		{"two channels", channel("name") + "-" + channel("other"), structpb.NewStringValue("world-KFP")},
+		{"number inside text", "n=" + channel("num"), structpb.NewStringValue("n=3")},
+		{"non-channel placeholder kept", "{{$.inputs.parameters['x']}} " + channel("name"), structpb.NewStringValue("{{$.inputs.parameters['x']}} world")},
+		{"single channel", channel("name"), structpb.NewStringValue("world")},
+		{"single channel keeps type", channel("num"), structpb.NewNumberValue(3)},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			resolved, _, err := ResolveInputParameter(opts, common.InputParamConstant(test.constant), parentInputs)
+			require.NoError(t, err)
+			assert.Equal(t, test.want.AsInterface(), resolved.GetValue().AsInterface())
+		})
+	}
+
+	_, _, err := ResolveInputParameter(opts, common.InputParamConstant("Hello "+channel("missing")), parentInputs)
+	require.ErrorContains(t, err, "pipelinechannel--missing")
+}
+
 func TestResolveTaskOutputParameter_FindsIterationScopedNonRuntimeProducer(t *testing.T) {
 	tests := []struct {
 		name         string
