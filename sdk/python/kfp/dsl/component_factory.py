@@ -21,6 +21,7 @@ import itertools
 import os
 import pathlib
 import re
+import shlex
 import tarfile
 import textwrap
 import typing
@@ -117,15 +118,15 @@ def make_index_url_options(
     index_url = pip_index_urls[0]
     extra_index_urls = pip_index_urls[1:]
 
-    options = [f'--index-url {index_url}']
+    options = [f'--index-url {shlex.quote(index_url)}']
     options.extend(
-        f'--extra-index-url {extra_index_url}'
+        f'--extra-index-url {shlex.quote(extra_index_url)}'
         for extra_index_url in extra_index_urls
     )
 
     if pip_trusted_hosts:
         options.extend(
-            f'--trusted-host {trusted_host}'
+            f'--trusted-host {shlex.quote(trusted_host)}'
             for trusted_host in pip_trusted_hosts
         )
 
