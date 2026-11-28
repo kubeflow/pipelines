@@ -1985,6 +1985,72 @@ func TestUploadOutputArtifacts_PreservesCustomSchemaTitle(t *testing.T) {
 	assert.Equal(t, "google.VertexModel", artifact.GetMetadata()[artifactSchemaTitleMetadataKey].GetStringValue())
 }
 
+func TestUploadOutputArtifacts_SkipsNonNumericMetricValues(t *testing.T) {
+	launcher := &LauncherV2{
+		executorInput: &pipelinespec.ExecutorInput{
+			Outputs: &pipelinespec.ExecutorInput_Outputs{
+				Artifacts: map[string]*pipelinespec.ArtifactList{
+					"metrics": {
+						Artifacts: []*pipelinespec.RuntimeArtifact{{
+							Name: "metrics",
+							Uri:  "s3://bucket/output/metrics",
+							Type: &pipelinespec.ArtifactTypeSchema{
+								Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Metrics"},
+							},
+						}},
+					},
+					"dataset": {
+						Artifacts: []*pipelinespec.RuntimeArtifact{{
+							Name: "dataset",
+							Uri:  "oci://registry.domain.local/org/dataset:v1",
+							Type: &pipelinespec.ArtifactTypeSchema{
+								Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"},
+							},
+						}},
+					},
+				},
+			},
+		},
+		options: LauncherV2Options{
+			Namespace: "default",
+			Run:       &apiv2.Run{RunId: "run-1"},
+			Task:      &apiv2.PipelineTask{TaskId: "task-1"},
+		},
+		batchUpdater: NewBatchUpdater(),
+		objectStore:  NewMockObjectStoreClient(),
+	}
+
+	// Metrics.log_metric does not validate its value, so a component can
+	// emit bools, strings or nulls next to numeric metrics.
+	err := launcher.uploadOutputArtifacts(context.Background(), &pipelinespec.ExecutorOutput{
+		Artifacts: map[string]*pipelinespec.ArtifactList{
+			"metrics": {
+				Artifacts: []*pipelinespec.RuntimeArtifact{{
+					Name: "metrics",
+					Uri:  "s3://bucket/output/metrics",
+					Metadata: &structpb.Struct{Fields: map[string]*structpb.Value{
+						"accuracy":  structpb.NewNumberValue(0.9),
+						"converged": structpb.NewBoolValue(true),
+						"model":     structpb.NewStringValue("xgboost"),
+						"auc":       structpb.NewNullValue(),
+					}},
+				}},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	queued := map[string]*apiv2.Artifact{}
+	for _, a := range launcher.batchUpdater.artifacts {
+		queued[a.request.GetProducerKey()+"/"+a.request.GetArtifact().GetName()] = a.request.GetArtifact()
+	}
+	require.Len(t, queued, 2)
+	require.Contains(t, queued, "metrics/accuracy")
+	assert.Equal(t, apiv2.Artifact_Metric, queued["metrics/accuracy"].GetType())
+	assert.InDelta(t, 0.9, queued["metrics/accuracy"].GetNumberValue(), 1e-9)
+	assert.Contains(t, queued, "dataset/dataset")
+}
+
 func TestUploadOutputArtifacts_DoesNotLetExecutorLogsOverwriteRetryQualifiedURI(t *testing.T) {
 	launcher := &LauncherV2{
 		executorInput: &pipelinespec.ExecutorInput{

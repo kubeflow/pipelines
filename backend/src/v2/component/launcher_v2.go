@@ -1041,7 +1041,11 @@ func (l *LauncherV2) uploadOutputArtifacts(
 				for key, value := range outputArtifact.GetMetadata().GetFields() {
 					numVal, ok := value.Kind.(*structpb.Value_NumberValue)
 					if !ok {
-						return fmt.Errorf("metric value %q must be a number, got %T", key, value.Kind)
+						// Metrics.log_metric does not validate values, so skip
+						// non-numeric ones instead of failing a task whose user
+						// code already succeeded.
+						glog.Warningf("Skipping metric %q on output %q: value must be a number, got %T", key, artifactKey, value.Kind)
+						continue
 					}
 					artifact := &apiV2.Artifact{
 						Name:        key,
